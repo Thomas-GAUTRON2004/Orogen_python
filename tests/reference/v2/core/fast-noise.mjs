@@ -3,7 +3,7 @@
 // into a typed array and no per-call object destructuring. Terrain synthesis calls it ~50 times per land cell.
 // (V1's module is left untouched; this one is V2's.)
 
-import { makeRng } from '../../../js/rng.js';
+import { makeRng } from '../js/rng.mjs';
 
 const GRAD = new Float64Array([1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1]);
 

@@ -50,8 +50,37 @@ const other = new Plate(4, 6);
 other.setQuat(q1);
 const rotation = Array.from(frameRotation(plate, other));
 const cap = plate.capInWorld({edgeRad:0.02});
+
+const branchCrust = new CrustRaster(5);
+for (let i=0;i<5;i++) branchCrust.create(i, CrustType.CONTINENT, 0, i+1);
+branchCrust.recordOrogeny(0, OrogenyType.INTRAPLATE, 2, 10, 5);
+branchCrust.recordOrogeny(0, OrogenyType.ANDEAN, 3, 12, 5);
+branchCrust.recordOrogeny(1, OrogenyType.HIMALAYAN, 4, 10, 5);
+branchCrust.recordOrogeny(1, OrogenyType.ARC, 1, 11, 5);
+branchCrust.recordOrogeny(2, OrogenyType.ANDEAN, 4, 10, 5);
+branchCrust.recordOrogeny(2, OrogenyType.RIFT, 1, 30, 5);
+branchCrust.recordOrogeny(3, OrogenyType.TRANSPRESSION, 4, 10, 5);
+branchCrust.recordOrogeny(3, OrogenyType.URAL, 1, 11, 5);
+branchCrust.recordOrogeny(4, OrogenyType.ANDEAN, 4, 10, 5);
+branchCrust.recordOrogeny(4, OrogenyType.HIMALAYAN, 1, 11, 5);
+const crustBranches = Array.from({length:5},(_,i)=>branchCrust.snapshot(i));
+
+function extentCase(coords, occupied, types) {
+  const p = new Plate(8, occupied.length, 2);
+  p.setQuat(q1);
+  for (const i of occupied) p.crust.create(i, types[i], -1, i+1);
+  p.dirty = true;
+  p.refreshExtent(new Float32Array(coords));
+  return {stats:p.stats,count:p.crust.count,dirty:p.dirty,capCenter:p.capCenter,capCos:p.capCos,cap:p.capInWorld({edgeRad:.015})};
+}
+const extents = {
+  empty: extentCase([1,0,0,0,1,0], [], [0,0]),
+  antipodal: extentCase([1,0,0,-1,0,0], [0,1], [CrustType.CRATON,CrustType.OCEAN]),
+  mixed: extentCase([1,0,0,0,1,0,0,0,1,-1,0,0], [0,1,2], [CrustType.CRATON,CrustType.OCEAN,CrustType.CONTINENT,CrustType.OCEAN])
+};
+
 console.log(JSON.stringify({
-  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut,
+  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents,
   plate:{world, local, matrix:Array.from(plate.mat), stats:plate.stats,
          capCenter:plate.capCenter, capCos:plate.capCos, cap, frameRotation:rotation}
 }));

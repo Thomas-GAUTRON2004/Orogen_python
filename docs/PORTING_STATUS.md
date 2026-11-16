@@ -40,7 +40,7 @@ Le portage est réalisé par lots fonctionnels, avec un commit GitHub par étape
 6. **Géologie** : archives, collisions, subduction, volcanisme et dépôts.
 7. **Climat** : circulation, températures, précipitations et biomes.
 8. **Finition et agriculture** : hydrologie, érosion, glace, roches et systèmes agricoles.
-9. **Parité** : fixtures déterministes, tests d'invariants et comparaisons numériques avec le moteur JavaScript.
+9. **Parité** : fixtures déterministes, tests d'invariants et comparaisons numériques avec le moteur JavaScript (banc différentiel initial déjà ajouté pour seed/RNG, quaternions, raster crustal et plaques ; maillage et simulation complète restent à comparer).
 
 L'ordre pourra être ajusté si les dépendances réelles entre modules l'exigent.
 
@@ -63,7 +63,7 @@ Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `dela
 |---|---|---|
 | Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
 | Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler, classification des petits appareils, raster crustal complet, modèle de plaque rigide et conteneur d'état du monde (tableaux d'occupation, frontières, budgets, événements, RNG séparés) publiés. Le monde exige encore une configuration TECTONICS fournie par l'appelant. 31 tests exécutés avec succès sur Python 3.12 dans la dernière CI, y compris les nouveaux tests de topologie, cyclicité et localisation. |
+| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler, classification des petits appareils, raster crustal complet, modèle de plaque rigide et conteneur d'état du monde (tableaux d'occupation, frontières, budgets, événements, RNG séparés) publiés. Le monde exige encore une configuration TECTONICS fournie par l'appelant. 35 tests exécutés avec succès sur Python 3.12 dans la dernière CI, dont 4 comparaisons différentielles exécutant les modules JavaScript originaux embarqués (seed/RNG, quaternions, raster crustal, plaque). |
 | Core V2 | En cours | Primitives numériques, bruit, rotations, géométrie sphérique, génération Fibonacci, projection stéréographique, fermeture du maillage au pôle Nord, triangulation Delaunay via SciPy/Qhull, index spatial, interpolation, graphe et opérations de voisinage. Le backend Delaunay diffère de Delaunator : les invariants sont testés, mais l'identité exacte de connectivité reste à comparer. |
 | Portage des domaines V2 | À faire | À publier par sous-systèmes. |
-| Tests de parité | À faire | Aucun résultat de parité globale revendiqué. |
+| Tests de parité | Partiel | 4 tests différentiels passent contre les sources JS amont embarquées ; Delaunay, TectonicWorld complet et simulations multi-étapes restent à comparer. Aucune parité globale revendiquée. |

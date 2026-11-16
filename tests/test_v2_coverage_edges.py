@@ -45,6 +45,8 @@ def test_seed_parser_edge_cases_and_random_seed_range(monkeypatch):
     assert seed.seed_of(None) == 0
     assert seed.seed_of("Pangaea") == seed.seed_of("Pangaea")
     assert seed.is_word_seed("Pangaea") is True
+    assert seed.seed_of("Pangaea") == seed.seed_of("Pangaea")
+    assert seed.is_word_seed("Pangaea") is True
     assert seed.seed_of("0") == 0
     assert seed.seed_of("1.5") == 1.5
     monkeypatch.setattr(seed.secrets, "randbelow", lambda n: n - 1)

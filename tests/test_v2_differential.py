@@ -154,3 +154,38 @@ def test_plate_frame_transform_and_extent_match_original(original):
     assert plate.capCos == pytest.approx(expected["capCos"], abs=1e-7)
     _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad":0.02})()), expected["cap"])
     _assert_close(rotation.reshape(-1), expected["frameRotation"])
+
+
+def test_plate_kinematics_match_original(original):
+    from orogen.v2.tectonics.kinematics import (
+        lat_lon_to_xyz, xyz_to_lat_lon, omega_from_euler_pole,
+        surface_velocity, speed_cm_yr_at, pose_at_constant_omega, advance_plates,
+    )
+    from orogen.v2.core.rotation import quat_from_axis_angle
+    expected = original["kinematics"]
+    xyz = lat_lon_to_xyz(35, -120)
+    _assert_close(xyz, expected["xyz"], atol=1e-15)
+    ll = xyz_to_lat_lon(*lat_lon_to_xyz(-12, 77))
+    assert ll["lat"] == pytest.approx(expected["latlon"]["lat"], abs=1e-13)
+    assert ll["lon"] == pytest.approx(expected["latlon"]["lon"], abs=1e-13)
+    omega = omega_from_euler_pole(xyz, 4.5)
+    _assert_close(omega, expected["omega"], atol=1e-18)
+    point = lat_lon_to_xyz(-12, 77)
+    _assert_close(surface_velocity(omega, *point), expected["velocity"], atol=1e-18)
+    assert speed_cm_yr_at(omega, *point) == pytest.approx(expected["speed"], abs=1e-13)
+    q0 = quat_from_axis_angle(0, 1, 0, 0.2)
+    _assert_close(pose_at_constant_omega(q0, omega, 3.25), expected["pose"], atol=1e-15)
+    class World: pass
+    class P:
+        alive = True
+        quat = q0
+        omega = omega
+        def set_quat(self, q): self.quat = q
+    class Dead(P):
+        alive = False
+    dead = Dead(); dead.quat = q0; dead.omega = [1,2,3]
+    world = World(); world.plates = [P(), dead]; world.time = 7; world.step = 2
+    advance_plates(world, 1.75)
+    _assert_close(world.plates[0].quat, expected["advanced"], atol=1e-15)
+    _assert_close(world.plates[1].quat, expected["dead"], atol=0)
+    assert world.time == expected["time"] and world.step == expected["step"]

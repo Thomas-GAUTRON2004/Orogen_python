@@ -39,7 +39,7 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 - pré-calcul des anneaux de voisinage ;
 
 Le namespace `orogen.v2.tectonics` comprend maintenant :
-- les constantes et drapeaux de croûte, orogenèse, volcanisme et côtés de ceintures ;
+- les constantes physiques de conversion km/Myr et rad/Myr, les coordonnées de segments de dorsale/zones de fracture, ainsi que les drapeaux de croûte, orogenèse, volcanisme et côtés de ceintures ;
 - le raster de croûte par plaque avec ses champs typés, snapshots/restauration, transferts, subduction et enregistrement des orogenèses ;
 - le modèle de plaque rigide, transformations de repère, calotte de culling et rotations entre plaques ;
 - la cinématique (conversion Euler/vitesse, rotation temporelle des plaques) et l'index spatial d'occupation ;
@@ -62,6 +62,6 @@ Le banc différentiel exécute les sources JavaScript amont embarquées depuis l
 - index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
 - tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
 
-La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **103 tests passés**. La couverture de lignes mesurée sur `orogen.v2` est de **100 %** (1 259 instructions, aucune instruction manquante). La CI impose désormais un seuil bloquant de 100 % via `--cov-fail-under=100` et produit le rapport `coverage.xml`.
+La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **107 tests passés**. La couverture de lignes mesurée sur `orogen.v2` est de **100 %** (1 276 instructions, aucune instruction manquante). La CI impose désormais un seuil bloquant de 100 % via `--cov-fail-under=100` et produit le rapport `coverage.xml`.
 
 La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les sept cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.

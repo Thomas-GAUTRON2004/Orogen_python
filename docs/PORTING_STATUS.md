@@ -85,16 +85,19 @@ Delaunator 5.0.1 explicitly.
 |---|---|---|
 | Upstream scope audit | Complete | V2 source tree inspected; domains and approximate sizes recorded. |
 | Python 1.1.0 package audit | Complete | Existing implementation identified; full compatibility not established. |
-| Python 3.0.1 foundation | In progress | Published package namespace, RNG/seed handling, simplex noise, quaternions, spherical geometry, BFS, spherical indexing, SimMesh, barycentric location, min-heap, Dijkstra, neighbourhood rings, Euler-pole frame, small-device classification, crust raster, rigid-plate model, and tectonic-world state container (occupancy/boundary arrays, budgets, events, independent RNG streams). The world still requires TECTONICS configuration supplied by its caller. **107 tests pass; `orogen.v2` line coverage is 100% (1,276/1,276 statements).** CI now enforces the 100% threshold. |
+| Python 3.0.1 foundation | In progress | Published package namespace, RNG/seed handling, simplex noise, quaternions, spherical geometry, BFS, spherical indexing, SimMesh, barycentric location, min-heap, Dijkstra, neighbourhood rings, Euler-pole frame, small-device classification, crust raster, rigid-plate model, tectonic-world state container (occupancy/boundary arrays, budgets, events, independent RNG streams), and cached world-frame plate-contact geometry. The world still requires TECTONICS configuration supplied by its caller. **107 tests pass; `orogen.v2` line coverage is 100% (1,276/1,276 statements).** CI now enforces the 100% threshold. |
 | V2 core | In progress | Numerical primitives, noise, rotations, spherical geometry, Fibonacci generation, stereographic projection, north-pole mesh closure, SciPy/Qhull Delaunay triangulation, spatial indexing, interpolation, graph and neighbourhood operations. The production backend is SciPy/Qhull. Comparison with Delaunator confirms identical triangles and neighbourhoods for seven resolution/seed pairs (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345). This result is limited to those cases and does not guarantee all seeds or resolutions. |
-| V2 domain porting | Not started | To be delivered subsystem by subsystem. |
+| V2 domain porting | In progress | Tectonic primitives now include claim gathering, polarity, ownership reconstruction, occupancy bins, ridge-segment coordinates, and cached boundary-contact geometry. The complete tectonic step pipeline remains unported. |
 | Compatibility tests | Partial | Differential tests pass against the vendored upstream JavaScript sources; mesh connectivity matches for seven cases. Dynamic TectonicWorld steps and multi-step simulations still need comparison. No claim of full compatibility is made. |
 
 ## Next implementation target
 
-The next major tectonics batch is the upstream `tectonics/step/resolve.js`
+The boundary-contact helper from upstream `tectonics/step/contact.js` is now ported as `orogen.v2.tectonics.contact.contact_at`. It computes the foreign-neighbour normal, selects the across-boundary cell, handles degenerate sliver contacts, and caches results against `occupancyStamp`.
+
+The next major tectonics batch remains the upstream `tectonics/step/resolve.js`
 resolver. It must be ported with its actual dependencies and reference
-semantics, then covered by focused unit and differential tests. Expected areas
+semantics, then covered by focused unit and differential tests. The contact
+helper is a prerequisite for later boundary classification and force calculations; it does not itself resolve collisions or evolve crust. Expected areas
 include plate-claim conflicts, subduction, divergent crust creation, and
 provisional-cell ownership; these behaviours must be confirmed from the
 upstream source before implementation.

@@ -27,7 +27,7 @@ def locate(
     xyz, offsets, adjacency = mesh.xyz, mesh.adj_offset, mesh.adj_list
     centre = int(mesh.index.nearest(x, y, z))
     offset = 3 * centre
-    cx, cy, cz = xyz[offset:offset + 3]
+    cx, cy, cz = (float(value) for value in xyz[offset:offset + 3])
     start, end = int(offsets[centre]), int(offsets[centre + 1])
 
     best_min = -float("inf")

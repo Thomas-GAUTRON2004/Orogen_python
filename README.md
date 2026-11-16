@@ -60,6 +60,6 @@ Le banc différentiel exécute les sources JavaScript amont embarquées depuis l
 - index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
 - tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
 
-La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **68 tests passés**, dont 33 cas de comparaison différentielle avec les modules JavaScript originaux.
+La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **68 tests passés**, dont 37 cas de comparaison différentielle avec les modules JavaScript originaux.
 
 La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les trois cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.

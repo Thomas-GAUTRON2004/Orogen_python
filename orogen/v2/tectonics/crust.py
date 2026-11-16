@@ -1,6 +1,7 @@
 """Per-cell crust history raster ported from Orogen V2 model/crust.js."""
 from __future__ import annotations
 
+import math
 import numpy as np
 
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
@@ -81,10 +82,10 @@ class CrustRaster:
             u = rot[0] * x + rot[1] * y + rot[2] * z
             v = rot[3] * x + rot[4] * y + rot[5] * z
             w = rot[6] * x + rot[7] * y + rot[8] * z
-            length = float(np.hypot(u, v, w)) or 1.0
-            self.farDx[cell] = np.rint(127 * u / length)
-            self.farDy[cell] = np.rint(127 * v / length)
-            self.farDz[cell] = np.rint(127 * w / length)
+            length = math.hypot(u, v, w) or 1.0
+            self.farDx[cell] = math.floor(127 * u / length + 0.5)
+            self.farDy[cell] = math.floor(127 * v / length + 0.5)
+            self.farDz[cell] = math.floor(127 * w / length + 0.5)
 
     def snapshot(self, cell: int) -> list:
         return [field[cell].item() for field in self.fields]

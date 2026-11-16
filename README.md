@@ -1,96 +1,86 @@
 # Orogen Python
 
-A progressive Python port of the **Orogen 3.0.1** engine, based on the upstream
-[planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation)
-repository.
+A progressive Python port of the **Orogen 3.0.1** procedural planetary simulation engine. The implementation is based on the upstream [planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation) repository, release `v3.0.1`.
 
-> **Development status:** The port is not complete. The `port/v3.0.1` branch
-> contains the V2 numerical foundation and an initial set of tests. It does not
-> yet claim full functional equivalence with the JavaScript engine.
+> **Status:** this repository is an incomplete port. The current `orogen.v2` package provides tested numerical and tectonic building blocks; it does not yet generate a complete planet or reproduce the full JavaScript simulation pipeline.
 
-## Version and installation
+## Documentation
 
-Development version: `3.0.1.dev0`. Python 3.10 or later.
+The documentation is organized as a small handbook:
+
+- [Documentation home](docs/README.md) — navigation and project scope.
+- [Getting started](docs/GETTING_STARTED.md) — installation and first operations.
+- [Architecture](docs/ARCHITECTURE.md) — package structure, data flow, and design decisions.
+- [Core API](docs/CORE_API.md) — random numbers, noise, meshes, geometry, and graph algorithms.
+- [Tectonics API](docs/TECTONICS_API.md) — crust, plates, kinematics, and world state.
+- [Testing and compatibility](docs/TESTING.md) — test commands, differential tests, and compatibility limits.
+- [Porting status](docs/PORTING_STATUS.md) — implemented, partial, and outstanding subsystems.
+
+## Requirements
+
+- Python 3.10 or later
+- NumPy 1.24 or later
+- SciPy 1.10 or later
+
+Install the project and its test dependencies:
 
 ```bash
 python -m pip install -e ".[test]"
-
-# Node.js 22+ and Delaunator are required for differential tests.
-npm install --no-save --package-lock=false delaunator@5.0.1
-
-python -m pytest --cov=orogen.v2 --cov-report=term-missing --cov-fail-under=100
 ```
 
-Current numerical dependencies are NumPy and SciPy (Qhull is used for Delaunay
-triangulation). The production triangulation backend differs from JavaScript
-Delaunator. Topology and invariants are tested, but matching connectivity on a
-finite set of shared seeds is not proof of identical output for every seed and
-resolution. Dependencies for future subsystems will be added as those systems
-are ported.
+The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 
-## Currently ported components
+```bash
+npm install --no-save --package-lock=false delaunator@5.0.1
+python -m pytest
+```
 
-The `orogen.v2.core` namespace contains initial Python implementations of the
-following V2 building blocks:
+## Quick example
 
-- Deterministic seed handling and the Park–Miller random number generator.
-- 3D simplex noise and fractal Brownian motion (FBM).
-- Quaternion rotations.
-- An Euler-pole polar frame and small-device memory-budget classification.
-- Spherical geometry.
-- Fibonacci point generation, stereographic projection, and north-pole mesh closure.
-- Delaunay triangulation through SciPy/Qhull and simulation-mesh construction.
-- Spherical spatial indexing and mesh reconstruction from arrays.
-- Breadth-first search (BFS), hop distances, and connected components.
-- Barycentric point location on spherical triangles.
-- A min-heap and Dijkstra propagation in kilometres.
-- Precomputed neighbourhood rings.
+```python
+from orogen.v2.core import FastNoise, build_sim_mesh, make_rng
 
-The `orogen.v2.tectonics` namespace currently contains:
+# Deterministic random stream
+random = make_rng(42)
+print(random())
 
-- Physical conversion constants for km/Myr and rad/Myr, ridge-segment/fracture-zone
-  coordinates, and crust, orogeny, volcanism, and belt-side flags.
-- Per-plate crust rasters with typed fields, snapshots and restoration, transfers,
-  subduction tracking, and orogeny recording.
-- A rigid-plate model, coordinate-frame transformations, culling caps, and
-  inter-plate rotations.
-- Plate kinematics (Euler-pole and velocity conversions, time-based plate
-  rotations) and spatial occupancy indexing.
-- Claim gathering, read-only owner reconstruction, and subduction-polarity rules.
+# Seeded 3-D simplex noise and FBM
+noise = FastNoise(42)
+print(noise.noise3d(0.1, 0.2, 0.3))
+print(noise.fbm(0.1, 0.2, 0.3, octaves=5))
 
-These functions are currently low-level building blocks, not a complete
-tectonic simulation pipeline. TECTONICS configuration defaults, full world
-initialization, the collision/subduction resolver, time-stepping, and the
-terrain, geology, climate, finishing, and agriculture systems remain to be
-ported.
+# Build a spherical simulation mesh
+mesh = build_sim_mesh(num_cells=128, seed=42)
+print(mesh.num_cells, mesh.edge_km, mesh.cell_area_km2)
+```
 
-## Upstream reference
+See [Getting started](docs/GETTING_STARTED.md) for a longer walkthrough and important mesh details.
 
-- Upstream release: `v3.0.1`
-- Upstream commit: `ed466f9db71292e912d8d0160e689a67a994f2d9`
-- License: GPL-3.0-only (see `LICENSE` and `NOTICE.md`).
+## What is implemented
 
-## Tests and compatibility
+### Core (`orogen.v2.core`)
 
-The differential test harness runs vendored JavaScript reference modules from
-upstream tag `v3.0.1`. It currently compares, among other things:
+Deterministic seed parsing and Park–Miller RNG, 3-D simplex noise and FBM, quaternion operations, spherical geometry, Fibonacci sphere generation, stereographic projection, spherical mesh construction, spatial indexing, simulation-mesh helpers, barycentric point location, breadth-first graph operations, neighbourhood rings, a min-heap, and Dijkstra propagation in kilometres.
 
-- Seed parsing, Park–Miller RNG, and simplex/FBM noise.
-- Quaternions, spherical geometry, and the polar frame.
-- Fibonacci generation, stereographic projection, Delaunay topology, and
-  spherical neighbourhoods across seven mesh sizes/seeds.
-- Cube-map indexing, reconstruction from arrays, barycentric location, BFS,
-  neighbourhood rings, min-heap operations, and Dijkstra propagation.
-- Crust-raster fields, copy/transfer/restore operations, plate transforms, and
-  initial tectonic-world state including independent RNG streams.
+### Tectonics (`orogen.v2.tectonics`)
 
-GitHub Actions installs Node.js 22, Delaunator 5.0.1, and Python 3.12. The
-latest verified run completed **107 tests successfully**. Line coverage for
-`orogen.v2` is **100%** (1,276 statements, none missing). CI enforces this
-threshold with `--cov-fail-under=100` and writes a `coverage.xml` report.
+Crust-raster storage and history fields, rigid plate state and coordinate transforms, plate kinematics, occupancy bins, claim gathering, subduction-polarity rules, owner reconstruction, physical conversion constants, and ridge/fracture-zone coordinates.
 
-Full compatibility has not been established. Dynamic tectonic steps,
-multi-step simulations, and the terrain, geology, climate, finishing, and
-agriculture systems have not yet been compared against JavaScript outputs.
-The seven successful Delaunay topology cases do not cover every seed or
-resolution.
+These are components, not a complete simulation. Tectonic configuration defaults, full world initialization, the collision/subduction resolver, time-stepping orchestration, and terrain, geology, climate, finishing, and agriculture pipelines are not yet ported.
+
+## Numerical backend and reproducibility
+
+The production spherical triangulation uses SciPy/Qhull. The upstream JavaScript implementation uses Delaunator. Differential checks currently confirm matching topology for seven selected seed/resolution cases; this is not a guarantee of identical connectivity for every input.
+
+The code preserves upstream deterministic seed and random-number conventions where implemented. Reproducibility still depends on using the same parameters and supported execution paths. See [Architecture](docs/ARCHITECTURE.md#numerical-and-reproducibility-contract) and [Testing](docs/TESTING.md).
+
+## Validation
+
+The current CI suite has verified **107 passing tests** and **100% line coverage** for `orogen.v2` (1,276 statements). CI enforces the 100% threshold. Coverage measures execution of the implemented Python package; it does not measure feature completeness or JavaScript parity.
+
+## Upstream and license
+
+- Upstream: [raguilar011095/planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation)
+- Reference release: `v3.0.1`
+- Reference commit: `ed466f9db71292e912d8d0160e689a67a994f2d9`
+- License: GPL-3.0-only. See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), and [UPSTREAM_SOURCE.md](UPSTREAM_SOURCE.md).

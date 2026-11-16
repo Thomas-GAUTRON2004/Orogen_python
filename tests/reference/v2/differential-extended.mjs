@@ -5,6 +5,8 @@ import * as bfs from "./core/mesh-bfs.mjs";
 import { ringsOf } from "./core/mesh-rings.mjs";
 import { MinHeap, spreadKm } from "./core/min-heap.mjs";
 import { SphereIndex } from "./core/sphere-index.mjs";
+import { meshFromArrays } from "./core/sim-mesh.mjs";
+import { CrustRaster } from "./tectonics/crust.mjs";
 import { locate } from "./core/mesh-locate.mjs";
 import { TectonicWorld, EventKind, BoundaryKind, Provisional } from "./tectonics/world.mjs";
 import { CrustType } from "./tectonics/crust.mjs";
@@ -20,6 +22,8 @@ const p=[.2,-.3,Math.sqrt(.87)],polar=geom.polarFrame([.3,.4,Math.sqrt(.75)],[0,
 const geomOut={dot:geom.dot([1,2,3],[-2,.5,4]),cross:geom.cross([1,2,3],[-2,.5,4]),normalize:geom.normalize([2,-3,6]),angles:[[1,0,0],[0,1,0],[0,0,-1]].map(v=>geom.angleBetween([1,0,0],v)),tangent:geom.tangentToward([0,0,1],[1,0,0],[0,1,0]),randomPoints,basis:geom.tangentBasis(p),destination:geom.destination(p,1.234,.42),bearing:geom.bearingTo(p,geom.destination(p,1.234,.42)),cap:geom.capFraction(.75),polar:[[1,0,0],[0,1,0],[0,0,1],[-1,0,0]].map(v=>polar(...v)),cellDistance:geom.cellDistanceKm(xyz,0,4),centroid:geom.centroidOfCells(xyz,[0,2,4])};
 const queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]];
 const indexOut={res:mesh.index.res,table:Array.from(mesh.index.table),starts:queries.map(p=>mesh.index.start(...p)),nearest:queries.map(p=>mesh.index.nearest(...p))};
+const rebuilt=meshFromArrays({numCells:6,xyz,adjOffset,adjList});
+const rebuiltOut={numCells:rebuilt.numCells,edgeRad:rebuilt.edgeRad,edgeKm:rebuilt.edgeKm,cellAreaKm2:rebuilt.cellAreaKm2,nearest:queries.map(p=>rebuilt.index.nearest(...p))};
 const locateOut=queries.map(p=>{const cells=new Int32Array(3),weights=new Float64Array(3);locate(mesh,...p,cells,weights);return {cells:Array.from(cells),weights:Array.from(weights)};});
 const source=c=>c===0||c===2,enter=c=>c!==5;
 const multi=bfs.hopsFrom(mesh,[0,2],enter,2);
@@ -28,9 +32,16 @@ const rd=ringsOf(mesh),ringsOut={start:Array.from(rd.start),cells:Array.from(rd.
 const heap=new MinHeap(2);for(const [key,id] of [[7,70],[1,10],[4,40],[1,11],[3,30],[.5,5],[9,90]])heap.push(key,id);
 const heapOut=[];while(heap.size){const id=heap.pop();heapOut.push([heap.lastKey,id]);}
 const dist=new Float64Array([0,Infinity,Infinity,Infinity,Infinity,Infinity]);spreadKm(mesh,dist,{maxKm:12000,canEnter:(a,b)=>b!==5});
+const sourceCrust=new CrustRaster(3),destCrust=new CrustRaster(3);
+sourceCrust.create(0,CrustType.CRATON,-1.25,17);
+sourceCrust.flags[0]=129;sourceCrust.slabKm[0]=23.5;sourceCrust.coverKm[0]=3.25;
+sourceCrust.geoFlags[0]=3;sourceCrust.oroType[0]=4;sourceCrust.farDx[0]=64;sourceCrust.farDy[0]=-32;sourceCrust.farDz[0]=96;
+const sourceSnapshot=sourceCrust.snapshot(0),rot=[0,-1,0,1,0,0,0,0,1];
+destCrust.copyFrom(1,sourceCrust,0,rot);destCrust.restore(2,sourceSnapshot);destCrust.remove(1);
+const crustCopyOut={source:sourceSnapshot,copied:destCrust.snapshot(1),restored:destCrust.snapshot(2),mask:Array.from(destCrust.mask),count:destCrust.count};
 const world=new TectonicWorld(mesh,77,{fixture:{nested:3}}),plate=world.addPlate("North");
 plate.crust.create(0,CrustType.CRATON,-20,11);plate.crust.create(2,CrustType.CRATON,-30,12);
 world.terraneLetters={11:"B",12:"A"};world.time=12.5;world.log(EventKind.START,"fixture event",{plate:0,area:2});
 const streams=["rng","rngSubduction","rngMarginFounder","rngOceanSplit","rngHotspot","rngVolcano","rngBackArc","rngMarginIsle","rngCycle"];
-const worldOut={config:world.config,owner:Array.from(world.owner),ownerCell:Array.from(world.ownerCell),claimCount:Array.from(world.claimCount),landClaims:Array.from(world.landClaims),collider:Array.from(world.collider),oceanOverrider:Array.from(world.oceanOverrider),consumedAt:Array.from(world.consumedAt),provisional:Array.from(world.provisional),provisionalLike:Array.from(world.provisionalLike),boundaryKind:Array.from(world.boundaryKind),convergence:Array.from(world.convergence),mantleHeat:Array.from(world.mantleHeat),budget:world.budget,events:world.events,plate:{id:plate.id,name:plate.name,born:plate.born,crustCount:plate.crust.count},nextTerrane:world.nextTerraneId(),name:world.nameByCratons(plate,"fallback"),streams:Object.fromEntries(streams.map(k=>[k,Array.from({length:4},()=>world[k]())])),constants:{collision:BoundaryKind.COLLISION,provisional:Provisional.LIKE_NEIGHBOUR}};
-console.log(JSON.stringify({geom:geomOut,noise:noiseOut,index:indexOut,locate:locateOut,bfs:bfsOut,rings:ringsOut,heap:heapOut,spread:Array.from(dist,v=>Number.isFinite(v)?v:"Infinity"),world:worldOut}));
+const worldOut={cellAt:plate.cellAt(mesh.index,1,0,0),config:world.config,owner:Array.from(world.owner),ownerCell:Array.from(world.ownerCell),claimCount:Array.from(world.claimCount),landClaims:Array.from(world.landClaims),collider:Array.from(world.collider),oceanOverrider:Array.from(world.oceanOverrider),consumedAt:Array.from(world.consumedAt),provisional:Array.from(world.provisional),provisionalLike:Array.from(world.provisionalLike),boundaryKind:Array.from(world.boundaryKind),convergence:Array.from(world.convergence),mantleHeat:Array.from(world.mantleHeat),budget:world.budget,events:world.events,plate:{id:plate.id,name:plate.name,born:plate.born,crustCount:plate.crust.count},nextTerrane:world.nextTerraneId(),name:world.nameByCratons(plate,"fallback"),streams:Object.fromEntries(streams.map(k=>[k,Array.from({length:4},()=>world[k]())])),constants:{collision:BoundaryKind.COLLISION,provisional:Provisional.LIKE_NEIGHBOUR}};
+console.log(JSON.stringify({geom:geomOut,noise:noiseOut,index:indexOut,rebuilt:rebuiltOut,locate:locateOut,bfs:bfsOut,rings:ringsOut,heap:heapOut,spread:Array.from(dist,v=>Number.isFinite(v)?v:"Infinity"),crustCopy:crustCopyOut,world:worldOut}));

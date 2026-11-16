@@ -34,7 +34,12 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 - parcours BFS, distances en nombre de sauts, composants connexes ;
 - localisation barycentrique sur un triangle sphérique ;
 - tas min et propagation Dijkstra en kilomètres ;
-- pré-calcul des anneaux de voisinage.
+- pré-calcul des anneaux de voisinage ;
+
+Le namespace `orogen.v2.tectonics` comprend maintenant :
+- les constantes et drapeaux de croûte, orogenèse, volcanisme et côtés de ceintures ;
+- le raster de croûte par plaque avec ses champs typés, snapshots/restauration, transferts, subduction et enregistrement des orogenèses ;
+- le modèle de plaque rigide, rotations de repère, calotte de culling et calcul de la rotation entre plaques.
 
 Les fonctions sont encore des primitives internes. Le backend Delaunay est SciPy/Qhull
 et non Delaunator ; les invariants topologiques sont testés, mais l'identité exacte des

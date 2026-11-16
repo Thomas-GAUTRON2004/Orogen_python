@@ -90,7 +90,7 @@ def _edge_km_of(mesh: Any) -> np.ndarray:
             neighbour = int(adjacency[k])
             offset = 3 * neighbour
             cosine = (
-                cx * xyz[offset] + cy * xyz[offset + 1] + cz * xyz[offset + 2]
+                cx * float(xyz[offset]) + cy * float(xyz[offset + 1]) + cz * float(xyz[offset + 2])
             )
             edge_km[k] = math.acos(min(1.0, float(cosine))) * PLANET_RADIUS_KM
     _EDGE_KM[mesh] = edge_km

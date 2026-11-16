@@ -186,3 +186,19 @@ def test_plate_kinematics_match_original(original):
     _assert_close(world.plates[0].quat, expected["advanced"], atol=1e-15)
     _assert_close(world.plates[1].quat, expected["dead"], atol=0)
     assert world.time == expected["time"] and world.step == expected["step"]
+
+
+def test_tectonic_occupancy_bins_match_original(original):
+    from types import SimpleNamespace
+    from orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
+    mesh = SimpleNamespace(num_cells=4, xyz=np.asarray([1,0,0, 0,1,0, 0,0,1, -1,0,0], dtype=np.float32), edge_km=500.0)
+    bins = bin_index(mesh)
+    plate = SimpleNamespace(bins=None)
+    mark_bin(plate, int(bins.bin_of[0]), 19, bins.count)
+    expected = original["occupancy"]
+    assert bins.count == expected["count"]
+    assert bins.bin_of.tolist() == expected["binOf"]
+    assert [len(x) for x in bins.neighbours] == expected["counts"]
+    assert [may_have_crust_near(plate, i, 19, bins) for i in range(4)] == expected["near"]
+    assert may_have_crust_near(SimpleNamespace(bins=None), 0, 19, bins) is expected["absent"]
+    assert bin_index(mesh) is bins

@@ -47,8 +47,8 @@ def within_km(sim_mesh: Any, is_source: Predicate, radius_km: float) -> np.ndarr
                 if seen[neighbour] == source:
                     continue
                 offset = 3 * neighbour
-                cosine = (xyz[offset] * sx + xyz[offset + 1] * sy
-                          + xyz[offset + 2] * sz)
+                cosine = (float(xyz[offset]) * sx + float(xyz[offset + 1]) * sy
+                          + float(xyz[offset + 2]) * sz)
                 if cosine < min_dot:
                     continue
                 seen[neighbour] = source

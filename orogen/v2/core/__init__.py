@@ -1,6 +1,7 @@
 """Numerical primitives ported from upstream Orogen V2 core."""
 
-from .seed import SEEDS, is_word_seed, make_rand_int, make_rng, random_seed, seed_of\nfrom .device import SMALL_DEVICE, is_small_device
+from .seed import SEEDS, is_word_seed, make_rand_int, make_rng, random_seed, seed_of
+from .device import SMALL_DEVICE, is_small_device
 from .rotation import (
     quat_from_axis_angle, quat_identity, quat_integrate, quat_mul,
     quat_normalize, quat_to_euler_pole, quat_to_mat3,
@@ -23,7 +24,8 @@ from .sphere_geometry import (
 )
 
 __all__ = [
-    "SEEDS", "is_word_seed", "make_rand_int", "make_rng", "random_seed", "seed_of",\n    "SMALL_DEVICE", "is_small_device",
+    "SEEDS", "is_word_seed", "make_rand_int", "make_rng", "random_seed", "seed_of",
+    "SMALL_DEVICE", "is_small_device",
     "quat_from_axis_angle", "quat_identity", "quat_integrate", "quat_mul",
     "quat_normalize", "quat_to_euler_pole", "quat_to_mat3",
     "flood_from", "hop_distance", "hops_from", "largest_piece_of",

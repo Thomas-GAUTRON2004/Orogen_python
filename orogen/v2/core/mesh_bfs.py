@@ -34,7 +34,7 @@ def within_km(sim_mesh: Any, is_source: Predicate, radius_km: float) -> np.ndarr
         if not edge:
             continue
 
-        sx, sy, sz = xyz[3 * source:3 * source + 3]
+        sx, sy, sz = (float(value) for value in xyz[3 * source:3 * source + 3])
         queue.clear()
         queue.append(source)
         seen[source] = source

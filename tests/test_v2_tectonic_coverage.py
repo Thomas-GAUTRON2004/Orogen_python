@@ -83,7 +83,7 @@ def test_plate_frames_extent_and_reshaped_flags():
     plate = Plate(4, mesh.num_cells)
     assert np.allclose(plate.to_world(1, 0, 0), [1, 0, 0])
     assert np.allclose(plate.to_plate_frame(0, 1, 0), [0, 1, 0])
-    plate.set_quat(quat_from_axis_angle([0, 0, 1], np.pi / 2))
+    plate.set_quat(quat_from_axis_angle(0, 0, 1, np.pi / 2))
     assert np.allclose(plate.to_world(1, 0, 0), [0, 1, 0], atol=1e-7)
     assert np.allclose(plate.to_plate_frame(0, 1, 0), [1, 0, 0], atol=1e-7)
     assert np.allclose(frame_rotation(plate, plate), np.eye(3), atol=1e-7)

@@ -52,6 +52,7 @@ L'ordre pourra être ajusté si les dépendances réelles entre modules l'exigen
 - Documenter les tolérances numériques ; ne pas masquer les écarts par des seuils excessifs.
 - Conserver des tests d'invariants même lorsqu'une comparaison exacte n'est pas possible.
 - Ne déclarer la parité globale qu'après couverture des domaines fonctionnels et exécution des tests de référence.
+- Maintenir une couverture de lignes de 100 % sur `orogen.v2`, contrôlée par le seuil bloquant de pytest-cov dans la CI.
 
 ## Blocages connus au démarrage
 
@@ -63,7 +64,7 @@ Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `dela
 |---|---|---|
 | Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
 | Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler, classification des petits appareils, raster crustal complet, modèle de plaque rigide et conteneur d'état du monde (tableaux d'occupation, frontières, budgets, événements, RNG séparés) publiés. Le monde exige encore une configuration TECTONICS fournie par l'appelant. 89 tests exécutés avec succès sur Python 3.12 + Node.js 22 dans la dernière CI. La couverture mesurée de `orogen.v2` atteint 96 % (1 259 instructions, 53 non couvertes) ; le rapport XML est généré en CI. Les tests couvrent notamment seed/RNG, bruit, quaternions, géométrie, raster, plaques, graphe, index, interpolation, Dijkstra, monde tectonique, collecte/reconstruction tectonique et maillage Delaunator. |
+| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler, classification des petits appareils, raster crustal complet, modèle de plaque rigide et conteneur d'état du monde (tableaux d'occupation, frontières, budgets, événements, RNG séparés) publiés. Le monde exige encore une configuration TECTONICS fournie par l'appelant. **103 tests réussis ; couverture de lignes de `orogen.v2` à 100 % (1 259/1 259 instructions).** Le seuil de 100 % est maintenant imposé par la CI. |
 | Core V2 | En cours | Primitives numériques, bruit, rotations, géométrie sphérique, génération Fibonacci, projection stéréographique, fermeture du maillage au pôle Nord, triangulation Delaunay via SciPy/Qhull, index spatial, interpolation, graphe et opérations de voisinage. Le backend de production est SciPy/Qhull ; une comparaison avec Delaunator confirme les mêmes triangles et voisinages sur sept couples résolution/graine (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345). Ce résultat reste borné à ces cas et ne garantit pas toutes les résolutions/graines. |
 | Portage des domaines V2 | À faire | À publier par sous-systèmes. |
 | Tests de parité | Partiel | Les tests différentiels passent contre les sources JS amont embarquées ; le maillage a une parité de connectivité sur sept cas. Les étapes dynamiques du TectonicWorld et les simulations multi-étapes restent à comparer. Aucune parité globale revendiquée. |

@@ -15,7 +15,7 @@ Version de développement : `3.0.1.dev0`. Python 3.10 ou supérieur.
 python -m pip install -e ".[test]"
 # Node.js 22+ et Delaunator sont requis pour les tests différentiels.
 npm install --no-save --package-lock=false delaunator@5.0.1
-python -m pytest --cov=orogen.v2 --cov-report=term-missing
+python -m pytest --cov=orogen.v2 --cov-report=term-missing --cov-fail-under=100
 ```
 
 Dépendances de calcul actuelles : NumPy et SciPy (Qhull pour la triangulation Delaunay). Le backend Delaunay est différent de Delaunator en JavaScript : la topologie et les invariants sont testés, mais une comparaison différentielle sur des graines communes reste nécessaire avant de revendiquer une identité des maillages. Les dépendances des futurs sous-systèmes seront
@@ -62,6 +62,6 @@ Le banc différentiel exécute les sources JavaScript amont embarquées depuis l
 - index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
 - tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
 
-La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **89 tests passés**. La couverture mesurée sur `orogen.v2` est de **96 %** (1 259 instructions, 53 non couvertes), avec un rapport `coverage.xml` produit par la CI. Les tests différentiels JavaScript/Python sont inclus dans ces 89 tests.
+La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **103 tests passés**. La couverture de lignes mesurée sur `orogen.v2` est de **100 %** (1 259 instructions, aucune instruction manquante). La CI impose désormais un seuil bloquant de 100 % via `--cov-fail-under=100` et produit le rapport `coverage.xml`.
 
 La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les sept cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.

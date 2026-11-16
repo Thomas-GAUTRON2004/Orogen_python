@@ -1,7 +1,7 @@
 """Fixed-resolution simulation mesh helpers from V2 sim-mesh.js."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -9,7 +9,7 @@ from .sphere_geometry import PLANET_RADIUS_KM
 from .sphere_index import SphereIndex
 
 
-@dataclass(slots=True)
+@dataclass(eq=False)
 class SimMesh:
     num_cells: int
     xyz: np.ndarray

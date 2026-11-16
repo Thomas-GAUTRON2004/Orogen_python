@@ -14,7 +14,8 @@ from .fast_noise import FastNoise
 from .mesh_locate import locate
 from .mesh_rings import RING_COUNT, rings_of
 from .sphere_index import SphereIndex
-from .sim_mesh import SimMesh, build_sim_mesh, km_to_hops, mesh_from_arrays\nfrom .sphere_mesh import SphereMesh, build_sphere, generate_fibonacci_sphere, stereographic_projection
+from .sim_mesh import SimMesh, build_sim_mesh, km_to_hops, mesh_from_arrays
+from .sphere_mesh import SphereMesh, build_sphere, generate_fibonacci_sphere, stereographic_projection
 from .sphere_geometry import (
     angle_between, bearing_to, cap_fraction, cell_distance_km,
     centroid_of_cells, cross, destination, dot, normalize, random_point,
@@ -28,7 +29,8 @@ __all__ = [
     "flood_from", "hop_distance", "hops_from", "largest_piece_of",
     "pieces_of", "reaches_within", "touches", "within_km",
     "FastNoise", "MinHeap", "forget_edge_km", "spread_km", "locate", "RING_COUNT", "rings_of",
-    "SphereIndex", "SphereMesh", "SimMesh", "build_sphere", "build_sim_mesh",\n    "generate_fibonacci_sphere", "stereographic_projection", "km_to_hops", "mesh_from_arrays",
+    "SphereIndex", "SphereMesh", "SimMesh", "build_sphere", "build_sim_mesh",
+    "generate_fibonacci_sphere", "stereographic_projection", "km_to_hops", "mesh_from_arrays",
     "angle_between", "bearing_to", "cap_fraction", "cell_distance_km",
     "centroid_of_cells", "cross", "destination", "dot", "normalize",
     "random_point", "tangent_basis", "tangent_toward",

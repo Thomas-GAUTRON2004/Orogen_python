@@ -38,8 +38,8 @@ def locate(
         a = int(adjacency[k])
         b = int(adjacency[k + 1 if k + 1 < end else start])
         oa, ob = 3 * a, 3 * b
-        ax, ay, az = xyz[oa:oa + 3]
-        bx, by, bz = xyz[ob:ob + 3]
+        ax, ay, az = (float(value) for value in xyz[oa:oa + 3])
+        bx, by, bz = (float(value) for value in xyz[ob:ob + 3])
 
         # Signed volumes are the spherical triangle's unnormalized barycentrics.
         sc = (ay * bz - az * by) * x + (az * bx - ax * bz) * y + (ax * by - ay * bx) * z

@@ -23,7 +23,7 @@ for(const [n,seed] of [[12,99],[24,1],[48,17],[96,2026],[128,7],[256,42],[512,12
   const dist=new Float64Array(sim.numCells).fill(Infinity);dist[0]=0;dist[Math.floor(sim.numCells/2)]=0;
   spreadKm(sim,dist,{maxKm:sim.edgeKm*5,canEnter:(a,b)=>b%17!==3});
   const rings=ringsOf(sim),stride=rings.stride;
-  const ringSets=Array.from({length:sim.numCells},(_,cell)=>Array.from({length:4},(_,ring=>Array.from(rings.cells.slice(rings.start[cell*stride+ring],rings.start[cell*stride+ring+1])).sort((a,b)=>a-b))));
+  const ringSets=Array.from({length:sim.numCells},(_,cell)=>Array.from({length:4},(_,ring)=>Array.from(rings.cells.slice(rings.start[cell*stride+ring],rings.start[cell*stride+ring+1])).sort((a,b)=>a-b))));
   const edgeRad=Math.sqrt(8*Math.PI/(Math.sqrt(3)*mesh.numRegions));
   const edgeKm=edgeRad*6371;
   const sim={numCells:mesh.numRegions,xyz:r_xyz,adjOffset:mesh.adjOffset,adjList:mesh.adjList,edgeRad,edgeKm};

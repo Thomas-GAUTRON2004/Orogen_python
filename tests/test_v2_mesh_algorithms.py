@@ -4,22 +4,23 @@ import numpy as np
 
 from orogen.v2.core.min_heap import MinHeap, spread_km
 from orogen.v2.core.mesh_rings import RING_COUNT, rings_of
-from types import SimpleNamespace
+class MeshFixture:
+    pass
 
 
 def mesh():
-    return SimpleNamespace(
-        num_cells=5,
-        adj_offset=np.array([0, 1, 4, 5, 6, 6], dtype=np.int32),
-        adj_list=np.array([1, 0, 2, 3, 1, 1], dtype=np.int32),
-        xyz=np.array([
-            1.0, 0.0, 0.0,
-            np.cos(0.01), np.sin(0.01), 0.0,
-            np.cos(0.02), np.sin(0.02), 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        ], dtype=np.float64),
-    )
+    result = MeshFixture()
+    result.num_cells = 5
+    result.adj_offset = np.array([0, 1, 4, 5, 6, 6], dtype=np.int32)
+    result.adj_list = np.array([1, 0, 2, 3, 1, 1], dtype=np.int32)
+    result.xyz = np.array([
+        1.0, 0.0, 0.0,
+        np.cos(0.01), np.sin(0.01), 0.0,
+        np.cos(0.02), np.sin(0.02), 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+    ], dtype=np.float64)
+    return result
 
 
 def test_min_heap_orders_keys_and_preserves_last_key():

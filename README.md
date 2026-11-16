@@ -43,7 +43,7 @@ Le namespace `orogen.v2.tectonics` comprend maintenant :
 - le raster de croûte par plaque avec ses champs typés, snapshots/restauration, transferts, subduction et enregistrement des orogenèses ;
 - le modèle de plaque rigide, rotations de repère, calotte de culling et calcul de la rotation entre plaques.
 
-Les fonctions sont encore des primitives internes. Le backend de production Delaunay reste SciPy/Qhull, tandis que le banc de référence exécute Delaunator. Les connectivités sont identiques sur les trois jeux de test différentiels (24, 48 et 96 points), mais cette comparaison ne constitue pas une preuve pour toutes les graines et résolutions. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
+Les fonctions sont encore des primitives internes. Le backend de production Delaunay reste SciPy/Qhull, tandis que le banc de référence exécute Delaunator. Les connectivités sont identiques sur sept jeux de test différentiels (12, 24, 48, 96, 128, 256 et 512 points, avec des graines distinctes), mais cette comparaison ne constitue pas une preuve pour toutes les graines et résolutions. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
 
 ## Référence et provenance
 
@@ -60,6 +60,6 @@ Le banc différentiel exécute les sources JavaScript amont embarquées depuis l
 - index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
 - tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
 
-La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **54 tests passés**, dont 23 cas de comparaison différentielle avec les modules JavaScript originaux.
+La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **68 tests passés**, dont 33 cas de comparaison différentielle avec les modules JavaScript originaux.
 
 La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les trois cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.

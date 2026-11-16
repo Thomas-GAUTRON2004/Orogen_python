@@ -22,6 +22,10 @@ class SphereMesh:
     num_regions: int
     num_triangles: int
 
+    @property
+    def num_cells(self) -> int:
+        return self.num_regions
+
 
 def generate_fibonacci_sphere(
     num_points: int,

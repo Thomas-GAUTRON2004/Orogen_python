@@ -51,3 +51,29 @@ def test_build_sim_mesh_is_seeded_and_includes_north_pole_region():
     assert np.allclose(np.linalg.norm(first.xyz.reshape(-1, 3), axis=1), 1.0, atol=2e-7)
     assert np.array_equal(first.xyz[-3:], np.array([0.0, 0.0, 1.0], dtype=np.float32))
     assert first.index.nearest(0.0, 0.0, 1.0) == 48
+
+def test_region_neighbour_rings_match_all_closed_triangles():
+    mesh, _ = build_sphere(40, 0.35, make_rng(991))
+    triangles = {
+        frozenset(map(int, mesh.triangles[i:i + 3]))
+        for i in range(0, len(mesh.triangles), 3)
+    }
+    for cell in range(mesh.num_regions):
+        ring = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+        for i, first in enumerate(ring):
+            second = ring[(i + 1) % len(ring)]
+            assert frozenset((cell, int(first), int(second))) in triangles
+
+
+def test_point_location_on_generated_mesh_recovers_containing_triangle():
+    from orogen.v2.core.mesh_locate import locate
+
+    mesh = build_sim_mesh(40, 771)
+    tri = np.asarray([0, 1, 2], dtype=np.int32)
+    xyz = mesh.xyz.reshape(-1, 3)
+    point = xyz[tri].mean(axis=0)
+    point /= np.linalg.norm(point)
+    cells, weights = locate(mesh, *map(float, point))
+    assert np.all(weights >= 0)
+    assert np.isclose(weights.sum(), 1.0)
+    assert len(set(map(int, cells))) == 3

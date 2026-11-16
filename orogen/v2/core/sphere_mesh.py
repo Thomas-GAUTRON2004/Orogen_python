@@ -68,7 +68,7 @@ def generate_fibonacci_sphere(
 
 def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
     """Project from the north pole onto the plane, as in sphere-mesh.js."""
-    points = np.asarray(xyz).reshape(num_points, 3)
+    # JavaScript typed-array reads are Numbers (binary64); promote Float32 coordinates before projection.\n    points = np.asarray(xyz, dtype=np.float64).reshape(num_points, 3)
     denominator = np.maximum(1e-12, 1.0 - points[:, 2])
     return np.column_stack((points[:, 0] / denominator, points[:, 1] / denominator))
 

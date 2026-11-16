@@ -33,7 +33,7 @@ def test_park_miller_rng_matches_upstream_javascript_fixture():
 
 def test_word_seed_matches_upstream_fnv1a_fixture():
     assert seed_of("Pangaea") == 258625900
-    assert seed_of(" 42 ") == 42
+    assert seed_of(" 42 ") == 42\n    assert seed_of("0xFF") == 255\n    assert seed_of("0b101") == 5
 
 
 def test_quaternion_identity_and_axis_angle():

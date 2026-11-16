@@ -74,7 +74,7 @@ class Plate:
         self.dirty = True
 
     def refresh_extent(self, xyz) -> None:
-        points = np.asarray(xyz).reshape(-1, 3)
+        points = np.asarray(xyz, dtype=np.float64).reshape(-1, 3)
         mask = self.crust.mask.astype(bool)
         cells = np.flatnonzero(mask)
         count = int(cells.size)

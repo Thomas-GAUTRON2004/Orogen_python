@@ -24,7 +24,7 @@ def original_extended():
     result=subprocess.run([node,str(RUNNER)],cwd=ROOT,check=False,capture_output=True,text=True)
     assert result.returncode==0,f"upstream JS runner failed:\n{result.stderr}\n{result.stdout}"
     return json.loads(result.stdout)
-def _mesh():
+@dataclass(eq=False)\nclass _Mesh:\n    num_cells: int\n    xyz: np.ndarray\n    adj_offset: np.ndarray\n    adj_list: np.ndarray\n    edge_rad: float\n    index: object = None\n\n\ndef _mesh():
     xyz=np.asarray([1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1],dtype=np.float32)
     rings=[[2,4,3,5],[2,5,3,4],[4,0,5,1],[4,1,5,0],[3,0,2,1],[2,0,3,1]]
     mesh=_Mesh(6,xyz,np.asarray([0,4,8,12,16,20,24],dtype=np.int32),np.asarray([x for ring in rings for x in ring],dtype=np.int32),.02)

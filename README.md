@@ -27,16 +27,18 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 - bruit simplex 3D et FBM ;
 - rotations par quaternions ;
 - géométrie sphérique ;
-- index spatial sur la sphère ;
-- reconstruction d'un maillage de simulation depuis ses tableaux ;
+- génération Fibonacci, projection stéréographique et fermeture du maillage au pôle Nord ;
+- triangulation Delaunay via SciPy/Qhull et construction du maillage de simulation ;
+- index spatial sur la sphère et reconstruction d'un maillage depuis ses tableaux ;
 - parcours BFS, distances en nombre de sauts, composants connexes ;
 - localisation barycentrique sur un triangle sphérique ;
 - tas min et propagation Dijkstra en kilomètres ;
 - pré-calcul des anneaux de voisinage.
 
-Les fonctions sont encore des primitives internes. Le constructeur de maillage Delaunay,
-le moteur tectonique temporel et les systèmes de terrain, géologie, climat, finition et
-agriculture restent à porter.
+Les fonctions sont encore des primitives internes. Le backend Delaunay est SciPy/Qhull
+et non Delaunator ; les invariants topologiques sont testés, mais l'identité exacte des
+connectivités doit encore être comparée avec JavaScript. Le moteur tectonique temporel
+et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
 
 ## Référence et provenance
 
@@ -50,7 +52,7 @@ Les fixtures déterministes de RNG et de bruit sont calculées à partir du mote
 amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
 
 La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-La dernière exécution vérifiée avant le lot de maillage a réussi : **21 tests passés** sur Python 3.12. Le lot de maillage ajoute des tests de topologie, de cyclicité des voisins et de localisation ; sa CI est en cours.
+La dernière exécution vérifiée a réussi : **23 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
 
 La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
 sur les mêmes graines, paramètres, maillages et instants.

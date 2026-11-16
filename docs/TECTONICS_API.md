@@ -142,3 +142,19 @@ across = contact_at(world, world_cell, normal)
 if across >= 0:
     nx, ny, nz, shared_edges = normal
 ```
+
+
+## Tectonic convergence and divergence resolver
+
+Module: `orogen.v2.tectonics.resolve`
+
+`resolve(world)` rebuilds the current world-frame claims and settles plate overlap. It applies the upstream ocean/continent and ocean/ocean polarity rules, leaves continental collisions overlapping for later boundary/event handling, attempts symmetric oceanic crust growth into divergent gaps, assigns provisional owners to unresolved gap cells, updates creation/consumption budgets, and refreshes dirty plate extents. It returns integer counts `created`, `consumed`, and `collisionCells`.
+
+The diagnostic helpers `candidate_cells(world, grower, gaps)` and `decide_birth(world, grower, cell, everyone)` expose the candidate and birth-rule stages. This is the first port of the resolver pass; the wider tectonic event, boundary-classification, force, and time-stepping pipeline remains separate and is not implied by this function.
+
+```python
+from orogen.v2.tectonics import resolve
+
+result = resolve(world)
+# {"created": ..., "consumed": ..., "collisionCells": ...}
+```

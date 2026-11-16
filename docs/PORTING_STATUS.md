@@ -101,3 +101,6 @@ helper is a prerequisite for later boundary classification and force calculation
 include plate-claim conflicts, subduction, divergent crust creation, and
 provisional-cell ownership; these behaviours must be confirmed from the
 upstream source before implementation.
+
+
+The first resolver pass is now implemented as `orogen.v2.tectonics.resolve.resolve`. It includes claim conflict settlement, oceanic subduction, divergent-gap candidate evaluation and crust creation, fracture-zone coordinates, trench-apron inheritance, and provisional gap ownership. It does not complete the rest of the tectonic step pipeline: boundary classification, force/velocity response, event generation, and simulation orchestration remain outstanding. Differential and invariant coverage of the resolver is being expanded.

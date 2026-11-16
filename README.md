@@ -16,7 +16,7 @@ python -m pip install -e ".[test]"
 python -m pytest
 ```
 
-Dépendance de calcul actuelle : NumPy. Les dépendances des futurs sous-systèmes seront
+Dépendances de calcul actuelles : NumPy et SciPy (Qhull pour la triangulation Delaunay). Le backend Delaunay est différent de Delaunator en JavaScript : la topologie et les invariants sont testés, mais une comparaison différentielle sur des graines communes reste nécessaire avant de revendiquer une identité des maillages. Les dépendances des futurs sous-systèmes seront
 ajoutées au fur et à mesure de leur portage.
 
 ## Contenu actuellement porté
@@ -50,7 +50,7 @@ Les fixtures déterministes de RNG et de bruit sont calculées à partir du mote
 amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
 
 La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-La dernière exécution vérifiée a réussi : **18 tests passés** sur Python 3.12.
+La dernière exécution vérifiée avant le lot de maillage a réussi : **21 tests passés** sur Python 3.12. Le lot de maillage ajoute des tests de topologie, de cyclicité des voisins et de localisation ; sa CI est en cours.
 
 La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
 sur les mêmes graines, paramètres, maillages et instants.

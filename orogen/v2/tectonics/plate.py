@@ -51,7 +51,7 @@ class Plate:
 
     def set_quat(self, quaternion) -> None:
         self.quat = list(quaternion)
-        self.mat = np.asarray(quat_to_mat3(self.quat), dtype=np.float64)
+        self.mat = np.asarray(quat_to_mat3(self.quat), dtype=np.float64).reshape(3, 3)
 
     def to_world(self, x: float, y: float, z: float) -> np.ndarray:
         return self.mat @ np.asarray([x, y, z], dtype=np.float64)

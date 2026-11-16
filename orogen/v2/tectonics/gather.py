@@ -11,7 +11,6 @@ def _is_identity(matrix: np.ndarray) -> bool:
 def clear_world_view(world) -> None:
     """Reset per-cell ownership and claim metadata before a gather pass."""
     world.owner.fill(-1)
-    world.ownerCell.fill(0)
     world.claimCount.fill(0)
     world.landClaims.fill(0)
     world.collider.fill(-1)

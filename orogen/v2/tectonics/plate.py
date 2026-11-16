@@ -21,7 +21,7 @@ class Plate:
         self.hue = int(plate_id)
         self.isBackground = False
         self.quat = quat_identity()
-        self.mat = np.asarray(quat_to_mat3(self.quat), dtype=np.float64)
+        self.mat = np.asarray(quat_to_mat3(self.quat), dtype=np.float64).reshape(3, 3)
         self.omega = [0.0, 0.0, 0.0]
         self.crust = CrustRaster(num_cells)
         self.dirty = False

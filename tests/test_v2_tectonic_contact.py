@@ -33,25 +33,21 @@ def test_contact_normal_and_across_cell_are_cached_until_stamp_changes():
     assert out[3] == len(neighbours)
     assert np.linalg.norm(out[:3]) == pytest.approx(1.0)
     saved = out.copy()
-
-    # Mutating the owner map without changing the world-view stamp uses cache.
     world.owner[neighbours] = 0
     np.testing.assert_equal(contact_at(world, cell, out), across)
     np.testing.assert_array_equal(out, saved)
-
-    # A new occupancy stamp invalidates the cached answer.
     world.occupancyStamp += 1
     assert contact_at(world, cell, out) == -1
 
 
 def test_contact_uses_first_foreign_direction_for_opposing_sliver():
     class TinyMesh:
-        num_cells = 3
-        xyz = np.array([0, 0, 0, 1, 0, 0, -1, 0, 0], dtype=np.float32)
-        adj_offset = np.array([0, 2, 2, 2], dtype=np.int32)
-        adj_list = np.array([1, 2], dtype=np.int32)
+        num_cells = 4
+        xyz = np.array([0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0], dtype=np.float32)
+        adj_offset = np.array([0, 3, 3, 3, 3], dtype=np.int32)
+        adj_list = np.array([1, 2, 3], dtype=np.int32)
 
-    world = _world(TinyMesh(), [0, 1, 1])
+    world = _world(TinyMesh(), [0, 1, 1, -1])
     out = np.zeros(4)
     assert contact_at(world, 0, out) == 1
     np.testing.assert_allclose(out, [1.0, 0.0, 0.0, 2.0])
@@ -66,3 +62,15 @@ def test_contact_validates_output_and_cell_index():
         contact_at(world, mesh.num_cells, np.zeros(4))
     with pytest.raises(IndexError, match="out of range"):
         contact_at(world, -1, np.zeros(4))
+
+
+def test_contact_handles_stamp_wraparound_and_cached_interior_result():
+    mesh = build_sim_mesh(24, seed=5)
+    world = _world(mesh, np.zeros(mesh.num_cells, dtype=np.int16))
+    world.occupancyStamp = 0xFFFFFFFF
+    out = np.zeros(4)
+    assert contact_at(world, 0, out) == -1
+    assert int(world._contact["done"][0]) == 1
+    out[:] = 3.0
+    assert contact_at(world, 0, out) == -1
+    np.testing.assert_array_equal(out, [3.0, 3.0, 3.0, 3.0])

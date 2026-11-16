@@ -166,7 +166,7 @@ def test_rotated_plate_gather_maps_world_cells_to_plate_frame():
     plate = world.add_plate("rotated")
     plate.set_quat(quat_from_axis_angle(0, 0, 1, np.pi / 2))
     world_cell = 5
-    x, y, z = mesh.xyz[world_cell]
+    x, y, z = mesh.xyz.reshape(-1, 3)[world_cell]
     local = plate.to_plate_frame(float(x), float(y), float(z))
     raster_cell = int(mesh.index.nearest(*map(float, local)))
     plate.crust.create(raster_cell, CrustType["OCEAN"], 0, 4)

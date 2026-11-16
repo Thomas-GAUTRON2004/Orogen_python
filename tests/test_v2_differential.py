@@ -1,0 +1,114 @@
+"""Differential checks against the unmodified Orogen V2 JavaScript reference.
+
+The .mjs files in tests/reference/v2 are verbatim upstream v3.0.1 modules;
+only import suffixes/relative paths are adapted to the vendored fixture layout.
+"""
+from __future__ import annotations
+
+import json
+import math
+from pathlib import Path
+import shutil
+import subprocess
+
+import numpy as np
+import pytest
+
+from orogen.v2.core.seed import seed_of, is_word_seed, make_rng
+from orogen.v2.core.rotation import (
+    quat_from_axis_angle, quat_mul, quat_normalize, quat_integrate,
+    quat_to_mat3, quat_to_euler_pole,
+)
+from orogen.v2.tectonics.crust import (
+    CELL_FIELDS, CrustRaster, CrustType, CrustFlag, OrogenyType,
+)
+from orogen.v2.tectonics.plate import Plate, frame_rotation
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNNER = ROOT / "tests/reference/v2/differential-runner.mjs"
+
+
+@pytest.fixture(scope="module")
+def original():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required for upstream JavaScript differential tests")
+    result = subprocess.run(
+        [node, str(RUNNER)], cwd=ROOT, check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout)
+
+
+def _assert_close(actual, expected, atol=2e-7):
+    np.testing.assert_allclose(actual, expected, rtol=2e-7, atol=atol)
+
+
+def test_seed_parsing_and_park_miller_match_original(original):
+    texts = ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"]
+    expected = original["seeds"]
+    assert [x["text"] for x in expected] == texts
+    for item in expected:
+        assert is_word_seed(item["text"]) is item["word"]
+        assert seed_of(item["text"]) == item["seed"]
+    py_rng = make_rng(123456)
+    _assert_close([py_rng() for _ in range(12)], original["random"], atol=0)
+
+
+def test_quaternion_operations_match_original(original):
+    q1 = quat_from_axis_angle(0, 0, 1, math.pi / 3)
+    q2 = quat_from_axis_angle(1, 0, 0, -math.pi / 7)
+    q = quat_normalize(quat_mul(q1, q2))
+    omega = [0.001, -0.002, 0.003]
+    integrated = quat_integrate(q, omega, 12.5)
+    _assert_close(q, original["quaternion"], atol=1e-15)
+    _assert_close(integrated, original["integrated"], atol=1e-15)
+    _assert_close(quat_to_mat3(integrated), original["matrix"], atol=1e-15)
+    pole = quat_to_euler_pole(integrated)
+    for key in ("lat", "lon", "angle"):
+        assert pole[key] == pytest.approx(original["euler"][key], abs=1e-13)
+
+
+def test_crust_raster_state_and_snapshot_match_original(original):
+    crust = CrustRaster(6)
+    crust.create(2, CrustType["CONTINENT"], -120.25, 17)
+    crust.arm_trench(2, 35.5)
+    crust.record_subduction(2, 2.75)
+    crust.record_orogeny(2, OrogenyType["ANDEAN"], 8.125, 20, 15)
+    crust.record_orogeny(2, OrogenyType["HIMALAYAN"], 1.5, 25, 15)
+    expected = original["crust"]
+    assert CELL_FIELDS == expected["fields"]
+    assert crust.count == expected["count"]
+    assert crust.mask.tolist() == expected["mask"]
+    assert crust.flags[2] == expected["flags"] == CrustFlag["TRENCH"]
+    assert crust.slabKm[2] == pytest.approx(expected["slabKm"], abs=0)
+    assert crust.oroType[2] == expected["oroType"]
+    assert crust.oroWork[2] == pytest.approx(expected["oroWork"], abs=0)
+    assert crust.oroStart[2] == pytest.approx(expected["oroStart"], abs=0)
+    assert crust.oroLast[2] == pytest.approx(expected["oroLast"], abs=0)
+    assert crust.snapshot(2) == expected["snapshot"]
+
+
+def test_plate_frame_transform_and_extent_match_original(original):
+    q1 = quat_from_axis_angle(0, 0, 1, math.pi / 3)
+    q2 = quat_from_axis_angle(1, 0, 0, -math.pi / 7)
+    integrated = quat_integrate(quat_normalize(quat_mul(q1, q2)), [0.001,-0.002,0.003], 12.5)
+    plate = Plate(3, 6, 4.5)
+    plate.set_quat(integrated)
+    world = plate.to_world(0.25, -0.5, 0.75)
+    local = plate.to_plate_frame(*world)
+    xyz = np.array([1,0,0, 0,1,0, 0,0,1, -1,0,0, 0,-1,0, 0,0,-1], dtype=np.float32)
+    plate.crust.create(0, CrustType["CRATON"], -10, 1)
+    plate.crust.create(1, CrustType["OCEAN"], -5, 2)
+    plate.refresh_extent(xyz)
+    other = Plate(4, 6)
+    other.set_quat(q1)
+    rotation = frame_rotation(plate, other)
+    expected = original["plate"]
+    _assert_close(world, expected["world"])
+    _assert_close(local, expected["local"])
+    _assert_close(plate.mat.reshape(-1), expected["matrix"])
+    assert plate.stats == expected["stats"]
+    _assert_close(plate.capCenter, expected["capCenter"])
+    assert plate.capCos == pytest.approx(expected["capCos"], abs=1e-7)
+    _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad":0.02})()), expected["cap"])
+    _assert_close(rotation.reshape(-1), expected["frameRotation"])

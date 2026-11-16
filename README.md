@@ -1,67 +1,96 @@
 # Orogen Python
 
-Portage progressif en Python du moteur Orogen **3.0.1**, à partir de la référence amont :
-[planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation).
+A progressive Python port of the **Orogen 3.0.1** engine, based on the upstream
+[planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation)
+repository.
 
-> **État de développement :** le portage complet n'est pas terminé. La branche `port/v3.0.1`
-> contient le socle numérique V2 et ses premiers tests ; elle ne revendique pas encore
-> l'équivalence fonctionnelle avec le moteur JavaScript.
+> **Development status:** The port is not complete. The `port/v3.0.1` branch
+> contains the V2 numerical foundation and an initial set of tests. It does not
+> yet claim full functional equivalence with the JavaScript engine.
 
-## Version et installation
+## Version and installation
 
-Version de développement : `3.0.1.dev0`. Python 3.10 ou supérieur.
+Development version: `3.0.1.dev0`. Python 3.10 or later.
 
 ```bash
 python -m pip install -e ".[test]"
-# Node.js 22+ et Delaunator sont requis pour les tests différentiels.
+
+# Node.js 22+ and Delaunator are required for differential tests.
 npm install --no-save --package-lock=false delaunator@5.0.1
+
 python -m pytest --cov=orogen.v2 --cov-report=term-missing --cov-fail-under=100
 ```
 
-Dépendances de calcul actuelles : NumPy et SciPy (Qhull pour la triangulation Delaunay). Le backend Delaunay est différent de Delaunator en JavaScript : la topologie et les invariants sont testés, mais une comparaison différentielle sur des graines communes reste nécessaire avant de revendiquer une identité des maillages. Les dépendances des futurs sous-systèmes seront
-ajoutées au fur et à mesure de leur portage.
+Current numerical dependencies are NumPy and SciPy (Qhull is used for Delaunay
+triangulation). The production triangulation backend differs from JavaScript
+Delaunator. Topology and invariants are tested, but matching connectivity on a
+finite set of shared seeds is not proof of identical output for every seed and
+resolution. Dependencies for future subsystems will be added as those systems
+are ported.
 
-## Contenu actuellement porté
+## Currently ported components
 
-Le namespace `orogen.v2.core` comprend les premières traductions des briques V2 :
+The `orogen.v2.core` namespace contains initial Python implementations of the
+following V2 building blocks:
 
-- génération déterministe des graines et RNG Park–Miller ;
-- bruit simplex 3D et FBM ;
-- rotations par quaternions ;
-- repère polaire autour d’un pôle d’Euler et classification du budget mémoire des petits appareils ;
-- géométrie sphérique ;
-- génération Fibonacci, projection stéréographique et fermeture du maillage au pôle Nord ;
-- triangulation Delaunay via SciPy/Qhull et construction du maillage de simulation ;
-- index spatial sur la sphère et reconstruction d'un maillage depuis ses tableaux ;
-- parcours BFS, distances en nombre de sauts, composants connexes ;
-- localisation barycentrique sur un triangle sphérique ;
-- tas min et propagation Dijkstra en kilomètres ;
-- pré-calcul des anneaux de voisinage ;
+- Deterministic seed handling and the Park–Miller random number generator.
+- 3D simplex noise and fractal Brownian motion (FBM).
+- Quaternion rotations.
+- An Euler-pole polar frame and small-device memory-budget classification.
+- Spherical geometry.
+- Fibonacci point generation, stereographic projection, and north-pole mesh closure.
+- Delaunay triangulation through SciPy/Qhull and simulation-mesh construction.
+- Spherical spatial indexing and mesh reconstruction from arrays.
+- Breadth-first search (BFS), hop distances, and connected components.
+- Barycentric point location on spherical triangles.
+- A min-heap and Dijkstra propagation in kilometres.
+- Precomputed neighbourhood rings.
 
-Le namespace `orogen.v2.tectonics` comprend maintenant :
-- les constantes physiques de conversion km/Myr et rad/Myr, les coordonnées de segments de dorsale/zones de fracture, ainsi que les drapeaux de croûte, orogenèse, volcanisme et côtés de ceintures ;
-- le raster de croûte par plaque avec ses champs typés, snapshots/restauration, transferts, subduction et enregistrement des orogenèses ;
-- le modèle de plaque rigide, transformations de repère, calotte de culling et rotations entre plaques ;
-- la cinématique (conversion Euler/vitesse, rotation temporelle des plaques) et l'index spatial d'occupation ;
-- la collecte des revendications, la reconstruction en lecture seule des propriétaires et les règles de polarité de subduction.
+The `orogen.v2.tectonics` namespace currently contains:
 
-Les fonctions sont encore des primitives internes. Le backend de production Delaunay reste SciPy/Qhull, tandis que le banc de référence exécute Delaunator. Les connectivités, voisinages, anneaux BFS, distances en sauts, zones atteignables et propagations Dijkstra sont comparés sur sept maillages générés. Les connectivités sont identiques sur sept jeux de test différentiels (12, 24, 48, 96, 128, 256 et 512 points, avec des graines distinctes), mais cette comparaison ne constitue pas une preuve pour toutes les graines et résolutions. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
+- Physical conversion constants for km/Myr and rad/Myr, ridge-segment/fracture-zone
+  coordinates, and crust, orogeny, volcanism, and belt-side flags.
+- Per-plate crust rasters with typed fields, snapshots and restoration, transfers,
+  subduction tracking, and orogeny recording.
+- A rigid-plate model, coordinate-frame transformations, culling caps, and
+  inter-plate rotations.
+- Plate kinematics (Euler-pole and velocity conversions, time-based plate
+  rotations) and spatial occupancy indexing.
+- Claim gathering, read-only owner reconstruction, and subduction-polarity rules.
 
-## Référence et provenance
+These functions are currently low-level building blocks, not a complete
+tectonic simulation pipeline. TECTONICS configuration defaults, full world
+initialization, the collision/subduction resolver, time-stepping, and the
+terrain, geology, climate, finishing, and agriculture systems remain to be
+ported.
 
-- Version amont : `v3.0.1`
-- Commit amont : `ed466f9db71292e912d8d0160e689a67a994f2d9`
-- Licence : GPL-3.0-only (voir `LICENSE` et `NOTICE.md`).
+## Upstream reference
 
-## Tests et parité
+- Upstream release: `v3.0.1`
+- Upstream commit: `ed466f9db71292e912d8d0160e689a67a994f2d9`
+- License: GPL-3.0-only (see `LICENSE` and `NOTICE.md`).
 
-Le banc différentiel exécute les sources JavaScript amont embarquées depuis le tag `v3.0.1`. Il compare notamment :
-- parsing des graines, RNG Park–Miller et bruit simplex/FBM ;
-- quaternions, géométrie sphérique et repère polaire ;
-- génération Fibonacci, projection, topologie Delaunay et voisinage sphérique sur sept tailles/graines ;
-- index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
-- tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
+## Tests and compatibility
 
-La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **107 tests passés**. La couverture de lignes mesurée sur `orogen.v2` est de **100 %** (1 276 instructions, aucune instruction manquante). La CI impose désormais un seuil bloquant de 100 % via `--cov-fail-under=100` et produit le rapport `coverage.xml`.
+The differential test harness runs vendored JavaScript reference modules from
+upstream tag `v3.0.1`. It currently compares, among other things:
 
-La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les sept cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.
+- Seed parsing, Park–Miller RNG, and simplex/FBM noise.
+- Quaternions, spherical geometry, and the polar frame.
+- Fibonacci generation, stereographic projection, Delaunay topology, and
+  spherical neighbourhoods across seven mesh sizes/seeds.
+- Cube-map indexing, reconstruction from arrays, barycentric location, BFS,
+  neighbourhood rings, min-heap operations, and Dijkstra propagation.
+- Crust-raster fields, copy/transfer/restore operations, plate transforms, and
+  initial tectonic-world state including independent RNG streams.
+
+GitHub Actions installs Node.js 22, Delaunator 5.0.1, and Python 3.12. The
+latest verified run completed **107 tests successfully**. Line coverage for
+`orogen.v2` is **100%** (1,276 statements, none missing). CI enforces this
+threshold with `--cov-fail-under=100` and writes a `coverage.xml` report.
+
+Full compatibility has not been established. Dynamic tectonic steps,
+multi-step simulations, and the terrain, geology, climate, finishing, and
+agriculture systems have not yet been compared against JavaScript outputs.
+The seven successful Delaunay topology cases do not cover every seed or
+resolution.

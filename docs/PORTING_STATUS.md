@@ -1,70 +1,100 @@
-# État du portage Orogen 3.0.1
+# Orogen 3.0.1 Porting Status
 
-Dernière mise à jour : 2026-11-16
+Last updated: 2026-11-16
 
-## Cible
+## Target
 
-- Dépôt amont : https://github.com/raguilar011095/planet_heightmap_generation
-- Version : `v3.0.1`
-- Commit amont : `ed466f9db71292e912d8d0160e689a67a994f2d9`
-- Référence principale : moteur V2 situé dans `v2/js/`
+- Upstream repository: https://github.com/raguilar011095/planet_heightmap_generation
+- Release: `v3.0.1`
+- Upstream commit: `ed466f9db71292e912d8d0160e689a67a994f2d9`
+- Primary reference: the V2 engine under `v2/js/`
 
-## État initial constaté
+## Initial assessment
 
-Le paquet Python historique disponible est en version 1.1.0. Il fournit déjà une API de génération de monde, de terrain, de géologie, de climat et d'environnement, mais son moteur d'évolution tectonique est une implémentation simplifiée et ne reproduit pas l'ensemble du moteur V2 JavaScript 3.0.1.
+The existing Python package is version 1.1.0. It already provides APIs for
+world, terrain, geology, climate, and environment generation, but its tectonic
+evolution engine is a simplified implementation and does not reproduce the
+full Orogen 3.0.1 JavaScript V2 engine.
 
-Le moteur V2 amont comprend environ 210 fichiers JavaScript et près de 46 000 lignes. Les principaux domaines identifiés sont :
+The upstream V2 engine contains approximately 210 JavaScript files and nearly
+46,000 lines. The main areas identified during the initial audit are:
 
-| Domaine | Fichiers | Lignes approximatives |
+| Area | Files | Approximate lines |
 |---|---:|---:|
-| Tectonique | 63 | 10 239 |
-| Terrain | 17 | 4 661 |
-| Climat | 16 | 4 200 |
-| Géologie | 8 | 2 227 |
-| Finition | 13 | 3 998 |
+| Tectonics | 63 | 10,239 |
+| Terrain | 17 | 4,661 |
+| Climate | 16 | 4,200 |
+| Geology | 8 | 2,227 |
+| Finishing | 13 | 3,998 |
 | Agriculture | 4 | 854 |
 | Core | 11 | 683 |
-| Sauvegarde | 5 | 519 |
+| Save/load | 5 | 519 |
 
-Ces chiffres servent à estimer le périmètre ; ils ne constituent pas une mesure de couverture Python.
+These figures estimate the porting scope; they are not Python test-coverage
+measurements.
 
-## Plan d'exécution
+## Implementation plan
 
-Le portage est réalisé par lots fonctionnels, avec un commit GitHub par étape vérifiable :
+The port is organized into functional batches, with a Git commit for each
+verifiable increment:
 
-1. **Socle Python** : structure du paquet, version, configuration, conventions numériques et reproductibilité des graines.
-2. **Core et sauvegarde** : types partagés, sérialisation, chargement et validation des données.
-3. **Tectonique** : initialisation des plaques, géométrie, frontières, vitesses, opérations et scénarios.
-4. **Évolution** : moteur temporel, événements tectoniques, rotations et instantanés.
-5. **Terrain** : relief, croûte, lithologie, rifts, dorsales et chaînes de montagnes.
-6. **Géologie** : archives, collisions, subduction, volcanisme et dépôts.
-7. **Climat** : circulation, températures, précipitations et biomes.
-8. **Finition et agriculture** : hydrologie, érosion, glace, roches et systèmes agricoles.
-9. **Parité** : fixtures déterministes, tests d'invariants et comparaisons numériques avec le moteur JavaScript (banc différentiel initial déjà ajouté pour seed/RNG, quaternions, raster crustal et plaques ; maillage et simulation complète restent à comparer).
+1. **Python foundation:** package structure, versioning, configuration,
+   numerical conventions, and deterministic seed handling.
+2. **Core and persistence:** shared types, serialization, loading, and data
+   validation.
+3. **Tectonics:** plate initialization, geometry, boundaries, velocities,
+   operations, and scenarios.
+4. **Evolution:** time-stepping engine, tectonic events, rotations, and
+   snapshots.
+5. **Terrain:** relief, crust, lithology, rifts, ridges, and mountain ranges.
+6. **Geology:** records, collisions, subduction, volcanism, and deposits.
+7. **Climate:** circulation, temperatures, precipitation, and biomes.
+8. **Finishing and agriculture:** hydrology, erosion, ice, rocks, and
+   agricultural systems.
+9. **Compatibility:** deterministic fixtures, invariant tests, and numerical
+   comparisons against the JavaScript engine. An initial differential harness
+   already covers seed/RNG, quaternions, crust rasters, and plates; full mesh
+   and simulation comparisons remain outstanding.
 
-L'ordre pourra être ajusté si les dépendances réelles entre modules l'exigent.
+The order may change as actual dependencies between modules become clearer.
 
-## Règles de validation
+## Validation rules
 
-- Ne pas annoncer une fonctionnalité comme portée tant qu'elle n'a pas de tests Python.
-- Distinguer les ports exacts, les adaptations numériques et les approximations.
-- Comparer les sorties sur les mêmes graines, paramètres, maillages et instants.
-- Documenter les tolérances numériques ; ne pas masquer les écarts par des seuils excessifs.
-- Conserver des tests d'invariants même lorsqu'une comparaison exacte n'est pas possible.
-- Ne déclarer la parité globale qu'après couverture des domaines fonctionnels et exécution des tests de référence.
-- Maintenir une couverture de lignes de 100 % sur `orogen.v2`, contrôlée par le seuil bloquant de pytest-cov dans la CI.
+- Do not mark a feature as ported until it has Python tests.
+- Distinguish exact ports from numerical adaptations and approximations.
+- Compare outputs using identical seeds, parameters, meshes, and simulation
+  times.
+- Document numerical tolerances; do not hide discrepancies with overly broad
+  thresholds.
+- Keep invariant tests even when exact differential comparison is not possible.
+- Do not claim full compatibility until all functional areas and reference
+  tests have been covered.
+- Maintain 100% line coverage for `orogen.v2`, enforced by the
+  `pytest-cov` threshold in CI.
 
-## Blocages connus au démarrage
+## Known initial blockers
 
-Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `delaunator`. Les premières tentatives d'exécution locale ont échoué avant le lancement des contrôles faute de cette dépendance. Il faudra installer les dépendances amont déclarées et relancer les contrôles avant d'utiliser leurs résultats comme référence.
+The upstream V2 test scripts depend on Node.js packages, including
+`delaunator`. Initial attempts to run the reference checks failed before the
+checks started because this dependency was missing. CI now installs
+Delaunator 5.0.1 explicitly.
 
-## Historique des lots
+## Batch history
 
-| Lot | État | Notes |
+| Batch | Status | Notes |
 |---|---|---|
-| Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
-| Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler, classification des petits appareils, raster crustal complet, modèle de plaque rigide et conteneur d'état du monde (tableaux d'occupation, frontières, budgets, événements, RNG séparés) publiés. Le monde exige encore une configuration TECTONICS fournie par l'appelant. **107 tests réussis ; couverture de lignes de `orogen.v2` à 100 % (1 259/1 276 instructions).** Le seuil de 100 % est maintenant imposé par la CI. |
-| Core V2 | En cours | Primitives numériques, bruit, rotations, géométrie sphérique, génération Fibonacci, projection stéréographique, fermeture du maillage au pôle Nord, triangulation Delaunay via SciPy/Qhull, index spatial, interpolation, graphe et opérations de voisinage. Le backend de production est SciPy/Qhull ; une comparaison avec Delaunator confirme les mêmes triangles et voisinages sur sept couples résolution/graine (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345). Ce résultat reste borné à ces cas et ne garantit pas toutes les résolutions/graines. |
-| Portage des domaines V2 | À faire | À publier par sous-systèmes. |
-| Tests de parité | Partiel | Les tests différentiels passent contre les sources JS amont embarquées ; le maillage a une parité de connectivité sur sept cas. Les étapes dynamiques du TectonicWorld et les simulations multi-étapes restent à comparer. Aucune parité globale revendiquée. |
+| Upstream scope audit | Complete | V2 source tree inspected; domains and approximate sizes recorded. |
+| Python 1.1.0 package audit | Complete | Existing implementation identified; full compatibility not established. |
+| Python 3.0.1 foundation | In progress | Published package namespace, RNG/seed handling, simplex noise, quaternions, spherical geometry, BFS, spherical indexing, SimMesh, barycentric location, min-heap, Dijkstra, neighbourhood rings, Euler-pole frame, small-device classification, crust raster, rigid-plate model, and tectonic-world state container (occupancy/boundary arrays, budgets, events, independent RNG streams). The world still requires TECTONICS configuration supplied by its caller. **107 tests pass; `orogen.v2` line coverage is 100% (1,276/1,276 statements).** CI now enforces the 100% threshold. |
+| V2 core | In progress | Numerical primitives, noise, rotations, spherical geometry, Fibonacci generation, stereographic projection, north-pole mesh closure, SciPy/Qhull Delaunay triangulation, spatial indexing, interpolation, graph and neighbourhood operations. The production backend is SciPy/Qhull. Comparison with Delaunator confirms identical triangles and neighbourhoods for seven resolution/seed pairs (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345). This result is limited to those cases and does not guarantee all seeds or resolutions. |
+| V2 domain porting | Not started | To be delivered subsystem by subsystem. |
+| Compatibility tests | Partial | Differential tests pass against the vendored upstream JavaScript sources; mesh connectivity matches for seven cases. Dynamic TectonicWorld steps and multi-step simulations still need comparison. No claim of full compatibility is made. |
+
+## Next implementation target
+
+The next major tectonics batch is the upstream `tectonics/step/resolve.js`
+resolver. It must be ported with its actual dependencies and reference
+semantics, then covered by focused unit and differential tests. Expected areas
+include plate-claim conflicts, subduction, divergent crust creation, and
+provisional-cell ownership; these behaviours must be confirmed from the
+upstream source before implementation.

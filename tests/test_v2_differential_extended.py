@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json, math, shutil, subprocess
 from pathlib import Path
-from types import SimpleNamespace
+from dataclasses import dataclass
 import numpy as np
 import pytest
 from orogen.v2.core.fast_noise import FastNoise
@@ -27,7 +27,7 @@ def original_extended():
 def _mesh():
     xyz=np.asarray([1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1],dtype=np.float32)
     rings=[[2,4,3,5],[2,5,3,4],[4,0,5,1],[4,1,5,0],[3,0,2,1],[2,0,3,1]]
-    mesh=SimpleNamespace(num_cells=6,xyz=xyz,adj_offset=np.asarray([0,4,8,12,16,20,24],dtype=np.int32),adj_list=np.asarray([x for ring in rings for x in ring],dtype=np.int32),edge_rad=.02)
+    mesh=_Mesh(6,xyz,np.asarray([0,4,8,12,16,20,24],dtype=np.int32),np.asarray([x for ring in rings for x in ring],dtype=np.int32),.02)
     mesh.index=SphereIndex(xyz,mesh,2)
     return mesh
 def _close(a,b,atol=2e-12): np.testing.assert_allclose(a,b,rtol=2e-12,atol=atol)

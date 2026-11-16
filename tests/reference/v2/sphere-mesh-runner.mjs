@@ -8,7 +8,7 @@ import { spreadKm } from "./core/min-heap.mjs";
 import { Plate } from "./tectonics/plate.mjs";
 setDelaunator(Delaunator);
 const cases=[];
-for(const [n,seed] of [[24,1],[48,17],[96,2026]]){
+for(const [n,seed] of [[12,99],[24,1],[48,17],[96,2026],[128,7],[256,42],[512,12345]]){
   const xyz0=generateFibonacciSphere(n,.35,makeRng(seed+4242));
   const projected=stereographicProjection(xyz0,n);
   const {mesh, r_xyz}=buildSphere(n,.35,makeRng(seed+4242));

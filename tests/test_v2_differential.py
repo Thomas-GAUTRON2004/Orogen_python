@@ -34,8 +34,9 @@ def original():
     if node is None:
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     result = subprocess.run(
-        [node, str(RUNNER)], cwd=ROOT, check=True, capture_output=True, text=True,
+        [node, str(RUNNER)], cwd=ROOT, check=False, capture_output=True, text=True,
     )
+    assert result.returncode == 0, f"upstream JS runner failed:\\n{result.stderr}\\n{result.stdout}"
     return json.loads(result.stdout)
 
 

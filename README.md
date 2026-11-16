@@ -25,7 +25,8 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 
 - génération déterministe des graines et RNG Park–Miller ;
 - bruit simplex 3D et FBM ;
-- rotations par quaternions ;\n- repère polaire autour d’un pôle d’Euler et classification du budget mémoire des petits appareils ;
+- rotations par quaternions ;
+- repère polaire autour d’un pôle d’Euler et classification du budget mémoire des petits appareils ;
 - géométrie sphérique ;
 - génération Fibonacci, projection stéréographique et fermeture du maillage au pôle Nord ;
 - triangulation Delaunay via SciPy/Qhull et construction du maillage de simulation ;

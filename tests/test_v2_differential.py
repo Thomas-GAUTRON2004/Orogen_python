@@ -89,6 +89,47 @@ def test_crust_raster_state_and_snapshot_match_original(original):
     assert crust.snapshot(2) == expected["snapshot"]
 
 
+def test_crust_orogeny_branch_transitions_match_original(original):
+    crust = CrustRaster(5)
+    for i in range(5):
+        crust.create(i, CrustType["CONTINENT"], 0, i + 1)
+    crust.record_orogeny(0, OrogenyType["INTRAPLATE"], 2, 10, 5)
+    crust.record_orogeny(0, OrogenyType["ANDEAN"], 3, 12, 5)
+    crust.record_orogeny(1, OrogenyType["HIMALAYAN"], 4, 10, 5)
+    crust.record_orogeny(1, OrogenyType["ARC"], 1, 11, 5)
+    crust.record_orogeny(2, OrogenyType["ANDEAN"], 4, 10, 5)
+    crust.record_orogeny(2, OrogenyType["RIFT"], 1, 30, 5)
+    crust.record_orogeny(3, OrogenyType["TRANSPRESSION"], 4, 10, 5)
+    crust.record_orogeny(3, OrogenyType["URAL"], 1, 11, 5)
+    crust.record_orogeny(4, OrogenyType["ANDEAN"], 4, 10, 5)
+    crust.record_orogeny(4, OrogenyType["HIMALAYAN"], 1, 11, 5)
+    assert [crust.snapshot(i) for i in range(5)] == original["crustBranches"]
+
+
+def test_plate_extent_empty_antipodal_and_mixed_match_original(original):
+    expected = original["extents"]
+    cases = {
+        "empty": ([], [1,0,0,0,1,0], [0,0]),
+        "antipodal": ([0,1], [1,0,0,-1,0,0], [CrustType["CRATON"],CrustType["OCEAN"]]),
+        "mixed": ([0,1,2], [1,0,0,0,1,0,0,0,1,-1,0,0],
+                  [CrustType["CRATON"],CrustType["OCEAN"],CrustType["CONTINENT"],CrustType["OCEAN"]]),
+    }
+    for name, (occupied, xyz, types) in cases.items():
+        plate = Plate(8, len(types), 2)
+        plate.set_quat(quat_from_axis_angle(0,0,1,math.pi/3))
+        for i in occupied:
+            plate.crust.create(i, types[i], -1, i+1)
+        plate.dirty = True
+        plate.refresh_extent(np.asarray(xyz, dtype=np.float32))
+        got = expected[name]
+        assert plate.stats == got["stats"]
+        assert plate.crust.count == got["count"]
+        assert plate.dirty is got["dirty"]
+        _assert_close(plate.capCenter, got["capCenter"], atol=2e-7)
+        assert plate.capCos == pytest.approx(got["capCos"], abs=2e-7)
+        _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad":0.015})()), got["cap"], atol=2e-7)
+
+
 def test_plate_frame_transform_and_extent_match_original(original):
     q1 = quat_from_axis_angle(0, 0, 1, math.pi / 3)
     q2 = quat_from_axis_angle(1, 0, 0, -math.pi / 7)

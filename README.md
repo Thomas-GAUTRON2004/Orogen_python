@@ -13,7 +13,8 @@ Version de développement : `3.0.1.dev0`. Python 3.10 ou supérieur.
 
 ```bash
 python -m pip install -e ".[test]"
-# Node.js 22+ est requis pour les tests différentiels avec le moteur JavaScript original.
+# Node.js 22+ et Delaunator sont requis pour les tests différentiels.
+npm install --no-save --package-lock=false delaunator@5.0.1
 python -m pytest
 ```
 
@@ -42,9 +43,7 @@ Le namespace `orogen.v2.tectonics` comprend maintenant :
 - le raster de croûte par plaque avec ses champs typés, snapshots/restauration, transferts, subduction et enregistrement des orogenèses ;
 - le modèle de plaque rigide, rotations de repère, calotte de culling et calcul de la rotation entre plaques.
 
-Les fonctions sont encore des primitives internes. Le backend Delaunay est SciPy/Qhull
-et non Delaunator ; les invariants topologiques sont testés, mais l'identité exacte des
-connectivités doit encore être comparée avec JavaScript. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
+Les fonctions sont encore des primitives internes. Le backend de production Delaunay reste SciPy/Qhull, tandis que le banc de référence exécute Delaunator. Les connectivités sont identiques sur les trois jeux de test différentiels (24, 48 et 96 points), mais cette comparaison ne constitue pas une preuve pour toutes les graines et résolutions. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
 
 ## Référence et provenance
 
@@ -54,8 +53,13 @@ connectivités doit encore être comparée avec JavaScript. Les modèles de plaq
 
 ## Tests et parité
 
-Un banc de tests différentiels exécute les modules JavaScript originaux embarqués depuis le tag amont `v3.0.1` et compare leurs sorties Python/JavaScript sur les mêmes entrées : parsing des graines, RNG Park–Miller, opérations quaternioniques, champs du raster crustal, transformations de plaques et calcul de calotte. Les sources de référence sont conservées sans modification algorithmique dans `tests/reference/v2/` ; seules les extensions et les chemins d'import ont été adaptés au rangement de test.
+Le banc différentiel exécute les sources JavaScript amont embarquées depuis le tag `v3.0.1`. Il compare notamment :
+- parsing des graines, RNG Park–Miller et bruit simplex/FBM ;
+- quaternions, géométrie sphérique et repère polaire ;
+- génération Fibonacci, projection, topologie Delaunay et voisinage sphérique sur trois tailles/graines ;
+- index cube-map, reconstruction depuis les tableaux, localisation barycentrique, BFS, anneaux, tas min et Dijkstra ;
+- tous les champs du raster crustal, copie/transfert/restauration, plaques, transformations et état initial du monde tectonique avec ses flux RNG.
 
-La CI GitHub Actions installe Node.js 22 et Python 3.12, puis exécute l'ensemble des tests. Dernière CI vérifiée : **35 tests passés**, dont 4 tests différentiels avec l'original JavaScript.
+La CI GitHub Actions installe Node.js 22, Delaunator 5.0.1 et Python 3.12. Dernière CI vérifiée : **54 tests passés**, dont 23 cas de comparaison différentielle avec les modules JavaScript originaux.
 
-La parité globale n'est pas établie : le maillage Delaunay, le monde tectonique complet, le moteur d'évolution et les autres sous-systèmes ne sont pas encore couverts par des comparaisons différentielles.
+La parité globale n'est pas établie : les étapes tectoniques dynamiques, la simulation multi-pas et les systèmes terrain, géologie, climat, finition et agriculture ne sont pas encore comparés aux sorties JavaScript. Les trois cas de topologie Delaunay réussis ne couvrent pas toutes les graines ni toutes les résolutions.

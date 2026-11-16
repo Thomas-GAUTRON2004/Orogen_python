@@ -12,9 +12,10 @@ from orogen.v2.core.min_heap import MinHeap, spread_km
 from orogen.v2.core.sphere_geometry import dot,cross,normalize,angle_between,tangent_toward,random_point,tangent_basis,destination,bearing_to,cap_fraction,polar_frame,cell_distance_km,centroid_of_cells
 from orogen.v2.core.sphere_index import SphereIndex
 from orogen.v2.core.mesh_locate import locate
+from orogen.v2.core.sim_mesh import mesh_from_arrays
 from orogen.v2.core.seed import make_rng
 from orogen.v2.tectonics.world import TectonicWorld,EventKind,BoundaryKind,Provisional
-from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.crust import CrustType, CrustRaster
 ROOT=Path(__file__).resolve().parents[1]
 RUNNER=ROOT/"tests/reference/v2/differential-extended.mjs"
 @pytest.fixture(scope="module")
@@ -60,6 +61,43 @@ def test_sphere_index_cube_table_and_nearest_match_original(original_extended):
     mesh=_mesh();expected=original_extended["index"];assert mesh.index.res==expected["res"];assert mesh.index.table.tolist()==expected["table"]
     queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]]
     assert [mesh.index.start(*p) for p in queries]==expected["starts"];assert [mesh.index.nearest(*p) for p in queries]==expected["nearest"]
+
+def test_mesh_from_arrays_matches_original(original_extended):
+    mesh=_mesh()
+    rebuilt=mesh_from_arrays(num_cells=6,xyz=mesh.xyz,adj_offset=mesh.adj_offset,adj_list=mesh.adj_list)
+    expected=original_extended["rebuilt"]
+    assert rebuilt.num_cells==expected["numCells"]
+    assert rebuilt.edge_rad==expected["edgeRad"]
+    assert rebuilt.edge_km==pytest.approx(expected["edgeKm"],rel=2e-15)
+    assert rebuilt.cell_area_km2==pytest.approx(expected["cellAreaKm2"],rel=2e-15)
+    queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]]
+    assert [rebuilt.index.nearest(*p) for p in queries]==expected["nearest"]
+
+
+def test_crust_copy_restore_remove_match_original(original_extended):
+    source=CrustRaster(3)
+    destination=CrustRaster(3)
+    source.create(0,CrustType["CRATON"],-1.25,17)
+    source.flags[0]=129
+    source.slabKm[0]=23.5
+    source.coverKm[0]=3.25
+    source.geoFlags[0]=3
+    source.oroType[0]=4
+    source.farDx[0]=64
+    source.farDy[0]=-32
+    source.farDz[0]=96
+    source_snapshot=source.snapshot(0)
+    rotation=[0,-1,0,1,0,0,0,0,1]
+    destination.copy_from(1,source,0,rotation)
+    destination.restore(2,source_snapshot)
+    destination.remove(1)
+    expected=original_extended["crustCopy"]
+    assert source_snapshot==expected["source"]
+    assert destination.snapshot(1)==expected["copied"]
+    assert destination.snapshot(2)==expected["restored"]
+    assert destination.mask.tolist()==expected["mask"]
+    assert destination.count==expected["count"]
+
 def test_barycentric_point_location_matches_original(original_extended):
     mesh=_mesh();queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]]
     for point,expected in zip(queries,original_extended["locate"]):
@@ -87,7 +125,7 @@ def test_tectonic_world_state_and_rng_streams_match_original(original_extended):
     w.terraneLetters={11:"B",12:"A"};w.time=12.5;w.log(EventKind["START"],"fixture event",{"plate":0,"area":2});e=original_extended["world"]
     for field in ["owner","ownerCell","claimCount","landClaims","collider","oceanOverrider","consumedAt","provisional","provisionalLike","boundaryKind","convergence","mantleHeat"]:
         _close(getattr(w,field).tolist(),e[field],atol=0)
-    assert w.config==e["config"];assert w.budget==e["budget"];assert w.events==e["events"]
+    assert p.cell_at(m.index,1,0,0)==e["cellAt"];assert w.config==e["config"];assert w.budget==e["budget"];assert w.events==e["events"]
     assert {"id":p.id,"name":p.name,"born":p.born,"crustCount":p.crust.count}==e["plate"]
     assert w.next_terrane_id()==e["nextTerrane"];assert w.name_by_cratons(p,"fallback")==e["name"]
     for stream,values in e["streams"].items(): _close([getattr(w,stream)() for _ in range(4)],values,atol=0)

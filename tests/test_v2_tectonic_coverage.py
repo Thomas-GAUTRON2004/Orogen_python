@@ -153,3 +153,25 @@ def test_world_terrane_overflow():
     world.lastTerraneId = 0xFFFF
     with pytest.raises(OverflowError):
         world.next_terrane_id()
+
+
+def test_rotated_plate_gather_maps_world_cells_to_plate_frame():
+    from orogen.v2.core.rotation import quat_from_axis_angle
+    from orogen.v2.tectonics.crust import CrustType
+    from orogen.v2.tectonics.gather import for_each_claim
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(48, 17)
+    world = TectonicWorld(mesh, 19, {"simCells": 48})
+    plate = world.add_plate("rotated")
+    plate.set_quat(quat_from_axis_angle(0, 0, 1, np.pi / 2))
+    world_cell = 5
+    x, y, z = mesh.xyz[world_cell]
+    local = plate.to_plate_frame(float(x), float(y), float(z))
+    raster_cell = int(mesh.index.nearest(*map(float, local)))
+    plate.crust.create(raster_cell, CrustType["OCEAN"], 0, 4)
+    plate.refresh_extent(mesh.xyz)
+
+    claims = []
+    for_each_claim(world, lambda w, p, c: claims.append((w, p.id, c)))
+    assert (world_cell, plate.id, raster_cell) in claims

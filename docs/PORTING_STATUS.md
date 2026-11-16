@@ -63,6 +63,6 @@ Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `dela
 |---|---|---|
 | Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
 | Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Seed/RNG, quaternions, géométrie sphérique et parcours BFS du maillage publiés dans `orogen.v2.core`. Tests de régression ajoutés ; exécution complète à confirmer. |
-| Portage des domaines V2 | À faire | À publier par sous-systèmes. |
+| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, quaternions, géométrie sphérique, BFS, index sphérique et modèle SimMesh publiés. Fixtures de régression et CI ajoutées ; exécution CI à vérifier. |
+| Core V2 | En cours | Primitives numériques et structure spatiale initiales ; le générateur de maillage Delaunay et les autres modules core restent à porter. |\n| Portage des domaines V2 | À faire | À publier par sous-systèmes. |
 | Tests de parité | À faire | Aucun résultat de parité globale revendiqué. |

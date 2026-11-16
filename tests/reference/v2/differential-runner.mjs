@@ -3,6 +3,7 @@ import { makeRng } from "./js/rng.mjs";
 import { quatFromAxisAngle, quatMul, quatNormalize, quatToMat3, quatIntegrate, quatToEulerPole } from "./core/rotation.mjs";
 import { CrustRaster, CrustType, OrogenyType, CrustFlag, CELL_FIELDS } from "./tectonics/crust.mjs";
 import { Plate, frameRotation } from "./tectonics/plate.mjs";
+import { latLonToXyz, xyzToLatLon, omegaFromEulerPole, surfaceVelocity, speedCmYrAt, advancePlates, poseAtConstantOmega } from "./tectonics/kinematics.mjs";
 
 const seedTexts = ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"];
 const seeds = seedTexts.map(text => ({text, word:isWordSeed(text), seed:seedOf(text)}));
@@ -79,8 +80,17 @@ const extents = {
   mixed: extentCase([1,0,0,0,1,0,0,0,1,-1,0,0], [0,1,2], [CrustType.CRATON,CrustType.OCEAN,CrustType.CONTINENT,CrustType.OCEAN])
 };
 
+
+const kinOmega = omegaFromEulerPole(latLonToXyz(35,-120), 4.5);
+const kinVelocity = surfaceVelocity(kinOmega, ...latLonToXyz(-12,77));
+const kinQ0 = quatFromAxisAngle(0,1,0,0.2);
+const kinPose = poseAtConstantOmega(kinQ0, kinOmega, 3.25);
+const kinWorld = {plates:[{alive:true,quat:kinQ0,omega:kinOmega,setQuat(q){this.quat=q;}},{alive:false,quat:kinQ0,omega:[1,2,3],setQuat(q){this.quat=q;}}],time:7,step:2};
+advancePlates(kinWorld, 1.75);
+const kinematics = {xyz:latLonToXyz(35,-120),latlon:xyzToLatLon(...latLonToXyz(-12,77)),omega:omegaFromEulerPole(latLonToXyz(35,-120),4.5),velocity:kinVelocity,speed:speedCmYrAt(kinOmega,...latLonToXyz(-12,77)),pose:kinPose,advanced:kinWorld.plates[0].quat,time:kinWorld.time,step:kinWorld.step,dead:kinWorld.plates[1].quat};
+
 console.log(JSON.stringify({
-  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents,
+  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents, kinematics,
   plate:{world, local, matrix:Array.from(plate.mat), stats:plate.stats,
          capCenter:plate.capCenter, capCos:plate.capCos, cap, frameRotation:rotation}
 }));

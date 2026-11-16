@@ -89,8 +89,16 @@ const kinWorld = {plates:[{alive:true,quat:kinQ0,omega:kinOmega,setQuat(q){this.
 advancePlates(kinWorld, 1.75);
 const kinematics = {xyz:latLonToXyz(35,-120),latlon:xyzToLatLon(...latLonToXyz(-12,77)),omega:omegaFromEulerPole(latLonToXyz(35,-120),4.5),velocity:kinVelocity,speed:speedCmYrAt(kinOmega,...latLonToXyz(-12,77)),pose:kinPose,advanced:kinWorld.plates[0].quat,time:kinWorld.time,step:kinWorld.step,dead:kinWorld.plates[1].quat};
 
+
+import { binIndex, markBin, mayHaveCrustNear } from "./tectonics/occupancy.mjs";
+const occMesh = {numCells:4, xyz:new Float32Array([1,0,0, 0,1,0, 0,0,1, -1,0,0]), edgeKm:500};
+const occBins = binIndex(occMesh);
+const occPlate = {};
+markBin(occPlate, occBins.binOf[0], 19, occBins.count);
+const occupancy = {binOf:Array.from(occBins.binOf), counts:occBins.neighbours.map(x=>x.length), near:[0,1,2,3].map(i=>mayHaveCrustNear(occPlate,i,19,occBins)), absent:mayHaveCrustNear({},0,19,occBins), count:occBins.count};
+
 console.log(JSON.stringify({
-  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents, kinematics,
+  seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents, kinematics, occupancy,
   plate:{world, local, matrix:Array.from(plate.mat), stats:plate.stats,
          capCenter:plate.capCenter, capCos:plate.capCos, cap, frameRotation:rotation}
 }));

@@ -15,7 +15,7 @@ const mesh={numCells:6,numRegions:6,xyz,adjOffset,adjList,edgeRad:.02};
 mesh.index=new SphereIndex(xyz,mesh,2);
 const rng=makeRng(7821),randomPoints=Array.from({length:5},()=>geom.randomPoint(rng));
 const noise=new FastNoise(9876),noisePoints=[[.1,.2,.3],[-1.25,2.5,.75],[12.125,-4.5,9.75],[0,0,0]];
-const noiseOut=noisePoints.map(p=>({p,n:noise.noise3d(...p),f:noise.fbm(...p,5,2/3)}));
+const noiseOut=noisePoints.map(p=>({p,n:noise.noise3D(...p),f:noise.fbm(...p,5,2/3)}));
 const p=[.2,-.3,Math.sqrt(.87)],polar=geom.polarFrame([.3,.4,Math.sqrt(.75)],[0,0,1]);
 const geomOut={dot:geom.dot([1,2,3],[-2,.5,4]),cross:geom.cross([1,2,3],[-2,.5,4]),normalize:geom.normalize([2,-3,6]),angles:[[1,0,0],[0,1,0],[0,0,-1]].map(v=>geom.angleBetween([1,0,0],v)),tangent:geom.tangentToward([0,0,1],[1,0,0],[0,1,0]),randomPoints,basis:geom.tangentBasis(p),destination:geom.destination(p,1.234,.42),bearing:geom.bearingTo(p,geom.destination(p,1.234,.42)),cap:geom.capFraction(.75),polar:[[1,0,0],[0,1,0],[0,0,1],[-1,0,0]].map(v=>polar(...v)),cellDistance:geom.cellDistanceKm(xyz,0,4),centroid:geom.centroidOfCells(xyz,[0,2,4])};
 const queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]];

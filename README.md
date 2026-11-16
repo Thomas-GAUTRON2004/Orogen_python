@@ -13,6 +13,7 @@ Version de développement : `3.0.1.dev0`. Python 3.10 ou supérieur.
 
 ```bash
 python -m pip install -e ".[test]"
+# Node.js 22+ est requis pour les tests différentiels avec le moteur JavaScript original.
 python -m pytest
 ```
 
@@ -53,11 +54,8 @@ connectivités doit encore être comparée avec JavaScript. Les modèles de plaq
 
 ## Tests et parité
 
-Les fixtures déterministes de RNG et de bruit sont calculées à partir du moteur JavaScript
-amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
+Un banc de tests différentiels exécute les modules JavaScript originaux embarqués depuis le tag amont `v3.0.1` et compare leurs sorties Python/JavaScript sur les mêmes entrées : parsing des graines, RNG Park–Miller, opérations quaternioniques, champs du raster crustal, transformations de plaques et calcul de calotte. Les sources de référence sont conservées sans modification algorithmique dans `tests/reference/v2/` ; seules les extensions et les chemins d'import ont été adaptés au rangement de test.
 
-La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-La dernière exécution vérifiée a réussi : **31 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
+La CI GitHub Actions installe Node.js 22 et Python 3.12, puis exécute l'ensemble des tests. Dernière CI vérifiée : **35 tests passés**, dont 4 tests différentiels avec l'original JavaScript.
 
-La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
-sur les mêmes graines, paramètres, maillages et instants.
+La parité globale n'est pas établie : le maillage Delaunay, le monde tectonique complet, le moteur d'évolution et les autres sous-systèmes ne sont pas encore couverts par des comparaisons différentielles.

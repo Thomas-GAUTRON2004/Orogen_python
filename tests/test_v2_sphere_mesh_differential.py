@@ -24,7 +24,7 @@ def original_spheres():
     assert result.returncode==0,f"upstream Delaunator runner failed:\n{result.stderr}\n{result.stdout}"
     return json.loads(result.stdout)
 
-@pytest.mark.parametrize("n,seed",[(24,1),(48,17),(96,2026)])
+@pytest.mark.parametrize("n,seed",[(12,99),(24,1),(48,17),(96,2026),(128,7),(256,42),(512,12345)])
 def test_fibonacci_coordinates_and_projection_match_original(original_spheres,n,seed):
     expected=next(x for x in original_spheres if x["n"]==n and x["seed"]==seed)
     xyz=generate_fibonacci_sphere(n,.35,make_rng(seed+4242))
@@ -32,7 +32,7 @@ def test_fibonacci_coordinates_and_projection_match_original(original_spheres,n,
     projected=stereographic_projection(xyz,n)
     np.testing.assert_allclose(projected.reshape(-1),expected["projected"],rtol=0,atol=0)
 
-@pytest.mark.parametrize("n,seed",[(24,1),(48,17),(96,2026)])
+@pytest.mark.parametrize("n,seed",[(12,99),(24,1),(48,17),(96,2026),(128,7),(256,42),(512,12345)])
 def test_spherical_delaunay_topology_matches_original(original_spheres,n,seed):
     expected=next(x for x in original_spheres if x["n"]==n and x["seed"]==seed)
     mesh,xyz=build_sphere(n,.35,make_rng(seed+4242))
@@ -46,7 +46,7 @@ def test_spherical_delaunay_topology_matches_original(original_spheres,n,seed):
     actual_neighbours=[sorted(map(int,mesh.adj_list[mesh.adj_offset[i]:mesh.adj_offset[i+1]])) for i in range(mesh.num_regions)]
     assert actual_neighbours==expected["neighbours"]
 
-@pytest.mark.parametrize("n,seed",[(24,1),(48,17),(96,2026)])
+@pytest.mark.parametrize("n,seed",[(12,99),(24,1),(48,17),(96,2026),(128,7),(256,42),(512,12345)])
 def test_sim_mesh_metrics_and_nearest_cells_match_original(original_spheres,n,seed):
     expected=next(x for x in original_spheres if x["n"]==n and x["seed"]==seed)
     mesh=build_sim_mesh(n,seed)

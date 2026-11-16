@@ -85,7 +85,7 @@ def _edge_km_of(mesh: Any) -> np.ndarray:
     offsets, adjacency, xyz = mesh.adj_offset, mesh.adj_list, mesh.xyz
     edge_km = np.empty(len(adjacency), dtype=np.float64)
     for cell in range(len(offsets) - 1):
-        cx, cy, cz = xyz[3 * cell:3 * cell + 3]
+        cx, cy, cz = (float(value) for value in xyz[3 * cell:3 * cell + 3])
         for k in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[k])
             offset = 3 * neighbour

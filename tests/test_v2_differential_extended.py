@@ -80,7 +80,7 @@ def test_min_heap_order_and_dijkstra_match_original(original_extended):
     while h.size:
         i=h.pop();actual.append([h.last_key,i])
     assert actual==original_extended["heap"];m=_mesh();d=np.asarray([0,math.inf,math.inf,math.inf,math.inf,math.inf],dtype=np.float64)
-    spread_km(m,d,max_km=12000,can_enter=lambda a,b:b!=5);_close(d,original_extended["spread"],atol=1e-8)
+    spread_km(m,d,max_km=12000,can_enter=lambda a,b:b!=5);expected=[math.inf if x=="Infinity" else x for x in original_extended["spread"]];_close(d,expected,atol=1e-8)
 def test_tectonic_world_state_and_rng_streams_match_original(original_extended):
     m=_mesh();w=TectonicWorld(m,77,{},{"fixture":{"nested":3}});p=w.add_plate("North")
     p.crust.create(0,CrustType["CRATON"],-20,11);p.crust.create(2,CrustType["CRATON"],-30,12)

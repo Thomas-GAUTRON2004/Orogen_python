@@ -106,8 +106,8 @@ def centroid_of_cells(xyz: Sequence[float], cells: Iterable[int]) -> list[float]
     x = y = z = 0.0
     for cell in cells:
         offset = 3 * cell
-        x += xyz[offset]
-        y += xyz[offset + 1]
-        z += xyz[offset + 2]
+        x += float(xyz[offset])
+        y += float(xyz[offset + 1])
+        z += float(xyz[offset + 2])
     length = math.hypot(x, y, z) or 1.0
     return [x / length, y / length, z / length]

@@ -63,7 +63,7 @@ Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `dela
 |---|---|---|
 | Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
 | Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra et anneaux de voisinage publiés. 18 tests ajoutés. Une première CI a passé 17/18 tests ; le fixture de cache fautif a été corrigé, nouvelle validation à confirmer. |
+| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra et anneaux de voisinage publiés. 18 tests exécutés avec succès sur Python 3.12 dans la dernière CI. |
 | Core V2 | En cours | Primitives numériques, bruit, rotations, index spatial, interpolation, graphe et opérations de voisinage. La construction du maillage Delaunay et les adaptateurs de tableaux restent à finaliser. |
 | Portage des domaines V2 | À faire | À publier par sous-systèmes. |
 | Tests de parité | À faire | Aucun résultat de parité globale revendiqué. |

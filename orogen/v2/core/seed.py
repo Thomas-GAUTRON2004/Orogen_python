@@ -6,12 +6,36 @@ Changing them changes generated worlds.
 from __future__ import annotations
 
 import math
+import re
 import secrets
 from collections.abc import Callable
 
 SEEDS = 2_147_483_646
 _RNG_MODULUS = 2_147_483_647
 _RNG_MULTIPLIER = 16_807
+_DECIMAL_NUMBER = re.compile(
+    r"^[+-]?(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?$"
+)
+
+
+def _js_number(text: str) -> float | None:
+    """Parse the numeric string forms accepted by JavaScript Number()."""
+    if text == "":
+        return 0.0
+    if text in ("Infinity", "+Infinity", "-Infinity"):
+        return math.inf if not text.startswith("-") else -math.inf
+    try:
+        if text.startswith(("0x", "0X")):
+            return float(int(text[2:], 16))
+        if text.startswith(("0b", "0B")):
+            return float(int(text[2:], 2))
+        if text.startswith(("0o", "0O")):
+            return float(int(text[2:], 8))
+        if _DECIMAL_NUMBER.fullmatch(text):
+            return float(text)
+    except ValueError:
+        return None
+    return None
 
 
 def make_rng(seed: float | int = 0) -> Callable[[], float]:
@@ -39,15 +63,13 @@ def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
 
 
 def is_word_seed(text: object) -> bool:
-    """Whether a seed string is non-empty and does not parse as a number."""
+    """Whether a seed string is non-empty and not finite under JS Number()."""
     value = "" if text is None else str(text)
     value = value.strip()
     if not value:
         return False
-    try:
-        return not math.isfinite(float(value))
-    except ValueError:
-        return True
+    number = _js_number(value)
+    return number is None or not math.isfinite(number)
 
 
 def seed_of(text: object) -> int | float:
@@ -55,10 +77,7 @@ def seed_of(text: object) -> int | float:
     value = "" if text is None else str(text)
     value = value.strip()
     if not is_word_seed(value):
-        try:
-            number = float(value)
-        except ValueError:
-            return 0
+        number = _js_number(value)
         return number if number else 0
 
     h = 0x811C9DC5

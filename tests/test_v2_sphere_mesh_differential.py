@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 from orogen.v2.core.seed import make_rng
 from orogen.v2.core.sphere_mesh import build_sphere, generate_fibonacci_sphere, stereographic_projection
-from orogen.v2.core.sim_mesh import build_sim_mesh
+from orogen.v2.core.sim_mesh import build_sim_mesh, km_to_hops
+from orogen.v2.core.mesh_bfs import within_km, hop_distance, flood_from
+from orogen.v2.core.mesh_rings import rings_of
+from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.mesh_bfs import within_km, hop_distance
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.sphere_geometry import cell_distance_km, centroid_of_cells
@@ -72,3 +75,31 @@ def test_sim_mesh_metrics_and_nearest_cells_match_original(original_spheres,n,se
     assert plate.stats==expected["plate"]["stats"]
     np.testing.assert_allclose(plate.capCenter,expected["plate"]["capCenter"],rtol=2e-12,atol=2e-12)
     assert plate.capCos==pytest.approx(expected["plate"]["capCos"],abs=2e-7)
+
+
+@pytest.mark.parametrize("n,seed",[(12,99),(24,1),(48,17),(96,2026),(128,7),(256,42),(512,12345)])
+def test_graph_neighbourhood_and_dijkstra_match_original_on_generated_meshes(original_spheres,n,seed):
+    expected=next(x for x in original_spheres if x["n"]==n and x["seed"]==seed)
+    mesh=build_sim_mesh(n,seed)
+    source=lambda cell: cell==0 or cell==mesh.num_cells//2
+    enter=lambda cell: cell%11!=5
+    assert within_km(mesh,source,mesh.edge_km*2).tolist()==expected["bfs"]["within"]
+    assert hop_distance(mesh,source,3,enter).tolist()==expected["bfs"]["hops"]
+    assert flood_from(mesh,0,lambda cell:cell%13!=7).tolist()==expected["bfs"]["flood"]
+    rings=rings_of(mesh)
+    stride=rings["stride"]
+    for cell in range(mesh.num_cells):
+        actual=[]
+        for ring in range(4):
+            start=rings["start"][cell*stride+ring]
+            end=rings["start"][cell*stride+ring+1]
+            actual.append(sorted(map(int,rings["cells"][start:end])))
+        assert actual==expected["ringSets"][cell]
+    dist=np.full(mesh.num_cells,np.inf,dtype=np.float64)
+    dist[0]=0
+    dist[mesh.num_cells//2]=0
+    spread_km(mesh,dist,max_km=mesh.edge_km*5,can_enter=lambda a,b:b%17!=3)
+    wanted=[math.inf if value=="Infinity" else value for value in expected["spread"]]
+    np.testing.assert_allclose(dist,wanted,rtol=0,atol=2e-8)
+    measures=[0,mesh.edge_km*.49,mesh.edge_km*.5,mesh.edge_km*1.5,mesh.edge_km*3.1]
+    assert [km_to_hops(mesh,value) for value in measures]==expected["kmToHops"]

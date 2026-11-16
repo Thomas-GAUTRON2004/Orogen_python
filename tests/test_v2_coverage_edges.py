@@ -43,6 +43,8 @@ def test_seed_parser_edge_cases_and_random_seed_range(monkeypatch):
     assert seed.is_word_seed("  ") is False
     assert seed.is_word_seed("Infinity") is True
     assert seed.seed_of(None) == 0
+    assert seed.seed_of("Pangaea") == seed.seed_of("Pangaea")
+    assert seed.is_word_seed("Pangaea") is True
     assert seed.seed_of("0") == 0
     assert seed.seed_of("1.5") == 1.5
     monkeypatch.setattr(seed.secrets, "randbelow", lambda n: n - 1)
@@ -108,15 +110,15 @@ def test_locate_skips_degenerate_candidate_triangles():
 
 def test_ring_builder_grows_storage_and_handles_disconnected_mesh():
     # Dense cycle exceeds the initial 40*n storage only at larger radii.
-    n = 24
+    n = 50
     offsets = [0]
     adjacency = []
     for i in range(n):
-        adjacency.extend([(i - 1) % n, (i + 1) % n])
+        adjacency.extend(j for j in range(n) if j != i)
         offsets.append(len(adjacency))
     m = Graph(offsets, adjacency)
     rings = rings_of(m)
-    assert len(rings["cells"]) > n * 5
+    assert len(rings["cells"]) > n * 40
     assert rings_of(m) is rings
 
 
@@ -142,7 +144,7 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
 def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():
     points = np.array([[0., 0.], [0., 1.], [1., 0.]])
     closed = sphere_mesh._closed_triangles(points, 3)
-    assert len(closed) == 2
+    assert len(closed) == 4
     with pytest.raises(ValueError, match="no neighbours"):
         sphere_mesh._cyclic_region_adjacency(np.array([[0, 1, 2]]), 4)
     with pytest.raises(ValueError, match="non-manifold"):

@@ -63,7 +63,7 @@ Les scripts de contrôle V2 amont dépendent de paquets Node.js, notamment `dela
 |---|---|---|
 | Audit du périmètre amont | Terminé | Sources V2.3.0.1 inspectées ; domaines et volumes recensés. |
 | Audit du paquet Python 1.1.0 | Terminé | Base existante identifiée ; parité complète non établie. |
-| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra et anneaux de voisinage publiés. 25 tests exécutés avec succès sur Python 3.12 dans la dernière CI, y compris les nouveaux tests de topologie, cyclicité et localisation. |
+| Socle Python 3.0.1 | En cours | Namespace de paquet, RNG/seed, bruit simplex, quaternions, géométrie sphérique, BFS, index sphérique, SimMesh, localisation barycentrique, tas min, Dijkstra, anneaux de voisinage, repère polaire d'Euler et classification des petits appareils publiés. 25 tests exécutés avec succès sur Python 3.12 dans la dernière CI, y compris les nouveaux tests de topologie, cyclicité et localisation. |
 | Core V2 | En cours | Primitives numériques, bruit, rotations, géométrie sphérique, génération Fibonacci, projection stéréographique, fermeture du maillage au pôle Nord, triangulation Delaunay via SciPy/Qhull, index spatial, interpolation, graphe et opérations de voisinage. Le backend Delaunay diffère de Delaunator : les invariants sont testés, mais l'identité exacte de connectivité reste à comparer. |
 | Portage des domaines V2 | À faire | À publier par sous-systèmes. |
 | Tests de parité | À faire | Aucun résultat de parité globale revendiqué. |

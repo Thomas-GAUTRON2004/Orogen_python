@@ -156,7 +156,9 @@ def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():
     with pytest.raises(ValueError, match="non-manifold"):
         sphere_mesh._cyclic_region_adjacency(np.array([[0, 1, 2], [0, 1, 3]]), 4)
     with pytest.raises(ValueError, match="broken cyclic"):
-        sphere_mesh._cyclic_region_adjacency(np.array([[0, 1, 2], [0, 2, 3]]), 4)
+        sphere_mesh._cyclic_region_adjacency(
+            np.array([[0, 1, 2], [0, 3, 4], [0, 5, 6]]), 7
+        )
     with pytest.raises(ValueError, match="one ring"):
         sphere_mesh._cyclic_region_adjacency(
             np.array([[0, 1, 2], [0, 2, 1], [0, 3, 4], [0, 4, 3]]), 5
@@ -202,8 +204,19 @@ def test_world_craton_naming_fallback_and_sorted_letters():
     from orogen.v2.tectonics.world import TectonicWorld
     world = TectonicWorld(build_sim_mesh(12, 2), 3, {"simCells": 12})
     plate = world.add_plate("fallback")
+    assert world.name_by_cratons(plate, "fallback") == "fallback"
     plate.crust.create(0, 2, -1000, 7)
     world.terraneLetters = {7: "Z"}
     assert world.name_by_cratons(plate, "fallback") == "Z"
     world.terraneLetters = {}
     assert world.name_by_cratons(plate, "fallback") == "fallback"
+
+
+def test_sphere_mesh_normalizes_clockwise_simplex_winding(monkeypatch):
+    class ClockwiseDelaunay:
+        def __init__(self, points):
+            self.simplices = np.array([[0, 1, 2]], dtype=np.int32)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", ClockwiseDelaunay)
+    points = np.array([[0., 0.], [0., 1.], [1., 0.]])
+    triangles = sphere_mesh._closed_triangles(points, 3)
+    assert triangles[0].tolist() == [0, 2, 1]

@@ -52,6 +52,6 @@ const rotation = Array.from(frameRotation(plate, other));
 const cap = plate.capInWorld({edgeRad:0.02});
 console.log(JSON.stringify({
   seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut,
-  plate:{world, local, matrix:Array.from(plate.mat.flat()), stats:plate.stats,
+  plate:{world, local, matrix:Array.from(plate.mat), stats:plate.stats,
          capCenter:plate.capCenter, capCos:plate.capCos, cap, frameRotation:rotation}
 }));

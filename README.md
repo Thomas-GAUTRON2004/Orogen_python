@@ -25,7 +25,7 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 
 - génération déterministe des graines et RNG Park–Miller ;
 - bruit simplex 3D et FBM ;
-- rotations par quaternions ;
+- rotations par quaternions ;\n- repère polaire autour d’un pôle d’Euler et classification du budget mémoire des petits appareils ;
 - géométrie sphérique ;
 - génération Fibonacci, projection stéréographique et fermeture du maillage au pôle Nord ;
 - triangulation Delaunay via SciPy/Qhull et construction du maillage de simulation ;
@@ -52,7 +52,7 @@ Les fixtures déterministes de RNG et de bruit sont calculées à partir du mote
 amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
 
 La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-La dernière exécution vérifiée a réussi : **23 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
+La dernière exécution vérifiée a réussi : **25 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
 
 La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
 sur les mêmes graines, paramètres, maillages et instants.

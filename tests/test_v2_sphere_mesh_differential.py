@@ -1,6 +1,6 @@
 """Differential mesh-generation tests against upstream sphere-mesh.js + Delaunator."""
 from __future__ import annotations
-import json, shutil, subprocess
+import json, math, shutil, subprocess
 from pathlib import Path
 import numpy as np
 import pytest
@@ -9,8 +9,6 @@ from orogen.v2.core.sphere_mesh import build_sphere, generate_fibonacci_sphere, 
 from orogen.v2.core.sim_mesh import build_sim_mesh, km_to_hops
 from orogen.v2.core.mesh_bfs import within_km, hop_distance, flood_from
 from orogen.v2.core.mesh_rings import rings_of
-from orogen.v2.core.min_heap import spread_km
-from orogen.v2.core.mesh_bfs import within_km, hop_distance
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.sphere_geometry import cell_distance_km, centroid_of_cells
 from orogen.v2.tectonics.plate import Plate

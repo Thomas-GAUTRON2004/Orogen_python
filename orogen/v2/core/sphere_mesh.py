@@ -82,9 +82,6 @@ def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
     p = points_2d
     for tri in triangles:
         a, b, c = map(int, tri)
-        cross = (
-            (p[2 * 0] if False else 0.0)
-        )
         ax, ay = p[a]
         bx, by = p[b]
         cx, cy = p[c]

@@ -69,7 +69,7 @@ def test_point_location_on_generated_mesh_recovers_containing_triangle():
     from orogen.v2.core.mesh_locate import locate
 
     mesh = build_sim_mesh(40, 771)
-    tri = mesh.index.walk(0, 0.0, 0.0, 1.0)  # deterministic warm-up of the cube-map walk\n    tri = np.asarray(mesh.adj_list[mesh.adj_offset[0]:mesh.adj_offset[0] + 2].tolist() + [0], dtype=np.int32)
+    tri = np.asarray(mesh.adj_list[mesh.adj_offset[0]:mesh.adj_offset[0] + 2].tolist() + [0], dtype=np.int32)
     xyz = mesh.xyz.reshape(-1, 3)
     point = xyz[tri].mean(axis=0)
     point /= np.linalg.norm(point)

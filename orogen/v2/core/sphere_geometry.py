@@ -95,9 +95,9 @@ def polar_frame(pole: Vector3, reference: Vector3) -> Callable[[float, float, fl
 def cell_distance_km(xyz: Sequence[float], cell_a: int, cell_b: int) -> float:
     a, b = 3 * cell_a, 3 * cell_b
     cosine = (
-        xyz[a] * xyz[b]
-        + xyz[a + 1] * xyz[b + 1]
-        + xyz[a + 2] * xyz[b + 2]
+        float(xyz[a]) * float(xyz[b])
+        + float(xyz[a + 1]) * float(xyz[b + 1])
+        + float(xyz[a + 2]) * float(xyz[b + 2])
     )
     return math.acos(max(-1.0, min(1.0, cosine))) * PLANET_RADIUS_KM
 

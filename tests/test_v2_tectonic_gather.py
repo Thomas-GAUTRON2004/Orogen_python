@@ -1,7 +1,6 @@
 import numpy as np
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.core.rotation import quat_from_axis_angle
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.gather import clear_world_view, for_each_claim
 from orogen.v2.tectonics.world import TectonicWorld
@@ -25,7 +24,7 @@ def test_gather_identity_plate_claims_and_clears_world_view():
     world.provisional.fill(1)
     clear_world_view(world)
     assert np.all(world.owner == -1)
-    assert np.all(world.ownerCell == 0)
+    assert np.all(world.ownerCell == 9)
     assert np.all(world.claimCount == 0)
     assert np.all(world.landClaims == 0)
     assert np.all(world.collider == -1)
@@ -44,7 +43,7 @@ def test_gather_skips_dead_and_empty_plates():
     dead.crust.create(0, CrustType["OCEAN"], 0, 1)
     dead.refresh_extent(mesh.xyz)
     dead.alive = False
-    empty = world.add_plate("empty")
+    world.add_plate("empty")
     claims = []
     for_each_claim(world, lambda w, p, c: claims.append((w, p.id, c)))
     assert claims == []

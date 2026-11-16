@@ -125,7 +125,7 @@ def test_world_config_copy_rng_terrane_naming_and_event_validation():
     assert world.config["nested"]["value"] == 1
     assert world.config["extra"] is True
     same = TectonicWorld(mesh, 77, {"nested": {"value": 1}, "extra": True})
-    assert [world.rng.next() for _ in range(5)] == [same.rng.next() for _ in range(5)]
+    assert [world.rng() for _ in range(5)] == [same.rng() for _ in range(5)]
     with pytest.raises(ValueError):
         TectonicWorld(mesh, 1, None)
 

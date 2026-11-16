@@ -39,6 +39,10 @@ def test_seed_parser_edge_cases_and_random_seed_range(monkeypatch):
     assert seed._js_number("1.25e2") == 125
     assert seed._js_number("0x") is None
     assert seed._js_number("not-a-number") is None
+    sampler = seed.make_rand_int(123)
+    assert 0 <= sampler(10) < 10
+    with pytest.raises(ValueError):
+        sampler(0)
     assert seed.is_word_seed(None) is False
     assert seed.is_word_seed("  ") is False
     assert seed.is_word_seed("Infinity") is True
@@ -148,7 +152,7 @@ def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():
     closed = sphere_mesh._closed_triangles(points, 3)
     assert len(closed) == 4
     with pytest.raises(ValueError, match="no neighbours"):
-        sphere_mesh._cyclic_region_adjacency(np.array([[0, 1, 2]]), 4)
+        sphere_mesh._cyclic_region_adjacency(np.empty((0, 3), dtype=np.int32), 1)
     with pytest.raises(ValueError, match="non-manifold"):
         sphere_mesh._cyclic_region_adjacency(np.array([[0, 1, 2], [0, 1, 3]]), 4)
     with pytest.raises(ValueError, match="broken cyclic"):
@@ -192,3 +196,14 @@ def test_simplex_noise_and_fbm_cover_corner_and_octave_paths():
     assert all(math.isfinite(v) for v in values)
     assert math.isfinite(noise.fbm(.1, .2, .3, octaves=1))
     assert math.isfinite(noise.fbm(.1, .2, .3, octaves=4, persistence=.5))
+
+
+def test_world_craton_naming_fallback_and_sorted_letters():
+    from orogen.v2.tectonics.world import TectonicWorld
+    world = TectonicWorld(build_sim_mesh(12, 2), 3, {"simCells": 12})
+    plate = world.add_plate("fallback")
+    plate.crust.create(0, 2, -1000, 7)
+    world.terraneLetters = {7: "Z"}
+    assert world.name_by_cratons(plate, "fallback") == "Z"
+    world.terraneLetters = {}
+    assert world.name_by_cratons(plate, "fallback") == "fallback"

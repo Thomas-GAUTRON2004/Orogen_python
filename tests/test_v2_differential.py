@@ -177,14 +177,11 @@ def test_plate_kinematics_match_original(original):
     _assert_close(pose_at_constant_omega(q0, omega, 3.25), expected["pose"], atol=1e-15)
     class World: pass
     class P:
-        alive = True
-        quat = q0
-        omega = omega
+        def __init__(self, alive, quat, omega):
+            self.alive, self.quat, self.omega = alive, quat, omega
         def set_quat(self, q): self.quat = q
-    class Dead(P):
-        alive = False
-    dead = Dead(); dead.quat = q0; dead.omega = [1,2,3]
-    world = World(); world.plates = [P(), dead]; world.time = 7; world.step = 2
+    dead = P(False, q0, [1,2,3])
+    world = World(); world.plates = [P(True, q0, omega), dead]; world.time = 7; world.step = 2
     advance_plates(world, 1.75)
     _assert_close(world.plates[0].quat, expected["advanced"], atol=1e-15)
     _assert_close(world.plates[1].quat, expected["dead"], atol=0)

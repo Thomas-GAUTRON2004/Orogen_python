@@ -69,6 +69,29 @@ def cap_fraction(radius_rad: float) -> float:
     return (1 - math.cos(radius_rad)) / 2
 
 
+
+def polar_frame(pole: Vector3, reference: Vector3) -> Callable[[float, float, float], dict[str, float]]:
+    """Return the upstream Euler-pole frame: colatitude and azimuth in degrees."""
+    projection = dot(pole, reference)
+    u = normalize([
+        reference[0] - projection * pole[0],
+        reference[1] - projection * pole[1],
+        reference[2] - projection * pole[2],
+    ])
+    v = cross(pole, u)
+
+    def coordinates(x: float, y: float, z: float) -> dict[str, float]:
+        colatitude = math.acos(max(-1.0, min(
+            1.0, x * pole[0] + y * pole[1] + z * pole[2]
+        ))) * 180.0 / math.pi
+        azimuth = math.atan2(
+            x * v[0] + y * v[1] + z * v[2],
+            x * u[0] + y * u[1] + z * u[2],
+        ) * 180.0 / math.pi
+        return {"colat": colatitude, "azimuth": azimuth}
+
+    return coordinates
+
 def cell_distance_km(xyz: Sequence[float], cell_a: int, cell_b: int) -> float:
     a, b = 3 * cell_a, 3 * cell_b
     cosine = (

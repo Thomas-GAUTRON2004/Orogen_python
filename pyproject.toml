@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "3.0.1.dev0"
 description = "Python port of the Orogen 3.0.1 procedural planetary simulation engine"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "GPL-3.0-only" }
+license = "GPL-3.0-only"\nlicense-files = ["LICENSE"]
 dependencies = ["numpy>=1.24"]
 
 [project.optional-dependencies]

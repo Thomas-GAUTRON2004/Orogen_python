@@ -50,9 +50,7 @@ Les fixtures déterministes de RNG et de bruit sont calculées à partir du mote
 amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
 
 La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-Une exécution précédente a trouvé 17 tests réussis sur 18 ; l'échec restant concernait le
-fixture de maillage du test de cache et a été corrigé. La validation de cette correction
-reste à confirmer.
+La dernière exécution vérifiée a réussi : **18 tests passés** sur Python 3.12.
 
 La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
 sur les mêmes graines, paramètres, maillages et instants.

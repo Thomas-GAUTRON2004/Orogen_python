@@ -124,3 +124,21 @@ The container does not initialize a physically complete planet, resolve boundari
 - `PLANET_RADIUS_KM = 6371.0`
 - `SEGMENT_KM = 400.0`
 - `fracture_coordinate(px, py, pz, omega)` computes a ridge-floor coordinate in segment lengths about a spreading pole. It returns 0.5 for a near-zero angular-velocity vector; zero is reserved for cells without a recorded coordinate.
+
+## Boundary contact geometry
+
+Module: `orogen.v2.tectonics.contact`
+
+`contact_at(world, cell, out)` finds the neighbouring world cell across a plate boundary. It writes a four-value result to `out`: the averaged unit normal `(nx, ny, nz)` pointing toward foreign plate neighbours, followed by the number of shared foreign-neighbour edges. It returns `-1` for an interior cell.
+
+The result is cached per world cell and is valid until `world.occupancyStamp` changes. The normalized direction of each mesh adjacency edge is cached per mesh. Increment the stamp whenever the owner map is rebuilt; otherwise callers may reuse a previous contact result.
+
+```python
+import numpy as np
+from orogen.v2.tectonics import contact_at
+
+normal = np.zeros(4)
+across = contact_at(world, world_cell, normal)
+if across >= 0:
+    nx, ny, nz, shared_edges = normal
+```

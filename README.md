@@ -43,7 +43,7 @@ Le namespace `orogen.v2.tectonics` comprend maintenant :
 
 Les fonctions sont encore des primitives internes. Le backend Delaunay est SciPy/Qhull
 et non Delaunator ; les invariants topologiques sont testés, mais l'identité exacte des
-connectivités doit encore être comparée avec JavaScript. Les modèles de plaque et de raster crustal sont maintenant portés, mais l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
+connectivités doit encore être comparée avec JavaScript. Les modèles de plaque et de raster crustal sont maintenant portés, mais les valeurs par défaut de configuration TECTONICS, l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
 
 ## Référence et provenance
 
@@ -57,7 +57,7 @@ Les fixtures déterministes de RNG et de bruit sont calculées à partir du mote
 amont. Les tests d'invariants couvrent les rotations, le maillage et les opérations de graphe.
 
 La CI GitHub Actions exécute `pytest` sur les branches de portage et les pull requests.
-La dernière exécution vérifiée a réussi : **25 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
+La dernière exécution vérifiée a réussi : **31 tests passés** sur Python 3.12, incluant la topologie sphérique, la cyclicité des voisins et la localisation sur le maillage généré.
 
 La parité globale ne sera déclarée qu'après comparaison des sorties Python et JavaScript
 sur les mêmes graines, paramètres, maillages et instants.

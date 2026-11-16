@@ -38,8 +38,7 @@ Le namespace `orogen.v2.core` comprend les premières traductions des briques V2
 
 Les fonctions sont encore des primitives internes. Le backend Delaunay est SciPy/Qhull
 et non Delaunator ; les invariants topologiques sont testés, mais l'identité exacte des
-connectivités doit encore être comparée avec JavaScript. Le moteur tectonique temporel
-et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
+connectivités doit encore être comparée avec JavaScript. Les modèles de plaque et de raster crustal sont maintenant portés, mais l'initialisation des mondes, le résolveur, les étapes de tectonique temporelle et les systèmes de terrain, géologie, climat, finition et agriculture restent à porter.
 
 ## Référence et provenance
 

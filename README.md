@@ -98,6 +98,22 @@ The implementation is not the complete V2 engine. Important outstanding areas in
 
 See [Porting status](docs/PORTING_STATUS.md) for the subsystem-by-subsystem breakdown. The package should currently be treated as a set of usable numerical and tectonic components, not as a turnkey planet-generation application.
 
+## Experimental shull backend
+
+A draft branch evaluates shull as a Rust implementation of the 2-D Delaunay
+stage. The first isolated benchmark measured 13.99x, 21.57x and 29.40x over
+SciPy/Qhull at 10k, 40k and 80k projected sphere points on one GitHub runner.
+These are triangulation-only results, not full spherical-mesh speedups.
+
+The extended experiment now checks exact simplex-set equality, Orogen's
+north-pole closure, cyclic CSR neighbour sets and downstream Numba BFS results.
+SciPy remains the production default until full-pipeline timing, memory,
+determinism and licensing are validated. See benchmarks/shull-rust.md.
+
+shull and Numba are complementary: shull computes Delaunay simplices in native
+Rust; Numba accelerates Orogen's later graph and numerical kernels over NumPy
+and CSR arrays. Numba does not JIT through shull's extension call.
+
 ## Numerical backend and reproducibility
 
 Production spherical triangulation uses SciPy/Qhull, whereas the upstream JavaScript implementation uses Delaunator. Differential checks match topology for seven selected seed/resolution pairs; this does not guarantee identical connectivity for every input.

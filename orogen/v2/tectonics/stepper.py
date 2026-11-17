@@ -1,9 +1,10 @@
 """Single-step orchestration for the currently ported tectonic subsystems.
 
-This is intentionally not the full upstream simulation loop: collision tracking
-is partial; welding/orogeny events, ocean-plate evolution, arcs, and slow
-terrain/geology stages are not fully orchestrated here. Continental rifting is included when its
-configuration is present.
+This is intentionally not the full upstream simulation loop: collision
+tracking and configured suture welding are partial; far-field forcing,
+orogeny history events, ocean-plate evolution, arc maturation, and slow
+terrain/geology stages are not fully orchestrated here. Continental rifting
+is included when its configuration is present.
 """
 from __future__ import annotations
 
@@ -33,8 +34,10 @@ def step_world(
     The current plate angular velocities move plates through dt first.
     Ownership and crust consumption are rebuilt, boundaries and trench
     bookkeeping are classified, plumes and the supercontinent cycle advance,
-    then configured rifting/subduction stages run. When either stage changes
-    plate topology, ownership and boundaries are rebuilt before force balance.
+    then configured rifting/subduction and collision stages run. The collision
+    stage can merge eligible sutures when the full redraw configuration exists.
+    When any topology-changing stage changes the crust or plate set, ownership
+    and boundaries are rebuilt before force balance.
 
     dt=None selects the adaptive step from choose_step. Pass
     update_motion=False when an external driver will set plate velocities.

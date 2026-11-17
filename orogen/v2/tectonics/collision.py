@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import math
 
-from .crust import CrustFlag, CrustType
+from .crust import BeltSide, CrustFlag, CrustType, OrogenyType
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .world import EventKind
+from .orogeny import belt_shape, belt_width_km, obliquity_deg
+from .spread_belt import spread_belt
 from ..core.mesh_bfs import hops_from
 from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
 
@@ -963,6 +965,86 @@ def track_collisions(world, dt: float) -> dict:
             float(record.get("frontMaxKm", 0.0)),
             float(record["frontKm"]),
         )
+
+        # The accumulated shortening also builds a plateau-side and a
+        # foreland-side belt. Keep this gated on the complete belt config so
+        # smaller unit worlds can exercise collision tracking independently.
+        belt_keys = {
+            "belts",
+            "beltSpeedFactorMin",
+            "beltSpeedFactorMax",
+            "beltSpeedRefCmYr",
+            "beltSpeedExponent",
+            "beltObliqueMin",
+            "apronKm",
+            "orogenyQuietMyr",
+            "beltWorkShare",
+            "thickeningPerWorkKm",
+            "weakCellCost",
+            "cratonRimKm",
+            "cratonRimCost",
+            "cratonRimShare",
+            "sutureMinContactKm",
+        }
+        if shortening_km > 0.0 and belt_keys.issubset(config):
+            major = (
+                float(record["frontKm"])
+                >= float(config["sutureMinContactKm"])
+            )
+            kind = (
+                OrogenyType["HIMALAYAN"]
+                if major
+                else OrogenyType["URAL"]
+            )
+            upper_kind = "himalayan" if major else "ural"
+            lower_kind = "foreland" if major else "ural"
+            relative_speed = math.hypot(*relative_omega)
+            velocity = cross(relative_omega, centre)
+            relative_speed = math.hypot(*velocity)
+            shape = belt_shape(
+                closing / max(1e-12, relative_speed), None, config
+            )
+            accumulated = float(record["shorteningKm"])
+            mean_rate = float(record["meanRateCmYr"])
+            upper_width = (
+                belt_width_km(upper_kind, accumulated, mean_rate, config)
+                * shape
+            )
+            lower_width = (
+                belt_width_km(lower_kind, accumulated, mean_rate, config)
+                * shape
+            )
+            shear = obliquity_deg(velocity, normal, centre, closing)
+            if upper_front:
+                spread_belt(
+                    upper,
+                    mesh,
+                    list(dict.fromkeys(upper_front)),
+                    {
+                        "type": kind,
+                        "widthKm": upper_width,
+                        "workKm": shortening_km,
+                        "time": float(world.time),
+                        "side": BeltSide["UPPER"],
+                        "shear": shear,
+                    },
+                    config,
+                )
+            if lower_front:
+                spread_belt(
+                    lower,
+                    mesh,
+                    list(dict.fromkeys(lower_front)),
+                    {
+                        "type": kind,
+                        "widthKm": lower_width,
+                        "workKm": shortening_km,
+                        "time": float(world.time),
+                        "side": BeltSide["LOWER"],
+                        "shear": shear,
+                    },
+                    config,
+                )
 
         under_now = underthrust(
             world, upper, lower, cells, record, shortening_km

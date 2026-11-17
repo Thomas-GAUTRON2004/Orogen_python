@@ -1,5 +1,6 @@
 """Tests for adaptive tectonic stepping."""
 import math
+import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.simulation import fastest_speed, closing_rate, choose_step
@@ -26,7 +27,7 @@ def test_fastest_speed_cap_does_not_reach_equator():
     plate = world.add_plate("P")
     plate.capCos = math.cos(0.1)
     speed = fastest_speed([0, 0, 0.01], plate, [0, 0, 1])
-    assert speed == 0.01 * math.sin(0.1)
+    assert speed == pytest.approx(0.01 * math.sin(0.1))
 
 
 def test_closing_rate_uses_two_fastest_living_nonempty_plates():

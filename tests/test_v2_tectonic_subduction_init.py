@@ -312,3 +312,97 @@ def test_founder_within_plates_respects_dispersal_cycle_delay():
     world, _plate = make_intraplate_world(disperseFounderFactor=0.0)
     world.cycle = {"phase": "dispersing", "breakupAt": -200.0}
     assert founder_within_plates(world, 1.0) == 0
+
+
+def test_initiate_subduction_skips_dead_plate_after_contact_gathering():
+    world = make_boundary_world()
+    world.plates[1].alive = False
+    assert initiate_subduction(world, 1.0) == 0
+    assert world.events == []
+
+
+def test_initiate_subduction_rejects_a_fragmented_contact_segment(monkeypatch):
+    world = make_boundary_world(subductionInitMinLengthKm=150.0)
+    active, upper = world.plates
+    active.crust.create(2, CrustType["OCEAN"], -100.0, 12)
+    upper.crust.create(3, CrustType["OCEAN"], -80.0, 23)
+    world.owner[2] = active.id
+    world.owner[3] = upper.id
+    world.ownerCell[2] = 2
+    world.ownerCell[3] = 3
+    world.convergence[2] = 1.0
+    monkeypatch.setattr(
+        subduction_init,
+        "largest_piece_of",
+        lambda _mesh, cells: [int(cells[0])],
+    )
+    assert initiate_subduction(world, 1.0) == 0
+    assert world.events == []
+
+
+def test_initiate_subduction_handles_background_as_second_plate():
+    mesh = Mesh()
+    world = TectonicWorld(mesh, seed=24, config=config())
+    world.time = 0.0
+    active = world.add_plate("Pacific")
+    background = world.add_plate("Panthalassa")
+    background.isBackground = True
+    active.crust.create(0, CrustType["OCEAN"], -100.0, 10)
+    for cell in (1, 2, 3, 4):
+        background.crust.create(cell, CrustType["OCEAN"], -200.0, 0)
+    world.owner[0] = active.id
+    world.owner[1:5] = background.id
+    world.ownerCell[:] = np.arange(mesh.num_cells, dtype=np.int32)
+    world.convergence[0] = 1.0
+    world.rngSubduction = lambda: 0.0
+
+    assert initiate_subduction(world, 1.0) == 1
+    fresh = world.plates[-1]
+    assert fresh.isOceanBorn is True
+    assert active.crust.flags[0] & CrustFlag["TRENCH"]
+    assert world.events[-1]["data"]["lower"] == fresh.id
+
+
+def test_choose_foundering_allows_left_plate_to_be_the_continental_upper():
+    world = make_boundary_world()
+    plate_a, plate_b = world.plates
+    plate_a.crust.type[0] = CrustType["CONTINENT"]
+    plate_b.crust.type[0] = CrustType["OCEAN"]
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (
+        plate_a, plate_b
+    )
+
+
+def test_founder_within_plates_skips_dead_and_empty_land_plates():
+    world, plate = make_intraplate_world()
+    plate.alive = False
+    assert founder_within_plates(world, 1.0) == 0
+
+    world, plate = make_intraplate_world()
+    plate.stats["continentalCells"] = 0
+    assert founder_within_plates(world, 1.0) == 0
+
+
+def test_founder_within_plates_groups_contiguous_old_coast_and_stops_when_frontier_empties():
+    world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
+    plate.crust.type[3] = CrustType["CONTINENT"]
+    plate.refresh_extent(world.mesh.xyz)
+
+    assert founder_within_plates(world, 1.0) == 1
+    fresh = world.plates[-1]
+    assert fresh.crust.mask[4] == 1
+    assert fresh.crust.count == 1
+    assert plate.crust.flags[1] & CrustFlag["TRENCH"]
+    assert plate.crust.flags[2] & CrustFlag["TRENCH"]
+
+
+def test_founder_within_plates_rejects_runs_not_on_exterior_sea(monkeypatch):
+    world, _plate = make_intraplate_world()
+    monkeypatch.setattr(
+        subduction_init,
+        "exterior_sea",
+        lambda _mesh, _crust: np.zeros(world.mesh.num_cells, dtype=np.uint8),
+    )
+    assert founder_within_plates(world, 1.0) == 0
+    assert len(world.plates) == 1
+    assert world.events == []

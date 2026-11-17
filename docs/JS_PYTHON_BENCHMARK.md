@@ -220,3 +220,28 @@ CI for the matrix-returning snapshot_many implementation: **476 tests passed, 10
 An additional same-process A/B compared row-major and field-major Numba materialization on the same 6,000-cell raster (55 fields), alternating the timing order over five measured rounds after compiling both kernels. The row-major implementation measured **0.610 ms** and the field-major alternative **0.618 ms**. The difference is below a meaningful optimization threshold and slightly favours row-major, so the experimental field-major kernel was removed; the production `snapshot_many` implementation remains row-major.
 
 [A/B benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171170128).
+## Final row-major snapshot validation — 2026-11-17
+
+The production batch snapshot kernel remains row-major. A balanced same-process comparison used the same 6,000-cell raster, 55 fields, five timing rounds, and alternated which traversal was timed first. It measured **0.610 ms row-major** and **0.618 ms field-major**. The difference is negligible and slightly favours row-major; the experimental field-major kernel was removed.
+
+[Balanced snapshot-layout A/B run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171170128).
+
+The paired benchmark after removing that experiment measured:
+
+| Workload | JavaScript | Python + Numba | Python / JS | Faster |
+|---|---:|---:|---:|---|
+| FBM, 40,000 points × 5 octaves | 9.787 ms | 11.573 ms | 1.18× | JavaScript, 1.18× |
+| Spherical geometry, 80,000 points | 22.535 ms | 4.929 ms | 0.22× | Python, 4.57× |
+| Mesh BFS, 12,000 cells | 0.453 ms | 0.638 ms | 1.41× | JavaScript, 1.41× |
+| Connected components, 12,000 cells | 2.285 ms | 1.486 ms | 0.65× | Python + Numba, 1.54× |
+| Mesh Dijkstra, 12,000 cells | 0.517 ms | 0.0074 ms | 0.014× | Python + Numba, about 69× |
+| Crust create + batch snapshot, 6,000 cells | 2.429 ms | 11.640 ms | 4.79× | JavaScript, 4.79× |
+| Crust batch copy, 6,000 cells | 1.790 ms | 0.307 ms | 0.17× | Python + Numba, 5.83× |
+
+[Paired JS/Python benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171695175). The same run measured `spread_push` at 59.537 ms with Numba versus 197.203 ms with the Python fallback (3.31×), and connected components at 1.486 ms versus 12.281 ms (8.26×).
+
+CI for this implementation revision: **476 tests passed, 100% line coverage**.
+
+[Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171695194).
+
+These timings are five-round medians after warm-up on a shared hosted runner, not end-to-end simulation timings. The raster create/snapshot and copy workloads are synthetic; the large remaining create/snapshot gap is the next optimization target. The grouped copy kernel is beneficial in the tested batch workload, while the snapshot traversal experiment did not identify a worthwhile alternative to row-major.

@@ -125,3 +125,6 @@ Boundary force gathering has begun: `forces.py` now collects slab pull, slab suc
 
 
 A partial `update_plate_motion(world)` now connects the currently ported boundary force collector to the drag/coupling solver. It uses a common start-of-step angular-velocity snapshot for all plate solves, applies soft/hard speed limits, relaxes the target using `lastDt / relaxMyr`, and records force diagnostics. It does not claim complete upstream plate motion because collision contacts and mantle-flow/repulsion forces are not yet gathered.
+
+
+The cohesive landmass analyser is now ported in `supercontinent.py`. It counts connected continental components above 1 Mkm², separates interiors across necks narrower than `cycleNeckKm`, grows inland cores back through the land by geodesic distance, and reports the largest mass and its share. The cycle clock/transition logic that consumes this result remains outstanding.

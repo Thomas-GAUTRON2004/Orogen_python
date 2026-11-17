@@ -253,3 +253,13 @@ Module: orogen.v2.tectonics.mantle
 - repel_at(field, plate_id, x, y, z, out=None) accumulates a quadratic falloff push away from other nearby large continents.
 
 gather_boundary_loads applies these vectors only to continental and cratonic cells and scales them by cell area. The field evaluator and force gatherer are ported; supercontinent landmass detection, heat evolution, seeded cycle formation and phase transitions are not yet implemented.
+
+
+## Cohesive continental landmasses
+
+Module: `orogen.v2.tectonics.supercontinent`
+
+- `is_continental(world, cell)` classifies continental and cratonic cells, excluding island arcs and unowned cells.
+- `landmasses(world)` counts connected continental components of at least 1 Mkm² and returns the largest cohesive mass, its share of total continental cells, and the large-component count. Narrow necks are split by growing inland cores back through continental crust using geodesic distance.
+
+The result is ready for the supercontinent cycle tracker. That tracker still needs to manage heat history, cycle formation and breakup timing, event consumption, and seeded downwelling placement.

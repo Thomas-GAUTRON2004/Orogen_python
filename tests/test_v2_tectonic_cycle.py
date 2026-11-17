@@ -76,6 +76,7 @@ def test_track_cycle_waits_for_sustained_supercontinent_then_assembles():
     assert cycle["upHeat"] == pytest.approx(2.5)
     assert world.events[-1]["kind"] == "supercontinent"
     world.config["cycleUpwellingKm"] = 1.0
+    cycle["near"] = None
     world.time = 11.0
     cycle = track_cycle(world)
     assert len(cycle["near"]) == 0

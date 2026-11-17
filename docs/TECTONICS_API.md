@@ -245,10 +245,11 @@ diagnostic = step_world(world, dt=1.0)
 print(diagnostic["rifts"])
 ```
 
-This is a tested rifting subsystem and a partial stepper integration, not the
-entire `simulate.js` generator. The upstream collision/orogeny, subduction,
-arc, ocean-plate evolution, terrain, geology, climate and snapshot stages are
-still outstanding.
+This is a tested rifting subsystem and partial stepper integration, not the
+entire `simulate.js` generator. Collision tracking and configured suture
+welding are integrated separately below; far-field collision forcing,
+complete subduction/slab evolution, arc maturation, ocean-plate evolution,
+terrain, geology, climate and snapshot stages remain outstanding.
 
 
 ## Passive-margin subduction initiation
@@ -282,8 +283,8 @@ subduction/slab evolution model.
 
 ## Arc operations
 
-The following helpers are tested but remain outside the stepper until the
-collision event loop and slow-stage cadence are ported:
+The following helpers are tested but are not yet scheduled by the stepper:
+
 
 - `orogen.v2.tectonics.arc_maturation.mature_arcs(world, dt)` advances a
   distance-based front and converts mature island-arc cells touching
@@ -332,9 +333,11 @@ Module: `orogen.v2.tectonics.ops.plate_accretion`
 - `landmass_of(plate, mesh, seeds)` returns the connected land component
   containing the supplied land seeds.
 
-These functions are tested as standalone operations. They are not yet invoked
-by a collision record/event loop: collision detection, convergence tracking,
-underthrusting and plate welding remain unported.
+These operations are now used by the collision tracker when their
+configuration is present. Terrane docking handles small fragments; collision
+tracking also underthrusts the lower plate, spreads collision belts, measures
+sea-gap and enclosed-ring geometry, and invokes the plate-welding operation
+for eligible sutures.
 
 Example:
 
@@ -367,19 +370,37 @@ The helpers are tested independently. They do not yet imply that the full
 upstream `simulate.js` stage sequence or snapshot codec has been ported.
 
 
-## Collision tracking
+## Collision tracking and suture welding
 
-`track_collisions(world, dt)` is the first integrated slice of the upstream
-collision stage. It gathers continent-on-continent overlaps by plate pair,
-creates and updates collision records, determines upper/lower plates, measures
-convergence and contact-front length, and advances the shortening and stall
-counters. Where enabled in the supplied configuration, it also accounts for
+`track_collisions(world, dt)` gathers continent-on-continent overlaps by plate
+pair, creates and updates collision records, determines upper/lower plates,
+measures convergence and contact-front length, and advances shortening and
+stall counters. Where enabled by configuration, it also accounts for
 lower-plate underthrusting and routes touching terranes or overlapping arcs
-through the existing accretion helpers. Positive shortening spreads an Ural-type belt on both plates for a short front, or a Himalayan plateau belt on the upper plate and a foreland belt on the lower plate when the front meets `sutureMinContactKm`. With the suture-gap settings present, it periodically records the open sea area/width, best observed closure and enclosed sea area, then marks `weldCandidate`, `weldBlockedByRing` and `mergeEligible`.
+through the accretion helpers. Positive shortening spreads an Ural-type belt
+on both plates for a short front, or a Himalayan plateau belt on the upper
+plate and a foreland belt on the lower plate when the front meets
+`sutureMinContactKm`.
 
-The function returns a mapping with `tracked`, `started`,
-`underthrustCells`, and `changed`. `step_world` calls it only when
-`collisionForgetMyr` is present in the world configuration, and rebuilds the
-world view after crust transfers.
+With the suture-gap settings present, the tracker periodically records open
+sea area/width, the best observed closure and enclosed sea area. It distinguishes
+`weldCandidate`, `weldBlockedByRing` and `mergeEligible`. For an eligible
+pair, the full merge configuration enables `merge_plates(world, upper, lower,
+overlap_world_cells, collision)`, implemented in
+`orogen.v2.tectonics.ops.merge_plates` and exported from
+`orogen.v2.tectonics.ops` and `orogen.v2.tectonics`.
 
-This stage is deliberately incomplete. `mergeEligible` is only a readiness marker: the actual plate-welding/merge operation, post-suture sea sealing and far-field collision forcing are not ported. A `sutureCandidate` or `weldCandidate` record is not a completed suture. Belt and sea-gap propagation are enabled only when their full configuration groups are supplied.
+The merge redraws the crust in the upper plate's frame, deforms the overlap
+zone, stamps cratons as rigid blocks, closes narrow straits and sufficiently
+small enclosed seas, marks the suture zone, reapplies Himalayan/foreland belt
+records, keeps the upper plate and retires the lower plate. The tracker then
+logs a `SUTURE` event and returns `changed=True`; `step_world` rebuilds
+ownership and boundaries after the merge.
+
+The merge is intentionally gated on a complete configuration group,
+including belt geometry and spread settings, indent/falloff/escape parameters,
+suture width and sea-sealing thresholds. A readiness marker without these
+settings does not mutate the plates. Far-field collision forcing, full
+collision-history parity and the complete upstream `simulate.js` cadence
+remain outstanding. A `sutureCandidate` or `weldCandidate` by itself does
+not imply that a plate merge has happened.

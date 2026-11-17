@@ -445,3 +445,18 @@ def test_spontaneous_rift_is_skipped_when_random_draw_exceeds_chance(monkeypatch
     world.rng = lambda: 0.99
     monkeypatch.setattr(rifting, "try_rift", lambda *_args: pytest.fail("must not try"))
     assert rift_continents(world, 1.0) == 0
+
+
+
+def test_disabled_rifting_keeps_updating_big_continent_clock():
+    world = make_world(
+        time=40.0,
+        config=base_config(riftRatePerMyr=0.0),
+    )
+    assert rift_continents(world, 1.0) == 0
+    assert world.plates[0].bigSince == 40.0
+
+
+def test_rifting_stage_short_circuits_only_without_rate_configuration():
+    world = make_world(config={})
+    assert rift_continents(world, 1.0) == 0

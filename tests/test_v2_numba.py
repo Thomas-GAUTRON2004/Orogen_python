@@ -1,5 +1,9 @@
 """The JIT kernels must preserve the pure-Python arithmetic exactly."""
+import json
 import math
+from pathlib import Path
+import shutil
+import subprocess
 
 import numpy as np
 import pytest
@@ -81,3 +85,24 @@ def test_python_fallback_remains_available_without_numba(monkeypatch):
     np.testing.assert_array_equal(values, np.asarray([expected]))
     with pytest.raises(ValueError, match="shape"):
         noise.fbm_many(np.zeros((2, 2)), 4, 0.6)
+
+
+
+def test_numba_fbm_matches_upstream_javascript_bit_for_bit():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required for upstream JavaScript comparison")
+    root = Path(__file__).resolve().parents[1]
+    runner = root / "tests/reference/v2/noise-probe.mjs"
+    points = np.asarray([
+        (math.sin(i * .013) * 17.0, math.cos(i * .007) * 11.0,
+         math.sin(i * .003 + .4) * 23.0)
+        for i in range(2048)
+    ], dtype=np.float64)
+    result = subprocess.run(
+        [node, str(runner)], input=json.dumps(points.tolist()),
+        text=True, capture_output=True, check=True,
+    )
+    expected = np.asarray(json.loads(result.stdout), dtype=np.float64)
+    actual = FastNoise(9876).fbm_many(points, 5, 2/3)
+    np.testing.assert_array_equal(actual, expected)

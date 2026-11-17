@@ -500,12 +500,12 @@ def _create_cells_kernel(fields, mask, cells, crust_types, formed_at, terranes):
 
 
 def _snapshot_cells_kernel(fields, cells):
-    """Materialize a batch of snapshots in row-major CELL_FIELDS order."""
+    """Materialize row-major snapshots with contiguous reads from each field."""
     out = np.empty((cells.size, len(fields)), dtype=np.float64)
-    for row in range(cells.size):
-        cell = int(cells[row])
-        for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
-            out[row, column] = fields[column][cell]
+    for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+        field = fields[column]
+        for row in range(cells.size):
+            out[row, column] = field[int(cells[row])]
     return out
 
 def _zero_cell_fields_kernel(fields, cell):

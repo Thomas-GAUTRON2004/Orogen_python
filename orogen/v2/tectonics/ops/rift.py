@@ -307,7 +307,7 @@ def names_after_split(world, plate_a, plate_b, before: str) -> tuple[str, str]:
     if name_a and name_b and name_a != name_b:
         return name_a, name_b
 
-    base = re.sub(r"(·\\d+)+$", "", before)
+    base = re.sub(r"(·\d+)+$", "", before)
     taken = {
         str(plate.name)
         for plate in world.plates

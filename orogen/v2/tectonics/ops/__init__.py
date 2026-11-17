@@ -10,12 +10,9 @@ from .rift_partition import (
 from .rift_path import find_rift, grain_of, rift_context
 from .rift import (
     choose_junction,
-    find_rift,
-    grain_of,
     names_after_split,
     plume_junctions,
     pull_axis_of,
-    rift_context,
     split_plate,
     try_rift,
 )

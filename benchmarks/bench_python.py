@@ -181,6 +181,7 @@ timings={
 "noise_fbm_ms":median_ms(bench_noise),
 "spherical_geometry_ms":median_ms(bench_geometry),
 "mesh_bfs_ms":median_ms(bench_bfs),
+"mesh_components_ms":component_comparison["numba_ms"],
 "mesh_dijkstra_ms":median_ms(bench_dijkstra),
 "crust_create_snapshot_ms":median_ms(bench_crust),
 }

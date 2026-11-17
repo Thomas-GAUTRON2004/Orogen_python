@@ -142,7 +142,7 @@ class CrustRaster:
         if NUMBA_AVAILABLE:
             self.count += int(copy_cells_numba(
                 self._numba_fields, other._numba_fields, self.mask,
-                destinations, source_indices, rotation, rotate,
+                destinations, source_indices, rotation, rotate, self is other,
             ))
         else:
             for target, source in zip(destinations, source_indices):

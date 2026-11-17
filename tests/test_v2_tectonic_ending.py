@@ -48,7 +48,7 @@ def test_breakup_stage_uses_first_rift_since_supercontinent_formation():
         {"kind": EventKind["RIFT"], "time": 40.0},
         {"kind": EventKind["RIFT"], "time": 95.0},
     ]
-    assert in_stage(state(events=events), "breakup", CFG)
+    assert in_stage(state(cycle={"state": "assembled", "share": 0.9}, events=events), "breakup", CFG)
     assert not in_stage(state(time=200.0, events=events), "breakup", CFG)
     assert not in_stage(state(events=[]), "breakup", CFG)
 

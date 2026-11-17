@@ -14,7 +14,7 @@ python -m pytest
 
 ### JavaScript differential tests
 
-The differential harness runs vendored JavaScript reference modules adapted from upstream tag `v3.0.1`. It compares selected Python operations against the reference implementation.
+The differential harness executes vendored JavaScript reference modules from upstream tag `v3.0.1`. It compares selected Python operations against the reference implementation; it is not a whole-engine comparison.
 
 Requirements:
 - Node.js 22+
@@ -27,7 +27,7 @@ npm install --no-save --package-lock=false delaunator@5.0.1
 python -m pytest
 ```
 
-Reference files are under `tests/reference/v2/`. They are test fixtures, not a separately supported JavaScript package.
+Reference files are under `tests/reference/v2/`. They are test fixtures, not a separately supported JavaScript package. The exact upstream source revision is recorded in [UPSTREAM_SOURCE.md](../UPSTREAM_SOURCE.md).
 
 ### Coverage enforcement
 
@@ -39,27 +39,39 @@ python -m pytest --cov=orogen.v2 --cov-report=term-missing --cov-report=xml --co
 
 CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before running the suite. It enforces 100% line coverage for `orogen.v2`.
 
-## What the current checks establish
+## Latest documented verification
 
-The latest verified baseline recorded in the project documentation is:
-- 107 passing tests;
-- 1,276 statements in `orogen.v2`;
-- 100% line coverage, with no missing statements;
-- differential comparisons for selected core and tectonic primitives;
-- matching Delaunay triangles/neighbourhoods for seven tested resolution/seed pairs: 12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, and 512/12345.
+The latest successful test run explicitly recorded in the benchmark documentation is:
 
-These results establish that the covered Python code executes under the tested conditions and that the selected comparisons agree. They do not establish that every possible input matches upstream.
+- **476 tests passed**;
+- **100% line coverage** for `orogen.v2`;
+- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
 
-## What is not established
+This is a historical verified run, not a claim that the current branch head has been tested. The run is associated in the project history with commit `6ea20d647169979ccbdf107732ddb7f2535695b9`; rerun CI after subsequent code changes to establish the current status.
+
+The differential suite covers selected core, geometry, mesh and tectonic operations. Delaunay triangles/neighbourhoods matched for seven tested resolution/seed pairs: 12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, and 512/12345.
+
+## What the checks establish
+
+- Python tests establish the tested invariants and behaviours of the implemented modules.
+- JavaScript differential tests establish agreement for the specific operations and inputs exercised by those tests.
+- Numba-vs-Python tests establish agreement between the accelerated implementation and its Python fallback; by themselves, they do not establish JavaScript parity.
+- The seven Delaunay fixtures establish agreement only for those resolution/seed pairs.
+
+These results do not establish that every possible input matches upstream.
+
+## Compatibility limits
 
 The following have not been demonstrated:
 - complete JavaScript/Python API equivalence;
 - universal Delaunay connectivity equivalence for all seeds and resolutions;
 - end-to-end tectonic simulation parity over multiple time steps;
-- terrain, geology, climate, finishing, or agriculture parity;
+- full terrain, geology, climate, finishing, agriculture or save/load pipeline parity;
 - compatibility with every upstream configuration or serialized world.
 
-Coverage is not a feature-completeness metric. A small, incomplete module can have 100% line coverage.
+Some implementation details can also differ while preserving current tested behaviour. In particular, `CrustRaster` groups fields into NumPy backing allocations and exposes per-field views. The fields remain separately writable and retain their names, dtypes, indexing and field order, but their underlying buffer ownership/aliasing details are not identical to independent JavaScript typed-array allocations. No current internal consumer has been identified as depending on those low-level allocation properties.
+
+Coverage is not a feature-completeness metric. A module can have 100% line coverage while substantial upstream functionality remains unported.
 
 ## Adding a ported feature
 

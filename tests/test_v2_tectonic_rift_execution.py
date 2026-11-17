@@ -41,6 +41,7 @@ def test_pull_axis_rejects_a_degenerate_initial_power_vector():
 def test_names_after_split_use_craton_letters_when_distinct():
     world, plate = make_world()
     fresh = world.add_plate("new")
+    fresh.crust.create(0, CrustType["CRATON"], 0.0, 30)
     world.terraneLetters = {10: "A", 30: "B"}
     assert names_after_split(world, plate, fresh, "old") == ("A", "B")
 
@@ -67,13 +68,11 @@ def test_try_rift_splits_plate_and_logs_event(monkeypatch):
 
     monkeypatch.setattr(rift_module, "pull_axis_of", lambda *_args: None)
     monkeypatch.setattr(rift_module, "rift_context", lambda *_args: {"ctx": True})
-    monkeypatch.setattr(
-        rift_module,
-        "find_rift",
-        lambda _world, _plate, junction, *_args: (
-            calls.append(junction) or found if junction == 4 else None
-        ),
-    )
+    def fake_find(_world, _plate, junction, *_args):
+        calls.append(junction)
+        return found if junction == 4 else None
+
+    monkeypatch.setattr(rift_module, "find_rift", fake_find)
     monkeypatch.setattr(
         rift_module, "spread_belt", lambda *_args, **_kwargs: None
     )

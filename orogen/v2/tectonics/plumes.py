@@ -1,0 +1,255 @@
+"""Mantle-plume lifecycle records ported from V2 step/hotspots.js.
+
+This module stops before LIP raster construction and hotspot-track stamping.
+It records plume births/deaths and queues eligible plume-triggered rifts.
+"""
+from __future__ import annotations
+
+import math
+import numpy as np
+
+from .crust import CrustType
+from .thermal import insulate_at_start, pick_plume_site, plume_heat_factor, update_mantle_heat
+from .world import EventKind
+
+
+_ONSETS = ("K", "V", "T", "R", "M", "S", "L", "N", "D", "H", "Th", "Z", "B", "G", "Sh", "F", "P", "Kh")
+_NUCLEI = ("a", "e", "i", "o", "u", "a", "o", "ai", "au", "ei")
+_CODAS = ("", "", "n", "r", "l", "s", "th", "k", "m", "rn")
+
+
+def _value(record, name: str, default=None):
+    return record.get(name, default) if isinstance(record, dict) else getattr(record, name, default)
+
+
+def _assign(record, name: str, value) -> None:
+    if isinstance(record, dict):
+        record[name] = value
+    else:
+        setattr(record, name, value)
+
+
+def _plume_name(world) -> str:
+    rng = world.rngHotspot
+    for _ in range(30):
+        syllables = 3 if rng() < 0.3 else 2
+        name = "".join(
+            _ONSETS[int(rng() * len(_ONSETS))]
+            + _NUCLEI[int(rng() * len(_NUCLEI))]
+            + (_CODAS[int(rng() * len(_CODAS))] if i == syllables - 1 else "")
+            for i in range(syllables)
+        )
+        name = name[0] + name[1:].lower()
+        if not any(_value(h, "name") == name for h in world.hotspots):
+            return name
+    return f"Plume {len(world.hotspots) + 1}"
+
+
+def _nearest_cell(mesh, xyz: np.ndarray) -> int:
+    if hasattr(mesh, "index") and hasattr(mesh.index, "nearest"):
+        return int(mesh.index.nearest(*map(float, xyz)))
+    points = np.asarray(mesh.xyz, dtype=np.float64).reshape(-1, 3)
+    if points.shape[0] != int(mesh.num_cells):
+        raise ValueError("mesh coordinates must match num_cells")
+    return int(np.argmax(points @ xyz))
+
+
+def _continental_area_km2(plate, mesh) -> float:
+    crust = plate.crust
+    mask = np.asarray(crust.mask, dtype=bool)
+    continental = mask & (
+        (crust.type == CrustType["CONTINENT"])
+        | (crust.type == CrustType["CRATON"])
+    )
+    return float(np.count_nonzero(continental)) * float(mesh.cell_area_km2)
+
+
+def birth_plume(
+    world,
+    xyz,
+    *,
+    head: bool = True,
+    rift="chance",
+    rift_plate: int = -1,
+    rift_cell: int = -1,
+    name: str | None = None,
+    life_myr: float | None = None,
+    strength: float | None = None,
+    born_at: float | None = None,
+) -> dict:
+    """Register a plume fixed in the mantle frame and optionally queue a continental rift.
+
+    This records the plume and its event only. A head's LIP geometry and the tail's
+    volcanic track are deliberately handled by later porting stages.
+    """
+    position = np.asarray(xyz, dtype=np.float64).reshape(-1)
+    if position.size != 3 or not np.all(np.isfinite(position)):
+        raise ValueError("plume xyz must contain three finite coordinates")
+    length = float(np.linalg.norm(position))
+    if length <= 0.0:
+        raise ValueError("plume xyz must have non-zero length")
+    position /= length
+
+    if not hasattr(world, "hotspots"):
+        world.hotspots = []
+    if not hasattr(world, "pendingPlumeRifts"):
+        world.pendingPlumeRifts = []
+    rng = world.rngHotspot
+    config = world.config
+    start = float(world.time if born_at is None else born_at)
+    plume_name = str(name) if name is not None else _plume_name(world)
+    if life_myr is None:
+        minimum = float(config["plumeLifeMinMyr"])
+        maximum = float(config["plumeLifeMaxMyr"])
+        life = minimum + float(rng()) * (maximum - minimum)
+    else:
+        life = float(life_myr)
+    plume_strength = 0.6 + 0.8 * float(rng()) if strength is None else float(strength)
+    hotspot_id = len(world.hotspots)
+    plume = {
+        "id": hotspot_id,
+        "name": plume_name,
+        "xyz": position.tolist(),
+        "bornAt": start,
+        "dieAt": start + life,
+        "alive": True,
+        "lip": None,
+        "strength": plume_strength,
+        "pulseUntil": None,
+        "bursting": False,
+        "pulseIntensity": 0.0,
+    }
+    world.hotspots.append(plume)
+
+    cell = _nearest_cell(world.mesh, position)
+    host_id = int(world.owner[cell])
+    host = world.plates[host_id] if 0 <= host_id < len(world.plates) else None
+    host_name = host.name if host is not None and not host.isBackground else "the open ocean"
+    world.log(
+        EventKind["PLUME_RISE"],
+        f"the {plume_name} plume {'rises' if head else 'is already rising'} beneath {host_name}",
+        {
+            "hotspot": hotspot_id,
+            "name": plume_name,
+            "plate": host_id if host is not None and not host.isBackground else -1,
+            "head": bool(head),
+        },
+    )
+
+    if rift is not False and host is not None and not host.isBackground:
+        target_id = int(rift_plate) if int(rift_plate) >= 0 else host_id
+        target = world.plates[target_id] if 0 <= target_id < len(world.plates) else None
+        if target is not None:
+            forced = rift is True
+            eligible = (
+                _continental_area_km2(target, world.mesh)
+                >= float(config.get("riftMinContinentKm2", math.inf))
+            )
+            chance = (
+                float(config.get("plumeRiftChance", 0.0)) * plume_heat_factor(world, target)
+                if eligible and not forced else 0.0
+            )
+            if forced or (rift == "chance" and eligible and float(rng()) < chance):
+                world.pendingPlumeRifts.append({
+                    "plate": target.id,
+                    "xyz": position.tolist(),
+                    "cell": int(rift_cell),
+                    "cause": {
+                        "text": f"the {plume_name} plume",
+                        "kind": "plume",
+                        "hotspot": hotspot_id,
+                    },
+                })
+    return plume
+
+
+def update_plumes(world, dt: float) -> dict:
+    """Update mantle heat and plume birth/death records for one simulation step.
+
+    Scheduled entries may specify xyz or a plate/cell pair. Random births use the
+    dedicated hotspot RNG stream. This function does not yet construct LIPs, stamp
+    plume tracks, or execute queued rifts.
+    """
+    step = float(dt)
+    if not math.isfinite(step) or step < 0.0:
+        raise ValueError("dt must be finite and non-negative")
+
+    config = world.config
+    if not getattr(world, "hotspotsReady", False):
+        insulate_at_start(world)
+        world.hotspotsReady = True
+        initial_count = int(config.get("hotspotInitialCount", 0))
+        for _ in range(max(0, initial_count)):
+            cell = pick_plume_site(world, world.rngHotspot)
+            if cell < 0:
+                break
+            age = float(world.rngHotspot()) * float(config["plumeLifeMinMyr"]) * 0.6
+            point = np.asarray(world.mesh.xyz, dtype=np.float64).reshape(-1, 3)[cell]
+            birth_plume(world, point, head=False, rift=False, born_at=float(world.time) - age)
+
+    update_mantle_heat(world, step)
+
+    scheduled = getattr(world, "plumes", ())
+    for item in scheduled:
+        item_time = float(_value(item, "time", world.time))
+        if _value(item, "done", False) or item_time > float(world.time) + 1e-9:
+            continue
+        _assign(item, "done", True)
+        scheduled_xyz = _value(item, "xyz")
+        if scheduled_xyz is not None:
+            birth_plume(
+                world,
+                scheduled_xyz,
+                head=_value(item, "head", True),
+                rift=_value(item, "rift", "chance"),
+                name=_value(item, "name"),
+                life_myr=_value(item, "lifeMyr"),
+                strength=_value(item, "strength"),
+                born_at=item_time,
+            )
+            continue
+
+        plate_id = int(_value(item, "plate", -1))
+        cell = int(_value(item, "cell", -1))
+        if not 0 <= plate_id < len(world.plates):
+            continue
+        plate = world.plates[plate_id]
+        if not plate.alive or not 0 <= cell < int(world.mesh.num_cells):
+            continue
+        point = np.asarray(world.mesh.xyz, dtype=np.float64).reshape(-1, 3)[cell]
+        mantle_position = plate.to_world(*map(float, point))
+        birth_plume(
+            world, mantle_position, head=True, rift=True,
+            rift_plate=plate_id, rift_cell=cell, born_at=item_time,
+        )
+
+    rate = float(config.get("plumeRatePerMyr", 0.0))
+    rng = getattr(world, "rngHotspot", None)
+    if rate > 0.0 and rng is not None and float(rng()) < rate * step:
+        cell = pick_plume_site(world, rng)
+        if cell >= 0:
+            point = np.asarray(world.mesh.xyz, dtype=np.float64).reshape(-1, 3)[cell]
+            birth_plume(world, point, head=True, rift="chance")
+
+    expired = 0
+    for plume in getattr(world, "hotspots", ()):
+        if not _value(plume, "alive", True):
+            continue
+        if float(world.time) >= float(_value(plume, "dieAt", math.inf)):
+            _assign(plume, "alive", False)
+            born = float(_value(plume, "bornAt", world.time))
+            name = str(_value(plume, "name", "unknown"))
+            life = float(world.time) - born
+            world.log(
+                EventKind["PLUME_DEATH"],
+                f"the {name} hotspot dies out after {life:.0f} Myr",
+                {
+                    "hotspot": int(_value(plume, "id", -1)),
+                    "name": name,
+                    "lifeMyr": life,
+                },
+            )
+            expired += 1
+
+    alive = sum(1 for plume in getattr(world, "hotspots", ()) if _value(plume, "alive", True))
+    return {"born": len(getattr(world, "hotspots", ())), "expired": expired, "alive": alive}

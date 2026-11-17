@@ -1,8 +1,8 @@
 """Single-step orchestration for the currently ported tectonic subsystems.
 
 This is intentionally not the full upstream simulation loop: event-driven
-collision/orogeny, rifting, ocean-plate evolution, arcs, hotspots, and slow
-terrain/geology stages are not orchestrated here.
+collision/orogeny, execution of queued rifts, ocean-plate evolution, arcs,
+LIP/track volcanism, and slow terrain/geology stages are not orchestrated here.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from .dynamics import update_plate_motion
 from .kinematics import advance_plates
 from .resolve import resolve
 from .simulation import choose_step, closing_rate
-from .thermal import update_mantle_heat
+from .plumes import update_plumes
 from .supercontinent import track_cycle
 
 
@@ -47,7 +47,7 @@ def step_world(
     world.lastDt = step_dt
     tally = resolve(world)
     classified = classify_contact_boundaries(world, step_dt)
-    update_mantle_heat(world, step_dt)
+    plume_state = update_plumes(world, step_dt)
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
     if update_motion:
         update_plate_motion(world)
@@ -60,5 +60,6 @@ def step_world(
         "resolve": tally,
         "classifiedBoundaries": int(classified),
         "cyclePhase": None if cycle is None else cycle.get("phase"),
+        "plumes": plume_state,
         "motionUpdated": bool(update_motion),
     }

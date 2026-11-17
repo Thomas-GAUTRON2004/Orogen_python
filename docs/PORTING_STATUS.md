@@ -1,6 +1,6 @@
 # Orogen 3.0.1 Porting Status
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 ## Target
 
@@ -134,3 +134,11 @@ A first partial stepper now connects the ported kinematics, resolver, boundary c
 
 
 The mantle thermal-memory component is now ported: initial continental insulation, exponential warming beneath continents, cooling elsewhere and the normalized plume-heat rift multiplier. The partial stepper runs this heat update before the cycle tracker. The weighted plume-site selector is now ported with thermal bias and minimum spacing. It does not yet create plume objects/LIPs or evolve plume tails and volcanic tracks.
+
+## Latest implementation increment — plume lifecycle records (2026-11-17)
+
+`orogen.v2.tectonics.plumes` ports the record-level lifecycle from upstream `v2/js/tectonics/step/hotspots.js`: initial pre-history plumes, deterministic names and strengths, scheduled mantle-frame births, scheduled plate-cell births, probabilistic births, live-plume spacing through `pick_plume_site`, `PLUME_RISE` / `PLUME_DEATH` events, and queued plume-triggered rift requests. `step_world` now advances this stage alongside mantle heat.
+
+The increment deliberately excludes LIP province rasterization, tail-track stamping, volcano pulse/build-up mechanics, and the operation that executes `pendingPlumeRifts`. It is not full hotspot-stage parity. The API reference documents these boundaries.
+
+The CI result for this increment will be recorded after the branch workflow completes. The previous verified baseline was 218 passing tests with 100% line coverage for `orogen.v2`.

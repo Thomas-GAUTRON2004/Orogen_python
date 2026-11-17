@@ -287,3 +287,15 @@ Module: `orogen.v2.tectonics.thermal`
 - `pick_plume_site(world, rng)` draws a world cell by the weight `plumeOceanWeight + (1 - plumeOceanWeight) * mantleHeat[cell]`, excluding cells within `plumeSpacingKm` of a live plume.
 
 The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector is ported. Plume birth/life cycles, LIP province generation and volcanic-track stamping are not yet ported.
+
+## Mantle heat and plume lifecycle
+
+`insulate_at_start(world)` and `update_mantle_heat(world, dt)` maintain the world-frame mantle-memory field. Continental and cratonic cells insulate the mantle; exposed cells cool toward zero. `plume_heat_factor(world, plate)` exposes the normalized heat bias used by plume-triggered rift decisions, and `pick_plume_site(world, rng)` selects a site while respecting the spacing from live plumes.
+
+The lifecycle layer is implemented in `orogen.v2.tectonics.plumes`:
+
+- `birth_plume(world, xyz, ...)` normalizes a mantle-frame location, creates a persistent plume record, logs `PLUME_RISE`, and may append a request to `world.pendingPlumeRifts`.
+- `update_plumes(world, dt)` initializes pre-existing plumes, advances mantle heat, consumes scheduled `world.plumes` entries (mantle-frame positions or plate/cell pairs), performs probabilistic births, and logs deaths.
+- The `step_world` orchestration now calls this lifecycle stage before supercontinent tracking and force balancing.
+
+This is intentionally a records-and-queue port only. It does **not** yet rasterize LIP provinces, stamp hotspot tracks, build volcano edifices, or execute the queued rifts. Those effects require the later LIP/track and rifting operation stages.

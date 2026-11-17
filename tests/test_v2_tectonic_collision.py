@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import math
 
 import numpy as np
+import pytest
 
 from orogen.v2.tectonics.collision import (
     accrete_arcs,

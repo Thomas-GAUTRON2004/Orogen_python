@@ -111,7 +111,8 @@ def test_merge_plates_redraws_upper_and_retires_lower_with_a_suture():
     assert result["meanIndentKm"] > 0.0
     assert result["sealedCells"] == 0
     assert upper.crust.mask[0] == 1  # the four-neighbour pinhole was filled
-    assert upper.crust.type[4] == CrustType["CRATON"]\n    assert upper.crust.type[0] == CrustType["CONTINENT"]
+    assert upper.crust.type[4] == CrustType["CRATON"]
+    assert upper.crust.type[0] == CrustType["CONTINENT"]
     assert upper.crust.flags[1] & CrustFlag["SUTURE"]
     assert not (upper.crust.flags[4] & CrustFlag["SUTURE"])
     assert upper.crust.count == int(upper.stats["cells"])

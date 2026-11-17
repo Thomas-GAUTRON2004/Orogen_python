@@ -77,6 +77,8 @@ cells occupied about 5.19 MiB. The run asserted exact canonicalized simplex
 sets, closed faces, CSR offsets and adjacency, `SphereIndex` tables, and BFS
 distance arrays for all sizes.
 
+The benchmark workflow wraps the process with GNU `/usr/bin/time -v` and records its maximum resident set size (peak RSS). This is a process-level high-water mark for the entire A/B run (including imports, both backends and full production builds); it is not a per-backend memory attribution. The script also reports the size of the retained output arrays for each resolution.
+
 The benchmark includes triangulation, pole closure, cyclic CSR and
 `SphereIndex`; coordinate generation/projection is prepared outside the
 stage timing. The earlier 1.18×–1.23× combined figures used an experimental

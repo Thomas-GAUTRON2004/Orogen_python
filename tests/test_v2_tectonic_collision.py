@@ -109,7 +109,7 @@ def test_collect_contacts_skips_unowned_and_same_plate_overlap_sentinels():
     world, _a, _b = contact_world()
     world.owner[0] = -1
     world.collider[2] = -1
-    assert collect_contacts(world) == {"overlap": {}, "touching": {}}
+    assert collect_contacts(world) == {"overlap": {}, "touching": {"0:1": [2]}}
 
 
 def test_forget_stale_collisions_removes_only_expired_unsutured_records():
@@ -201,3 +201,26 @@ def test_underthrust_can_consume_without_upper_land_above():
     assert underthrust(world, upper, lower, [1, 2], record, 1.0) == 1
     assert lower.crust.mask[2] == 0
     assert upper.dirty is True
+
+
+def test_choose_sides_deduplicates_neighbour_cells_shared_by_contact_cells():
+    world, a, b = contact_world()
+    world.mesh.adj_offset = np.asarray([0, 2, 4, 4], dtype=np.int32)
+    world.mesh.adj_list = np.asarray([1, 2, 0, 2], dtype=np.int32)
+    a.crust.create(1, CrustType["CONTINENT"], -100.0, 11)
+    b.crust.create(1, CrustType["CONTINENT"], -90.0, 21)
+    a.crust.flags[2] |= CrustFlag["TRENCH"]
+    result = choose_sides(world, a, b, [0, 1])
+    assert result == {"upper": a, "lower": b}
+
+
+def test_underthrust_stops_after_target_number_of_cells():
+    world, upper, lower = underthrust_world()
+    lower.crust.create(3, CrustType["CONTINENT"], -100.0, 23)
+    upper.crust.create(3, CrustType["CONTINENT"], -50.0, 13)
+    record = {"frontKm": 100.0}
+    consumed = underthrust(world, upper, lower, [1, 2, 3], record, 1.0)
+    assert consumed == 1
+    assert lower.crust.mask[3] == 0
+    assert lower.crust.mask[2] == 1
+    assert world.budget["underthrustCells"] == 1

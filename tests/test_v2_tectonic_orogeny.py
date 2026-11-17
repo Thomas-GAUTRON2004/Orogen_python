@@ -21,7 +21,7 @@ def test_belt_width_clamps_rate_and_work():
     assert belt_width_km("andean", 100, 5, cfg) == 220
     assert belt_width_km("andean", 1000, 5, cfg) == 400
     assert belt_width_km("andean", 100, 0, cfg) == 132
-    assert belt_width_km("andean", 100, 100, cfg) == 640
+    assert belt_width_km("andean", 1000, 100, cfg) == 640
 
 
 def test_belt_shape_obliquity_and_slab_age():

@@ -10,7 +10,9 @@ Last updated: 2026-11-17
 - Added focused tests for supercontinent, breakup and dispersed endings,
   minimum run duration, incomplete histories, and frame trimming.
 - Exported the API from `orogen.v2.tectonics`.
-- This is still a partial compatibility batch: far-field collision forcing, complete collision/event-history parity and the full simulation-stage cadence remain outstanding.
+- Added far-field weak-line reactivation (`far_field.py`): old sutures and failed rifts can seed rootless intraplate belts when a sufficiently strong push reaches them far from the front. Quiet pre-existing ranges are rejuvenated along their original belt geometry instead of receiving a new belt.
+- Added tests for strike estimation, orientation, distance taper, threshold work, old-range rejuvenation, ocean/craton exclusions and integration with the far-field clock.
+- Far-field forcing from strongly coupled Andean/flat-slab margins, full collision/event-history parity and the complete simulation-stage cadence remain outstanding.
 
 ## Target
 
@@ -66,13 +68,13 @@ test coverage.
 
 ## Latest verification
 
-The latest completed successful CI runs are push #751 and PR #752 on commit
-`5c16e0a2fd13ed43c5b326b9bdf82d019167ff2c` (2026-11-17):
+The latest completed successful CI run is push #771 on commit
+`d14b8f508b6c27c82dd5ebcece1614df6907a1ce` (2026-11-17):
 
-- **414 tests passed**.
-- `collision.py` and `ops/merge_plates.py` each reached **100% line coverage**.
-- The complete `orogen.v2` package met its enforced **100% coverage threshold**.
-- Both workflows ran the Python suite and JavaScript differential checks.
+- **452 tests passed**.
+- The complete `orogen.v2` package met its enforced **100% line-coverage threshold**.
+- The Python suite and JavaScript differential checks both completed successfully.
+- `far_field.py` itself has **100% line coverage**.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

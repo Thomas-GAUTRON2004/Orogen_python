@@ -115,3 +115,66 @@ def test_step_world_runs_rifting_when_enabled(monkeypatch):
     monkeypatch.setattr("orogen.v2.tectonics.stepper.update_plate_motion", lambda _w: None)
     result = step_world(world, 1.0)
     assert result["rifts"] == 2
+
+
+def test_step_world_runs_subduction_stage_and_rebuilds_after_topology_changes(monkeypatch):
+    world = make_world()
+    world.config["subductionInitRatePerMyr"] = 0.5
+    calls = []
+
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.resolve",
+        lambda _world: calls.append("resolve") or {"created": 0},
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.classify_contact_boundaries",
+        lambda _world, dt: calls.append(("classify", dt)) or 0,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plumes",
+        lambda _world, _dt: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.track_cycle",
+        lambda _world: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.rift_continents",
+        lambda _world, _dt: 1,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.initiate_subduction",
+        lambda _world, _dt: 2,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plate_motion",
+        lambda _world: calls.append("motion"),
+    )
+
+    result = step_world(world, 1.0)
+
+    assert result["rifts"] == 1
+    assert result["subductions"] == 2
+    assert result["resolve"] == {"created": 0}
+    assert result["subductions"] == 2
+    assert calls.count("resolve") == 2
+    assert calls.count(("classify", 0.0)) == 1
+    assert calls[-1] == "motion"
+
+
+def test_step_world_runs_subduction_without_rifting_config(monkeypatch):
+    world = make_world()
+    world.config["subductionInitRatePerMyr"] = 0.5
+    subductions = []
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.resolve", lambda _world: {})
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.classify_contact_boundaries", lambda _world, _dt: 0)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.update_plumes", lambda _world, _dt: None)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.track_cycle", lambda _world: None)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.initiate_subduction", lambda _world, dt: subductions.append(dt) or 1)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.update_plate_motion", lambda _world: None)
+
+    result = step_world(world, 1.0)
+
+    assert result["rifts"] == 0
+    assert result["subductions"] == 1
+    assert subductions == [1.0]

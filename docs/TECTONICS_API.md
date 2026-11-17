@@ -233,7 +233,7 @@ Module: `orogen.v2.tectonics.forces`
 
 `gather_boundary_loads(world)` gathers slab pull, slab suction, young-ridge push, and young-rift push from a resolved world owner map. Its records are compatible with `balanced_rotation` and include per-kind torque/vector totals plus slab-resistance records.
 
-This is deliberately a partial port of upstream `gatherLoads`: land-overlap collision contacts, mantle flow, and dispersal repulsion are not gathered here.
+The gatherer also records land-overlap collision contacts with opposing front normals and optional craton lock weighting; fresh conjugate rift margins and arc contacts are excluded from collision locking. This remains a partial port of upstream `gatherLoads`: mantle flow and dispersal repulsion are not gathered here.
 
 
 ## Plate angular-velocity update (partial)

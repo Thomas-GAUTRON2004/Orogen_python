@@ -18,6 +18,8 @@ class Mesh:
         -1.0, 0.0, 0.0,
         0.0, -1.0, 0.0,
     ], dtype=np.float64)
+    adj_offset = np.array([0, 3, 6, 9, 12], dtype=np.int32)
+    adj_list = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2], dtype=np.int32)
 
     class Index:
         def nearest(self, x, y, z):
@@ -43,6 +45,7 @@ def make_world():
         time=0.0,
         owner=np.array([0, 0, 0, 0], dtype=np.int16),
         ownerCell=np.arange(4, dtype=np.int32),
+        provisional=np.zeros(4, dtype=np.uint8),
         mantleHeat=np.zeros(4, dtype=np.float32),
         hotspotsReady=False,
         hotspots=[],
@@ -63,8 +66,14 @@ def make_world():
             "riftHeatGain": 0.0,
             "riftHeatFloor": 1.0,
             "riftHeatPower": 1.0,
+            "lipAreaMinMkm2": 0.15,
+            "lipAreaMaxMkm2": 4.0,
+            "lipThicknessKm": 2.0,
+            "lipLobes": 0.5,
+            "lipEdgeNoise": 0.3,
         },
         rngHotspot=lambda: 0.0,
+        rngVolcano=lambda: 0.5,
         log=lambda kind, text, data=None: events.append({
             "time": 0.0, "kind": kind, "text": text, "data": data or {},
         }),
@@ -241,3 +250,80 @@ def test_initial_plume_seed_stops_when_all_candidate_cells_are_live():
     assert world.hotspotsReady is True
     assert len(world.hotspots) == 4
     assert state == {"born": 4, "expired": 0, "alive": 4}
+
+
+def test_head_eruption_stamps_a_connected_lip_and_records_its_area():
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0,
+        np.cos(0.01), np.sin(0.01), 0.0,
+        np.cos(0.02), np.sin(0.02), 0.0,
+        0.0, 1.0, 0.0,
+    ], dtype=np.float64)
+    world.mesh.adj_offset = np.array([0, 1, 3, 5, 6], dtype=np.int32)
+    world.mesh.adj_list = np.array([1, 0, 2, 1, 3, 2], dtype=np.int32)
+    world.mesh.index = SimpleNamespace(nearest=lambda x, y, z: 0)
+    world.config.update({
+        "lipAreaMinMkm2": 4.0, "lipAreaMaxMkm2": 4.0,
+        "lipLobes": 0.0, "lipEdgeNoise": 0.0,
+    })
+    rv_values = iter([0.5] * 11 + [42 / 1e9])
+    world.rngVolcano = lambda: next(rv_values)
+
+    plume = birth_plume(
+        world, [1.0, 0.0, 0.0], head=True, rift=False,
+        name="Test plume", life_myr=50.0, strength=1.0,
+    )
+
+    lip = plume["lip"]
+    assert lip["name"] == "Test plume Traps"
+    assert lip["onLand"] is True
+    assert lip["flows"] == 2
+    assert lip["cells"] == 3
+    assert world.events[0]["kind"] == EventKind["PLUME_RISE"]
+    assert world.events[1]["kind"] == EventKind["LIP"]
+    assert world.events[1]["data"]["areaMkm2"] == pytest.approx(0.003)
+    for cell in range(3):
+        assert world.plates[0].crust.volcType[cell] == 2
+        assert world.plates[0].crust.volcSource[cell] == 1
+        assert world.plates[0].crust.volcKm[cell] > 0.0
+        assert world.plates[0].crust.flags[cell] & 16
+
+
+def test_head_eruption_does_not_stamp_provisional_or_unowned_cells():
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0,
+        np.cos(0.01), np.sin(0.01), 0.0,
+        np.cos(0.02), np.sin(0.02), 0.0,
+        0.0, 1.0, 0.0,
+    ], dtype=np.float64)
+    world.mesh.adj_offset = np.array([0, 1, 3, 5, 6], dtype=np.int32)
+    world.mesh.adj_list = np.array([1, 0, 2, 1, 3, 2], dtype=np.int32)
+    world.mesh.index = SimpleNamespace(nearest=lambda x, y, z: 0)
+    world.provisional[1] = 1
+    world.owner[2] = -1
+    world.config.update({
+        "lipAreaMinMkm2": 4.0, "lipAreaMaxMkm2": 4.0,
+        "lipLobes": 0.0, "lipEdgeNoise": 0.0,
+    })
+
+    plume = birth_plume(
+        world, [1.0, 0.0, 0.0], head=True, rift=False,
+        name="Filtered", life_myr=50.0, strength=1.0,
+    )
+
+    assert plume["lip"]["cells"] == 1
+    assert world.plates[0].crust.volcType[0] == 2
+    assert world.plates[0].crust.volcType[1] == 0
+    assert world.plates[0].crust.volcType[2] == 0
+
+
+def test_head_eruption_rejects_invalid_area_configuration():
+    world = make_world()
+    world.config["lipAreaMinMkm2"] = 0.0
+    with pytest.raises(ValueError, match="LIP area bounds"):
+        birth_plume(
+            world, [1.0, 0.0, 0.0], head=True, rift=False,
+            name="Bad area", life_myr=10.0, strength=1.0,
+        )

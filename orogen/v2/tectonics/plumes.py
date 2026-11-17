@@ -1,14 +1,17 @@
-"""Mantle-plume lifecycle records ported from V2 step/hotspots.js.
+"""Mantle-plume lifecycle and LIP province rasterization from V2 hotspots.js.
 
-This module stops before LIP raster construction and hotspot-track stamping.
-It records plume births/deaths and queues eligible plume-triggered rifts.
+Plume tails, volcano pulse/build-up, and execution of queued plume rifts are
+left to later tectonic stages.
 """
 from __future__ import annotations
 
 import math
 import numpy as np
 
-from .crust import CrustType
+from ..core.fast_noise import FastNoise
+from ..core.seed import make_rng
+from ..core.sphere_geometry import PLANET_RADIUS_KM, normalize, tangent_basis
+from .crust import CrustFlag, CrustType, VolcanicType
 from .thermal import insulate_at_start, pick_plume_site, plume_heat_factor, update_mantle_heat
 from .world import EventKind
 
@@ -77,10 +80,9 @@ def birth_plume(
     strength: float | None = None,
     born_at: float | None = None,
 ) -> dict:
-    """Register a plume fixed in the mantle frame and optionally queue a continental rift.
+    """Register a mantle-frame plume, erupt its head LIP, and optionally queue a rift.
 
-    This records the plume and its event only. A head's LIP geometry and the tail's
-    volcanic track are deliberately handled by later porting stages.
+    Tail-track stamping and execution of the queued rift remain separate stages.
     """
     position = np.asarray(xyz, dtype=np.float64).reshape(-1)
     if position.size != 3 or not np.all(np.isfinite(position)):
@@ -136,6 +138,9 @@ def birth_plume(
         },
     )
 
+    if head:
+        _erupt_lip(world, plume, cell)
+
     if rift is not False and host is not None and not host.isBackground:
         target_id = int(rift_plate) if int(rift_plate) >= 0 else host_id
         target = world.plates[target_id] if 0 <= target_id < len(world.plates) else None
@@ -167,8 +172,8 @@ def update_plumes(world, dt: float) -> dict:
     """Update mantle heat and plume birth/death records for one simulation step.
 
     Scheduled entries may specify xyz or a plate/cell pair. Random births use the
-    dedicated hotspot RNG stream. This function does not yet construct LIPs, stamp
-    plume tracks, or execute queued rifts.
+    dedicated hotspot RNG stream. Head births construct their LIP raster; plume
+    tracks and execution of queued rifts remain separate stages.
     """
     step = float(dt)
     if not math.isfinite(step) or step < 0.0:
@@ -253,3 +258,188 @@ def update_plumes(world, dt: float) -> dict:
 
     alive = sum(1 for plume in getattr(world, "hotspots", ()) if _value(plume, "alive", True))
     return {"born": len(getattr(world, "hotspots", ())), "expired": expired, "alive": alive}
+
+
+def _erupt_lip(world, plume: dict, anchor: int) -> None:
+    """Rasterize a plume-head flood-basalt province from upstream hotspots.js."""
+    config, mesh = world.config, world.mesh
+    owner, owner_cell = world.owner, world.ownerCell
+    provisional = world.provisional
+    xyz = np.asarray(mesh.xyz).reshape(-1)
+    adj_offset, adj_list = mesh.adj_offset, mesh.adj_list
+    cell_area = float(mesh.cell_area_km2)
+
+    minimum = float(config["lipAreaMinMkm2"])
+    maximum = float(config["lipAreaMaxMkm2"])
+    if minimum <= 0.0 or maximum < minimum:
+        raise ValueError("LIP area bounds must be positive and ordered")
+
+    u = float(world.rngHotspot())
+    rv = world.rngVolcano
+    ragged = 0.4 + 0.6 * float(rv())
+    lobes = [
+        {
+            "k": k,
+            "amp": ragged * float(rv()) * float(config["lipLobes"]) / math.sqrt(k),
+            "phase": float(rv()) * 2.0 * math.pi,
+        }
+        for k in range(1, 6)
+    ]
+    noise_seed = math.floor(float(rv()) * 1e9)
+    noise = FastNoise(noise_seed)
+    rs = make_rng((noise_seed ^ 0x11B5) & 0xFFFFFFFF)
+    area_km2 = 1e6 * minimum * (maximum / minimum) ** u
+    radius = math.sqrt(area_km2 / math.pi) / PLANET_RADIUS_KM
+
+    centre = np.asarray(plume["xyz"], dtype=np.float64)
+    axis = float(rs()) * math.pi
+    basis1, basis2 = tangent_basis(centre)
+    flow_count = 1 + math.floor(float(rs()) * float(rs()) * 4.0)
+    flows = []
+    total_weight = 0.0
+    for i in range(flow_count):
+        weight = 1.0 if i == 0 else 0.25 + 0.6 * float(rs())
+        if i == 0:
+            along = 0.0
+        else:
+            along_distance = 0.6 + 0.6 * float(rs())
+            direction_sign = -1.0 if float(rs()) < 0.5 else 1.0
+            along = along_distance * direction_sign
+        offset = 0.0 if i == 0 else radius * along
+        direction = axis + (float(rs()) - 0.5) * 1.2
+        cosine_offset, sine_offset = math.cos(offset), math.sin(offset)
+        flow_centre = normalize([
+            cosine_offset * centre[0] + sine_offset * (
+                math.cos(direction) * basis1[0] + math.sin(direction) * basis2[0]
+            ),
+            cosine_offset * centre[1] + sine_offset * (
+                math.cos(direction) * basis1[1] + math.sin(direction) * basis2[1]
+            ),
+            cosine_offset * centre[2] + sine_offset * (
+                math.cos(direction) * basis1[2] + math.sin(direction) * basis2[2]
+            ),
+        ])
+        aspect_a = 1.0 + 2.0 * float(rs()) * float(rs())
+        turn = (axis if i == 0 else direction) + (float(rs()) - 0.5) * 0.8
+        flow_basis1, flow_basis2 = tangent_basis(flow_centre)
+        flows.append({
+            "f1": flow_basis1,
+            "f2": flow_basis2,
+            "w": weight,
+            "aspect": aspect_a,
+            "cos": math.cos(turn),
+            "sin": math.sin(turn),
+        })
+        total_weight += weight
+
+    for flow in flows:
+        flow_radius = radius * math.sqrt(1.25 * flow["w"] / total_weight)
+        flow["a"] = flow_radius * math.sqrt(flow["aspect"])
+        flow["b"] = flow_radius / math.sqrt(flow["aspect"])
+
+    warp_frequency = 2.5 / radius
+    edge_frequency = 5.0 / radius
+
+    def depth(cell: int) -> float:
+        offset = 3 * cell
+        x, y, z = float(xyz[offset]), float(xyz[offset + 1]), float(xyz[offset + 2])
+        wx = 0.35 * radius * noise.fbm(
+            x * warp_frequency + 3.1, y * warp_frequency, z * warp_frequency, 2
+        )
+        wy = 0.35 * radius * noise.fbm(
+            x * warp_frequency, y * warp_frequency + 5.3, z * warp_frequency, 2
+        )
+        wz = 0.35 * radius * noise.fbm(
+            x * warp_frequency, y * warp_frequency, z * warp_frequency + 7.7, 2
+        )
+        x, y, z = x + wx, y + wy, z + wz
+        best = -math.inf
+        for flow in flows:
+            px = x * flow["f1"][0] + y * flow["f1"][1] + z * flow["f1"][2]
+            py = x * flow["f2"][0] + y * flow["f2"][1] + z * flow["f2"][2]
+            pu = px * flow["cos"] + py * flow["sin"]
+            pv = -px * flow["sin"] + py * flow["cos"]
+            q = math.hypot(pu / flow["a"], pv / flow["b"])
+            best = max(best, 1.0 - q)
+
+        theta = math.atan2(
+            x * basis2[0] + y * basis2[1] + z * basis2[2],
+            x * basis1[0] + y * basis1[1] + z * basis1[2],
+        )
+        lobe = sum(
+            item["amp"] * math.cos(item["k"] * theta + item["phase"])
+            for item in lobes
+        )
+        return best + 0.5 * lobe + float(config["lipEdgeNoise"]) * noise.fbm(
+            x * edge_frequency, y * edge_frequency, z * edge_frequency, 3
+        )
+
+    depth_cache: dict[int, float] = {}
+
+    def cell_depth(cell: int) -> float:
+        if cell not in depth_cache:
+            depth_cache[cell] = depth(cell)
+        return depth_cache[cell]
+
+    cells = 0
+    land_cells = 0
+    seen = {int(anchor)}
+    queue = [int(anchor)]
+    for cell in queue:
+        if int(owner[cell]) >= 0 and not provisional[cell]:
+            plate_id = int(owner[cell])
+            crust_cell = int(owner_cell[cell])
+            crust = world.plates[plate_id].crust
+            d = 1.0 - max(0.0, min(1.0, cell_depth(cell)))
+            inner = 1.0 - d
+            thickness = (
+                float(config["lipThicknessKm"])
+                * (0.8 + 0.2 * inner)
+                * (0.35 + 0.65 * min(1.0, inner / 0.15))
+            )
+            crust.volcType[crust_cell] = VolcanicType["LIP"]
+            crust.volcAt[crust_cell] = world.time
+            crust.volcKm[crust_cell] = max(float(crust.volcKm[crust_cell]), thickness)
+            crust.volcSource[crust_cell] = int(plume["id"]) + 1
+            crust.flags[crust_cell] |= CrustFlag["LIP"]
+            cells += 1
+            if crust.type[crust_cell] != CrustType["OCEAN"]:
+                land_cells += 1
+
+        for edge in range(int(adj_offset[cell]), int(adj_offset[cell + 1])):
+            neighbour = int(adj_list[edge])
+            if neighbour not in seen and cell_depth(neighbour) > 0.0:
+                seen.add(neighbour)
+                queue.append(neighbour)
+
+    on_land = land_cells * 2 > cells
+    host_id = int(owner[anchor])
+    host_plate = world.plates[host_id] if 0 <= host_id < len(world.plates) else None
+    host_name = (
+        host_plate.name
+        if host_plate is not None and not host_plate.isBackground
+        else "the open ocean"
+    )
+    suffix = "Traps" if on_land else "Plateau"
+    lip_name = str(plume["name"]) + " " + suffix
+    lip_area = cells * cell_area / 1e6
+    plume["lip"] = {
+        "name": lip_name,
+        "time": float(world.time),
+        "radiusKm": radius * PLANET_RADIUS_KM,
+        "flows": flow_count,
+        "cells": cells,
+        "onLand": on_land,
+    }
+    verb = "erupt" if on_land else "erupts"
+    world.log(
+        EventKind["LIP"],
+        f"the {lip_name} {verb}: {lip_area:.1f} Mkm² of flood basalt on {host_name}",
+        {
+            "hotspot": int(plume["id"]),
+            "name": lip_name,
+            "onLand": on_land,
+            "areaMkm2": lip_area,
+            "plate": host_id if host_plate is not None and not host_plate.isBackground else -1,
+        },
+    )

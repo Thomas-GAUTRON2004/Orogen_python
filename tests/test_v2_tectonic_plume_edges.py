@@ -35,6 +35,7 @@ def make_world():
         mesh=mesh, plates=[plate], time=0.0,
         owner=np.zeros(4, dtype=np.int16),
         ownerCell=np.arange(4, dtype=np.int32),
+        provisional=np.zeros(4, dtype=np.uint8),
         mantleHeat=np.zeros(4, dtype=np.float32),
         hotspotsReady=True, hotspots=[], plumes=[], pendingPlumeRifts=[],
         config={
@@ -45,6 +46,7 @@ def make_world():
             "riftHeatGain": 0.0, "riftHeatFloor": 1.0, "riftHeatPower": 1.0,
         },
         rngHotspot=lambda: 0.0,
+        rngVolcano=lambda: 0.5,
         log=lambda kind, text, data=None: events.append({
             "time": 0.0, "kind": kind, "text": text, "data": data or {},
         }),
@@ -66,11 +68,11 @@ def test_birth_without_world_collections_uses_coordinate_fallback_and_unique_nam
     )
 
     first = birth_plume(
-        world, [1.0, 0.0, 0.0], rift=False,
+        world, [1.0, 0.0, 0.0], head=False, rift=False,
         life_myr=20.0, strength=1.0,
     )
     second = birth_plume(
-        world, [0.0, 1.0, 0.0], rift=False,
+        world, [0.0, 1.0, 0.0], head=False, rift=False,
         life_myr=20.0, strength=1.0,
     )
 
@@ -85,7 +87,7 @@ def test_nearest_cell_fallback_rejects_mesh_coordinate_mismatch():
     world.mesh = SimpleNamespace(num_cells=4, xyz=np.array([1.0, 0.0, 0.0]))
     with pytest.raises(ValueError, match="mesh coordinates"):
         birth_plume(
-            world, [1.0, 0.0, 0.0], rift=False,
+            world, [1.0, 0.0, 0.0], head=False, rift=False,
             name="Invalid mesh", life_myr=10.0, strength=1.0,
         )
 
@@ -105,7 +107,7 @@ def test_attribute_schedule_and_invalid_rift_target():
     assert world.events[0]["data"]["head"] is False
 
     plume = birth_plume(
-        world, [1.0, 0.0, 0.0], rift=True,
+        world, [1.0, 0.0, 0.0], head=False, rift=True,
         rift_plate=99, name="No target", life_myr=10.0, strength=1.0,
     )
     assert plume["name"] == "No target"

@@ -133,12 +133,10 @@ The cohesive landmass analyser is now ported in `supercontinent.py`. It counts c
 A first partial stepper now connects the ported kinematics, resolver, boundary classifier, supercontinent-cycle tracker and force-balanced motion update. It selects the adaptive dt when none is supplied and emits a compact step diagnostic. The wider event loop and slow stages (collisions/orogeny/rifts/subduction/arcs/hotspots/terrain/geology/snapshots) have not yet been wired into a full simulate generator.
 
 
-The mantle thermal-memory component is now ported: initial continental insulation, exponential warming beneath continents, cooling elsewhere and the normalized plume-heat rift multiplier. The partial stepper runs this heat update before the cycle tracker. The weighted plume-site selector is now ported with thermal bias and minimum spacing. It does not yet create plume objects/LIPs or evolve plume tails and volcanic tracks.
+The mantle thermal-memory component is now ported: initial continental insulation, exponential warming beneath continents, cooling elsewhere and the normalized plume-heat rift multiplier. The partial stepper runs this heat update before the cycle tracker. The weighted plume-site selector is ported with thermal bias and minimum spacing. Plume objects and LIP province stamping are now covered by subsequent increments; plume tails and volcanic tracks remain outstanding.
 
 ## Latest implementation increment — plume lifecycle records (2026-11-17)
 
 `orogen.v2.tectonics.plumes` ports the record-level lifecycle from upstream `v2/js/tectonics/step/hotspots.js`: initial pre-history plumes, deterministic names and strengths, scheduled mantle-frame births, scheduled plate-cell births, probabilistic births, live-plume spacing through `pick_plume_site`, `PLUME_RISE` / `PLUME_DEATH` events, and queued plume-triggered rift requests. `step_world` now advances this stage alongside mantle heat.
 
-The increment deliberately excludes LIP province rasterization, tail-track stamping, volcano pulse/build-up mechanics, and the operation that executes `pendingPlumeRifts`. It is not full hotspot-stage parity. The API reference documents these boundaries.
-
-The CI result for this increment will be recorded after the branch workflow completes. The previous verified baseline was 218 passing tests with 100% line coverage for `orogen.v2`.
+The following increment adds LIP head-province rasterization: overlapping ellipses, radial lobes, warped simplex-fBm edges, adjacency-constrained growth, crust volcanic fields, LIP flags, and `LIP` events. It intentionally leaves plume-tail tracks, volcano pulse/build-up, and execution of `pendingPlumeRifts` outstanding. The preceding plume lifecycle increment was verified at 230 passing tests and 100% line coverage; the LIP increment's CI result is pending.

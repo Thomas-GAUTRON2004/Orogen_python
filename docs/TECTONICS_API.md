@@ -286,7 +286,7 @@ Module: `orogen.v2.tectonics.thermal`
 - `plume_heat_factor(world, plate)` returns the normalized thermal multiplier for plume-triggered continental rifting.
 - `pick_plume_site(world, rng)` draws a world cell by the weight `plumeOceanWeight + (1 - plumeOceanWeight) * mantleHeat[cell]`, excluding cells within `plumeSpacingKm` of a live plume.
 
-The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector is ported. Plume birth/life cycles, LIP province generation and volcanic-track stamping are not yet ported.
+The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector and plume birth/life records are ported. Head eruptions now rasterize connected LIP provinces. Volcanic-track stamping and volcano pulse/build-up remain unported.
 
 ## Mantle heat and plume lifecycle
 
@@ -294,8 +294,10 @@ The partial `step_world` now advances this heat-memory field before updating the
 
 The lifecycle layer is implemented in `orogen.v2.tectonics.plumes`:
 
-- `birth_plume(world, xyz, ...)` normalizes a mantle-frame location, creates a persistent plume record, logs `PLUME_RISE`, and may append a request to `world.pendingPlumeRifts`.
+- `birth_plume(world, xyz, ...)` normalizes a mantle-frame location, creates a persistent plume record, logs `PLUME_RISE`, rasterizes a LIP province for a plume head, and may append a request to `world.pendingPlumeRifts`.
 - `update_plumes(world, dt)` initializes pre-existing plumes, advances mantle heat, consumes scheduled `world.plumes` entries (mantle-frame positions or plate/cell pairs), performs probabilistic births, and logs deaths.
 - The `step_world` orchestration now calls this lifecycle stage before supercontinent tracking and force balancing.
 
-This is intentionally a records-and-queue port only. It does **not** yet rasterize LIP provinces, stamp hotspot tracks, build volcano edifices, or execute the queued rifts. Those effects require the later LIP/track and rifting operation stages.
+`_erupt_lip` builds the LIP footprint from overlapping, rotated elliptical flows, five low-order radial lobes, and warped simplex-fBm edge noise. The province grows over the mesh adjacency graph; eligible owned cells receive `VolcanicType.LIP`, thickness, source and `CrustFlag.LIP` records. The shape seed comes from `rngVolcano` while the initial area draw uses `rngHotspot`, preserving the independent streams. This is a numerical port of the upstream head-province stage, not a demonstrated bit-for-bit match for all meshes.
+
+The remaining hotspot work is tail-track stamping and volcano pulse/build-up. The queued plume-triggered rifts are still not executed by the partial stepper.

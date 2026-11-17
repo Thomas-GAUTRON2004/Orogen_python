@@ -2,7 +2,7 @@
 
 This is intentionally not the full upstream simulation loop: event-driven
 collision/orogeny, execution of queued rifts, ocean-plate evolution, arcs,
-LIP/track volcanism, and slow terrain/geology stages are not orchestrated here.
+plume-tail tracks, queued-rift execution, and slow terrain/geology stages are not orchestrated here.
 """
 from __future__ import annotations
 

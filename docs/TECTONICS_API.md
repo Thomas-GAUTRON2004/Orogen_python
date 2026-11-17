@@ -179,3 +179,14 @@ These are helper ports, not yet the complete `classifyBoundaries(world, dt)` pas
 `classify_contact_boundaries(world, dt)` performs the currently ported contact-state pass over a resolved world view. It sets per-cell boundary kinds and convergence, handles collision and interior trench-flag bookkeeping, resolves closing-contact polarity, records trench consumption, and optionally votes ocean-ocean contact segments when `segmentPolarity` is enabled.
 
 This remains a partial port of upstream `classifyBoundaries`: mountain-belt spreading, transpression/orogeny records, flat-slab decisions, and far-field force recording are not yet included.
+
+
+## Adaptive simulation stepping
+
+Module: `orogen.v2.tectonics.simulation`
+
+- `fastest_speed(omega, plate, centre)` computes the fastest angular surface speed over a plate's spherical cap.
+- `closing_rate(world)` sums the two highest living-plate cap speeds.
+- `choose_step(world)` applies the upstream adaptive time-step limit in mesh-cell units, with the configured maximum-step and oceanic-speed floor.
+
+These helpers port the time-step calculation from `simulate.js`; they do not yet implement the full simulation generator or event pipeline.

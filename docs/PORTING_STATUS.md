@@ -110,3 +110,6 @@ Boundary processing has started: `orogen.v2.tectonics.boundaries` now contains t
 
 
 The boundary module now also exposes `classify_contact_boundaries(world, dt)`, which classifies resolved contacts as ridge, transform, subducting, overriding, or collision and updates convergence, trench flags, slab consumption, and optional segment polarity. It deliberately does not claim full upstream boundary-pass parity: orogeny spreading, flat-slab logic, and far-field deformation remain unported.
+
+
+Adaptive time-step calculation has also been ported into `orogen.v2.tectonics.simulation`: fastest cap speed, two-plate closing-rate bound, and `choose_step`. The full `simulate.js` loop is still outstanding because it orchestrates multiple unported event, force, terrain, geology, and snapshot stages.

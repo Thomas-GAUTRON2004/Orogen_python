@@ -159,3 +159,23 @@ CrustRaster.create and snapshot now use compiled kernels over their 55 structure
 For spherical geometry, the previous Python measurement on the same benchmark family was 159.392 ms; the batch implementation measured 8.727 ms, about **18.3× lower**. For crust creation + snapshots, the previous 119.421 ms measurement fell to 80.529 ms, about **1.48× lower**. Crust remains the largest measured gap. The raster benchmark calls the scalar create/snapshot API repeatedly, so it still pays Python-to-Numba dispatch overhead on every cell; a batch API should only be introduced where real simulation call sites can use it.
 
 The paired run was completed on the shared GitHub-hosted runner with Node.js 22.23.4 and Python 3.12.16, five measured rounds after one warm-up. These results are directional microbenchmarks, not end-to-end simulation timings.
+## Batched crust creation in gap growth — 2026-11-17
+
+Crust creation now has a batch API. It clears all 55 fields and updates the mask/count for a sequence of cell indices in one Numba invocation; snapshot_many materializes a row-major batch while preserving CELL_FIELDS order. The no-Numba implementation loops through the existing scalar methods. In the production gap-growth path, birth cells are grouped by plate and initialized in a batch; per-cell fracture, trench and occupancy updates still run in their original birth order.
+
+| Workload | JavaScript | Python + Numba | Python / JS | Faster |
+|---|---:|---:|---:|---|
+| 3-D simplex FBM, 40,000 points × 5 octaves | 10.760 ms | 10.183 ms | 0.95× | Python, 1.06× |
+| Spherical geometry, 80,000 points | 19.594 ms | 5.936 ms | 0.30× | Python, 3.30× |
+| Mesh BFS, 12,000 cells | 0.567 ms | 0.732 ms | 1.29× | JavaScript, 1.29× |
+| Connected components, 12,000 cells | 2.455 ms | 1.619 ms | 0.66× | Python + Numba, 1.52× |
+| Mesh Dijkstra, 12,000 cells | 0.576 ms | 0.011 ms | 0.02× | Python + Numba, about 52× |
+| Crust creation + snapshots, 6,000 cells | 2.656 ms | 23.379 ms | 8.80× | JavaScript, 8.80× |
+
+[Paired benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44164702455).
+
+Batching reduced the Python crust workload from 80.529 ms to 23.379 ms (about **3.44× faster** than the preceding scalar-wrapper implementation). Compared with the earlier 119.421 ms scalar benchmark, the measured workload is now about **5.11× faster**. Python is still 8.8× slower than the JavaScript reference for this synthetic create-and-snapshot workload, so this is a material reduction rather than closure of the gap.
+
+The batch benchmark executes one Python Numba call for creation and one for snapshot materialization, while the JavaScript reference iterates over cells. The public scalar methods are retained. This batch API also supports distinct metadata values, negative Python-style cell indices, repeated cell indices, empty batches and an optional no-Numba fallback; tests compare its final arrays and snapshot order against repeated scalar calls.
+
+Five measured rounds followed one warm-up on the shared GitHub-hosted runner (Node.js 22.23.4, Python 3.12.16). Treat all times as directional microbenchmarks.

@@ -128,3 +128,6 @@ A partial `update_plate_motion(world)` now connects the currently ported boundar
 
 
 The cohesive landmass analyser is now ported in `supercontinent.py`. It counts connected continental components above 1 Mkm², separates interiors across necks narrower than `cycleNeckKm`, grows inland cores back through the land by geodesic distance, and reports the largest mass and its share. The cycle clock is now partially ported by `track_cycle(world)`: it consumes rift events, applies sustained supercontinent/dispersed-share thresholds, chooses seeded upwelling/downwelling geometry and cycle duration, schedules dispersion/gathering, logs state transitions, and exposes clump/hold factors. The heat field itself still depends on the separate hotspot/thermal stage; full climate coupling and simulation orchestration remain outstanding.
+
+
+A first partial stepper now connects the ported kinematics, resolver, boundary classifier, supercontinent-cycle tracker and force-balanced motion update. It selects the adaptive dt when none is supplied and emits a compact step diagnostic. The wider event loop and slow stages (collisions/orogeny/rifts/subduction/arcs/hotspots/terrain/geology/snapshots) have not yet been wired into a full simulate generator.

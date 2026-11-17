@@ -266,3 +266,12 @@ The result feeds `track_cycle(world)`, which consumes rift events, waits for sus
 
 
 `track_cycle(world)` advances the world cycle state. It uses `world.rngCycle` for deterministic downwelling orientation and cycle duration, logs supercontinent/dispersal events, records the large plates of a clump, computes the upwelling heat average, and updates `phase`, `gather`, `clump`, and `hold`. Required cycle parameters are read from `world.config`.
+
+
+## Partial tectonic step orchestration
+
+Module: `orogen.v2.tectonics.stepper`
+
+`step_world(world, dt=None, update_motion=True, update_cycle=True)` advances one step using the ported stages in upstream order: advance plates, resolve the world owner map, classify boundary/trench state, update the supercontinent cycle, then compute force-balanced motion for the next step. When `dt` is omitted, it uses `choose_step(world)`; it returns a diagnostic record with step duration, cell displacement estimate, resolve tally, boundary count, cycle phase and motion-update status.
+
+This is a partial orchestrator, not a complete `simulate.js` port. Collision/orogeny event handling, rifting, subduction initiation, arcs, ocean-plate splitting, hotspot evolution, geology/relief evolution, snapshots and run/resume handling remain outside this stepper.

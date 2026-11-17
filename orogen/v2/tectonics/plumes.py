@@ -255,6 +255,8 @@ def update_plumes(world, dt: float) -> dict:
                 },
             )
             expired += 1
+            continue
+        _stamp_track(world, plume, step)
 
     alive = sum(1 for plume in getattr(world, "hotspots", ()) if _value(plume, "alive", True))
     return {"born": len(getattr(world, "hotspots", ())), "expired": expired, "alive": alive}
@@ -443,3 +445,107 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
             "plate": host_id if host_plate is not None and not host_plate.isBackground else -1,
         },
     )
+
+
+def _erupted_during(world, plume: dict, start: float, end: float) -> float:
+    """Integrate plume burst intensity over a simulation interval."""
+    config = world.config
+    rng = world.rngVolcano
+    if plume["pulseUntil"] is None:
+        plume["bursting"] = False
+        plume["pulseUntil"] = start + float(rng()) * float(config["hotspotQuietMaxMyr"])
+
+    total = 0.0
+    time = start
+    while time < end:
+        pulse_end = min(end, float(plume["pulseUntil"]))
+        if plume["bursting"]:
+            total += float(plume["pulseIntensity"]) * (pulse_end - time)
+        if pulse_end < float(plume["pulseUntil"]):
+            break
+
+        if plume["bursting"]:
+            plume["bursting"] = False
+            plume["pulseUntil"] = (
+                pulse_end
+                + float(config["hotspotQuietMinMyr"])
+                + float(rng()) * (
+                    float(config["hotspotQuietMaxMyr"])
+                    - float(config["hotspotQuietMinMyr"])
+                )
+            )
+        else:
+            plume["bursting"] = True
+            plume["pulseIntensity"] = 0.5 + 0.9 * float(rng())
+            plume["pulseUntil"] = (
+                pulse_end
+                + float(config["hotspotBurstMinMyr"])
+                + float(rng()) * (
+                    float(config["hotspotBurstMaxMyr"])
+                    - float(config["hotspotBurstMinMyr"])
+                )
+            )
+        time = pulse_end
+    return total
+
+
+def _stamp_track(world, plume: dict, dt: float) -> None:
+    """Stamp the plume's moving tail on the plate currently passing above it."""
+    config, mesh = world.config, world.mesh
+    owner, provisional = world.owner, world.provisional
+    xyz = np.asarray(mesh.xyz).reshape(-1)
+    anchor = int(mesh.index.nearest(*map(float, plume["xyz"])))
+    if int(owner[anchor]) < 0 or provisional[anchor]:
+        return
+
+    plate = world.plates[int(owner[anchor])]
+    crust = plate.crust
+    crust_anchor = plate.cell_at(mesh.index, *map(float, plume["xyz"]))
+    if not crust.mask[crust_anchor]:
+        return
+
+    local = plate.to_plate_frame(*map(float, plume["xyz"]))
+    reach = math.cos(float(config["hotspotTrackKm"]) / PLANET_RADIUS_KM)
+    edifice = math.cos(float(config["hotspotEdificeKm"]) / PLANET_RADIUS_KM)
+
+    def closeness(cell: int) -> float:
+        offset = 3 * cell
+        return (
+            float(xyz[offset]) * float(local[0])
+            + float(xyz[offset + 1]) * float(local[1])
+            + float(xyz[offset + 2]) * float(local[2])
+        )
+
+    cells = [crust_anchor]
+    seen = {crust_anchor}
+    for cell in cells:
+        for edge in range(int(mesh.adj_offset[cell]), int(mesh.adj_offset[cell + 1])):
+            neighbour = int(mesh.adj_list[edge])
+            if (
+                neighbour not in seen
+                and crust.mask[neighbour]
+                and closeness(neighbour) >= reach
+            ):
+                seen.add(neighbour)
+                cells.append(neighbour)
+
+    build = (
+        float(config["hotspotBuildKmPerMyr"])
+        * float(plume["strength"])
+        * _erupted_during(world, plume, float(world.time) - dt, float(world.time))
+    )
+    for cell in cells:
+        if crust.volcType[cell] != VolcanicType["LIP"]:
+            crust.volcType[cell] = VolcanicType["TRACK"]
+        crust.volcAt[cell] = world.time
+        crust.volcSource[cell] = int(plume["id"]) + 1
+        if build > 0.0 and (
+            cell == crust_anchor or closeness(cell) >= edifice
+        ):
+            crust.volcKm[cell] = max(
+                float(crust.volcKm[cell]),
+                min(
+                    float(config["hotspotMaxKm"]),
+                    float(crust.volcKm[cell]) + build,
+                ),
+            )

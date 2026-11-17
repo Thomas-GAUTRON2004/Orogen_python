@@ -145,7 +145,7 @@ def test_update_plate_motion_blends_target_and_resets_inactive_plates(monkeypatc
         "slabs": [], "contacts": [],
     }
     monkeypatch.setattr(dynamics_module, "gather_boundary_loads", lambda world: {0: load})
-    monkeypatch.setattr(dynamics_module, "balanced_rotation", lambda *args: [0.0, 0.0, 0.02])
+    monkeypatch.setattr(dynamics_module, "balanced_rotation", lambda *args: [0.02, 0.0, 0.0])
     world = SimpleNamespace(
         config={
             "relaxMyr": 6.0, "mobility": 1.0, "dragOcean": 1.0,
@@ -158,7 +158,7 @@ def test_update_plate_motion_blends_target_and_resets_inactive_plates(monkeypatc
         mesh=mesh, lastDt=6.0,
     )
     dynamics_module.update_plate_motion(world)
-    assert moving.omega[2] > 0
+    assert moving.omega[0] > 0
     assert moving.dynamics["forces"][0]["cells"] == 1
     assert moving.dynamics["tension"] == pytest.approx(0.0)
     assert moving.dynamics["targetCmYr"] > 0

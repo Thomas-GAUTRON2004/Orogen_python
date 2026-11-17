@@ -190,3 +190,14 @@ Module: `orogen.v2.tectonics.simulation`
 - `choose_step(world)` applies the upstream adaptive time-step limit in mesh-cell units, with the configured maximum-step and oceanic-speed floor.
 
 These helpers port the time-step calculation from `simulate.js`; they do not yet implement the full simulation generator or event pipeline.
+
+
+## Orogenic belt geometry
+
+Module: `orogen.v2.tectonics.orogeny`
+
+- `belt_width_km(kind, work_km, rate_cm_yr, config)` reproduces the upstream belt-width rule, including speed clamps and maximum width.
+- `belt_shape(head_on, slab_age_myr, config)` applies obliquity and slab-age scaling.
+- `obliquity_deg(velocity, normal, position, closing)` returns signed dextral/sinistral obliquity.
+
+The spatial `spreadBelt` operation is not included yet.

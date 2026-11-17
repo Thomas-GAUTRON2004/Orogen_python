@@ -113,3 +113,6 @@ The boundary module now also exposes `classify_contact_boundaries(world, dt)`, w
 
 
 Adaptive time-step calculation has also been ported into `orogen.v2.tectonics.simulation`: fastest cap speed, two-plate closing-rate bound, and `choose_step`. The full `simulate.js` loop is still outstanding because it orchestrates multiple unported event, force, terrain, geology, and snapshot stages.
+
+
+Pure orogeny geometry is now ported: belt width, obliquity/slab-age shape factor, and signed obliquity angle. The spatial belt propagation algorithm (`spreadBelt`) and its terrain/geology side effects remain outstanding.

@@ -143,7 +143,7 @@ These are directional microbenchmark results from one shared GitHub-hosted runne
 
 The spherical-geometry benchmark now uses destination_many and bearing_to_many over one contiguous (80,000, 3) array. With Numba installed, both operations execute inside compiled batch loops; without Numba, the functions retain a scalar Python fallback. The scalar API remains unchanged.
 
-CrustRaster.create and snapshot now use compiled kernels over their 55 structure-of-arrays fields when Numba is available. The pure-Python loops remain in place as the no-Numba fallback. This avoids changing the snapshot ordering or its public list representation.
+CrustRaster.create and snapshot use compiled per-cell kernels when Numba is available. The pure-Python loops remain in place as the no-Numba fallback. The scalar snapshot() API still returns a list in CELL_FIELDS order. The separate snapshot_many() API returns a row-major float64 NumPy matrix with one row per cell, avoiding Python list creation for every field in large batches.
 
 | Workload | JavaScript | Python + Numba | Python / JS | Faster |
 |---|---:|---:|---:|---|
@@ -179,3 +179,38 @@ Batching reduced the Python crust workload from 80.529 ms to 23.379 ms (about **
 The batch benchmark executes one Python Numba call for creation and one for snapshot materialization, while the JavaScript reference iterates over cells. The public scalar methods are retained. This batch API also supports distinct metadata values, negative Python-style cell indices, repeated cell indices, empty batches and an optional no-Numba fallback; tests compare its final arrays and snapshot order against repeated scalar calls.
 
 Five measured rounds followed one warm-up on the shared GitHub-hosted runner (Node.js 22.23.4, Python 3.12.16). Treat all times as directional microbenchmarks.
+
+## Crust raster batch storage, snapshots and copy kernels — 2026-11-17
+
+The raster now allocates one backing matrix per NumPy dtype and exposes each named field as its own contiguous, writable one-dimensional view. This reduces allocation count without changing the field names, individual dtypes, cell indexing or CELL_FIELDS order.
+
+The batch APIs are now used in real tectonic paths:
+
+- resolve gap growth groups new ocean-crust cells by plate and initializes each group with create_many; fracture, trench and occupancy updates retain their original per-birth order.
+- rift splitting moves the known set of cells with copy_many and remove_many.
+- plate welding groups upper/lower crust remapping and hole filling through copy_many, while keeping the selection/filter stages that depend on previously written cells in their original order.
+- copy_many uses a cache-friendlier field-major traversal for distinct source/destination rasters. Same-raster copies retain sequential cell order so overlapping reads observe earlier writes just like repeated scalar copy_from calls. Repeated destination cells with a frame rotation rotate the final copied far-field axis only once.
+
+On the paired JavaScript/Python benchmark run, using 6,000 source/destination cells:
+
+| Workload | JavaScript | Python + Numba | Python / JS | Faster |
+|---|---:|---:|---:|---|
+| FBM, 40,000 points × 5 octaves | 12.626 ms | 10.320 ms | 0.82× | Python, 1.22× |
+| Spherical geometry, 80,000 points | 23.888 ms | 6.733 ms | 0.28× | Python, 3.55× |
+| Mesh BFS, 12,000 cells | 0.659 ms | 0.998 ms | 1.51× | JavaScript, 1.51× |
+| Connected components, 12,000 cells | 2.712 ms | 2.127 ms | 0.78× | Python + Numba, 1.28× |
+| Mesh Dijkstra, 12,000 cells | 0.702 ms | 0.012 ms | 0.02× | Python + Numba, about 57× |
+| Crust create + batch snapshot, 6,000 cells | 4.635 ms | 12.666 ms | 2.73× | JavaScript, 2.73× |
+| Crust batch copy, 6,000 cells | 1.877 ms | 0.446 ms | 0.24× | Python + Numba, about 4.2× |
+
+[Paired benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460176). The benchmark uses five measured rounds after one warm-up on Node.js 22.23.4 and Python 3.12.16.
+
+The scalar crust A/B workload is also measured independently, without changing the public per-cell API: 6,000 scalar create()+snapshot() pairs took 78.500 ms with Numba and 153.055 ms with the pure-Python fallback (1.95× faster with Numba). This confirms that the scalar JIT path is still worthwhile, while batch APIs are faster where callers already have a cell list.
+
+[Scalar crust A/B benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44167934426).
+
+These are synthetic microbenchmarks on shared GitHub-hosted runners. Timings vary substantially between runs; they show directional differences, not end-to-end tectonic-step or full-planet-generation speedups. The copy benchmark prepares its source raster outside the timed region and measures the copy itself. The create/snapshot benchmark compares the Python batch API with the upstream JavaScript loop, while the scalar A/B is a separate Python-only comparison.
+
+CI for the matrix-returning snapshot_many implementation: **476 tests passed, 100% coverage**.
+
+[Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).

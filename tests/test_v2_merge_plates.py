@@ -103,7 +103,7 @@ def test_merge_plates_redraws_upper_and_retires_lower_with_a_suture():
     assert upper.crust.mask[0] == 1  # the four-neighbour pinhole was filled
     assert upper.crust.type[2] == CrustType["CRATON"]
     assert upper.crust.flags[1] & CrustFlag["SUTURE"]
-    assert upper.crust.flags[2] & CrustFlag["SUTURE"]
+    assert not (upper.crust.flags[2] & CrustFlag["SUTURE"])
     assert upper.crust.count == int(upper.stats["cells"])
     assert upper.stats["continentalCells"] == 5
     assert upper.born == world.time

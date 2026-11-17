@@ -4,6 +4,8 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Iterable, Sequence
 
+from ._numba_kernels import NUMBA_AVAILABLE, destination_numba, bearing_numba
+
 PLANET_RADIUS_KM = 6_371.0
 Vector3 = Sequence[float]
 
@@ -50,6 +52,8 @@ def tangent_basis(point: Vector3) -> tuple[list[float], list[float]]:
 
 
 def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
+    if NUMBA_AVAILABLE:
+        return list(destination_numba(float(point[0]), float(point[1]), float(point[2]), bearing, distance))
     east, north = tangent_basis(point)
     dx, dy = math.cos(bearing), math.sin(bearing)
     sine, cosine = math.sin(distance), math.cos(distance)
@@ -61,6 +65,8 @@ def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
 
 
 def bearing_to(point: Vector3, target: Vector3) -> float:
+    if NUMBA_AVAILABLE:
+        return float(bearing_numba(float(point[0]), float(point[1]), float(point[2]), float(target[0]), float(target[1]), float(target[2])))
     east, north = tangent_basis(point)
     return math.atan2(dot(target, north), dot(target, east))
 

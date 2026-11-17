@@ -106,3 +106,23 @@ def test_numba_fbm_matches_upstream_javascript_bit_for_bit():
     expected = np.asarray(json.loads(result.stdout), dtype=np.float64)
     actual = FastNoise(9876).fbm_many(points, 5, 2/3)
     np.testing.assert_array_equal(actual, expected)
+
+
+
+def test_numba_spherical_geometry_matches_python_reference_exactly(monkeypatch):
+    import orogen.v2.core.sphere_geometry as geometry
+
+    rng = np.random.default_rng(1701)
+    points = rng.normal(size=(2048, 3))
+    points /= np.linalg.norm(points, axis=1)[:, None]
+    for point in points:
+        bearing = float(rng.uniform(-math.pi, math.pi))
+        distance = float(rng.uniform(0.0, math.pi))
+        compiled_destination = geometry.destination(point, bearing, distance)
+        compiled_bearing = geometry.bearing_to(point, compiled_destination)
+        monkeypatch.setattr(geometry, "NUMBA_AVAILABLE", False)
+        python_destination = geometry.destination(point, bearing, distance)
+        python_bearing = geometry.bearing_to(point, python_destination)
+        monkeypatch.setattr(geometry, "NUMBA_AVAILABLE", True)
+        np.testing.assert_array_equal(compiled_destination, python_destination)
+        assert compiled_bearing == python_bearing

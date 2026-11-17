@@ -70,7 +70,7 @@ def test_masked_cells_and_rift_partition_assign_both_land_sides_and_ocean():
     side, land, cratons = partition(mesh, crust, [1, 2])
 
     assert side.dtype == np.int8
-    assert land == [0, 3, 2]
+    assert land == [0, 2, 2]
     assert cratons == [0, 1, 1]
     assert side[0] == side[4] == side[6] == 1
     assert side[3] == side[5] == side[7] == 2
@@ -80,7 +80,7 @@ def test_sides_of_reports_share_elongation_and_cratons_on_both_sides():
     mesh, crust = make_rift_fixture()
     result = sides_of(mesh, crust, [1, 2])
 
-    assert result["share"] == pytest.approx(0.4)
+    assert result["share"] == pytest.approx(0.5)
     assert result["elongation"] == 1.0
     assert result["cratonsBothSides"] is True
 

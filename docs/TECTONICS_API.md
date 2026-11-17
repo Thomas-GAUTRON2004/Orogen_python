@@ -375,13 +375,11 @@ creates and updates collision records, determines upper/lower plates, measures
 convergence and contact-front length, and advances the shortening and stall
 counters. Where enabled in the supplied configuration, it also accounts for
 lower-plate underthrusting and routes touching terranes or overlapping arcs
-through the existing accretion helpers.
+through the existing accretion helpers. Positive shortening spreads an Ural-type belt on both plates for a short front, or a Himalayan plateau belt on the upper plate and a foreland belt on the lower plate when the front meets `sutureMinContactKm`.
 
 The function returns a mapping with `tracked`, `started`,
 `underthrustCells`, and `changed`. `step_world` calls it only when
 `collisionForgetMyr` is present in the world configuration, and rebuilds the
 world view after crust transfers.
 
-This stage is deliberately incomplete. It does not yet spread collision
-orogenic belts, measure sea-gap closure, or weld/merge plates. A
-`sutureCandidate` record is only a threshold marker, not a completed suture.
+This stage is deliberately incomplete. It does not yet measure sea-gap/ring closure, apply far-field collision forcing or weld/merge plates. A `sutureCandidate` record is only a threshold marker, not a completed suture. Belt propagation is enabled only when the belt geometry and spread configuration are supplied; it does not imply that the remaining collision stages have been ported.

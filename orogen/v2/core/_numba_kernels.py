@@ -451,8 +451,14 @@ def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotat
             for row in range(destinations.size):
                 destination_field[int(destinations[row])] = source_field[int(sources[row])]
         if rotate:
-            for row in range(destinations.size):
+            # Only the last row for a repeated destination contains its final
+            # copied axis; rotate each unique destination exactly once.
+            seen = np.zeros(mask.size, dtype=np.uint8)
+            for row in range(destinations.size - 1, -1, -1):
                 target = int(destinations[row])
+                if seen[target]:
+                    continue
+                seen[target] = 1
                 x = int(out_fields[52][target])
                 y = int(out_fields[53][target])
                 z = int(out_fields[54][target])

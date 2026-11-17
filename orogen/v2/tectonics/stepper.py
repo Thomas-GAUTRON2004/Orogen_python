@@ -20,6 +20,7 @@ from .supercontinent import track_cycle
 from .rifting import rift_continents
 from .subduction_init import initiate_subduction
 from .collision import track_collisions
+from .far_field import evolve_far_field
 
 
 def step_world(
@@ -80,6 +81,10 @@ def step_world(
             tally = resolve(world)
             classified = classify_contact_boundaries(world, 0.0)
 
+    far_field_state = 0
+    if "farFieldEveryMyr" in world.config:
+        far_field_state = evolve_far_field(world, step_dt)
+
     if update_motion:
         update_plate_motion(world)
 
@@ -95,5 +100,6 @@ def step_world(
         "rifts": int(rifts),
         "subductions": int(subductions),
         "collisions": collision_state,
+        "farField": int(far_field_state),
         "motionUpdated": bool(update_motion),
     }

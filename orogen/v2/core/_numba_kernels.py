@@ -124,7 +124,10 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
 
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
+    # Compile dependencies first and expose their dispatchers to the next kernel.
+    _noise3d_kernel = noise3d_numba
     fbm_numba = njit(cache=True, fastmath=False)(_fbm_kernel)
+    _fbm_kernel = fbm_numba
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
 else:

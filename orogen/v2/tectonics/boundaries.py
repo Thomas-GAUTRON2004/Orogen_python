@@ -6,6 +6,8 @@ is intentionally kept separate until those systems are ported.
 """
 from __future__ import annotations
 
+import numpy as np
+
 from .crust import CrustFlag, CrustType
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
@@ -126,7 +128,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
         other_w = contact_at(world, w, normal)
         if other_w < 0:
             if real and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]:
-                plate_a.crust.flags[cell_a] &= ~CrustFlag["TRENCH"]
+                plate_a.crust.flags[cell_a] &= np.uint8(0xFF ^ CrustFlag["TRENCH"])
             continue
         b_id = int(owner[other_w])
         if b_id < 0 or b_id == a_id:
@@ -171,7 +173,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                 boundary[w] = BoundaryKind["SUBDUCTING"]
                 if (real and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
                         and int(plate_b.crust.type[cell_b]) != CrustType["OCEAN"]):
-                    plate_a.crust.flags[cell_a] &= ~CrustFlag["TRENCH"]
+                    plate_a.crust.flags[cell_a] &= np.uint8(0xFF ^ CrustFlag["TRENCH"])
         if boundary[w] != BoundaryKind["NONE"]:
             classified += 1
     if world.config.get("segmentPolarity", False):

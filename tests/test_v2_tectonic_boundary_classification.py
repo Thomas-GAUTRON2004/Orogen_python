@@ -69,3 +69,55 @@ def test_contact_classifier_marks_land_overlap_and_clears_interior_ocean_trench(
     world.owner[1] = -1
     assert classify_contact_boundaries(world, 0.0) == 0
     assert not (a.crust.flags[0] & CrustFlag["TRENCH"])
+
+
+def test_contact_classifier_handles_foreign_missing_and_transform(monkeypatch):
+    module = importlib.import_module("orogen.v2.tectonics.boundaries")
+    mesh, world, a, b, p, n = _setup()
+    # The opposite owner can disappear between contact discovery and classification.
+    monkeypatch.setattr(module, "contact_at", lambda w, cell, out: 1 if cell == 0 else -1)
+    world.owner[1] = -1
+    assert classify_contact_boundaries(world, 1.0) == 0
+    # Restore a foreign plate and make relative motion purely tangential to the contact.
+    world.owner[1] = b.id
+    tangent = np.cross(p, n)
+    tangent /= np.linalg.norm(tangent)
+    a.omega = list(np.cross(p, tangent) * 0.01)
+    monkeypatch.setattr(module, "contact_at", lambda w, cell, out: (out.__setitem__(slice(0, 4), [*n, 1]) or 1) if cell == 0 else -1)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["TRANSFORM"]
+
+
+def test_contact_classifier_continental_collision_and_subducting_trench(monkeypatch):
+    module = importlib.import_module("orogen.v2.tectonics.boundaries")
+    mesh, world, a, b, p, n = _setup()
+    a.crust.type[0] = CrustType["CONTINENT"]
+    b.crust.type[1] = CrustType["CRATON"]
+    a.omega = list(np.cross(p, n) * 0.01)
+    monkeypatch.setattr(module, "contact_at", lambda w, cell, out: (out.__setitem__(slice(0, 4), [*n, 1]) or 1) if cell == 0 else -1)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["COLLISION"]
+
+    # Oceanic A goes down beneath continental B; a stale trench is cleared.
+    a.crust.type[0] = CrustType["OCEAN"]
+    b.crust.type[1] = CrustType["CONTINENT"]
+    a.crust.flags[0] |= CrustFlag["TRENCH"]
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["SUBDUCTING"]
+    assert not (a.crust.flags[0] & CrustFlag["TRENCH"])
+
+
+def test_contact_classifier_votes_ocean_segments_and_feeds_overriding_trench(monkeypatch):
+    module = importlib.import_module("orogen.v2.tectonics.boundaries")
+    mesh, world, a, b, p, n = _setup()
+    # A is younger, so it overrides B under the physical age rule.
+    a.crust.formedAt[0] = -20
+    b.crust.formedAt[1] = -100
+    a.omega = list(np.cross(p, n) * 0.01)
+    world.consumedAt[0] = 1
+    world.config["segmentPolarity"] = True
+    monkeypatch.setattr(module, "contact_at", lambda w, cell, out: (out.__setitem__(slice(0, 4), [*n, 1]) or 1) if cell == 0 else -1)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
+    assert a.crust.flags[0] & CrustFlag["TRENCH"]
+    assert world.oceanOverrider[0] == a.id

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
 from ..core.mesh_bfs import largest_piece_of
 from .crust import CrustFlag, CrustType
 from .world import EventKind

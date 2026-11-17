@@ -35,6 +35,7 @@ def test_closing_rate_uses_two_fastest_living_nonempty_plates():
     for plate in (a, b, c):
         plate.crust.create(0, 0, 0, 1)
         plate.refresh_extent(mesh.xyz)
+        plate.capCos = -1.0
     a.omega = [0.0, 0.0, 0.01]
     b.omega = [0.0, 0.0, 0.02]
     c.omega = [0.0, 0.0, 0.03]

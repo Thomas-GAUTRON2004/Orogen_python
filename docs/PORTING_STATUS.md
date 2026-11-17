@@ -2,6 +2,16 @@
 
 Last updated: 2026-11-17
 
+## Latest porting batch
+
+- Added the V2 history-ending predicates and frame selection (`ending.py`):
+  `in_stage`, `history_ending`, and `frames_ending`, plus the `ENDINGS` catalogue.
+- Added focused tests for supercontinent, breakup and dispersed endings,
+  minimum run duration, incomplete histories, and frame trimming.
+- Exported the API from `orogen.v2.tectonics`.
+- This is a standalone compatibility batch; the full simulation orchestrator
+  still needs to schedule the upstream event stages.
+
 ## Target
 
 - Upstream repository: https://github.com/raguilar011095/planet_heightmap_generation

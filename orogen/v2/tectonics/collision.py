@@ -10,6 +10,7 @@ from .world import EventKind
 from .orogeny import belt_shape, belt_width_km, obliquity_deg
 from .spread_belt import spread_belt
 from .ops.merge_plates import merge_plates
+from .far_field import feed_far_field
 from ..core.mesh_bfs import hops_from
 from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
 
@@ -966,6 +967,27 @@ def track_collisions(world, dt: float) -> dict:
             float(record.get("frontMaxKm", 0.0)),
             float(record["frontKm"]),
         )
+
+        far_share = float(config.get("farCollisionShare", 0.0))
+        if shortening_km > 0.0 and far_share > 0.0:
+            feed_far_field(
+                world,
+                upper,
+                f"c{key}:u",
+                list(dict.fromkeys(upper_front)),
+                shortening_km,
+                float(record["frontKm"]),
+                far_share,
+            )
+            feed_far_field(
+                world,
+                lower,
+                f"c{key}:l",
+                list(dict.fromkeys(lower_front)),
+                shortening_km,
+                float(record["frontKm"]),
+                far_share,
+            )
 
         # The accumulated shortening also builds a plateau-side and a
         # foreland-side belt. Keep this gated on the complete belt config so

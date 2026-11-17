@@ -125,8 +125,11 @@ def test_pick_plume_site_handles_all_cells_excluded_and_validates_inputs():
         -1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
         0.0, 0.0, 1.0,
     ])
-    world.hotspots = [{"xyz": [1.0, 0.0, 0.0], "alive": True}]
-    world.config.update({"plumeOceanWeight": 0.0, "plumeSpacingKm": 20000.0})
+    world.hotspots = [
+        {"xyz": [1.0, 0.0, 0.0], "alive": True},
+        {"xyz": [-1.0, 0.0, 0.0], "alive": True},
+    ]
+    world.config.update({"plumeOceanWeight": 0.0, "plumeSpacingKm": 15000.0})
     world.mantleHeat[:] = 1.0
     assert pick_plume_site(world, lambda: 0.5) == -1
     world.config["plumeOceanWeight"] = 1.1

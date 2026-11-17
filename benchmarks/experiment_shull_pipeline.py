@@ -67,6 +67,16 @@ def postprocess(points, simplices, n):
 def row_sets(offsets, adjacency):
     return [set(map(int, adjacency[offsets[i]:offsets[i + 1]])) for i in range(len(offsets) - 1)]
 
+def canonicalize_ring_starts(offsets, adjacency):
+    """Rotate each cyclic ring to its smallest neighbour without reversing it."""
+    result = np.asarray(adjacency, dtype=np.int32).copy()
+    for cell in range(len(offsets) - 1):
+        start, end = int(offsets[cell]), int(offsets[cell + 1])
+        row = result[start:end].copy()
+        pivot = int(np.argmin(row))
+        result[start:end] = np.concatenate((row[pivot:], row[:pivot]))
+    return result
+
 if not NUMBA_AVAILABLE:
     raise RuntimeError("Install the optional speed extra to run the Numba composition test")
 
@@ -87,6 +97,12 @@ for n in (10_000, 40_000, 80_000):
     if row_sets(scipy_offsets, scipy_adj) != row_sets(shull_offsets, shull_adj):
         raise AssertionError("spherical vertex-neighbour sets differ")
 
+    # Triangle enumeration changes the arbitrary first element of a cyclic
+    # ring. Canonical rotation preserves winding while making the CSR rows
+    # deterministic across equivalent triangulator outputs.
+    scipy_adj = canonicalize_ring_starts(scipy_offsets, scipy_adj)
+    shull_adj = canonicalize_ring_starts(shull_offsets, shull_adj)
+
     # Include the cube-map nearest-cell lookup table from build_sim_mesh.
     xyz_with_pole = np.empty((n + 1, 3), dtype=np.float32)
     xyz_with_pole[:n] = xyz.reshape(n, 3)
@@ -96,7 +112,7 @@ for n in (10_000, 40_000, 80_000):
     scipy_index_time, scipy_index = timed(lambda: SphereIndex(xyz_with_pole.reshape(-1), scipy_mesh_obj))
     shull_index_time, shull_index = timed(lambda: SphereIndex(xyz_with_pole.reshape(-1), shull_mesh_obj))
     if not np.array_equal(scipy_index.table, shull_index.table):
-        raise AssertionError("SphereIndex cube-map lookup tables differ")
+        raise AssertionError("canonical SphereIndex lookup tables differ")
 
     scipy_proxy = SimpleNamespace(num_cells=n + 1, adj_offset=scipy_offsets, adj_list=scipy_adj)
     shull_proxy = SimpleNamespace(num_cells=n + 1, adj_offset=shull_offsets, adj_list=shull_adj)

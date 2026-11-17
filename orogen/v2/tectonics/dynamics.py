@@ -158,3 +158,71 @@ def clamp_speed(
         return result, False
     factor = limit / speed
     return [value * factor for value in result], True
+
+
+def _describe_dynamics(load: Mapping, target, centre, capped: bool, mesh) -> dict:
+    from .forces import FORCE_KINDS
+    from .kinematics import speed_cm_yr_at
+
+    net = math.hypot(*(
+        float(load["torque"][i]) - float(load["flowTorque"][i])
+        for i in range(3)
+    ))
+    forces = []
+    for index, name in enumerate(FORCE_KINDS):
+        cells = int(load["cells"][index])
+        forces.append({
+            "name": name,
+            "cells": cells,
+            "km": cells * float(mesh.edge_km),
+            "vector": list(load["forceByKind"][index]),
+            "torque": float(np.linalg.norm(load["byKind"][index])),
+        })
+    total = float(load["torqueMagnitudeSum"])
+    contacts = load["contacts"]
+    return {
+        "forces": forces,
+        "collisionCells": len(contacts),
+        "collisionKm2": len(contacts) * float(mesh.cell_area_km2),
+        "tension": 1.0 - net / total if total > 1e-12 else 0.0,
+        "targetCmYr": speed_cm_yr_at(target, *map(float, centre)),
+        "capped": bool(capped),
+    }
+
+
+def update_plate_motion(world) -> None:
+    """Update every living plate from the currently implemented boundary forces.
+
+    Uses the partial boundary-force gatherer; collision-overlap and mantle-flow
+    forces are not yet supplied by that gatherer.
+    """
+    from .forces import gather_boundary_loads
+
+    config, plates = world.config, world.plates
+    relax_myr = float(config["relaxMyr"])
+    if relax_myr <= 0:
+        raise ValueError("relaxMyr must be positive")
+    loads = gather_boundary_loads(world)
+    before = {int(plate.id): list(plate.omega) for plate in plates}
+    blend = 1.0 - math.exp(-float(world.lastDt) / relax_myr)
+
+    for plate in plates:
+        if not plate.alive:
+            continue
+        if plate.isBackground or plate.crust.count == 0:
+            plate.omega = [0.0, 0.0, 0.0]
+            plate.dynamics = None
+            continue
+        load = loads[int(plate.id)]
+        target = balanced_rotation(plate, world.mesh, load, before, config)
+        centre = plate.to_world(*map(float, plate.capCenter))
+        target = soften_speed(target, plate, centre, config)
+        target, capped = clamp_speed(target, plate, centre, config)
+        initial = before[int(plate.id)]
+        plate.omega = [
+            initial[i] + (target[i] - initial[i]) * blend
+            for i in range(3)
+        ]
+        plate.dynamics = _describe_dynamics(
+            load, target, centre, capped, world.mesh
+        )

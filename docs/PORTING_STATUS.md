@@ -122,3 +122,6 @@ Force-balance progress: `dynamics.py` now ports plate-frame basal drag transform
 
 
 Boundary force gathering has begun: `forces.py` now collects slab pull, slab suction, ridge push and partner-rift push from the resolved owner map, including shared-edge length, age/maturity scaling and slab-resistance records consumed by `dynamics.py`. It explicitly omits collision-overlap contacts and mantle-flow/repulsion, which remain unported.
+
+
+A partial `update_plate_motion(world)` now connects the currently ported boundary force collector to the drag/coupling solver. It uses a common start-of-step angular-velocity snapshot for all plate solves, applies soft/hard speed limits, relaxes the target using `lastDt / relaxMyr`, and records force diagnostics. It does not claim complete upstream plate motion because collision contacts and mantle-flow/repulsion forces are not yet gathered.

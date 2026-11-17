@@ -234,3 +234,10 @@ Module: `orogen.v2.tectonics.forces`
 `gather_boundary_loads(world)` gathers slab pull, slab suction, young-ridge push, and young-rift push from a resolved world owner map. Its records are compatible with `balanced_rotation` and include per-kind torque/vector totals plus slab-resistance records.
 
 This is deliberately a partial port of upstream `gatherLoads`: land-overlap collision contacts, mantle flow, and dispersal repulsion are not gathered here.
+
+
+## Plate angular-velocity update (partial)
+
+`update_plate_motion(world)` connects boundary-force gathering to the torque-balance solver. It solves each living non-background plate from the same start-of-step angular velocities, applies smooth and hard speed limits, then relaxes toward the solved target over `relaxMyr`. It also records a compact per-plate force diagnostic.
+
+The update uses the partial boundary-force gatherer above; collision-overlap forces and mantle-flow/repulsion are not yet included. Therefore it is not a full upstream `updatePlateMotion` replacement.

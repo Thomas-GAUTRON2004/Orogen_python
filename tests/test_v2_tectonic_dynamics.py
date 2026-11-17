@@ -104,3 +104,105 @@ def test_speed_softening_and_hard_clamping_for_ocean_and_continent():
     assert did_cap is False
     no_soft = soften_speed(omega, plate, centre, {**config, "oceanicSoftCmYr": 0})
     assert no_soft == omega
+
+
+def test_update_plate_motion_blends_target_and_resets_inactive_plates(monkeypatch):
+    import orogen.v2.tectonics.dynamics as dynamics_module
+
+    moving = Plate(0, 2)
+    moving.crust.create(0, CrustType["CONTINENT"], 0)
+    moving.crust.create(1, CrustType["CRATON"], 0)
+    moving.stats = {"cells": 2, "continentalCells": 2}
+    moving.capCos = -1.0
+    moving.omega = [0.0, 0.0, 0.0]
+
+    background = Plate(1, 2)
+    background.crust.create(0, CrustType["OCEAN"], 0)
+    background.isBackground = True
+    background.omega = [0.1, 0.2, 0.3]
+
+    empty = Plate(2, 2)
+    empty.omega = [0.1, 0.2, 0.3]
+
+    dead = Plate(3, 2)
+    dead.crust.create(0, CrustType["OCEAN"], 0)
+    dead.alive = False
+    dead.omega = [0.1, 0.2, 0.3]
+
+    mesh = SimpleNamespace(
+        xyz=np.array([1, 0, 0, 0, 1, 0], dtype=float),
+        num_cells=2, edge_km=100.0, cell_area_km2=10000.0,
+    )
+    load = {
+        "torque": [0.0, 0.0, 1.0],
+        "flowTorque": [0.0, 0.0, 0.0],
+        "byKind": [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0],
+                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        "forceByKind": [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        "torqueMagnitudeSum": 1.0,
+        "cells": [1, 0, 0, 0],
+        "slabs": [], "contacts": [],
+    }
+    monkeypatch.setattr(dynamics_module, "gather_boundary_loads", lambda world: {0: load})
+    world = SimpleNamespace(
+        config={
+            "relaxMyr": 6.0, "mobility": 1.0, "dragOcean": 1.0,
+            "dragContinent": 5.0, "dragCraton": 8.0,
+            "continentalPlateShare": 0.15, "continentalSoftCmYr": 1e9,
+            "oceanicSoftCmYr": 1e9, "maxSpeedContinental": 1e9,
+            "maxSpeedOceanic": 1e9,
+        },
+        plates=[moving, background, empty, dead],
+        mesh=mesh, lastDt=6.0,
+    )
+    dynamics_module.update_plate_motion(world)
+    assert moving.omega[2] > 0
+    assert moving.dynamics["forces"][0]["cells"] == 1
+    assert moving.dynamics["tension"] == pytest.approx(0.0)
+    assert moving.dynamics["targetCmYr"] > 0
+    assert background.omega == [0.0, 0.0, 0.0]
+    assert background.dynamics is None
+    assert empty.omega == [0.0, 0.0, 0.0]
+    assert empty.dynamics is None
+    assert dead.omega == [0.1, 0.2, 0.3]
+
+
+def test_update_plate_motion_respects_zero_step_and_requires_positive_relaxation(monkeypatch):
+    import orogen.v2.tectonics.dynamics as dynamics_module
+
+    moving = Plate(0, 2)
+    moving.crust.create(0, CrustType["CONTINENT"], 0)
+    moving.crust.create(1, CrustType["CRATON"], 0)
+    moving.stats = {"cells": 2, "continentalCells": 2}
+    moving.omega = [0.001, 0.002, 0.003]
+    moving.capCos = -1.0
+    load = {
+        "torque": [0.0, 0.0, 1.0], "flowTorque": [0.0, 0.0, 0.0],
+        "byKind": [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0],
+                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        "forceByKind": [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        "torqueMagnitudeSum": 1.0, "cells": [1, 0, 0, 0],
+        "slabs": [], "contacts": [],
+    }
+    monkeypatch.setattr(dynamics_module, "gather_boundary_loads", lambda world: {0: load})
+    mesh = SimpleNamespace(
+        xyz=np.array([1, 0, 0, 0, 1, 0], dtype=float),
+        num_cells=2, edge_km=100.0, cell_area_km2=10000.0,
+    )
+    config = {
+        "relaxMyr": 6.0, "mobility": 1.0, "dragOcean": 1.0,
+        "dragContinent": 5.0, "dragCraton": 8.0,
+        "continentalPlateShare": 0.15, "continentalSoftCmYr": 1e9,
+        "oceanicSoftCmYr": 1e9, "maxSpeedContinental": 1e9,
+        "maxSpeedOceanic": 1e9,
+    }
+    world = SimpleNamespace(config=config, plates=[moving], mesh=mesh, lastDt=0.0)
+    original = list(moving.omega)
+    dynamics_module.update_plate_motion(world)
+    assert moving.omega == original
+    with pytest.raises(ValueError):
+        dynamics_module.update_plate_motion(SimpleNamespace(
+            config={**config, "relaxMyr": 0}, plates=[moving], mesh=mesh, lastDt=1
+        ))

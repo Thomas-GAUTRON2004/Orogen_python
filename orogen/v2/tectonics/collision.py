@@ -9,6 +9,7 @@ from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .world import EventKind
 from .orogeny import belt_shape, belt_width_km, obliquity_deg
 from .spread_belt import spread_belt
+from .ops.merge_plates import merge_plates
 from ..core.mesh_bfs import hops_from
 from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
 
@@ -1053,7 +1054,7 @@ def track_collisions(world, dt: float) -> dict:
 
         # A first candidate must also have a sufficiently long front. The
         # full suture configuration enables periodic gap/ring measurements;
-        # welding itself remains delegated to a future plate-merge port.
+        # only a complete merge configuration permits the destructive redraw.
         ready = (
             float(record["shorteningKm"])
             >= float(config.get("sutureShorteningKm", math.inf))
@@ -1164,6 +1165,63 @@ def track_collisions(world, dt: float) -> dict:
                         "upper": upper.id,
                         "lower": lower.id,
                         "ringKm2": ring_area,
+                    },
+                )
+
+            merge_keys = belt_keys | {
+                "indentFalloffKm",
+                "indentGain",
+                "escapeShare",
+                "sutureHalfWidthKm",
+                "sealStraitKm",
+                "inlandSeaMaxKm2",
+            }
+            if record["mergeEligible"] and merge_keys.issubset(config):
+                why = (
+                    "stacked" if stacked and not closed
+                    else "overdue" if not closed
+                    else "stalled"
+                    if float(record["stalledMyr"])
+                    >= float(config.get("sutureStallMyr", math.inf))
+                    else "contact"
+                    if float(record["shorteningKm"])
+                    < float(config.get("sutureShorteningKm", math.inf))
+                    else "shortening"
+                )
+                result = merge_plates(world, upper, lower, cells, record)
+                record["sutured"] = True
+                record["sutureReason"] = why
+                changed = True
+                world.log(
+                    EventKind["SUTURE"],
+                    (
+                        f"{lower.name} sutured to {upper.name} after "
+                        f"{time - float(record['startedAt']):.0f} Myr: "
+                        f"{record['frontKm']:.0f} km front, "
+                        f"{record['shorteningKm']:.0f} km of shortening, "
+                        f"outlines redrawn (indented up to "
+                        f"{result['maxIndentKm']:.0f} km; "
+                        f"{result['landLostCells']} cells of land absorbed "
+                        f"into the belt"
+                        + (
+                            f", {result['sealedCells']} cells of sea "
+                            "between them closed"
+                            if result["sealedCells"] else ""
+                        )
+                        + ")"
+                    ),
+                    {
+                        "upper": upper.id,
+                        "lower": lower.id,
+                        "afterMyr": time - float(record["startedAt"]),
+                        "frontKm": float(record["frontKm"]),
+                        "shorteningKm": float(record["shorteningKm"]),
+                        "maxIndentKm": float(result["maxIndentKm"]),
+                        "landLostCells": int(result["landLostCells"]),
+                        "sealedCells": int(result["sealedCells"]),
+                        "gapKm2": float(record["gapKm2"]),
+                        "gapWidestKm": float(record["gapWidestKm"]),
+                        "why": why,
                     },
                 )
         tracked += 1

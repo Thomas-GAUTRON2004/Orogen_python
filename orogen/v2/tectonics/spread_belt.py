@@ -96,7 +96,7 @@ def spread_belt(
                 hop *= float(config["weakCellCost"])
             rim = 0.0
             if nb_type == CrustType["CRATON"]:
-                rim = distance * 0.5 if cell_type != CrustType["CRATON"] else 0.0
+                rim = rim_km + distance if cell_type == CrustType["CRATON"] else 0.5 * distance
                 if rim > rim_max:
                     continue
                 hop *= float(config["cratonRimCost"])

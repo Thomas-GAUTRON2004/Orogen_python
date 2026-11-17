@@ -19,7 +19,6 @@ def test_numba_noise_and_fbm_are_bit_identical_to_python_reference():
          math.sin(i * .003 + .4) * 23.0)
         for i in range(2048)
     ], dtype=np.float64)
-    grad = np.asarray((1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1), dtype=np.float64)
     expected = np.asarray([noise._fbm_python(*p, 5, 2/3) for p in points])
     actual = noise.fbm_many(points, 5, 2/3)
     np.testing.assert_array_equal(actual, expected)

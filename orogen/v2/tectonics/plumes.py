@@ -451,6 +451,9 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
     """Integrate plume burst intensity over a simulation interval."""
     config = world.config
     rng = world.rngVolcano
+    plume.setdefault("pulseUntil", None)
+    plume.setdefault("bursting", False)
+    plume.setdefault("pulseIntensity", 0.0)
     if plume["pulseUntil"] is None:
         plume["bursting"] = False
         plume["pulseUntil"] = start + float(rng()) * float(config["hotspotQuietMaxMyr"])
@@ -531,7 +534,7 @@ def _stamp_track(world, plume: dict, dt: float) -> None:
 
     build = (
         float(config["hotspotBuildKmPerMyr"])
-        * float(plume["strength"])
+        * float(plume.get("strength", 0.6))
         * _erupted_during(world, plume, float(world.time) - dt, float(world.time))
     )
     for cell in cells:

@@ -1289,3 +1289,35 @@ def test_track_collisions_keeps_merge_candidate_pending_without_merge_config(mon
     assert record["mergeEligible"] is True
     assert record.get("sutured", False) is False
     assert calls == []
+
+
+def test_track_collisions_feeds_far_field_from_both_collision_fronts(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, upper, lower = collision_tracking_world()
+    world.config["farCollisionShare"] = 0.5
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+    calls = []
+    monkeypatch.setattr(
+        collision,
+        "feed_far_field",
+        lambda w, plate, key, cells, works, front, share:
+            calls.append((w, plate, key, list(cells), works, front, share)),
+    )
+
+    result = collision.track_collisions(world, 1.0)
+
+    assert result["tracked"] == 1
+    assert len(calls) == 2
+    assert calls[0][0:3] == (world, upper, "c0:1:u")
+    assert calls[1][0:3] == (world, lower, "c0:1:l")
+    assert calls[0][3] == [2]
+    assert calls[1][3] == [2]
+    assert calls[0][4] == calls[1][4] == pytest.approx(63.71)
+    assert calls[0][5] == calls[1][5] == world.collisions["0:1"]["frontKm"]
+    assert calls[0][6] == calls[1][6] == 0.5

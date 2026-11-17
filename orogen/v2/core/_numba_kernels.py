@@ -304,6 +304,63 @@ def _spread_km_kernel(offsets, adjacency, edge_km, distance, max_km):
     return distance
 
 
+
+def _pieces_of_kernel(offsets, adjacency, ordered_cells):
+    """Return connected components in input-seed and CSR-neighbour order."""
+    n = offsets.size - 1
+    in_set = np.zeros(n, dtype=np.bool_)
+    for i in range(ordered_cells.size):
+        in_set[int(ordered_cells[i])] = True
+
+    seen = np.zeros(n, dtype=np.bool_)
+    queue = np.empty(n, dtype=np.int32)
+    flat = np.empty(n, dtype=np.int32)
+    starts = np.empty(ordered_cells.size + 1, dtype=np.int32)
+    piece_count = 0
+    output_count = 0
+
+    for i in range(ordered_cells.size):
+        start = int(ordered_cells[i])
+        if seen[start]:
+            continue
+
+        starts[piece_count] = output_count
+        piece_count += 1
+        head = 0
+        tail = 1
+        queue[0] = start
+        seen[start] = True
+
+        while head < tail:
+            cell = int(queue[head])
+            head += 1
+            flat[output_count] = cell
+            output_count += 1
+
+            for edge in range(offsets[cell], offsets[cell + 1]):
+                neighbour = int(adjacency[edge])
+                if in_set[neighbour] and not seen[neighbour]:
+                    seen[neighbour] = True
+                    queue[tail] = neighbour
+                    tail += 1
+
+    starts[piece_count] = output_count
+    return flat[:output_count], starts[:piece_count + 1]
+
+
+def _largest_piece_kernel(offsets, adjacency, ordered_cells):
+    """Return the first largest component, preserving pieces_of tie rules."""
+    flat, starts = _pieces_of_kernel(offsets, adjacency, ordered_cells)
+    best_start = 0
+    best_size = 0
+    for i in range(starts.size - 1):
+        start = int(starts[i])
+        size = int(starts[i + 1]) - start
+        if size > best_size:
+            best_start = start
+            best_size = size
+    return flat[best_start:best_start + best_size].copy()
+
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
     # Compile dependencies first and expose their dispatchers to the next kernel.
@@ -314,5 +371,9 @@ if NUMBA_AVAILABLE:
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
     spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
     far_field_distance_numba = njit(cache=True, fastmath=False)(_far_field_distance_kernel)
+    pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
+    _pieces_of_kernel = pieces_of_numba
+    largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None
+    pieces_of_numba = largest_piece_numba = None

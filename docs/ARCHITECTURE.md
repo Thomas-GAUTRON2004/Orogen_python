@@ -11,7 +11,7 @@ tectonic operations. The current implementation includes:
 - `orogen.v2.tectonics`: crust and plate state, kinematics, occupancy and claim
   gathering, resolution and boundary classification, force/dynamics helpers,
   orogenic-belt spreading, mantle heat, supercontinent cycle, plume lifecycle,
-  rift-path search, plate splitting and rift orchestration, passive-margin subduction initiation, ocean-plate birth, inter-plate crust transfer, and standalone arc operations.
+  rift-path search, plate splitting and rift orchestration, passive-margin subduction initiation, ocean-plate birth, inter-plate crust transfer, standalone arc operations, and terrane-accretion/sea-closure helpers.
 
 The exact exported names are listed in the package `__init__.py` files and
 summarized in the API reference pages. Internal helpers beginning with an
@@ -57,16 +57,19 @@ but not yet a complete simulation engine.
 - `arc_maturation` and `ops.scrape_arc` provide separately tested arc
   maturation and host-plate transfer operations; their slow/collision cadence
   is not yet orchestrated.
+- `ops.plate_accretion` transfers terranes and fore-arc crust onto a host,
+  seals narrow straits/small inland seas, and extracts connected landmasses.
+  It is a tested operation but is not yet called by a collision tracker.
 - `step_world` connects the currently ported movement, resolution,
   classification, plume, cycle, rifting, subduction-initiation and motion stages.
   It rebuilds ownership/boundaries after rifts or new subduction systems before
   force balancing.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
-not yet ported. The full collision/orogeny event pipeline, slab/subduction
-propagation, arc-scraping orchestration, arc maturation slow cadence, back-arcs,
-ocean-plate evolution, terrain/geology stages, snapshots and run/resume handling
-remain outstanding.
+not yet ported. The collision detection/tracking and weld/merge pipeline, event-driven terrane
+accretion and arc scraping, slab/subduction propagation, arc maturation slow
+cadence, back-arcs, ocean-plate evolution, terrain/geology stages, snapshots
+and run/resume handling remain outstanding.
 
 ## Coordinate conventions
 

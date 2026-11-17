@@ -972,3 +972,47 @@ def test_track_collisions_skips_ambiguous_neighbour_claims(monkeypatch):
     result = collision.track_collisions(world, 1.0)
     assert result["tracked"] == 1
     assert world.collisions["0:1"]["frontKm"] >= 0.0
+
+
+def test_track_collisions_spreads_plateau_and_foreland_belts(monkeypatch):
+    from orogen.v2.tectonics import collision
+    from orogen.v2.tectonics.crust import BeltSide, OrogenyType
+
+    world, upper, lower = collision_tracking_world()
+    world.config.update({
+        "sutureMinContactKm": 0.0,
+        "belts": {
+            "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+            "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+            "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+        },
+        "beltSpeedFactorMin": 0.6,
+        "beltSpeedFactorMax": 1.6,
+        "beltSpeedRefCmYr": 5.0,
+        "beltSpeedExponent": 0.5,
+        "beltObliqueMin": 0.35,
+        "apronKm": 100.0,
+        "orogenyQuietMyr": 10.0,
+        "beltWorkShare": 0.5,
+        "thickeningPerWorkKm": 0.1,
+        "weakCellCost": 0.5,
+        "cratonRimKm": 200.0,
+        "cratonRimCost": 2.0,
+        "cratonRimShare": 0.25,
+    })
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+
+    result = collision.track_collisions(world, 1.0)
+
+    assert result["tracked"] == 1
+    assert upper.crust.oroType[2] == OrogenyType["HIMALAYAN"]
+    assert lower.crust.oroType[2] == OrogenyType["HIMALAYAN"]
+    assert upper.crust.beltSide[2] == BeltSide["UPPER"]
+    assert lower.crust.beltSide[2] == BeltSide["LOWER"]
+    assert upper.crust.thickKm[2] > 0.0
+    assert lower.crust.thickKm[2] > 0.0

@@ -103,6 +103,7 @@ def gather_boundary_loads(world) -> dict[int, dict]:
     owner/ownerCell map and includes slab, collision-lock and boundary-force records.
     """
     mesh = world.mesh
+    config = world.config
     n_cells = int(mesh.num_cells)
     if len(world.owner) != n_cells or len(world.ownerCell) != n_cells:
         raise ValueError("world owner arrays must match the simulation mesh")

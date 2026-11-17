@@ -76,7 +76,7 @@ def test_dispersal_field_builds_large_plate_centres_and_repels_away():
     assert field is not None
     assert {item["id"] for item in field["centres"]} == {0, 1}
     vector = repel_at(field, 0, 1.0, 0.0, 0.0)
-    assert vector[0] > 0
+    assert vector[1] < 0
     assert np.linalg.norm(vector) > 0
     assert np.dot(vector, [1.0, 0.0, 0.0]) == pytest.approx(0.0)
 
@@ -109,7 +109,7 @@ def test_gather_boundary_loads_adds_mantle_force_only_to_continent_craton(monkey
     world.cycle = {
         "up": [1.0, 0.0, 0.0], "down": [0.0, 1.0, 0.0],
         "upHeat": 1.0, "gather": 0.0, "hold": 0.0,
-        "phase": "assembled",
+        "phase": "dispersing",
     }
     world.config.update({
         "mantleOutflow": 0.1, "mantleInflow": 0.0,

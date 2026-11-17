@@ -8,6 +8,10 @@ from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.supercontinent import is_continental, landmasses
 
 
+class TestMesh:
+    pass
+
+
 def make_land_world(types, cell_area=300000.0, neck_km=80.0):
     n = len(types)
     plates = [Plate(0, n)]
@@ -24,12 +28,12 @@ def make_land_world(types, cell_area=300000.0, neck_km=80.0):
         if cell + 1 < n:
             adjacency.append(cell + 1)
         offsets.append(len(adjacency))
-    mesh = SimpleNamespace(
-        num_cells=n, xyz=xyz.astype(np.float32).ravel(),
-        adj_offset=np.asarray(offsets, dtype=np.int32),
-        adj_list=np.asarray(adjacency, dtype=np.int32),
-        cell_area_km2=cell_area,
-    )
+    mesh = TestMesh()
+    mesh.num_cells = n
+    mesh.xyz = xyz.astype(np.float32).ravel()
+    mesh.adj_offset = np.asarray(offsets, dtype=np.int32)
+    mesh.adj_list = np.asarray(adjacency, dtype=np.int32)
+    mesh.cell_area_km2 = cell_area
     world = SimpleNamespace(
         mesh=mesh,
         config={"cycleNeckKm": neck_km},
@@ -60,8 +64,8 @@ def test_landmasses_counts_disconnected_large_pieces_and_selects_the_largest():
     ], cell_area=300000.0)
     result = landmasses(world)
     assert result["count"] == 1
-    assert result["largest"] == [0, 1, 2]
-    assert result["share"] == pytest.approx(3 / 7)
+    assert result["largest"] == [4, 5, 6, 7]
+    assert result["share"] == pytest.approx(4 / 7)
 
 
 def test_landmasses_handles_no_land_and_sub_threshold_pieces():

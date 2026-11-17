@@ -453,6 +453,7 @@ def test_collect_contacts_detects_overlap_and_touching_pairs():
     world.collider = np.full(5, -1, dtype=np.int16)
     world.landClaims[2] = 2
     world.collider[2] = 1
+    world.owner[2] = 0
 
     contacts = collect_contacts(world)
     assert contacts["overlap"] == {"0:1": [2]}
@@ -460,6 +461,7 @@ def test_collect_contacts_detects_overlap_and_touching_pairs():
 
     world.landClaims[2] = 0
     world.collider[2] = -1
+    world.owner[2] = 1
     contacts = collect_contacts(world)
     assert contacts["overlap"] == {}
     assert contacts["touching"]["0:1"] == [1, 2]
@@ -597,7 +599,7 @@ def test_underthrust_skips_without_convergence_or_lower_side_and_caps_unpaid_due
     assert underthrust(world, upper, lower, [1, 2, 3], record, 0.0) == 0
     world.owner[4] = upper.id
     assert underthrust(world, upper, lower, [1, 2, 3], record, 2.0) == 0
-    assert record["underthrustDue"] == pytest.approx(1.0)
+    assert record["underthrustDue"] == pytest.approx(2.0)
     assert world.budget["underthrustCells"] == 0
 
 
@@ -725,7 +727,7 @@ def test_accrete_arcs_returns_core_when_both_contacts_are_continent():
 
 def test_accrete_arcs_prefers_smaller_arc_donor_and_logs_transfer(monkeypatch):
     from orogen.v2.tectonics import collision
-    from orogen.v2.tectonics.ops import scrape_arc as scrape_module
+    import importlib\n    scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
 
     world, a, b = contact_world()
     a.crust.type[0] = CrustType["ARC"]

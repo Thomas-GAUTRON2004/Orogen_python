@@ -96,6 +96,9 @@ def test_speed_softening_and_hard_clamping_for_ocean_and_continent():
     plate.stats = {"cells": 2, "continentalCells": 0}
     ocean_soft = soften_speed(omega, plate, centre, config)
     assert 0 < np.linalg.norm(ocean_soft) < 1
+    under_limit, did_cap = clamp_speed([0.0, 0.0, 1e-4], plate, centre, config)
+    assert under_limit == [0.0, 0.0, 1e-4]
+    assert did_cap is False
     unchanged, did_cap = clamp_speed([1e-15, 0, 0], plate, centre, config)
     assert unchanged == [1e-15, 0, 0]
     assert did_cap is False

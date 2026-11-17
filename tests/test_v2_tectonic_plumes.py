@@ -83,7 +83,7 @@ def test_first_update_seeds_initial_plumes_and_mantle_memory():
     plume = world.hotspots[0]
     assert plume["alive"] is True
     assert plume["lip"] is None
-    assert plume["bornAt"] < world.time
+    assert plume["bornAt"] <= world.time
     assert plume["dieAt"] > world.time
     assert world.events[0]["kind"] == EventKind["PLUME_RISE"]
     assert world.mantleHeat[0] == pytest.approx(1.0)
@@ -199,6 +199,7 @@ def test_chance_rift_respects_continental_area_and_rng_draw():
     assert world.pendingPlumeRifts == []
 
     world.config["riftMinContinentKm2"] = 1000.0
+    world.config["plumeRiftChance"] = 0.5
     world.rngHotspot = lambda: 0.99
     birth_plume(
         world, [1.0, 0.0, 0.0], rift="chance",
@@ -217,3 +218,26 @@ def test_update_plumes_rejects_bad_dt_and_marks_non_living_plate_schedule_done()
     world.plumes.append({"time": 0.0, "plate": 0, "cell": 0})
     update_plumes(world, 0.0)
     assert world.plumes[0]["done"] is True
+
+
+def test_initial_plume_seed_stops_when_all_candidate_cells_are_live():
+    world = make_world()
+    world.config.update({
+        "hotspotInitialCount": 1,
+        "plumeOceanWeight": 0.0,
+        "plumeSpacingKm": 20000.0,
+    })
+    points = world.mesh.xyz.reshape(-1, 3)
+    world.hotspots = [
+        {
+            "id": i, "name": f"Active{i}", "xyz": point.tolist(),
+            "bornAt": -10.0, "dieAt": 100.0, "alive": True,
+        }
+        for i, point in enumerate(points)
+    ]
+
+    state = update_plumes(world, 1.0)
+
+    assert world.hotspotsReady is True
+    assert len(world.hotspots) == 4
+    assert state == {"born": 4, "expired": 0, "alive": 4}

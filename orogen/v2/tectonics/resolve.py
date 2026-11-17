@@ -93,9 +93,16 @@ def _grow_crust_into_gaps(world, gaps: list[int]) -> int:
                 births.append((grower, cell, verdict["trenchParent"]))
     bins, point = bin_index(world.mesh), np.zeros(3)
     xyz = np.asarray(world.mesh.xyz).reshape(-1, 3)
+    # Birth decisions are complete; initialize each plate's batch in one call
+    # before recording per-cell geometry and trench metadata in original order.
+    groups = {}
+    for plate, cell, _ in births:
+        group = groups.setdefault(plate.id, [plate, []])
+        group[1].append(cell)
+    for plate, cells in groups.values():
+        plate.crust.create_many(cells, CrustType["OCEAN"], world.time)
     for plate, cell, trench_parent in births:
         crust = plate.crust
-        crust.create(cell, CrustType["OCEAN"], world.time)
         point[:] = plate.to_world(*xyz[cell])
         crust.fzU[cell] = _fracture_at(world, plate, cell, point)
         mark_bin(plate, bins.at(*map(float, point)), world.occupancyStamp, bins.count)

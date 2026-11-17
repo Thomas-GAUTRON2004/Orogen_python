@@ -110,3 +110,50 @@ def test_crust_python_fallback_keeps_create_and_snapshot(monkeypatch):
     raster.create(1, crust_module.CrustType["OCEAN"], 4.0, 2)
     assert raster.flags[1] == 0
     assert raster.count == 1
+
+
+def test_crust_batch_create_and_snapshot_match_scalar_order():
+    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+
+    cells = np.asarray([1, 2, 1, 3, -1], dtype=np.int32)
+    types = np.asarray([1, 2, 3, 1, 2], dtype=np.uint8)
+    times = np.asarray([-10.5, -20.0, 4.25, 7.0, -2.0], dtype=np.float64)
+    terranes = np.asarray([11, 12, 13, 14, 15], dtype=np.uint16)
+    batch = CrustRaster(5)
+    scalar = CrustRaster(5)
+    batch.create_many(cells, types, times, terranes)
+    for cell, crust_type, formed_at, terrane in zip(cells, types, times, terranes):
+        scalar.create(int(cell), int(crust_type), float(formed_at), int(terrane))
+
+    assert batch.count == scalar.count == 4
+    for cell in range(5):
+        assert batch.snapshot(cell) == scalar.snapshot(cell)
+    assert batch.snapshot_many(cells) == [batch.snapshot(int(cell)) for cell in cells]
+
+
+def test_crust_batch_methods_broadcast_and_handle_empty_inputs():
+    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+
+    raster = CrustRaster(4)
+    raster.create_many([0, 2], CrustType["CONTINENT"], -12.0, 9)
+    assert raster.count == 2
+    assert raster.snapshot_many([2, 0]) == [raster.snapshot(2), raster.snapshot(0)]
+    raster.create_many([], CrustType["OCEAN"], 0.0)
+    assert raster.snapshot_many([]) == []
+    with pytest.raises(ValueError, match="one-dimensional integer"):
+        raster.create_many([[1]], 1, 0.0)
+    with pytest.raises(ValueError, match="crust_type must be a scalar"):
+        raster.create_many([1, 2], [1, 2, 3], 0.0)
+    with pytest.raises(IndexError, match="cell index out of range"):
+        raster.snapshot_many([4])
+
+
+def test_crust_batch_methods_use_python_fallback(monkeypatch):
+    import orogen.v2.tectonics.crust as crust_module
+
+    monkeypatch.setattr(crust_module, "NUMBA_AVAILABLE", False)
+    raster = crust_module.CrustRaster(3)
+    raster.create_many([0, 2], crust_module.CrustType["CONTINENT"], -5.0, [7, 8])
+    expected = [raster.snapshot(0), raster.snapshot(2)]
+    assert raster.snapshot_many([0, 2]) == expected
+    assert raster.count == 2

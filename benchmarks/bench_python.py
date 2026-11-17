@@ -60,11 +60,11 @@ def bench_dijkstra():
     sink=float(d[-1])
 def bench_crust():
     global sink
-    c=CrustRaster(N_CELLS); s=0
-    for i in range(0,N_CELLS,2):
-        c.create(i,CrustType["CONTINENT"],-100,i+1)
-        s+=len(c.snapshot(i))
-    sink=s
+    c=CrustRaster(N_CELLS)
+    cells=np.arange(0,N_CELLS,2,dtype=np.int32)
+    c.create_many(cells,CrustType["CONTINENT"],-100,cells+1)
+    snapshots=c.snapshot_many(cells)
+    sink=sum(len(snapshot) for snapshot in snapshots)
 
 
 def bench_mesh_components():

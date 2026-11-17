@@ -6,6 +6,7 @@ import numpy as np
 
 from ..core._numba_kernels import (
     NUMBA_AVAILABLE, zero_cell_fields_numba, snapshot_cell_fields_numba,
+    create_cells_numba, snapshot_cells_numba,
 )
 
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
@@ -65,6 +66,57 @@ class CrustRaster:
         self.count = 0
         self.fields = [getattr(self, name) for name in CELL_FIELDS]
         self._numba_fields = tuple(self.fields)
+
+
+    def _cell_indices(self, cells) -> np.ndarray:
+        raw = np.asarray(cells)
+        if raw.ndim != 1 or not np.issubdtype(raw.dtype, np.integer):
+            raise ValueError("cells must be a one-dimensional integer sequence")
+        indices = np.asarray(raw, dtype=np.int64)
+        indices = np.where(indices < 0, indices + self.numCells, indices)
+        if np.any(indices < 0) or np.any(indices >= self.numCells):
+            raise IndexError("cell index out of range")
+        return np.ascontiguousarray(indices, dtype=np.int32)
+
+    @staticmethod
+    def _batch_values(values, count: int, name: str, dtype) -> np.ndarray:
+        array = np.asarray(values, dtype=dtype)
+        if array.ndim == 0:
+            return np.full(count, array.item(), dtype=dtype)
+        if array.ndim != 1 or array.size != count:
+            raise ValueError(f"{name} must be a scalar or have one value per cell")
+        return np.ascontiguousarray(array)
+
+    def create_many(
+        self, cells, crust_type, formed_at, terrane=0,
+    ) -> None:
+        """Create multiple cells in order using one compiled call when available.
+
+        Scalar metadata is broadcast; one-dimensional metadata arrays may supply
+        a distinct value for each cell. Repeated cell indices retain sequential
+        create() semantics: each occurrence clears the cell before setting it.
+        """
+        indices = self._cell_indices(cells)
+        count = len(indices)
+        types = self._batch_values(crust_type, count, "crust_type", np.uint8)
+        times = self._batch_values(formed_at, count, "formed_at", np.float64)
+        terranes = self._batch_values(terrane, count, "terrane", np.uint16)
+        if NUMBA_AVAILABLE:
+            self.count += int(create_cells_numba(
+                self._numba_fields, self.mask, indices, types, times, terranes,
+            ))
+        else:
+            for row, cell in enumerate(indices):
+                self.create(
+                    int(cell), int(types[row]), float(times[row]), int(terranes[row]),
+                )
+
+    def snapshot_many(self, cells) -> list[list]:
+        """Return snapshots for multiple cells in input order."""
+        indices = self._cell_indices(cells)
+        if NUMBA_AVAILABLE:
+            return snapshot_cells_numba(self._numba_fields, indices).tolist()
+        return [self.snapshot(int(cell)) for cell in indices]
 
     def create(self, cell: int, crust_type: int, formed_at: float, terrane: int = 0) -> None:
         if not self.mask[cell]:

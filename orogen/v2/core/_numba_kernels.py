@@ -413,6 +413,32 @@ def _bearing_to_many_kernel(points, targets):
     return out
 
 
+
+def _create_cells_kernel(fields, mask, cells, crust_types, formed_at, terranes):
+    """Create several cells in input order, retaining repeated-cell semantics."""
+    added = 0
+    for row in range(cells.size):
+        cell = int(cells[row])
+        if not mask[cell]:
+            added += 1
+        mask[cell] = 1
+        for field in literal_unroll(fields):
+            field[cell] = 0
+        fields[0][cell] = crust_types[row]
+        fields[2][cell] = formed_at[row]
+        fields[3][cell] = terranes[row]
+    return added
+
+
+def _snapshot_cells_kernel(fields, cells):
+    """Materialize a batch of snapshots in row-major CELL_FIELDS order."""
+    out = np.empty((cells.size, len(fields)), dtype=np.float64)
+    for row in range(cells.size):
+        cell = int(cells[row])
+        for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+            out[row, column] = fields[column][cell]
+    return out
+
 def _zero_cell_fields_kernel(fields, cell):
     """Reset all heterogeneous structure-of-arrays fields at one cell."""
     for field in literal_unroll(fields):
@@ -445,8 +471,11 @@ if NUMBA_AVAILABLE:
     bearing_to_many_numba = njit(cache=True, fastmath=False)(_bearing_to_many_kernel)
     zero_cell_fields_numba = njit(cache=True, fastmath=False)(_zero_cell_fields_kernel)
     snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(_snapshot_cell_fields_kernel)
+    create_cells_numba = njit(cache=True, fastmath=False)(_create_cells_kernel)
+    snapshot_cells_numba = njit(cache=True, fastmath=False)(_snapshot_cells_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
+    create_cells_numba = snapshot_cells_numba = None

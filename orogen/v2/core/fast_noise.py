@@ -39,7 +39,7 @@ class FastNoise:
     def noise3d(self, x: float, y: float, z: float) -> float:
         if NUMBA_AVAILABLE:
             return float(noise3d_numba(
-                x, y, z, self.perm, self.pm3, np.asarray(_GRAD, dtype=np.float64)
+                x, y, z, self.perm, self.pm3, self._grad
             ))
         return self._noise3d_python(x, y, z)
 
@@ -109,7 +109,7 @@ class FastNoise:
         if NUMBA_AVAILABLE:
             return float(fbm_numba(
                 x, y, z, octaves, persistence, self.perm, self.pm3,
-                np.asarray(_GRAD, dtype=np.float64),
+                self._grad,
             ))
         return self._fbm_python(x, y, z, octaves, persistence)
 

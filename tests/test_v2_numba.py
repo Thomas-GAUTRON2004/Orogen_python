@@ -195,3 +195,45 @@ def test_numba_far_field_weighted_dijkstra_matches_python_fallback(monkeypatch):
         np.testing.assert_array_equal(actual["dist"], expected["dist"])
         for name in actual_state:
             np.testing.assert_array_equal(actual_state[name], expected_state[name])
+
+
+def test_numba_far_field_python_fallback_skips_missing_crust_cells(monkeypatch):
+    from types import SimpleNamespace
+
+    from orogen.v2.tectonics import far_field
+    from orogen.v2.tectonics.crust import CrustFlag, CrustType, CrustRaster
+
+    class Mesh:
+        num_cells = 5
+        xyz = np.column_stack((
+            np.cos(np.arange(5, dtype=np.float64) * 0.01),
+            np.sin(np.arange(5, dtype=np.float64) * 0.01),
+            np.zeros(5, dtype=np.float64),
+        )).ravel()
+        adj_offset = np.asarray([0, 1, 3, 5, 7, 8], dtype=np.int32)
+        adj_list = np.asarray([1, 0, 2, 1, 3, 2, 4, 3], dtype=np.int32)
+
+    crust = CrustRaster(5)
+    for cell in range(5):
+        crust.create(cell, CrustType["CONTINENT"], -20.0, cell + 1)
+    crust.flags[2] |= CrustFlag["SUTURE"]
+    crust.remove(2)
+
+    config = {
+        "farReachKm": 1000.0,
+        "farFrontRefKm": 1000.0,
+        "farMaxKm": 1000.0,
+        "farCratonCost": 0.3,
+        "farWeakCost": 1.6,
+        "farCratonTake": 0.15,
+        "farWeakTake": 1.6,
+        "farFoldMyr": 100.0,
+    }
+    world = SimpleNamespace(mesh=Mesh(), config=config, time=10.0)
+    plate = SimpleNamespace(crust=crust)
+
+    monkeypatch.setattr(far_field, "NUMBA_AVAILABLE", False)
+    result = far_field.spread_push(world, plate, {0: 100.0}, 1000.0, 10.0)
+
+    assert result["cells"] == [0, 1]
+    assert 2 not in result["cells"]

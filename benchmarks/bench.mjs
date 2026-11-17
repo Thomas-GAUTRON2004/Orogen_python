@@ -49,6 +49,8 @@ const selectedCells = [];
 for (let start = 0; start < N_CELLS; start += 68) {
   for (let cell = start; cell < Math.min(start + 64, N_CELLS); cell++) selectedCells.push(cell);
 }
+const copySource = new CrustRaster(N_CELLS);
+for (let i=0;i<N_CELLS;i+=2) copySource.create(i,CrustType.CONTINENT,-100,i+1);
 const jsResults = {
   noise_fbm_ms: measure(() => { let s=0; for(const p of points) s+=noise.fbm(...p,5,2/3); globalThis.__benchSink=s; }),
   spherical_geometry_ms: measure(() => { let s=0; for(const p of vectors){const q=geom.destination(p,0.71,0.013);s+=geom.bearingTo(p,q)+geom.dot(p,q);} globalThis.__benchSink=s; }),
@@ -56,6 +58,7 @@ const jsResults = {
   mesh_components_ms: measure(() => { const pieces=piecesOf(mesh,selectedCells); globalThis.__benchSink=pieces.reduce((n,p)=>n+p.length,0); }),
   mesh_dijkstra_ms: measure(() => { const d=new Float64Array(N_CELLS); d.fill(Infinity); d[0]=0; spreadKm(mesh,d,{maxKm:20000}); globalThis.__benchSink=d[N_CELLS-1]; }),
   crust_create_snapshot_ms: measure(() => { const c=new CrustRaster(N_CELLS); let s=0; for(let i=0;i<N_CELLS;i+=2){c.create(i,CrustType.CONTINENT,-100,i+1);s+=c.snapshot(i).length;} globalThis.__benchSink=s; }),
+  crust_copy_ms: measure(() => { const c=new CrustRaster(N_CELLS); for(let i=0;i<N_CELLS;i+=2)c.copyFrom(i,copySource,i); globalThis.__benchSink=c.count; }),
 };
 const py = spawnSync("python", ["benchmarks/bench_python.py"], {encoding:"utf8"});
 if (py.status !== 0) throw new Error("Python benchmark failed:\n"+py.stderr+"\n"+py.stdout);

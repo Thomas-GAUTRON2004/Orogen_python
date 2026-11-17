@@ -159,3 +159,82 @@ def test_crust_batch_methods_use_python_fallback(monkeypatch):
     expected = [raster.snapshot(0), raster.snapshot(2)]
     assert raster.snapshot_many([0, 2]) == expected
     assert raster.count == 2
+
+
+def test_crust_copy_many_matches_scalar_copy_and_rotation():
+    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+
+    source = CrustRaster(6)
+    for cell in range(6):
+        source.create(cell, CrustType["CONTINENT"], -10.5 + cell, 100 + cell)
+        source.farDx[cell] = (-7 + cell) * 3
+        source.farDy[cell] = (5 - cell) * 4
+        source.farDz[cell] = cell * 2 - 5
+        source.coverKm[cell] = cell + 0.25
+
+    batch = CrustRaster(6)
+    scalar = CrustRaster(6)
+    batch.create_many([0, 1], CrustType["OCEAN"], 0.0)
+    scalar.create_many([0, 1], CrustType["OCEAN"], 0.0)
+    destinations = [0, 0, 3, 4]
+    sources = [2, 1, 5, 0]
+    rotation = np.asarray([
+        0.0, -1.0, 0.0,
+        1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+    ])
+    batch.copy_many(destinations, source, sources, rotation)
+    for target, source_cell in zip(destinations, sources):
+        scalar.copy_from(target, source, source_cell, rotation)
+
+    assert batch.count == scalar.count
+    assert batch.mask.tolist() == scalar.mask.tolist()
+    for cell in range(6):
+        assert batch.snapshot(cell) == scalar.snapshot(cell)
+
+
+def test_crust_copy_many_supports_same_raster_overlapping_order():
+    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+
+    batch = CrustRaster(5)
+    scalar = CrustRaster(5)
+    for cell in range(4):
+        batch.create(cell, CrustType["CONTINENT"], cell, cell + 1)
+        scalar.create(cell, CrustType["CONTINENT"], cell, cell + 1)
+    batch.copy_many([1, 2, 3], batch, [0, 1, 2])
+    for target, source in zip([1, 2, 3], [0, 1, 2]):
+        scalar.copy_from(target, scalar, source)
+    assert batch.count == scalar.count
+    for cell in range(5):
+        assert batch.snapshot(cell) == scalar.snapshot(cell)
+
+
+def test_crust_remove_many_handles_duplicates_and_python_fallback(monkeypatch):
+    import orogen.v2.tectonics.crust as crust_module
+
+    raster = crust_module.CrustRaster(5)
+    raster.create_many([0, 1, 2, 3], crust_module.CrustType["CONTINENT"], 0.0)
+    raster.remove_many([1, 1, 3, 4])
+    assert raster.count == 2
+    assert raster.mask.tolist() == [1, 0, 1, 0, 0]
+
+    monkeypatch.setattr(crust_module, "NUMBA_AVAILABLE", False)
+    fallback = crust_module.CrustRaster(5)
+    fallback.create_many([0, 1, 2], crust_module.CrustType["CONTINENT"], 0.0)
+    fallback.remove_many([0, 0, 2])
+    assert fallback.count == 1
+    assert fallback.mask.tolist() == [0, 1, 0, 0, 0]
+
+
+def test_crust_copy_many_python_fallback_and_validation(monkeypatch):
+    import orogen.v2.tectonics.crust as crust_module
+
+    monkeypatch.setattr(crust_module, "NUMBA_AVAILABLE", False)
+    source = crust_module.CrustRaster(3)
+    source.create_many([0, 1], crust_module.CrustType["CONTINENT"], -3.0)
+    target = crust_module.CrustRaster(3)
+    target.copy_many([2, 1], source, [1, 0])
+    assert target.snapshot(2) == source.snapshot(1)
+    assert target.snapshot(1) == source.snapshot(0)
+    with pytest.raises(ValueError, match="one index per destination"):
+        target.copy_many([0, 1], source, [0])

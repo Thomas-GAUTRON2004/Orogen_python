@@ -34,11 +34,12 @@ def split_plate(world, plate, path, failed_arm, name_for, across=None):
     fresh.set_quat(plate.quat.copy())
     fresh.omega = plate.omega.copy()
 
-    for cell in range(num_cells):
-        if not crust.mask[cell] or side[cell] != 2:
-            continue
-        fresh.crust.copy_from(cell, crust, cell)
-        crust.remove(cell)
+    moved_cells = [
+        cell for cell in range(num_cells)
+        if crust.mask[cell] and side[cell] == 2
+    ]
+    fresh.crust.copy_many(moved_cells, crust, moved_cells)
+    crust.remove_many(moved_cells)
 
     # Iterate over a snapshot because Python dictionaries cannot be mutated
     # during iteration (the upstream JavaScript Map can).

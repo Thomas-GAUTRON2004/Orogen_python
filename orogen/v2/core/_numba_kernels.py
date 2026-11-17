@@ -414,6 +414,43 @@ def _bearing_to_many_kernel(points, targets):
 
 
 
+
+def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotation, rotate):
+    """Copy cells in order, including JS-compatible far-field-axis rounding."""
+    added = 0
+    for row in range(destinations.size):
+        target = int(destinations[row])
+        source = int(sources[row])
+        if not mask[target]:
+            added += 1
+        mask[target] = 1
+        for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+            out_fields[column][target] = in_fields[column][source]
+        if rotate:
+            x = int(out_fields[52][target])
+            y = int(out_fields[53][target])
+            z = int(out_fields[54][target])
+            if x or y or z:
+                u = rotation[0] * x + rotation[1] * y + rotation[2] * z
+                v = rotation[3] * x + rotation[4] * y + rotation[5] * z
+                w = rotation[6] * x + rotation[7] * y + rotation[8] * z
+                length = math.sqrt(u * u + v * v + w * w) or 1.0
+                out_fields[52][target] = math.floor(127.0 * u / length + 0.5)
+                out_fields[53][target] = math.floor(127.0 * v / length + 0.5)
+                out_fields[54][target] = math.floor(127.0 * w / length + 0.5)
+    return added
+
+
+def _remove_cells_kernel(mask, cells):
+    """Remove cells in order and return the number that were present."""
+    removed = 0
+    for row in range(cells.size):
+        cell = int(cells[row])
+        if mask[cell]:
+            mask[cell] = 0
+            removed += 1
+    return removed
+
 def _create_cells_kernel(fields, mask, cells, crust_types, formed_at, terranes):
     """Create several cells in input order, retaining repeated-cell semantics."""
     added = 0
@@ -473,9 +510,12 @@ if NUMBA_AVAILABLE:
     snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(_snapshot_cell_fields_kernel)
     create_cells_numba = njit(cache=True, fastmath=False)(_create_cells_kernel)
     snapshot_cells_numba = njit(cache=True, fastmath=False)(_snapshot_cells_kernel)
+    copy_cells_numba = njit(cache=True, fastmath=False)(_copy_cells_kernel)
+    remove_cells_numba = njit(cache=True, fastmath=False)(_remove_cells_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
     create_cells_numba = snapshot_cells_numba = None
+    copy_cells_numba = remove_cells_numba = None

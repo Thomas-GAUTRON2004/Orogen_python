@@ -6,7 +6,7 @@ import numpy as np
 
 from ..core._numba_kernels import (
     NUMBA_AVAILABLE, zero_cell_fields_numba, snapshot_cell_fields_numba,
-    create_cells_numba, snapshot_cells_numba,
+    create_cells_numba, snapshot_cells_numba, copy_cells_numba, remove_cells_numba,
 )
 
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
@@ -121,6 +121,43 @@ class CrustRaster:
         if NUMBA_AVAILABLE:
             return snapshot_cells_numba(self._numba_fields, indices).tolist()
         return [self.snapshot(int(cell)) for cell in indices]
+
+    def copy_many(self, cells, other: "CrustRaster", sources=None, rot=None) -> None:
+        """Copy a sequence of source cells in one compiled call when available.
+
+        Destination and source indices are processed in order, so repeated
+        destinations and same-raster overlapping copies retain scalar semantics.
+        """
+        destinations = self._cell_indices(cells)
+        source_indices = other._cell_indices(cells if sources is None else sources)
+        if destinations.size != source_indices.size:
+            raise ValueError("sources must have one index per destination cell")
+        if not destinations.size:
+            return
+        rotate = rot is not None
+        rotation = (
+            np.ascontiguousarray(np.asarray(rot, dtype=np.float64).reshape(9))
+            if rotate else np.zeros(9, dtype=np.float64)
+        )
+        if NUMBA_AVAILABLE:
+            self.count += int(copy_cells_numba(
+                self._numba_fields, other._numba_fields, self.mask,
+                destinations, source_indices, rotation, rotate,
+            ))
+        else:
+            for target, source in zip(destinations, source_indices):
+                self.copy_from(int(target), other, int(source), rotation if rotate else None)
+
+    def remove_many(self, cells) -> None:
+        """Remove cells in order, updating count once for each present cell."""
+        indices = self._cell_indices(cells)
+        if not indices.size:
+            return
+        if NUMBA_AVAILABLE:
+            self.count -= int(remove_cells_numba(self.mask, indices))
+        else:
+            for cell in indices:
+                self.remove(int(cell))
 
     def create(self, cell: int, crust_type: int, formed_at: float, terrane: int = 0) -> None:
         if not self.mask[cell]:

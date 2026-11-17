@@ -58,6 +58,11 @@ def bench_dijkstra():
     d=np.full(N_CELLS,np.inf,dtype=np.float64); d[0]=0.0
     spread_km(mesh,d,max_km=20000)
     sink=float(d[-1])
+copy_source=CrustRaster(N_CELLS)
+copy_cells=np.arange(0,N_CELLS,2,dtype=np.int32)
+copy_source.create_many(copy_cells,CrustType["CONTINENT"],-100,copy_cells+1)
+
+
 def bench_crust():
     global sink
     c=CrustRaster(N_CELLS)
@@ -65,6 +70,13 @@ def bench_crust():
     c.create_many(cells,CrustType["CONTINENT"],-100,cells+1)
     snapshots=c.snapshot_many(cells)
     sink=sum(len(snapshot) for snapshot in snapshots)
+
+
+def bench_crust_copy():
+    global sink
+    target=CrustRaster(N_CELLS)
+    target.copy_many(copy_cells,copy_source,copy_cells)
+    sink=target.count
 
 
 def bench_mesh_components():
@@ -182,5 +194,6 @@ timings={
 "mesh_components_ms":component_comparison["numba_ms"],
 "mesh_dijkstra_ms":median_ms(bench_dijkstra),
 "crust_create_snapshot_ms":median_ms(bench_crust),
+"crust_copy_ms":median_ms(bench_crust_copy),
 }
 print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison}}))

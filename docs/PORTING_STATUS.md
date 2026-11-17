@@ -14,6 +14,13 @@ Last updated: 2026-11-17
 - Added tests for strike estimation, orientation, distance taper, threshold work, old-range rejuvenation, ocean/craton exclusions and integration with the far-field clock.
 - Far-field forcing from strongly coupled Andean/flat-slab margins, full collision/event-history parity and the complete simulation-stage cadence remain outstanding.
 
+## Performance optimization (Numba)
+
+- Added an optional `speed` extra and retained a pure-Python fallback.
+- Numba compiles batched 3-D simplex FBM and CSR BFS (`fastmath=False`). FBM is checked bit-for-bit against both the pure-Python port and upstream JavaScript; BFS retains FIFO order, source order and int16 output semantics.
+- Paired CI microbenchmarks show FBM near or slightly faster than JavaScript and BFS substantially closer to parity than the initial Python implementation. See `docs/JS_PYTHON_BENCHMARK.md` for measurements and runner variability.
+- Scalar JIT wrappers for spherical geometry and per-cell crust resets were benchmarked and removed because call overhead regressed performance. Further work must batch meaningful workloads and retain differential parity.
+
 ## Target
 
 - Upstream repository: https://github.com/raguilar011095/planet_heightmap_generation

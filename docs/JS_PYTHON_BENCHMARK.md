@@ -26,6 +26,22 @@ Same runner and workload definitions, with the optional `speed` extra installed.
 
 Benchmark artifact: [paired run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44143048224/artifacts/14355401914).
 
+## Confirmation after removing unprofitable scalar JIT paths — 2026-11-17
+
+A later run after keeping only the validated FBM and BFS Numba paths measured:
+
+| Workload | JavaScript | Python | Python / JS |
+|---|---:|---:|---:|
+| 3-D simplex FBM | 12.642 ms | 10.337 ms | **0.82×** |
+| Spherical geometry | 23.363 ms | 249.814 ms | 10.69× slower |
+| Mesh BFS | 0.672 ms | 1.272 ms | 1.89× slower |
+| Mesh Dijkstra | 0.710 ms | 1.374 ms | 1.94× slower |
+| Crust creation + snapshots | 4.559 ms | 159.487 ms | 34.98× slower |
+
+[Confirmation run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44145980375).
+
+The run-to-run variation is substantial on shared hosted runners, especially for geometry, BFS and crust. Treat these numbers as directional, not stable performance guarantees. Scalar JIT wrappers for geometry and per-cell crust initialization were tested and removed: Python-to-Numba call overhead made both paths slower. The retained acceleration is limited to kernels with useful work per compiled call (batched FBM and full BFS traversal).
+
 ## What changed
 
 - FBM moved from about **48× slower** to slightly faster than the JS reference on this batch workload.
@@ -51,6 +67,6 @@ Benchmark artifact: [paired run on GitHub Actions](https://github.com/Thomas-GAU
 
 ## Next optimization targets
 
-1. Compile/vectorize spherical destination and bearing calculations while retaining JS operation order and tolerances.
-2. Optimize crust creation/copy/snapshot paths without changing snapshot field order or typed-array rounding.
+1. Add batch geometry operations at real simulation call sites, so one Numba invocation processes many points rather than one scalar.
+2. Optimize crust creation/copy/snapshot in batches, preserving snapshot field order and typed-array rounding.
 3. Benchmark on realistic spherical meshes and full tectonic steps.

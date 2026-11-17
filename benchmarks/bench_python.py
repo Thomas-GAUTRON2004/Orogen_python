@@ -4,7 +4,8 @@ import numpy as np
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
 from orogen.v2.core.sphere_geometry import destination, bearing_to, dot
-from orogen.v2.core.mesh_bfs import hop_distance
+import orogen.v2.core.mesh_bfs as mesh_bfs_module
+from orogen.v2.core.mesh_bfs import hop_distance, pieces_of
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 from orogen.v2.tectonics import far_field
@@ -66,6 +67,38 @@ def bench_crust():
         c.create(i,CrustType["CONTINENT"],-100,i+1)
         s+=len(c.snapshot(i))
     sink=s
+
+
+def bench_mesh_components():
+    """Compare selected-cell connected components with and without Numba."""
+    selected = []
+    block_size, gap = 64, 4
+    for start in range(0, N_CELLS, block_size + gap):
+        selected.extend(range(start, min(start + block_size, N_CELLS)))
+    selected = np.asarray(selected, dtype=np.int32)
+
+    def run(use_numba):
+        previous = mesh_bfs_module.NUMBA_AVAILABLE
+        mesh_bfs_module.NUMBA_AVAILABLE = bool(use_numba and NUMBA_AVAILABLE)
+
+        def once():
+            global sink
+            pieces = pieces_of(mesh, selected)
+            sink = sum(len(piece) for piece in pieces)
+
+        try:
+            return median_ms(once)
+        finally:
+            mesh_bfs_module.NUMBA_AVAILABLE = previous
+
+    python_ms = run(False)
+    numba_ms = run(True) if NUMBA_AVAILABLE else None
+    return {
+        "workload": "connected components, 12,000-cell degree-6 ring, 64-cell blocks",
+        "numba_ms": round(numba_ms, 3) if numba_ms is not None else None,
+        "python_fallback_ms": round(python_ms, 3),
+        "speedup": round(python_ms / numba_ms, 2) if numba_ms else None,
+    }
 
 
 def bench_far_field_diffusion():
@@ -142,6 +175,7 @@ def bench_far_field_diffusion():
 
 
 far_field_comparison = bench_far_field_diffusion()
+component_comparison = bench_mesh_components()
 
 timings={
 "noise_fbm_ms":median_ms(bench_noise),
@@ -150,4 +184,4 @@ timings={
 "mesh_dijkstra_ms":median_ms(bench_dijkstra),
 "crust_create_snapshot_ms":median_ms(bench_crust),
 }
-print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison}}))
+print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison}}))

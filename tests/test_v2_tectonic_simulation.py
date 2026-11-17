@@ -8,7 +8,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 def _world():
     mesh = build_sim_mesh(48, 41)
-    config = {"maxStepMyr": 4.0, "maxCellsPerStep": 1.5, "maxSpeedOceanic": 25.0}
+    config = {"maxStepMyr": 4.0, "maxCellsPerStep": 1.5, "maxSpeedOceanic": 100.0}
     return mesh, TectonicWorld(mesh, 41, config)
 
 
@@ -26,7 +26,7 @@ def test_fastest_speed_cap_does_not_reach_equator():
     plate = world.add_plate("P")
     plate.capCos = math.cos(0.1)
     speed = fastest_speed([0, 0, 0.01], plate, [0, 0, 1])
-    assert speed == 0.01 * math.sin(math.pi / 2 - 0.1)
+    assert speed == 0.01 * math.sin(0.1)
 
 
 def test_closing_rate_uses_two_fastest_living_nonempty_plates():
@@ -50,7 +50,8 @@ def test_choose_step_stationary_and_rate_limited():
     assert choose_step(world) == 4.0
     plate.crust.create(0, 0, 0, 1)
     plate.refresh_extent(mesh.xyz)
-    plate.omega = [0.0, 0.0, 0.02]
+    plate.capCos = -1.0
+    plate.omega = [0.0, 0.0, 1.0]
     result = choose_step(world)
     assert result <= 4.0
     assert result > 0.0

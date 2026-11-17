@@ -136,6 +136,7 @@ def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(m
             "plate": target.id,
             "sources": list(sources),
             "belt": dict(belt),
+            "failed0": allow(0),
             "failed3": allow(3),
             "failed5": allow(5),
         })
@@ -180,7 +181,7 @@ def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(m
     assert len(calls) == 2
     assert calls[0]["plate"] == plate.id
     assert calls[0]["sources"] == [1, 2]
-    assert calls[0]["failed3"] is False
+    assert calls[0]["failed0"] is False
     assert calls[1]["plate"] == fresh.id
     assert calls[1]["sources"] == [5]
     assert calls[1]["failed3"] is False

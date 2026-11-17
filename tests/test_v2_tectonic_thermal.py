@@ -135,3 +135,32 @@ def test_pick_plume_site_handles_all_cells_excluded_and_validates_inputs():
     world.config["plumeOceanWeight"] = 1.1
     with pytest.raises(ValueError):
         pick_plume_site(world, lambda: 0.5)
+
+
+def test_insulate_at_start_rejects_mismatched_raster():
+    world = make_world()
+    world.mantleHeat = np.zeros(2, dtype=np.float32)
+    with pytest.raises(ValueError):
+        insulate_at_start(world)
+
+
+def test_plume_heat_factor_handles_degenerate_normalization():
+    world = make_world()
+    world.config.update({"riftHeatGain": 1.0, "riftHeatFloor": -1.0})
+    assert plume_heat_factor(world, world.plates[0]) == 1.0
+
+
+def test_pick_plume_site_rejects_coordinate_size_mismatch_and_bad_rng_fallback():
+    world = make_world()
+    world.mesh.xyz = np.zeros(3, dtype=np.float64)
+    with pytest.raises(ValueError):
+        pick_plume_site(world, lambda: 0.5)
+
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        -1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+        0.0, 0.0, 1.0,
+    ])
+    world.config.update({"plumeOceanWeight": 1.0, "plumeSpacingKm": 0.0})
+    assert pick_plume_site(world, lambda: 1.1) == -1

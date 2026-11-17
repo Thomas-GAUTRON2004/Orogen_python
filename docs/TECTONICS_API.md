@@ -345,3 +345,23 @@ component = landmass_of(donor, world.mesh, terrane_seed_cells)
 result = accrete_terrane(world, host, donor, component, rate_cm_yr=4.0)
 print(result["cells"], result["sealed"])
 ```
+
+
+## History endings
+
+Module: `orogen.v2.tectonics.ending` (also exported from
+`orogen.v2.tectonics`).
+
+- `ENDINGS` lists the four supported history-ending choices: none,
+  supercontinent, breakup and dispersed.
+- `in_stage(state, stage, config)` evaluates a live world or captured frame
+  against the upstream cycle/event rules. Breakup age is measured from the
+  first rift since the latest supercontinent formation window.
+- `history_ending(min_myr, stage, config)` returns the maximum run horizon
+  and a `stopAt` predicate. It never changes the simulation trajectory.
+- `frames_ending(frames, min_myr, stage, config, complete=False)` trims a
+  recorded history at the first eligible frame, or returns `None` while an
+  incomplete history needs to run further.
+
+The helpers are tested independently. They do not yet imply that the full
+upstream `simulate.js` stage sequence or snapshot codec has been ported.

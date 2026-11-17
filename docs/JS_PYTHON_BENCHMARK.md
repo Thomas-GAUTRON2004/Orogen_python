@@ -138,3 +138,24 @@ The benchmark now measures the upstream JavaScript `piecesOf` implementation aga
 [Paired benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44160409232).
 
 These are directional microbenchmark results from one shared GitHub-hosted runner, not end-to-end simulation timings. The connected-component comparison now uses the actual upstream JS helper and the same graph and ordered seed list as Python. The Dijkstra path is callback-free and uses the synthetic ring graph with `max_km=20,000`; the very small Python time should not be generalized to production spherical meshes. Geometry and crust remain the largest measured Python gaps.
+
+## Batched spherical geometry and crust-field kernels — 2026-11-17
+
+The spherical-geometry benchmark now uses destination_many and bearing_to_many over one contiguous (80,000, 3) array. With Numba installed, both operations execute inside compiled batch loops; without Numba, the functions retain a scalar Python fallback. The scalar API remains unchanged.
+
+CrustRaster.create and snapshot now use compiled kernels over their 55 structure-of-arrays fields when Numba is available. The pure-Python loops remain in place as the no-Numba fallback. This avoids changing the snapshot ordering or its public list representation.
+
+| Workload | JavaScript | Python + Numba | Python / JS | Faster |
+|---|---:|---:|---:|---|
+| 3-D simplex FBM, 40,000 points × 5 octaves | 12.663 ms | 10.438 ms | 0.82× | Python, 1.21× |
+| Spherical geometry, 80,000 points | 23.373 ms | 8.727 ms | 0.37× | Python, 2.68× |
+| Mesh BFS, 12,000 cells | 0.675 ms | 1.008 ms | 1.49× | JavaScript, 1.49× |
+| Connected components, 12,000 cells | 2.820 ms | 2.182 ms | 0.77× | Python + Numba, 1.29× |
+| Mesh Dijkstra, 12,000 cells | 0.694 ms | 0.012 ms | 0.02× | Python + Numba, about 56× |
+| Crust creation + snapshots, 6,000 cells | 3.095 ms | 80.529 ms | 26.02× | JavaScript, 26.02× |
+
+[Paired benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44163102291).
+
+For spherical geometry, the previous Python measurement on the same benchmark family was 159.392 ms; the batch implementation measured 8.727 ms, about **18.3× lower**. For crust creation + snapshots, the previous 119.421 ms measurement fell to 80.529 ms, about **1.48× lower**. Crust remains the largest measured gap. The raster benchmark calls the scalar create/snapshot API repeatedly, so it still pays Python-to-Numba dispatch overhead on every cell; a batch API should only be introduced where real simulation call sites can use it.
+
+The paired run was completed on the shared GitHub-hosted runner with Node.js 22.23.4 and Python 3.12.16, five measured rounds after one warm-up. These results are directional microbenchmarks, not end-to-end simulation timings.

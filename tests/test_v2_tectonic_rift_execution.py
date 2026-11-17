@@ -40,6 +40,7 @@ def test_pull_axis_rejects_a_degenerate_initial_power_vector():
 
 def test_names_after_split_use_craton_letters_when_distinct():
     world, plate = make_world()
+    plate.crust.remove(5)
     fresh = world.add_plate("new")
     fresh.crust.create(0, CrustType["CRATON"], 0.0, 30)
     world.terraneLetters = {10: "A", 30: "B"}
@@ -98,7 +99,7 @@ def test_try_rift_splits_plate_and_logs_event(monkeypatch):
         "lengthKm": 2000.0,
         "weakKm": 1000.0,
         "failedArmKm": 1000.0,
-        "ageMyr": world.time,
+        "ageMyr": world.time - plate.born,
     }
     assert "the test plume" in event["text"]
     assert "failed arm" in event["text"]

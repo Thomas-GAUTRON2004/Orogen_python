@@ -110,7 +110,8 @@ def test_resolve_incoming_older_ocean_is_subducted():
 
 
 def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["CONTINENT"], 0, 1)
@@ -128,7 +129,8 @@ def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
 
 
 def test_growth_creates_trench_apron(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     from orogen.v2.tectonics.crust import CrustFlag
     mesh, world = _world()
     plate = world.add_plate("P")
@@ -150,11 +152,10 @@ def test_is_advancing_on_handles_coincident_and_forward_points():
     from types import SimpleNamespace
     mesh, world = _world()
     x = SimpleNamespace(omega=[0.0, 0.0, 1.0])
-    y = SimpleNamespace(omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([a, b, c]))
+    y = SimpleNamespace(omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([1.0, 0.0, 0.0]))
     point = np.array([1.0, 0.0, 0.0])
     assert _is_advancing_on(x, y, 0, mesh, point, 0.0) is True
-    # Put the other plate's reference cell in the direction of relative motion.
-    mesh.xyz[0:3] = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+    y.to_world = lambda a, b, c: np.array([0.0, 1.0, 0.0])
     assert _is_advancing_on(x, y, 0, mesh, point, 0.0) is True
 
 
@@ -179,7 +180,8 @@ def test_is_behind_skips_crust_neighbours_and_handles_fully_occupied_edge():
 
 
 def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
     grower.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -194,7 +196,8 @@ def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
 
 
 def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
     grower.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -208,7 +211,8 @@ def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
 
 
 def test_decide_birth_closing_boundary_rejected(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
     grower.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -224,7 +228,8 @@ def test_decide_birth_closing_boundary_rejected(monkeypatch):
 
 
 def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
-    import orogen.v2.tectonics.resolve as module
+    import importlib
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
     from orogen.v2.tectonics.crust import CrustFlag
     mesh, world = _world()
     grower = world.add_plate("grower")

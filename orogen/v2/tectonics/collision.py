@@ -1139,11 +1139,11 @@ def track_collisions(world, dt: float) -> dict:
                 record["checkedAt"] = time
 
             ring_area = float(record.get("ringKm2", math.inf))
+            ring_too_large = bool(
+                would_weld and ring_area > float(config["ringSeaKm2"])
+            )
             ring_blocked = bool(
-                would_weld
-                and ring_area > float(config["ringSeaKm2"])
-                and not stacked
-                and not overdue
+                ring_too_large and not stacked and not overdue
             )
             record["weldCandidate"] = would_weld
             record["weldBlockedByRing"] = ring_blocked
@@ -1151,7 +1151,7 @@ def track_collisions(world, dt: float) -> dict:
                 would_weld and not ring_blocked
             )
             if (
-                ring_blocked
+                ring_too_large
                 and not record.get("ringLogged", False)
             ):
                 record["ringLogged"] = True

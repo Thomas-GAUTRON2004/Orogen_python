@@ -111,18 +111,18 @@ def test_spread_belt_rejects_coastal_ocean_when_front_is_on_land():
 
 def test_spread_belt_stale_heap_entry_and_craton_limit():
     plate, mesh, config, belt = fixture()
-    angles = np.deg2rad([0.0, -1.0, 8.0, 10.0])
-    xyz = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(4))).astype(np.float32).ravel()
+    angles = np.deg2rad([0.0, -1.0, 8.0, 10.0, 11.0])
+    xyz = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(5))).astype(np.float32).ravel()
     mesh = SimpleNamespace(
         xyz=xyz,
-        adj_offset=np.array([0, 2, 4, 6, 8], dtype=np.int32),
+        adj_offset=np.array([0, 2, 4, 6, 8, 8], dtype=np.int32),
         adj_list=np.array([1, 2, 0, 3, 0, 3, 1, 2], dtype=np.int32),
         edge_km=100.0,
     )
     # There are two routes to cell 3: the first enqueues a longer tentative path,
     # and the second improves it, leaving a stale heap record to be discarded.
     belt["widthKm"] = 2000.0
-    assert spread_belt(plate, mesh, [0], belt, config) == [0, 1, 2, 3, 4]
+    assert spread_belt(plate, mesh, [0], belt, config) == [0, 1, 2, 3]
     plate, mesh, config, belt = fixture(
         [CrustType["CONTINENT"], CrustType["CRATON"], CrustType["CONTINENT"],
          CrustType["CONTINENT"], CrustType["CONTINENT"]]

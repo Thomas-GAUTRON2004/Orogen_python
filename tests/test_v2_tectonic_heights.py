@@ -17,6 +17,8 @@ def test_relief_maturity_and_profiles_cover_every_belt_kind():
     ):
         assert math.isfinite(broad_profile(kind, BeltSide["UPPER"], 200, 1000))
         assert math.isfinite(broad_profile(kind, BeltSide["LOWER"], 200, 1000))
+    assert math.isfinite(broad_profile(OrogenyType["RIFT"], BeltSide["UPPER"], 200, 1000, wear_g=5000))
+    assert math.isfinite(broad_profile(OrogenyType["ANDEAN"], BeltSide["UPPER"], 200, 1000, wear_g=5000))
 
 
 def test_build_heights_root_uplift_rugged_and_arc_scaling():
@@ -46,6 +48,11 @@ def test_build_heights_can_sink_a_foreland_and_unknown_profiles_are_flat():
     build_heights(c, 0, OrogenyType["HIMALAYAN"], BeltSide["LOWER"], 0.86, 1000, 50, 0, {})
     assert c.upliftKm[0] < 0.1
     assert broad_profile(255, BeltSide["UPPER"], 100, 500) == 0
+    c.rugged[0] = 100
+    stable = float(c.upliftKm[0])
+    build_heights(c, 0, OrogenyType["HIMALAYAN"], BeltSide["LOWER"], 0.86, 1000, 50, 0, {})
+    assert c.upliftKm[0] < stable
+    assert c.rugged[0] == 100
 
 
 def test_thicken_cover_updates_maximum_and_burial():
@@ -58,6 +65,9 @@ def test_thicken_cover_updates_maximum_and_burial():
     assert c.coverMaxKm[0] == pytest.approx(2.2)
     assert c.coverMaxAt[0] == 12
     assert c.unroofKm[0] == pytest.approx(-0.2)
+    c.coverMaxKm[0] = 10
+    assert thicken_cover(c, 0, 1, 13, {"crustKm": 30}) == pytest.approx(2.2 / 30)
+    assert c.coverMaxAt[0] == 12
     assert thicken_cover(c, 1, 3, 12, {"crustKm": 30}) == 0
     with pytest.raises(ValueError):
         thicken_cover(c, 0, 1, 12, {"crustKm": 0})

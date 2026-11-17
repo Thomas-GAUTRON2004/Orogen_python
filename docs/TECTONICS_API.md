@@ -201,3 +201,15 @@ Module: `orogen.v2.tectonics.orogeny`
 - `obliquity_deg(velocity, normal, position, closing)` returns signed dextral/sinistral obliquity.
 
 `spread_belt(plate, mesh, sources, belt, config, allow=None)` propagates a front across connected land cells, with source-specific reach/work, weak-line costs, craton-rim restrictions, and optional cell filtering. It records orogeny history, previous-belt overprints, belt geometry/shear, and crustal thickening. It returns the reached continental cell indices. The port deliberately does not call upstream `buildHeights` or `thickenCover`; relief synthesis and sediment-cover updates remain outstanding.
+
+
+## Orogenic relief and sediment response
+
+Modules: `orogen.v2.tectonics.heights` and `orogen.v2.tectonics.geology`
+
+- `belt_relief_km(type, reach_km, heights)` scales mature relief by belt reach.
+- `broad_profile(type, side, distance_km, reach_km)` evaluates the smoothed cross-belt uplift profile.
+- `build_heights(crust, cell, type, side, u, reach_km, work_km, thickened_km, config, amp=1)` updates root, broad uplift, and ruggedness for one cell.
+- `thicken_cover(crust, cell, thickened_km, time_myr, geology)` increases existing sediment thickness as the underlying crust thickens and updates maximum burial and unroofing records.
+
+The erosion/evolution pass, full terrain synthesis, ridge/crest construction, and full basin sediment-deposition model remain separate unported stages.

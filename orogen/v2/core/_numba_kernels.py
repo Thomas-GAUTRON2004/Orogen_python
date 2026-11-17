@@ -9,9 +9,10 @@ import math
 import numpy as np
 
 try:
-    from numba import njit
+    from numba import njit, literal_unroll
 except ImportError:  # Numba is an optional acceleration extra.
     njit = None
+    literal_unroll = None
 
 NUMBA_AVAILABLE = njit is not None
 
@@ -127,6 +128,11 @@ def _bearing_kernel(px, py, pz, qx, qy, qz):
     north_dot = qx*nx + qy*ny + qz*nz
     return math.atan2(north_dot, east_dot)
 
+def _crust_zero_fields_kernel(cell, fields):
+    for field in literal_unroll(fields):
+        field[cell] = 0
+
+
 def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     n = sources.size
     distance = np.full(n, -1, dtype=np.int16)
@@ -165,6 +171,7 @@ if NUMBA_AVAILABLE:
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
     destination_numba = njit(cache=True, fastmath=False)(_destination_kernel)
     bearing_numba = njit(cache=True, fastmath=False)(_bearing_kernel)
+    crust_zero_fields_numba = njit(cache=True, fastmath=False)(_crust_zero_fields_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = None
-    destination_numba = bearing_numba = None
+    destination_numba = bearing_numba = crust_zero_fields_numba = None

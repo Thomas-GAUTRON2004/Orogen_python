@@ -126,3 +126,23 @@ def test_numba_spherical_geometry_matches_python_reference_exactly(monkeypatch):
         monkeypatch.setattr(geometry, "NUMBA_AVAILABLE", True)
         np.testing.assert_array_equal(compiled_destination, python_destination)
         assert compiled_bearing == python_bearing
+
+
+
+def test_numba_crust_create_matches_python_field_reset_and_count():
+    from orogen.v2.tectonics.crust import CrustRaster, CELL_FIELDS, _DTYPES
+
+    accelerated = CrustRaster(8)
+    reference = CrustRaster(8)
+    for index, name in enumerate(CELL_FIELDS):
+        getattr(accelerated, name)[3] = index + 1
+        getattr(reference, name)[3] = index + 1
+    accelerated.create(3, 2, -42.5, 19)
+    for field in reference.fields:
+        field[3] = 0
+    reference.type[3] = 2
+    reference.formedAt[3] = -42.5
+    reference.terrane[3] = 19
+    assert accelerated.count == reference.count == 1
+    for name in CELL_FIELDS:
+        np.testing.assert_array_equal(getattr(accelerated, name), getattr(reference, name))

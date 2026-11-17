@@ -245,6 +245,6 @@ def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     world, host, _donor = accretion_fixture()
     host.crust.create(1, CrustType["CONTINENT"], -50.0, 11)
     host.crust.create(2, CrustType["CRATON"], -25.0, 12)
-    result = landmass_of(host, world.mesh, [0, 2, 1])
+    result = landmass_of(host, world.mesh, [0])
 
     assert result == [0, 1, 2]

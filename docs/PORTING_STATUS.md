@@ -74,17 +74,20 @@ test coverage.
 - Do not claim full compatibility until all functional areas and reference tests have been covered.
 - Maintain 100% line coverage for `orogen.v2`, enforced by the `pytest-cov` threshold in CI.
 
-## Latest verification
+## Latest documented verification
 
-The latest completed successful CI run is commit
-`6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17):
+The latest successful test run explicitly recorded in the benchmark documentation is:
 
-- **460 tests passed** in 39.73 seconds.
-- The complete `orogen.v2` package met its enforced **100% line-coverage threshold** (5,802 statements, 0 missing).
-- The Python suite and JavaScript differential checks both completed successfully.
-- The paired JS/Python benchmark and far-field Numba/Python A/B measurement also completed successfully.
+- **476 tests passed**.
+- **100% line coverage** for `orogen.v2`.
+- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
+- Paired JS/Python benchmark: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460176).
 
-Validation run: [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44149930307). Benchmark: [JS vs Python and far-field A/B](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44149930378).
+The test run is associated in the project history with commit
+`6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17). It is a historical
+verification point, not evidence that later branch changes have passed CI.
+Rerun the test workflow after subsequent code changes before describing the
+current branch head as verified.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

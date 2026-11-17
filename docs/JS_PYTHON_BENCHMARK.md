@@ -107,3 +107,18 @@ The same run measured the general callback-free mesh Dijkstra benchmark at 0.522
 1. Add batch geometry operations at real simulation call sites, so one Numba invocation processes many points rather than one scalar.
 2. Optimize crust creation/copy/snapshot in batches, preserving snapshot field order and typed-array rounding.
 3. Benchmark the far-field kernel and remaining graph kernels on realistic spherical meshes and full tectonic steps.
+
+## Connected-component traversal kernel — 2026-11-17
+
+The connected-component helpers used by collision, subduction and plate-accretion operations now have optional Numba implementations. A full CSR traversal runs inside one compiled call; the wrapper only converts the flattened result back to the existing list-of-lists API. The Python implementation remains the fallback when Numba is not installed or the input contains an out-of-range seed.
+
+The paired benchmark measured a 12,000-cell degree-6 ring graph with selected 64-cell blocks:
+
+| Workload | Numba | Python fallback | Speedup |
+|---|---:|---:|---:|
+| Connected components, including Python result materialization | 2.571 ms | 22.094 ms | **8.60×** |
+
+[Benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44158354632).
+
+This is a synthetic CSR-graph microbenchmark, not a full collision or planet-generation timing. Tests compare component contents and traversal ordering against the Python fallback, including duplicate seeds, empty selections and first-component tie handling.
+

@@ -2,6 +2,14 @@
 
 Last updated: 2026-11-17
 
+## Latest core backend change
+
+- Replaced the production SciPy/Qhull Delaunay call with the pinned `shull==0.4.0` Rust backend in `sphere_mesh.py`.
+- Kept Orogen's existing triangle winding normalization, synthetic north-pole closure, cyclic CSR adjacency, and downstream `SphereIndex` construction unchanged.
+- Removed SciPy from runtime dependencies. SciPy remains available only through the optional `benchmark` extra for reproducible A/B comparisons.
+- Added native-error translation coverage, a SciPy-versus-shull mesh-stage benchmark, and a Linux/Windows/macOS compatibility matrix for CPython 3.10, 3.12 and 3.14.
+- The experimental Numba CSR builder and all its implementation code remain outside the production package.
+
 ## Latest porting batch
 
 - Added collision tracking and suture welding (`collision.py`): per-pair records, convergence/shortening, contact-front geometry, underthrusting, arc scraping and terrane docking. With the full belt configuration it spreads plateau-side and foreland-side orogenic belts; with the full suture configuration it samples the sea gap, tracks its best closure and measures enclosed sea. Eligible pairs run the new `ops.merge_plates.merge_plates` redraw, retain the upper plate, retire the lower plate, and emit a `SUTURE` event. `step_world` rebuilds ownership after the merge.
@@ -105,8 +113,8 @@ all seeds, resolutions or simulation histories.
 
 ## Numerical compatibility limits
 
-The current SciPy/Qhull production triangulation has matched Delaunator for
-seven selected resolution/seed pairs (12/99, 24/1, 48/17, 96/2026, 128/7,
-256/42 and 512/12345). This is evidence for those fixtures only, not a
-guarantee of identical connectivity for every input. No whole-engine or
-whole-history parity is claimed.
+The production `shull==0.4.0` triangulation is checked against the vendored
+Delaunator reference for seven selected resolution/seed pairs (12/99, 24/1,
+48/17, 96/2026, 128/7, 256/42 and 512/12345). This is evidence for those
+fixtures only, not a guarantee of identical connectivity for every input. No
+whole-engine or whole-history parity is claimed.

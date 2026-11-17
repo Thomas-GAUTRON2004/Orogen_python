@@ -227,3 +227,13 @@ def test_gather_boundary_loads_keeps_collision_load_on_non_background_side(monke
     loads = gather_boundary_loads(world)
     assert list(loads) == [0]
     assert len(loads[0]["contacts"]) == 1
+
+
+def test_gather_boundary_loads_records_collision_on_only_loaded_side(monkeypatch):
+    world = configure_collision_world(monkeypatch)
+    world.plates[0].isBackground = True
+    loads = gather_boundary_loads(world)
+    assert list(loads) == [1]
+    assert len(loads[1]["contacts"]) == 1
+    assert loads[1]["contacts"][0]["other"] == 0
+    assert loads[1]["contacts"][0]["n"] == pytest.approx([0.0, -1.0, 0.0])

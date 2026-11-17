@@ -75,11 +75,11 @@ The passive-margin initiation subsystem now includes:
 - creation of a new mobile oceanic plate when the passive background ocean is the downgoing side;
 - a separate intra-plate old-margin founder operation (`founder_within_plates`) that awaits the upstream slow-step cadence.
 
-Additional arc operations are available as tested standalone helpers: island-arc maturation into continental crust and arc scraping/transfer to an overriding plate. Collision-driven orchestration of arc scraping and slow-step integration of arc maturation are not yet wired into `step_world`.
+Additional collision operations are available as tested standalone helpers: inter-plate crust transfer, passive-ocean plate birth, terrane accretion with fore-arc transfer, narrow-strait/inland-sea closure, and connected-landmass extraction. Arc maturation and arc scraping are also tested standalone helpers. These operations are not yet driven by a collision-event loop; collision-driven accretion/scraping and the slow cadence for arc maturation remain outstanding.
 
 ## Remaining porting work
 
-This is not yet the complete tectonic engine. The upstream `TECTONICS` defaults and initial-world/scenario builders are not ported. Collision and orogeny event handling, full subduction/slab evolution, arc scraping orchestration, back-arc and ocean-plate evolution, the complete simulation generator, snapshots and save/load are still outstanding. The full terrain, general geology, climate, finishing and agriculture pipelines also remain to be ported. See [Porting status](docs/PORTING_STATUS.md) for the breakdown.
+This is not yet the complete tectonic engine. The upstream `TECTONICS` defaults and initial-world/scenario builders are not ported. Collision detection/event tracking and weld/merge, full subduction/slab evolution, event-driven terrane accretion and arc scraping, back-arc/ocean-plate evolution, the complete simulation generator, snapshots and save/load are still outstanding. The full terrain, general geology, climate, finishing and agriculture pipelines also remain to be ported. See [Porting status](docs/PORTING_STATUS.md) for the breakdown.
 
 ## Numerical backend and reproducibility
 
@@ -89,7 +89,7 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest verified pull-request Actions run for commit `e22d0a738482b7ca0d32648cc3a5009792eeaa77` (run #609) completed **340 passing tests** with **100% line coverage across 4,395 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or prove whole-engine JavaScript parity.
+The latest verified push and pull-request Actions runs for commit `a293997f9142251e2ae3583e8b829b6ec8e1d5f4` (runs #629/#630) completed **349 passing tests** with **100% line coverage across 4,573 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or prove whole-engine JavaScript parity.
 
 ## Upstream and license
 

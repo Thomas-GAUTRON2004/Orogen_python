@@ -15,8 +15,8 @@ def fixture(types=None):
         crust.create(i, kind, 0.0)
     theta = np.arange(n, dtype=float) * 0.01
     xyz = np.column_stack((np.cos(theta), np.sin(theta), np.zeros(n))).astype(np.float32).ravel()
-    offsets = np.arange(0, 2 * n + 1, 2, dtype=np.int32)
-    adjacency = np.array([1, 0, 2, 1, 3, 2, 4, 3, 3, 4], dtype=np.int32)
+    offsets = np.array([0, 1, 3, 5, 7, 8], dtype=np.int32)
+    adjacency = np.array([1, 0, 2, 1, 3, 2, 4, 3], dtype=np.int32)
     mesh = SimpleNamespace(
         xyz=xyz, adj_offset=offsets, adj_list=adjacency, edge_km=100.0
     )
@@ -33,7 +33,7 @@ def fixture(types=None):
     }
     belt = {
         "type": OrogenyType["ANDEAN"],
-        "widthKm": 500.0,
+        "widthKm": 1000.0,
         "workKm": 20.0,
         "time": 5.0,
         "side": BeltSide["UPPER"],

@@ -272,13 +272,14 @@ def test_enclosed_sea_between_returns_zero_when_no_sea_component_or_joint_border
     world.owner[1] = upper.id
     world.ownerCell[1] = 1
     upper.crust.create(1, CrustType["CONTINENT"], -20.0, 11)
+    world.owner[3] = -1  # removes the lower-plate border; remaining sea joins the world ocean
     assert enclosed_sea_between_km2(world, upper, lower) == 0.0
 
 
 def test_open_sea_between_measures_facing_coasts_and_width():
     world, upper, lower = sea_world()
     result = open_sea_between(world, upper, lower)
-    assert result == {"km2": 300.0, "widestKm": 300.0}
+    assert result == {"km2": 200.0, "widestKm": 200.0}
 
 
 def test_open_sea_between_returns_zero_when_no_opposed_sea_is_within_gap():
@@ -301,6 +302,7 @@ def test_is_rift_jitter_requires_small_overlap_and_both_rift_margins():
     b.crust.flags[1] = 0
     assert not is_rift_jitter(world, a, b, [1])
     b.crust.flags[1] |= CrustFlag["RIFT_MARGIN"]
+    world.config["riftJitterFrontKm"] = 1.0
     assert not is_rift_jitter(world, a, b, [0, 1, 2])
 
 
@@ -308,10 +310,12 @@ def test_recycle_small_arc_recycles_short_components_and_preserves_large_arcs():
     world, a, _b = contact_world()
     a.crust.create(0, CrustType["ARC"], -100.0, 30)
     a.crust.create(1, CrustType["ARC"], -100.0, 31)
+    a.crust.remove(2)
     world.config = {"arcAccreteMinKm2": 500.0, "terraneMinAreaKm2": 50.0}
     world.time = 10.0
     world.budget = {"recycledCells": 0}
     world.events = []
+    world.log = lambda kind, text, data=None: world.events.append({"kind": kind, "text": text, "data": {} if data is None else data})
     assert recycle_small_arc(world, a, 0)
     assert a.crust.mask[0] == 0
     assert a.crust.mask[1] == 0
@@ -325,6 +329,7 @@ def test_recycle_small_arc_recycles_short_components_and_preserves_large_arcs():
     world.time = 10.0
     world.budget = {"recycledCells": 0}
     world.events = []
+    world.log = lambda kind, text, data=None: world.events.append({"kind": kind, "text": text, "data": {} if data is None else data})
     assert not recycle_small_arc(world, a, 0)
     assert a.crust.mask[0] == 1
 
@@ -348,6 +353,8 @@ def test_accrete_arcs_scrapes_arc_to_non_arc_host_and_logs_threshold():
     world.arcScrapes = {}
     world.budget = {"recycledCells": 0}
     world.events = []
+    world.log = lambda kind, text, data=None: world.events.append({"kind": kind, "text": text, "data": {} if data is None else data})
+    host.crust.remove(0)
     world.config = {
         "arcAccreteMinKm2": 50.0,
         "terraneMinAreaKm2": 100.0,

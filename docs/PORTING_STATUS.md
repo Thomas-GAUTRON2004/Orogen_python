@@ -68,8 +68,8 @@ The order may change as actual dependencies between modules become clearer.
 | Area | Status | Current scope and remaining work |
 |---|---|---|
 | Python package and core | Partial | Seed/RNG, simplex noise, rotations, spherical geometry, Fibonacci generation, projection, sphere mesh, spatial indexing, SimMesh, barycentric location, BFS, rings, heap and Dijkstra are implemented. Persistence and full upstream configuration are not. |
-| Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity and first-pass resolution are implemented. Initial-world generation, scenario builders and several plate operations remain absent. |
-| Tectonic evolution | Partial | Contact-boundary classification, adaptive dt, orogenic record spreading, force collection, mantle heat, supercontinent-cycle state, partial plate-motion update and a partial `step_world` are implemented. The complete upstream event/slow-stage loop is not. |
+| Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity, first-pass resolution and the rift-partition helper are implemented. Initial-world generation, scenario builders, rift-path search and plate splitting remain absent. |
+| Tectonic evolution | Partial | Contact-boundary classification, adaptive dt, orogenic record spreading, force collection, mantle heat, supercontinent-cycle state, partial plate-motion update and a partial `step_world` are implemented. The complete upstream event/slow-stage loop is not. |\n| Rift geometry and partitioning | Partial | `orogen.v2.tectonics.ops.rift_partition` ports ocean continuation, side assignment, exterior-sea detection, block scoring and elongation. Upstream path search/validation and plate splitting are still missing. |
 | Mantle plumes | Partial | Initial/scheduled/probabilistic plume records, LIP province stamping, tail tracks, burst intervals and volcanic edifice growth are implemented and covered by tests. Queued `pendingPlumeRifts` are not executed. |
 | Terrain, geology, climate | Not ported as full V2 pipelines | Existing tectonic-side height/geology helpers are not substitutes for the upstream terrain and geology engines. The climate model remains outstanding. |
 | Finishing and agriculture | Not ported | Hydrology, erosion, ice, rock finishing and agriculture remain outstanding. |
@@ -102,7 +102,7 @@ The port must preserve the upstream behaviour for:
 
 - plume-triggered junction selection, waiting and expiry;
 - candidate rift-path search and shape validation;
-- crust partitioning and plate splitting;
+- candidate path scoring and plate splitting (the partition/side-analysis helper itself is now ported);
 - plate naming, rift events and `lastRiftAt`;
 - paced spontaneous rifting under tectonic tension and mantle heat.
 

@@ -249,3 +249,65 @@ This is a tested rifting subsystem and a partial stepper integration, not the
 entire `simulate.js` generator. The upstream collision/orogeny, subduction,
 arc, ocean-plate evolution, terrain, geology, climate and snapshot stages are
 still outstanding.
+
+
+## Passive-margin subduction initiation
+
+Module: `orogen.v2.tectonics.subduction_init`
+
+- `initiate_subduction(world, dt)` groups old oceanic contacts between plates,
+  filters short, young, stale and strongly diverging boundaries, applies the
+  configured initiation probability, chooses the overriding/downgoing side,
+  arms trench cells and logs a `SUBDUCTION_INIT` event.
+- If one side is the passive background-ocean plate, it first calls
+  `birth_ocean_plate` to create a mobile plate from reachable background
+  oceanic crust.
+- `choose_foundering(world, plate_a, plate_b, segment)` prefers the side
+  with more continental land as the overriding plate; an ocean/ocean tie is
+  resolved by oceanic crust age.
+- `arm_margin(world, upper, lower, segment)` records the trench/slab depth
+  on the overriding plate.
+- `is_on_segment(world, lower, cell, upper)` tests whether a cell in the
+  upper plate touches lower-plate crust.
+- `founder_within_plates(world, dt)` is the separate slow-stage operation
+  that can split a mobile plate along an old oceanic margin; it is exported,
+  but is not yet scheduled by `step_world` because the upstream slow-stage
+  cadence has not been ported.
+
+`step_world` runs `initiate_subduction` when
+`subductionInitRatePerMyr > 0`. If a rift or subduction changes plate
+topology, the stepper rebuilds ownership and classifies boundaries again
+before the force-balance stage. This is initiation only, not the complete
+subduction/slab evolution model.
+
+## Arc operations
+
+The following helpers are tested but remain outside the stepper until the
+collision event loop and slow-stage cadence are ported:
+
+- `orogen.v2.tectonics.arc_maturation.mature_arcs(world, dt)` advances a
+  distance-based front and converts mature island-arc cells touching
+  continental/cratonic crust into continental crust. Margin-island cells are
+  excluded, and other crust-history fields are retained.
+- `orogen.v2.tectonics.ops.scrape_arc.scrape_arc(world, host, donor, cells)`
+  transfers arc raster cells into a host plate using the plate-frame rotation,
+  absorbs cells where the host already has land, records a suture, and retires
+  an empty donor plate.
+
+## Plate transfer and passive-ocean birth
+
+Module: `orogen.v2.tectonics.ops`
+
+- `transfer_cells(world, source, target, cells)` transfers crust history
+  between plate frames, transforms directional far-field records, avoids
+  overwriting existing host land/ocean, and removes the source cells.
+- `free_cell_beside(target, mesh, cell, world_point, taken)` finds the nearest
+  available target-frame neighbour when transferred land overlaps host land.
+- `birth_ocean_plate(world, background, seed_cells, reach_km, name)` carves a
+  connected region from the passive background ocean, subject to the minimum
+  area setting, and records a `PLATE_BORN` event.
+- `ocean_plate_name(world)` returns the next generated `Thalassa` name.
+
+These are plate operations used by subduction initiation and intra-plate
+foundering. They do not yet replace the full upstream back-arc/ocean-plate
+lifecycle.

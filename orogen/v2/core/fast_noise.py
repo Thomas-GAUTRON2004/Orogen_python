@@ -10,6 +10,7 @@ import math
 import numpy as np
 
 from .seed import make_rng
+from ._numba_kernels import NUMBA_AVAILABLE, noise3d_numba, fbm_numba, fbm_many_numba
 
 _GRAD = (
     1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0,
@@ -35,6 +36,13 @@ class FastNoise:
             self.pm3[i] = 3 * (value % 12)
 
     def noise3d(self, x: float, y: float, z: float) -> float:
+        if NUMBA_AVAILABLE:
+            return float(noise3d_numba(
+                x, y, z, self.perm, self.pm3, np.asarray(_GRAD, dtype=np.float64)
+            ))
+        return self._noise3d_python(x, y, z)
+
+    def _noise3d_python(self, x: float, y: float, z: float) -> float:
         p, m, g = self.perm, self.pm3, _GRAD
         f, h = 1 / 3, 1 / 6
         skew = (x + y + z) * f
@@ -90,6 +98,37 @@ class FastNoise:
         return 32 * (n0 + n1 + n2 + n3)
 
     def fbm(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        octaves: int = 5,
+        persistence: float = 2 / 3,
+    ) -> float:
+        if NUMBA_AVAILABLE:
+            return float(fbm_numba(
+                x, y, z, octaves, persistence, self.perm, self.pm3,
+                np.asarray(_GRAD, dtype=np.float64),
+            ))
+        return self._fbm_python(x, y, z, octaves, persistence)
+
+    def fbm_many(
+        self, points: np.ndarray, octaves: int = 5, persistence: float = 2 / 3
+    ) -> np.ndarray:
+        """Evaluate an (N, 3) float64 point array in one compiled call when available."""
+        values = np.ascontiguousarray(points, dtype=np.float64)
+        if values.ndim != 2 or values.shape[1] != 3:
+            raise ValueError("points must have shape (N, 3)")
+        if NUMBA_AVAILABLE:
+            return fbm_many_numba(
+                values, octaves, persistence, self.perm, self.pm3,
+                np.asarray(_GRAD, dtype=np.float64),
+            )
+        return np.asarray([
+            self._fbm_python(x, y, z, octaves, persistence) for x, y, z in values
+        ], dtype=np.float64)
+
+    def _fbm_python(
         self,
         x: float,
         y: float,

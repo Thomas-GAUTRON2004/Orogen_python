@@ -1,5 +1,6 @@
 import json, math, platform, statistics, sys, time
 import numpy as np
+from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
 from orogen.v2.core.sphere_geometry import destination, bearing_to, dot
 from orogen.v2.core.mesh_bfs import hop_distance
@@ -17,7 +18,7 @@ def median_ms(fn):
         samples.append((time.perf_counter()-start)*1000)
     return statistics.median(samples)
 
-points=[(math.sin(i*.013)*17.0, math.cos(i*.007)*11.0, math.sin(i*.003+.4)*23.0) for i in range(N_NOISE)]
+points=np.asarray([(math.sin(i*.013)*17.0, math.cos(i*.007)*11.0, math.sin(i*.003+.4)*23.0) for i in range(N_NOISE)], dtype=np.float64)
 vectors=[]
 for i in range(N_GEOM):
     z=1-2*(i+.5)/N_GEOM; a=i*2.399963229728653; r=math.sqrt(1-z*z)
@@ -38,7 +39,7 @@ sink=0
 def bench_noise():
     global sink
     s=0.0
-    for p in points: s+=noise.fbm(*p,5,2/3)
+    s=float(np.sum(noise.fbm_many(points,5,2/3)))
     sink=s
 def bench_geometry():
     global sink
@@ -70,4 +71,4 @@ timings={
 "mesh_dijkstra_ms":median_ms(bench_dijkstra),
 "crust_create_snapshot_ms":median_ms(bench_crust),
 }
-print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"platform":platform.platform()},"timings":timings}))
+print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings}))

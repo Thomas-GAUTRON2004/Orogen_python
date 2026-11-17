@@ -13,6 +13,8 @@ import numpy as np
 
 from .sphere_geometry import PLANET_RADIUS_KM
 
+from ._numba_kernels import NUMBA_AVAILABLE, hop_distance_numba
+
 Predicate = Callable[[int], bool]
 
 
@@ -66,6 +68,14 @@ def hop_distance(
     """Return hop distance from all source cells; -1 means unreachable."""
     n = int(sim_mesh.num_cells)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
+    if NUMBA_AVAILABLE and can_enter is None:
+        sources = np.fromiter((bool(is_source(cell)) for cell in range(n)), dtype=np.bool_, count=n)
+        return hop_distance_numba(
+            np.ascontiguousarray(offsets, dtype=np.int32),
+            np.ascontiguousarray(adjacency, dtype=np.int32),
+            sources,
+            int(max_hops) if math.isfinite(max_hops) else n,
+        )
     distance = np.full(n, -1, dtype=np.int16)
     frontier = []
     for cell in range(n):

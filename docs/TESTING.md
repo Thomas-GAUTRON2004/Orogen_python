@@ -47,13 +47,14 @@ CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before runn
 
 ## Latest documented verification
 
-The latest successful test run explicitly recorded in the benchmark documentation is:
+The production `shull` branch has a successful full test run:
 
-- **476 tests passed**;
-- **100% line coverage** for `orogen.v2`;
-- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
+- **477 tests passed**;
+- **100% line coverage** for `orogen.v2` (5,925 executable lines);
+- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44182194923);
+- validated revision: `9112b1704c306d9f758e81fbf6050f115f54e015`.
 
-This is a historical verified run, not a claim that the current branch head has been tested. The run is associated in the project history with commit `6ea20d647169979ccbdf107732ddb7f2535695b9`; rerun CI after subsequent code changes to establish the current status.
+This run includes the seven selected Delaunator differential fixtures. Rerun CI after subsequent code changes to establish the status of a changed source revision.
 
 The differential suite covers selected core, geometry, mesh and tectonic operations. Delaunay triangles/neighbourhoods matched for seven tested resolution/seed pairs: 12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, and 512/12345.
 

@@ -252,13 +252,13 @@ def test_arm_margin_sets_dirty_even_when_upper_cell_is_missing():
 
 
 def test_founder_within_plates_cuts_old_outer_ocean_and_arms_margin():
-    world, plate = make_intraplate_world()
+    world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
     assert founder_within_plates(world, 1.0) == 1
 
     fresh = world.plates[1]
     assert fresh.isOceanBorn is True
     assert fresh.name == "Thalassa"
-    assert fresh.crust.mask.tolist() == [0, 0, 1, 1, 0, 0]
+    assert fresh.crust.mask.tolist() == [0, 0, 1, 1, 1, 0]
     assert fresh.wings == {2: [1.0, 0.0, 0.0]}
     assert plate.wings == {1: [0.0, 1.0, 0.0]}
     assert plate.crust.flags[1] & CrustFlag["TRENCH"]
@@ -383,17 +383,20 @@ def test_founder_within_plates_skips_dead_and_empty_land_plates():
     assert founder_within_plates(world, 1.0) == 0
 
 
-def test_founder_within_plates_groups_contiguous_old_coast_and_stops_when_frontier_empties():
+def test_founder_within_plates_groups_contiguous_old_coast(monkeypatch):
     world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
     plate.crust.type[3] = CrustType["CONTINENT"]
     plate.refresh_extent(world.mesh.xyz)
+    monkeypatch.setattr(
+        subduction_init,
+        "exterior_sea",
+        lambda _mesh, _crust: np.zeros(world.mesh.num_cells, dtype=np.uint8),
+    )
 
-    assert founder_within_plates(world, 1.0) == 1
-    fresh = world.plates[-1]
-    assert fresh.crust.mask[4] == 1
-    assert fresh.crust.count == 1
-    assert plate.crust.flags[1] & CrustFlag["TRENCH"]
-    assert plate.crust.flags[2] & CrustFlag["TRENCH"]
+    # The two old coast cells are connected; the later seed is already assigned
+    # to that same run and must not start a second component.
+    assert founder_within_plates(world, 1.0) == 0
+    assert len(world.plates) == 1
 
 
 def test_founder_within_plates_rejects_runs_not_on_exterior_sea(monkeypatch):

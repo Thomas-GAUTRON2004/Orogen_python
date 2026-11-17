@@ -6,10 +6,16 @@ import numpy as np
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.collision import (
+    accrete_arcs,
     are_young_rift_partners,
     choose_sides,
     collect_contacts,
+    dock_if_terrane,
+    enclosed_sea_between_km2,
     forget_stale_collisions,
+    is_rift_jitter,
+    open_sea_between,
+    recycle_small_arc,
     underthrust,
 )
 

@@ -256,6 +256,7 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
 
 
 __all__ = [
+    "track_collisions",
     "are_young_rift_partners",
     "choose_sides",
     "collect_contacts",
@@ -725,3 +726,276 @@ def _position(xyz, cell: int):
         float(xyz[offset + 1]),
         float(xyz[offset + 2]),
     )
+
+
+def track_collisions(world, dt: float) -> dict:
+    """Track continent-on-continent contacts, shortening and underthrusting.
+
+    This is the first orchestration slice of upstream step/collision.js.
+    Terrane/arc docking and overlap underthrusting are handled when their
+    prerequisites are configured. Belt propagation and plate welding remain
+    separate follow-up stages because their Python implementations are not
+    yet complete.
+    """
+    step_dt = float(dt)
+    if not math.isfinite(step_dt) or step_dt <= 0.0:
+        raise ValueError("dt must be a finite positive number")
+
+    config = world.config
+    contacts = collect_contacts(world)
+    overlaps = contacts["overlap"]
+    touching = contacts["touching"]
+    forget_stale_collisions(world)
+
+    plates = world.plates
+    changed = False
+    started = 0
+    tracked = 0
+    underthrust_total = 0
+
+    def both_alive(id_a: int, id_b: int) -> bool:
+        return (
+            0 <= id_a < len(plates)
+            and 0 <= id_b < len(plates)
+            and plates[id_a].alive
+            and plates[id_b].alive
+        )
+
+    # Small landmasses dock on contact, even before they overlap.
+    if "terraneMaxAreaKm2" in config:
+        for key, cells in touching.items():
+            if key in overlaps or key in world.collisions:
+                continue
+            id_a, id_b = map(int, key.split(":"))
+            if both_alive(id_a, id_b):
+                if dock_if_terrane(world, plates[id_a], plates[id_b], cells):
+                    changed = True
+
+    mesh = world.mesh
+    xyz, index = mesh.xyz, mesh.index
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    owner, owner_cell = world.owner, world.ownerCell
+    land_claims = world.landClaims
+    edge_km = float(mesh.edge_km)
+    cell_area = float(mesh.cell_area_km2)
+
+    for key, overlap_values in overlaps.items():
+        id_a, id_b = map(int, key.split(":"))
+        if not both_alive(id_a, id_b):
+            continue
+
+        # Arcs are transferred before continent-on-continent overlap is
+        # counted. Keep this operation gated until its full config is present.
+        if {
+            "arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"
+        }.issubset(config):
+            arc_result = accrete_arcs(
+                world, plates[id_a], plates[id_b], overlap_values
+            )
+            core = arc_result["core"]
+            changed = changed or bool(arc_result["accreted"])
+        else:
+            core = [int(cell) for cell in overlap_values]
+
+        if not core or not both_alive(id_a, id_b):
+            continue
+
+        record = world.collisions.get(key)
+        if record is None:
+            if "riftJitterFrontKm" in config and is_rift_jitter(
+                world, plates[id_a], plates[id_b], core
+            ):
+                continue
+            if (
+                "riftPushMyr" in config
+                and "riftJitterFrontKm" in config
+                and are_young_rift_partners(
+                    plates[id_a], plates[id_b], float(world.time), config
+                )
+                and len(core) * cell_area / max(edge_km, 1e-12)
+                <= float(config["riftJitterFrontKm"])
+            ):
+                continue
+
+            sides = choose_sides(
+                world, plates[id_a], plates[id_b], core
+            )
+            record = {
+                "upper": sides["upper"].id,
+                "lower": sides["lower"].id,
+                "startedAt": float(world.time),
+                "lastActive": float(world.time),
+                "shorteningKm": 0.0,
+                "frontKm": 0.0,
+                "closingCmYr": 0.0,
+                "meanRateCmYr": 0.0,
+                "stalledMyr": 0.0,
+                "contactMyr": 0.0,
+                "cells": 0,
+                "sutured": False,
+                "announce": True,
+                "underthrustDue": 0.0,
+                "underthrustCells": 0,
+                "frontMaxKm": 0.0,
+                "sutureCandidate": False,
+            }
+            world.collisions[key] = record
+            started += 1
+
+            if (
+                "terraneMaxAreaKm2" in config
+                and dock_if_terrane(
+                    world, sides["upper"], sides["lower"], core
+                )
+            ):
+                del world.collisions[key]
+                changed = True
+                continue
+
+        if record.get("sutured", False):
+            continue
+
+        upper = plates[int(record["upper"])]
+        lower = plates[int(record["lower"])]
+        if not upper.alive or not lower.alive:
+            continue
+
+        cells = [int(cell) for cell in core]
+        record["cells"] = len(cells)
+        record["lastActive"] = float(world.time)
+        record["contactMyr"] = (
+            float(record.get("contactMyr", 0.0)) + step_dt
+        )
+
+        centre = centroid_of_cells(xyz, cells)
+        upper_centre = upper.to_world(*map(float, upper.capCenter))
+        lower_centre = lower.to_world(*map(float, lower.capCenter))
+        normal = tangent_toward(centre, lower_centre, upper_centre)
+        relative_omega = [
+            float(lower.omega[axis]) - float(upper.omega[axis])
+            for axis in range(3)
+        ]
+        closing = dot(cross(relative_omega, centre), normal)
+        closing_cm_yr = closing / CM_PER_YR_TO_RAD_PER_MYR
+        record["closingCmYr"] = closing_cm_yr
+
+        # A newly detected one-cell sliver between plates that are parting is
+        # a raster timing artefact, not a persistent collision.
+        front_limit = float(config.get("collisionJitterFrontKm", 0.0))
+        if (
+            record.get("announce", False)
+            and closing_cm_yr < 0.0
+            and len(cells) * cell_area / max(edge_km, 1e-12) <= front_limit
+        ):
+            world.collisions.pop(key, None)
+            continue
+
+        if record.get("announce", False):
+            record["announce"] = False
+            world.log(
+                EventKind["COLLISION"],
+                f"{lower.name} meets {upper.name}",
+                {"upper": upper.id, "lower": lower.id},
+            )
+
+        shortening_km = max(0.0, closing) * step_dt * PLANET_RADIUS_KM
+        record["shorteningKm"] = (
+            float(record["shorteningKm"]) + shortening_km
+        )
+        stall_rate = float(config.get("sutureStallCmYr", 0.4))
+        record["stalledMyr"] = (
+            float(record.get("stalledMyr", 0.0)) + step_dt
+            if closing_cm_yr < stall_rate else 0.0
+        )
+        elapsed = max(
+            step_dt,
+            float(world.time) - float(record["startedAt"]),
+        )
+        record["meanRateCmYr"] = (
+            float(record["shorteningKm"]) / elapsed / 10.0
+        )
+
+        upper_front = []
+        lower_front = []
+        for world_cell in cells:
+            touches_upper = False
+            touches_lower = False
+            for edge in range(
+                int(offsets[world_cell]), int(offsets[world_cell + 1])
+            ):
+                neighbour = int(adjacency[edge])
+                if (
+                    int(land_claims[neighbour]) > 1
+                    or int(owner[neighbour]) < 0
+                ):
+                    continue
+                neighbour_plate = int(owner[neighbour])
+                local_cell = int(owner_cell[neighbour])
+                if (
+                    neighbour_plate == upper.id
+                    and upper.crust.type[local_cell] != CrustType["OCEAN"]
+                ):
+                    touches_upper = True
+                if (
+                    neighbour_plate == lower.id
+                    and lower.crust.type[local_cell] != CrustType["OCEAN"]
+                ):
+                    touches_lower = True
+
+            offset = 3 * world_cell
+            point = (
+                float(xyz[offset]),
+                float(xyz[offset + 1]),
+                float(xyz[offset + 2]),
+            )
+            if touches_upper:
+                upper_front.append(upper.cell_at(index, *point))
+            if touches_lower:
+                lower_front.append(lower.cell_at(index, *point))
+
+        upper_front = list(dict.fromkeys(upper_front))
+        lower_front = list(dict.fromkeys(lower_front))
+        record["frontKm"] = (
+            max(len(upper_front), len(lower_front))
+            * edge_km * math.sqrt(3.0) / 2.0
+        )
+        record["frontMaxKm"] = max(
+            float(record.get("frontMaxKm", 0.0)),
+            float(record["frontKm"]),
+        )
+
+        under_now = underthrust(
+            world, upper, lower, cells, record, shortening_km
+        )
+        underthrust_total += under_now
+        changed = changed or under_now > 0
+
+        # Mark records that have met the first-order shortening/contact
+        # thresholds. Actual welding waits for sea-gap closure and merge logic.
+        ready = (
+            float(record["shorteningKm"])
+            >= float(config.get("sutureShorteningKm", math.inf))
+            or (
+                float(record["stalledMyr"])
+                >= float(config.get("sutureStallMyr", math.inf))
+                and float(record["shorteningKm"])
+                >= float(config.get("sutureStallMinKm", math.inf))
+            )
+            or float(record["contactMyr"])
+            >= float(config.get("sutureContactMyr", math.inf))
+            or len(cells) * cell_area
+            >= float(config.get("sutureOverlapKm2", math.inf))
+        )
+        record["sutureCandidate"] = bool(
+            ready
+            and float(record["frontMaxKm"])
+            >= float(config.get("sutureMinContactKm", math.inf))
+        )
+        tracked += 1
+
+    return {
+        "tracked": tracked,
+        "started": started,
+        "underthrustCells": underthrust_total,
+        "changed": changed,
+    }

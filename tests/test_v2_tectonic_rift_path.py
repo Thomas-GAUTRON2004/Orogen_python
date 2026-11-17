@@ -266,3 +266,20 @@ def test_find_rift_rejects_poorly_balanced_land_blocks(monkeypatch):
     assert find_rift(
         world, plate, junction=24, need_cratons_both_sides=False
     ) is None
+
+
+def test_find_rift_stops_when_pair_cost_exceeds_slack(monkeypatch):
+    world, plate = square_world()
+    world.config["riftCostSlack"] = 0.0
+    monkeypatch.setattr(
+        rift_path,
+        "sides_of",
+        lambda *_args: {
+            "share": 0.0,
+            "elongation": 1.0,
+            "cratonsBothSides": False,
+        },
+    )
+    assert find_rift(
+        world, plate, junction=24, need_cratons_both_sides=False
+    ) is None

@@ -286,7 +286,7 @@ Module: `orogen.v2.tectonics.thermal`
 - `plume_heat_factor(world, plate)` returns the normalized thermal multiplier for plume-triggered continental rifting.
 - `pick_plume_site(world, rng)` draws a world cell by the weight `plumeOceanWeight + (1 - plumeOceanWeight) * mantleHeat[cell]`, excluding cells within `plumeSpacingKm` of a live plume.
 
-The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector and plume birth/life records are ported. Head eruptions now rasterize connected LIP provinces. Volcanic-track stamping and volcano pulse/build-up remain unported.
+The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector, plume birth/life records, head LIP rasterization, and live-tail volcanic tracks are ported. Tail tracks now preserve LIP crust while recording TRACK cells and pulse-driven edifice growth.
 
 ## Mantle heat and plume lifecycle
 
@@ -300,4 +300,4 @@ The lifecycle layer is implemented in `orogen.v2.tectonics.plumes`:
 
 `_erupt_lip` builds the LIP footprint from overlapping, rotated elliptical flows, five low-order radial lobes, and warped simplex-fBm edge noise. The province grows over the mesh adjacency graph; eligible owned cells receive `VolcanicType.LIP`, thickness, source and `CrustFlag.LIP` records. The shape seed comes from `rngVolcano` while the initial area draw uses `rngHotspot`, preserving the independent streams. This is a numerical port of the upstream head-province stage, not a demonstrated bit-for-bit match for all meshes.
 
-The remaining hotspot work is tail-track stamping and volcano pulse/build-up. The queued plume-triggered rifts are still not executed by the partial stepper.
+`_stamp_track` finds the plate currently over a live mantle plume, grows a connected ribbon within `hotspotTrackKm`, preserves existing LIP cells, and marks other cells as `VolcanicType.TRACK`. `_erupted_during` advances alternating quiet/burst intervals; burst intensity and duration scale edifice growth inside `hotspotEdificeKm`, capped by `hotspotMaxKm`. The remaining hotspot gap is execution of the queued plume-triggered rifts.

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from orogen.v2.tectonics.crust import CrustType
-from orogen.v2.tectonics.plumes import birth_plume, update_plumes
+from orogen.v2.tectonics.plumes import _erupted_during, _stamp_track, birth_plume, update_plumes
 from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.world import EventKind
 
@@ -71,6 +71,14 @@ def make_world():
             "lipThicknessKm": 2.0,
             "lipLobes": 0.5,
             "lipEdgeNoise": 0.3,
+            "hotspotTrackKm": 250.0,
+            "hotspotEdificeKm": 50.0,
+            "hotspotBuildKmPerMyr": 2.0,
+            "hotspotMaxKm": 10.0,
+            "hotspotQuietMinMyr": 1.5,
+            "hotspotQuietMaxMyr": 5.0,
+            "hotspotBurstMinMyr": 0.6,
+            "hotspotBurstMaxMyr": 2.0,
         },
         rngHotspot=lambda: 0.0,
         rngVolcano=lambda: 0.5,
@@ -327,3 +335,78 @@ def test_head_eruption_rejects_invalid_area_configuration():
             world, [1.0, 0.0, 0.0], head=True, rift=False,
             name="Bad area", life_myr=10.0, strength=1.0,
         )
+
+
+def test_tail_track_preserves_lip_and_builds_a_separate_volcano():
+    world = make_world()
+    world.time = 10.0
+    world.hotspotsReady = True
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0,
+        np.cos(0.01), np.sin(0.01), 0.0,
+        np.cos(0.02), np.sin(0.02), 0.0,
+        0.0, 1.0, 0.0,
+    ], dtype=np.float64)
+    world.mesh.adj_offset = np.array([0, 1, 3, 5, 6], dtype=np.int32)
+    world.mesh.adj_list = np.array([1, 0, 2, 1, 3, 2], dtype=np.int32)
+    world.mesh.index = SimpleNamespace(nearest=lambda x, y, z: 0)
+    crust = world.plates[0].crust
+    crust.volcType[0] = 2
+    crust.volcKm[0] = 2.0
+    plume = {
+        "id": 0, "name": "Track", "xyz": [1.0, 0.0, 0.0],
+        "bornAt": 0.0, "dieAt": 100.0, "alive": True, "strength": 0.5,
+        "pulseUntil": 100.0, "bursting": True, "pulseIntensity": 1.2,
+    }
+    world.hotspots = [plume]
+
+    update_plumes(world, 1.0)
+
+    assert crust.volcType[0] == 2
+    assert crust.volcKm[0] == pytest.approx(3.2)
+    assert crust.volcType[1] == 1
+    assert crust.volcType[2] == 1
+    assert crust.volcKm[1] == 0.0
+    assert crust.volcKm[2] == 0.0
+    assert crust.volcAt[0] == pytest.approx(10.0)
+    assert crust.volcSource[2] == 1
+
+
+def test_erupted_during_advances_quiet_and_burst_intervals():
+    world = make_world()
+    rng_values = iter([0.0, 0.0, 0.0, 0.5])
+    world.rngVolcano = lambda: next(rng_values)
+    plume = {
+        "pulseUntil": None, "bursting": False, "pulseIntensity": 0.0,
+    }
+
+    erupted = _erupted_during(world, plume, 0.0, 2.0)
+
+    assert erupted == pytest.approx(0.3)
+    assert plume["bursting"] is False
+    assert plume["pulseIntensity"] == pytest.approx(0.5)
+    assert plume["pulseUntil"] == pytest.approx(3.85)
+
+
+def test_track_skips_unowned_provisional_and_empty_crust_sites():
+    world = make_world()
+    world.time = 10.0
+    world.mesh.index = SimpleNamespace(nearest=lambda x, y, z: 0)
+    plume = {
+        "id": 0, "xyz": [1.0, 0.0, 0.0], "strength": 1.0,
+        "pulseUntil": None, "bursting": False, "pulseIntensity": 0.0,
+    }
+
+    world.owner[0] = -1
+    _stamp_track(world, plume, 1.0)
+    assert plume["pulseUntil"] is None
+
+    world.owner[0] = 0
+    world.provisional[0] = 1
+    _stamp_track(world, plume, 1.0)
+    assert plume["pulseUntil"] is None
+
+    world.provisional[0] = 0
+    world.plates[0].crust.mask[0] = 0
+    _stamp_track(world, plume, 1.0)
+    assert plume["pulseUntil"] is None

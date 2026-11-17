@@ -1,7 +1,6 @@
-"""Mantle-plume lifecycle and LIP province rasterization from V2 hotspots.js.
+"""Mantle-plume lifecycle, LIP provinces, and volcanic tracks from V2 hotspots.js.
 
-Plume tails, volcano pulse/build-up, and execution of queued plume rifts are
-left to later tectonic stages.
+Execution of queued plume-triggered rifts remains a later tectonic stage.
 """
 from __future__ import annotations
 
@@ -82,7 +81,8 @@ def birth_plume(
 ) -> dict:
     """Register a mantle-frame plume, erupt its head LIP, and optionally queue a rift.
 
-    Tail-track stamping and execution of the queued rift remain separate stages.
+    Active plume tails stamp tracks and pulse-built edifices; queued rift execution
+    remains a separate tectonic stage.
     """
     position = np.asarray(xyz, dtype=np.float64).reshape(-1)
     if position.size != 3 or not np.all(np.isfinite(position)):
@@ -172,8 +172,8 @@ def update_plumes(world, dt: float) -> dict:
     """Update mantle heat and plume birth/death records for one simulation step.
 
     Scheduled entries may specify xyz or a plate/cell pair. Random births use the
-    dedicated hotspot RNG stream. Head births construct their LIP raster; plume
-    tracks and execution of queued rifts remain separate stages.
+    dedicated hotspot RNG stream. Head births construct LIPs; active tails stamp
+    tracks and pulse-built edifices. Queued rifts remain for a later stage.
     """
     step = float(dt)
     if not math.isfinite(step) or step < 0.0:

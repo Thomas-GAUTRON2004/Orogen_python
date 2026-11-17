@@ -15,6 +15,8 @@ class Mesh:
         1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
         -1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
     ], dtype=np.float64)
+    adj_offset = np.array([0, 3, 6, 9, 12], dtype=np.int32)
+    adj_list = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2], dtype=np.int32)
 
     class Index:
         def nearest(self, x, y, z):
@@ -44,6 +46,10 @@ def make_world():
             "plumeLifeMinMyr": 80.0, "plumeLifeMaxMyr": 80.0,
             "plumeRiftChance": 1.0, "riftMinContinentKm2": 1000.0,
             "riftHeatGain": 0.0, "riftHeatFloor": 1.0, "riftHeatPower": 1.0,
+            "hotspotTrackKm": 250.0, "hotspotEdificeKm": 50.0,
+            "hotspotBuildKmPerMyr": 2.0, "hotspotMaxKm": 10.0,
+            "hotspotQuietMinMyr": 1.5, "hotspotQuietMaxMyr": 5.0,
+            "hotspotBurstMinMyr": 0.6, "hotspotBurstMaxMyr": 2.0,
         },
         rngHotspot=lambda: 0.0,
         rngVolcano=lambda: 0.5,

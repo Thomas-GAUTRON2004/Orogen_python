@@ -11,7 +11,7 @@ tectonic operations. The current implementation includes:
 - `orogen.v2.tectonics`: crust and plate state, kinematics, occupancy and claim
   gathering, resolution and boundary classification, force/dynamics helpers,
   orogenic-belt spreading, mantle heat, supercontinent cycle, plume lifecycle,
-  rift-path search, plate splitting and rift orchestration.
+  rift-path search, plate splitting and rift orchestration, passive-margin subduction initiation, ocean-plate birth, inter-plate crust transfer, and standalone arc operations.
 
 The exact exported names are listed in the package `__init__.py` files and
 summarized in the API reference pages. Internal helpers beginning with an
@@ -52,13 +52,21 @@ but not yet a complete simulation engine.
   coast-to-coast path, split the plate and record new rift margins.
 - `rift_continents` handles queued plume rifts, paced/overdue breakups and
   spontaneous rifting.
+- `subduction_init` starts passive-margin trenches on old non-diverging contacts;
+  it can carve a new mobile ocean plate from the passive background.
+- `arc_maturation` and `ops.scrape_arc` provide separately tested arc
+  maturation and host-plate transfer operations; their slow/collision cadence
+  is not yet orchestrated.
 - `step_world` connects the currently ported movement, resolution,
-  classification, plume, cycle, rifting and motion stages.
+  classification, plume, cycle, rifting, subduction-initiation and motion stages.
+  It rebuilds ownership/boundaries after rifts or new subduction systems before
+  force balancing.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
-not yet ported. The full collision/orogeny event pipeline, subduction/arc
-stages, ocean-plate evolution, terrain/geology stages, snapshots and run/resume
-handling remain outstanding.
+not yet ported. The full collision/orogeny event pipeline, slab/subduction
+propagation, arc-scraping orchestration, arc maturation slow cadence, back-arcs,
+ocean-plate evolution, terrain/geology stages, snapshots and run/resume handling
+remain outstanding.
 
 ## Coordinate conventions
 
@@ -119,10 +127,11 @@ dependency versions is output-neutral.
 The current `step_world` function is a partial one-step orchestration. It
 advances plate poses, resolves world ownership, classifies contacts, updates
 plumes and mantle heat, advances the supercontinent cycle, processes
-continental rifting when the rift configuration is present, and optionally
-updates plate motion. It does not run the complete upstream collision/orogeny,
-subduction initiation, arc, ocean-plate, slow terrain/geology or snapshot
-sequence. It should not be treated as a full `simulate` generator.
+continental rifting and passive-margin subduction initiation when their
+configuration is present, and optionally updates plate motion. After a rift or
+new subduction system it resolves ownership/boundaries again before the force
+solve. It does not run the complete upstream collision/orogeny, slab evolution,
+arc/back-arc, ocean-plate, slow terrain/geology or snapshot sequence. It should not be treated as a full `simulate` generator.
 
 ## Extension principles
 

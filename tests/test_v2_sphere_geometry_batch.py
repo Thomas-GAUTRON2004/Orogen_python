@@ -146,6 +146,8 @@ def test_crust_batch_methods_broadcast_and_handle_empty_inputs():
         raster.create_many([1, 2], [1, 2, 3], 0.0)
     with pytest.raises(IndexError, match="cell index out of range"):
         raster.snapshot_many([4])
+    with pytest.raises(ValueError, match="one-dimensional integer"):
+        raster.create_many([1.5], 1, 0.0)
 
 
 def test_crust_batch_methods_use_python_fallback(monkeypatch):

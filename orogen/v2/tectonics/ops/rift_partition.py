@@ -339,7 +339,7 @@ def _through_ocean(mesh, crust, path: list[int]) -> list[int]:
         result = []
         current = end
         coming_from = previous
-        steps = round(_RIFT_OCEAN_REACH_KM / float(mesh.edge_km))
+        steps = math.floor(_RIFT_OCEAN_REACH_KM / float(mesh.edge_km) + 0.5)
         for _ in range(steps):
             current_position = _position(mesh.xyz, current)
             direction = tangent_toward(

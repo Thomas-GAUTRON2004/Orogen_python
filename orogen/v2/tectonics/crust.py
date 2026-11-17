@@ -61,8 +61,19 @@ class CrustRaster:
             raise ValueError("num_cells must be positive")
         self.numCells = int(num_cells)
         self.mask = np.zeros(num_cells, dtype=np.uint8)
+
+        # Allocate one backing matrix per dtype instead of one allocation per
+        # field. Each field remains a contiguous, independently writable 1-D
+        # view with exactly the same dtype and values as before.
+        fields_by_dtype = {}
         for name in CELL_FIELDS:
-            setattr(self, name, np.zeros(num_cells, dtype=_DTYPES[name]))
+            dtype = np.dtype(_DTYPES[name])
+            fields_by_dtype.setdefault(dtype, []).append(name)
+        for dtype, names in fields_by_dtype.items():
+            storage = np.zeros((len(names), num_cells), dtype=dtype)
+            for row, name in enumerate(names):
+                setattr(self, name, storage[row])
+
         self.count = 0
         self.fields = [getattr(self, name) for name in CELL_FIELDS]
         self._numba_fields = tuple(self.fields)

@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from ..core.mesh_rings import RING_COUNT, rings_of
+from ..core.mesh_rings import rings_of
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .crust import CrustFlag, CrustType
 from .gather import clear_world_view, for_each_claim
@@ -15,9 +15,6 @@ from .segments import fracture_coordinate
 REACH_RINGS = 2
 AHEAD_CONE = 0.5
 PROXIMITY_RINGS = 3
-if PROXIMITY_RINGS > RING_COUNT:
-    raise RuntimeError("core mesh keeps too few rings for the growth step")
-
 
 def resolve(world) -> dict[str, int]:
     """Settle convergence and divergence and rebuild a complete world ownership view."""

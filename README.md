@@ -2,7 +2,7 @@
 
 A progressive Python port of the **Orogen 3.0.1** procedural planetary simulation engine. The implementation is based on the upstream [planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation) repository, release `v3.0.1`.
 
-> **Status:** the port contains tested numerical and tectonic subsystems, including a partial one-step orchestrator and a working continental-rifting stage. It is not yet a complete port of the JavaScript simulation pipeline and does not yet generate a complete planet.
+> **Status:** the port contains tested core and tectonic subsystems, including continental rifting and passive-margin subduction initiation in a partial one-step orchestrator. It is not yet a complete port of the JavaScript simulation pipeline and does not yet generate a complete planet.
 
 ## Documentation
 
@@ -68,9 +68,18 @@ The rifting subsystem now includes:
 - queued plume-triggered rifts, waiting/expiry, forced overdue breakups and spontaneous tension/heat-driven rifting;
 - integration of the rifting stage into `step_world` when the rift configuration is present.
 
+The passive-margin initiation subsystem now includes:
+- initiation along sufficiently old, long, non-diverging inter-plate ocean contacts;
+- upper/lower plate selection from continental land share and oceanic crust age;
+- trench arming and initiation events;
+- creation of a new mobile oceanic plate when the passive background ocean is the downgoing side;
+- a separate intra-plate old-margin founder operation (`founder_within_plates`) that awaits the upstream slow-step cadence.
+
+Additional arc operations are available as tested standalone helpers: island-arc maturation into continental crust and arc scraping/transfer to an overriding plate. Collision-driven orchestration of arc scraping and slow-step integration of arc maturation are not yet wired into `step_world`.
+
 ## Remaining porting work
 
-This is not yet the complete tectonic engine. The upstream `TECTONICS` defaults and initial-world/scenario builders are not ported. Collision and orogeny event handling, subduction initiation and arcs, ocean-plate evolution/splitting, the complete simulation generator, snapshots and save/load are still outstanding. The full terrain, general geology, climate, finishing and agriculture pipelines also remain to be ported. See [Porting status](docs/PORTING_STATUS.md) for the breakdown.
+This is not yet the complete tectonic engine. The upstream `TECTONICS` defaults and initial-world/scenario builders are not ported. Collision and orogeny event handling, full subduction/slab evolution, arc scraping orchestration, back-arc and ocean-plate evolution, the complete simulation generator, snapshots and save/load are still outstanding. The full terrain, general geology, climate, finishing and agriculture pipelines also remain to be ported. See [Porting status](docs/PORTING_STATUS.md) for the breakdown.
 
 ## Numerical backend and reproducibility
 
@@ -80,7 +89,7 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest verified pull-request Actions run for commit `ca5757b83be2b32c750fda07a7d6a11e5cefb4be` (run #540) completed **295 passing tests** with **100% line coverage across 3,938 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or prove whole-engine JavaScript parity.
+The latest verified pull-request Actions run for commit `e22d0a738482b7ca0d32648cc3a5009792eeaa77` (run #609) completed **340 passing tests** with **100% line coverage across 4,395 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or prove whole-engine JavaScript parity.
 
 ## Upstream and license
 

@@ -111,6 +111,11 @@ def _bearing_kernel(qx, qy, qz, ex, ey, ez, nx, ny, nz):
     return math.atan2(north_dot, east_dot)
 
 
+def _crust_zero_fields_kernel(cell, fields):
+    for field in literal_unroll(fields):
+        field[cell] = 0
+
+
 def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     n = sources.size
     distance = np.full(n, -1, dtype=np.int16)

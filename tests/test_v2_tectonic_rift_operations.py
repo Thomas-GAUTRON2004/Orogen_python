@@ -241,3 +241,13 @@ def test_choose_junction_failed_rift_is_also_a_weak_seed():
     selected = 3 * 7 + 3
     plate.crust.flags[selected] |= CrustFlag["FAILED_RIFT"]
     assert choose_junction(world, plate, lambda: 0.45) == selected
+
+
+def test_choose_junction_falls_back_to_last_candidate_if_rng_overshoots():
+    world, plate = square_junction_fixture()
+    candidates = [
+        row * 7 + col
+        for row in range(2, 5)
+        for col in range(2, 5)
+    ]
+    assert choose_junction(world, plate, lambda: 1.1) == candidates[-1]

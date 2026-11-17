@@ -254,11 +254,3 @@ def largest_piece_of(sim_mesh: Any, cells: Iterable[int]) -> list[int]:
             best = piece
     return best
 
-
-def largest_piece_of(sim_mesh: Any, cells: Iterable[int]) -> list[int]:
-    """Return the largest connected component; the first wins ties."""
-    best: list[int] = []
-    for piece in pieces_of(sim_mesh, cells):
-        if len(piece) > len(best):
-            best = piece
-    return best

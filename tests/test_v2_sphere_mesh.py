@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+from orogen.v2.core import sphere_mesh
 
 from orogen.v2.core.seed import make_rng
 from orogen.v2.core.sim_mesh import build_sim_mesh
@@ -77,3 +80,17 @@ def test_point_location_on_generated_mesh_recovers_containing_triangle():
     assert np.all(weights >= 0)
     assert np.isclose(weights.sum(), 1.0)
     assert len(set(map(int, cells))) == 3
+
+
+
+def test_build_sphere_wraps_native_triangulation_errors(monkeypatch):
+    def fail(_points):
+        raise RuntimeError("native triangulation failure")
+
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", fail)
+    points = np.asarray([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
+    with pytest.raises(
+        ValueError,
+        match="Delaunay triangulation failed for the projected sphere",
+    ):
+        sphere_mesh._closed_triangles(points, 3)

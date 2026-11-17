@@ -69,6 +69,7 @@ def test_update_mantle_heat_rejects_invalid_state_and_time():
         update_mantle_heat(world, 1.0)
     world = make_world()
     world.hotspotsReady = True
+    world.config["mantleInsulateMyr"] = 0.0
     with pytest.raises(ValueError):
         update_mantle_heat(world, 1.0)
 

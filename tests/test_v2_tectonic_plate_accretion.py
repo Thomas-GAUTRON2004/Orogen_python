@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from orogen.v2.tectonics.crust import CrustFlag, CrustType
+from orogen.v2.tectonics.crust import BeltSide, CrustFlag, CrustType
 from orogen.v2.tectonics.ops.plate_accretion import (
     accrete_terrane,
     close_seas_between,
@@ -131,7 +131,7 @@ def test_close_seas_between_keeps_wide_open_water_and_large_inland_seas():
 
     cfg["inlandSeaMaxKm2"] = 1000.0
     # Make the far-side seed an ocean cell; it remains open even when small.
-    upper.capCenter = [0.5, 0.866, 0.0]
+    upper.capCenter = [-0.5, -0.866, 0.0]
     assert close_seas_between(crust, origin, mesh, upper, cfg, 5.0) == 0
 
 
@@ -184,19 +184,12 @@ def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     assert host.crust.flags[2] & CrustFlag["SUTURE"]
     assert host.crust.terrane[2] == 30
     assert belt_calls == [
-        (host.id, [0], BeltSideUpper()),
-        (host.id, [1, 2], BeltSideLower()),
+        (host.id, [0], BeltSide["UPPER"]),
+        (host.id, [1, 2], BeltSide["LOWER"]),
     ]
     assert host.stats["cells"] == 3
     assert donor.stats["cells"] == 0
 
-
-def BeltSideUpper():
-    return 1
-
-
-def BeltSideLower():
-    return 2
 
 
 def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
@@ -250,6 +243,8 @@ def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
 
 def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     world, host, _donor = accretion_fixture()
-    result = landmass_of(host, world.mesh, [0, 1, 2])
+    host.crust.create(1, CrustType["CONTINENT"], -50.0, 11)
+    host.crust.create(2, CrustType["CRATON"], -25.0, 12)
+    result = landmass_of(host, world.mesh, [0, 2, 1])
 
-    assert result == [0]
+    assert result == [0, 1, 2]

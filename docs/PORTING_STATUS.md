@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Latest porting batch
 
-- Added collision tracking (`collision.py`): per-pair records, convergence/shortening, contact-front geometry, underthrusting, arc scraping and terrane docking. When the complete belt configuration is present, it spreads plateau-side and foreland-side orogenic belts. `step_world` schedules the stage when collision configuration is present and rebuilds ownership after crust transfers.
+- Added collision tracking (`collision.py`): per-pair records, convergence/shortening, contact-front geometry, underthrusting, arc scraping and terrane docking. With the full belt configuration it spreads plateau-side and foreland-side orogenic belts; with the full suture configuration it samples the sea gap, tracks its best closure, measures enclosed sea and records ring-blocked/merge-eligible candidates. `step_world` schedules the stage when collision configuration is present and rebuilds ownership after crust transfers.
 - Added the V2 history-ending predicates and frame selection (`ending.py`):
   `in_stage`, `history_ending`, and `frames_ending`, plus the `ENDINGS` catalogue.
 - Added focused tests for supercontinent, breakup and dispersed endings,
@@ -42,12 +42,12 @@ test coverage.
 |---|---|---|---|
 | Python package and core | Partial | Seed/RNG, simplex noise, rotations, spherical geometry, sphere generation/indexing, SimMesh, interpolation, BFS, rings, heap and Dijkstra. | Persistence, full upstream configuration and remaining shared data models. |
 | Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity, first-pass resolution and boundary classification. | Initial-world generation, scenario builders, collision/event lifecycle and remaining plate operations. |
-| Tectonic evolution | Partial | Adaptive dt, general orogenic-belt propagation, force collection, mantle heat, supercontinent-cycle state, partial plate-motion update and `step_world` with rift/subduction-initiation and collision-tracking stages. Collision records measure shortening/fronts, call arc/terrane accretion and underthrusting, and spread collision belts when the full belt configuration is supplied. After topology-changing transfers, the stepper rebuilds ownership and boundary state before force balance. | Full `simulate.js` stage sequence, collision sea-gap/ring checks, suture welding/merge and far-field forcing, collision-driven orogeny events, full subduction/slab evolution, arcs/back-arcs, ocean-plate evolution and snapshots. |
+| Tectonic evolution | Partial | Adaptive dt, general orogenic-belt propagation, force collection, mantle heat, supercontinent-cycle state, partial plate-motion update and `step_world` with rift/subduction-initiation and collision-tracking stages. Collision records measure shortening/fronts, call arc/terrane accretion and underthrusting, and spread collision belts when the full belt configuration is supplied. After topology-changing transfers, the stepper rebuilds ownership and boundary state before force balance. | Full `simulate.js` stage sequence, suture welding/plate merge execution, far-field forcing, collision-driven orogeny events, full subduction/slab evolution, arcs/back-arcs, ocean-plate evolution and snapshots. |
 | Rift geometry and plate splitting | Implemented as a subsystem | `rift_partition` assigns the two land blocks and ocean crust; `rift_path` searches and scores coast-to-coast candidates; `rift.split_plate` transfers crust, wings and records to a new plate, and marks margins/failed arms. | Differential tests against full upstream plate histories and interaction with still-unported tectonic stages. |
 | Rift execution | Partial, integrated | `rift_continents` consumes queued plume requests, applies waiting/expiry, supercontinent hold, overdue forced breakups and spontaneous tension/heat-driven attempts. `step_world` calls it when rift configuration is present. | Whole-simulation comparison across long histories and full upstream event interactions. |
 | Passive-margin subduction initiation | Partial, integrated | `initiate_subduction` groups old, sufficiently long and non-diverging inter-plate ocean contacts, chooses the upper/lower plate, arms trench cells and can create a new mobile plate from passive background ocean. `step_world` calls it when `subductionInitRatePerMyr` is positive and rebuilds the world view after successful topology changes. | Full slab/subduction evolution, intra-plate founder cadence, arc/back-arc evolution and collision/event orchestration. |
 | Arc operations | Partial, standalone | `mature_arcs` advances old arc fronts into continental crust; `scrape_arc` transfers/absorbs arc crust onto a host plate. Both have dedicated tests. | Slow-step scheduling for maturation and collision-driven scraping integration. |
-| Terrane accretion and sea closure | Partial, standalone | `plate_accretion.accrete_terrane` transfers terrane and fore-arc crust to a host, `close_seas_between` seals narrow straits/small inland seas, and `landmass_of` extracts connected land. The helper is fully covered by tests. | The collision tracker now invokes arc scraping, terrane docking and underthrusting, and spreads both collision belts when their respective configuration is present. Sea-gap/ring checks, plate welding/merge and far-field forcing remain outstanding. |
+| Terrane accretion and sea closure | Partial, standalone | `plate_accretion.accrete_terrane` transfers terrane and fore-arc crust to a host, `close_seas_between` seals narrow straits/small inland seas, and `landmass_of` extracts connected land. The helper is fully covered by tests. | The collision tracker now invokes arc scraping, terrane docking and underthrusting, spreads both collision belts, and records sea-gap/ring and merge-eligibility state when configured. The actual plate-welding/merge operation and far-field forcing remain outstanding. |
 | Mantle plumes | Partial | Initial/scheduled/probabilistic plume records, LIP province stamping, tail tracks, burst intervals and volcanic-edifice growth. | Full coupling to the remaining simulation/event pipeline and whole-history comparison. |
 | Terrain, geology, climate | Not ported as full V2 pipelines | Some tectonic-side height and sediment-cover helpers exist. | Full terrain relief/lithology, geology/deposition, circulation, temperature, precipitation and biome pipelines. |
 | Finishing and agriculture | Not ported | — | Hydrology, erosion, ice, rocks, finishing and agricultural systems. |
@@ -66,15 +66,13 @@ test coverage.
 
 ## Latest verification
 
-The latest completed successful CI run before the collision-belt integration was run #700 on commit
-`22bb2fb6de5fa07efd1e93582da572b7bdcae1e2` (2026-11-17):
+The latest completed successful push CI run is #712 on commit
+`842fd4bb12be6e1f3b52b40ea092bc92c05d14a3` (2026-11-17):
 
-- **402 tests passed**.
+- **407 tests passed**.
 - `orogen/v2/tectonics/collision.py` reached **100% line coverage**.
 - The complete `orogen.v2` package met its enforced **100% coverage threshold**.
-- The test job ran the Python suite and JavaScript differential checks.
-
-The belt-integration commit is being validated separately; this section is updated only to the last completed green run.
+- The job ran the Python suite and JavaScript differential checks.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

@@ -188,6 +188,7 @@ def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
     rival.crust.create(0, CrustType["OCEAN"], 0, 2)
     grower.refresh_extent(mesh.xyz)
     rival.refresh_extent(mesh.xyz)
+    rival.cell_at = lambda index, x, y, z: 0
     monkeypatch.setattr(module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0})
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     result = module.decide_birth(world, grower, 1, [(rival, rival.cap_in_world(mesh))])
@@ -219,7 +220,7 @@ def test_decide_birth_closing_boundary_rejected(monkeypatch):
     rival.crust.create(1, CrustType["OCEAN"], 0, 2)
     grower.refresh_extent(mesh.xyz)
     rival.refresh_extent(mesh.xyz)
-    monkeypatch.setattr(module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0})
+    monkeypatch.setattr(module, "_nearest_crust", lambda plate, *args, **kwargs: {"cell": 0, "dot": 0.99} if plate is grower else {"cell": 1, "dot": 0.0})
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     monkeypatch.setattr(module, "_is_advancing_on", lambda *args: True)
     result = module.decide_birth(world, grower, 2, [(rival, rival.cap_in_world(mesh))])

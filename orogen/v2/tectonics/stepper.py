@@ -1,8 +1,9 @@
 """Single-step orchestration for the currently ported tectonic subsystems.
 
-This is intentionally not the full upstream simulation loop: event-driven
-collision/orogeny, execution of queued rifts, ocean-plate evolution, arcs,
-queued-rift execution, and slow terrain/geology stages are not orchestrated here.
+This is intentionally not the full upstream simulation loop: collision and
+orogeny event stages, ocean-plate evolution, arcs, and slow terrain/geology
+stages are not orchestrated here. Continental rifting is included when its
+configuration is present.
 """
 from __future__ import annotations
 
@@ -52,7 +53,7 @@ def step_world(
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
     rifts = 0
     if (
-        float(world.config.get("riftRatePerMyr", 0.0)) > 0.0
+        "riftRatePerMyr" in world.config
         or getattr(world, "pendingPlumeRifts", None)
     ):
         rifts = rift_continents(world, step_dt)

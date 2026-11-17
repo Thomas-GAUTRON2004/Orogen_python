@@ -90,10 +90,10 @@ def test_gather_boundary_loads_detects_partner_rift_push_and_direction(monkeypat
     assert gather_boundary_loads(world)[0]["cells"][3] == 0
 
 
-def test_gather_boundary_loads_skips_overlaps_and_background(monkeypatch):
+def test_gather_boundary_loads_skips_invalid_collider_and_background(monkeypatch):
     world = make_world(monkeypatch, "pull")
     world.landClaims[0] = 2
-    world.collider[0] = 1
+    world.collider[0] = 99
     assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0]
     world.landClaims[0] = 0
     world.plates[0].isBackground = True
@@ -202,6 +202,9 @@ def test_gather_boundary_loads_uses_craton_lock_weight_and_fallback_normal(monke
     assert contact["weight"] == pytest.approx(3.5)
     assert np.linalg.norm(contact["n"]) == pytest.approx(1.0)
     assert contact["n"] == pytest.approx([0.0, 1 / np.sqrt(2), -1 / np.sqrt(2)])
+    world.plates[1].capCenter = world.plates[0].capCenter.copy()
+    zero_normal = gather_boundary_loads(world)[0]["contacts"][0]["n"]
+    assert zero_normal == [0.0, 0.0, 0.0]
 
 
 def test_gather_boundary_loads_skips_arc_and_young_rift_margin_jitter(monkeypatch):
@@ -216,3 +219,11 @@ def test_gather_boundary_loads_skips_arc_and_young_rift_margin_jitter(monkeypatc
     a.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
     b.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
     assert gather_boundary_loads(world)[0]["contacts"] == []
+
+
+def test_gather_boundary_loads_keeps_collision_load_on_non_background_side(monkeypatch):
+    world = configure_collision_world(monkeypatch)
+    world.plates[1].isBackground = True
+    loads = gather_boundary_loads(world)
+    assert list(loads) == [0]
+    assert len(loads[0]["contacts"]) == 1

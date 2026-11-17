@@ -12,6 +12,7 @@ from .scrape_arc import scrape_arc
 from .plate_transfer import free_cell_beside, transfer_cells
 from .birth_ocean_plate import birth_ocean_plate, ocean_plate_name
 from .plate_accretion import accrete_terrane, close_seas_between, landmass_of
+from .merge_plates import merge_plates
 from .rift import (
     choose_junction,
     names_after_split,
@@ -44,4 +45,5 @@ __all__ = [
     "accrete_terrane",
     "close_seas_between",
     "landmass_of",
+    "merge_plates",
 ]

@@ -213,3 +213,15 @@ Modules: `orogen.v2.tectonics.heights` and `orogen.v2.tectonics.geology`
 - `thicken_cover(crust, cell, thickened_km, time_myr, geology)` increases existing sediment thickness as the underlying crust thickens and updates maximum burial and unroofing records.
 
 The erosion/evolution pass, full terrain synthesis, ridge/crest construction, and full basin sediment-deposition model remain separate unported stages.
+
+
+## Force-balance primitives
+
+Module: `orogen.v2.tectonics.dynamics`
+
+- `drag_tensor(plate, mesh, config)` computes the basal-drag tensor in the world frame, weighting oceanic, continental and cratonic crust separately.
+- `solve3(matrix, vector)` solves the 3x3 linear system used for angular velocity, with a zero-vector fallback for singular systems.
+- `balanced_rotation(plate, mesh, load, omega_of, config)` solves driving torque against basal drag, slab resistance and land-collision coupling. The load must be supplied by a force-gathering stage.
+- `soften_speed` and `clamp_speed` apply the upstream smooth and hard angular-speed limits.
+
+These are balance-stage primitives, not a complete plate-dynamics update: the world-wide force gathering pass (`gatherLoads`), mantle-flow forcing and simulation integration are still outstanding.

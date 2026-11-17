@@ -116,3 +116,6 @@ Adaptive time-step calculation has also been ported into `orogen.v2.tectonics.si
 
 
 Orogeny porting now includes the spatial `spread_belt` record-propagation pass: source-specific belt reach/work, weak-line weighting, craton-rim limits, cell allow-filters, overprint history, belt geometry/shear, and crustal thickening. The height-building and sediment-cover side effects (`buildHeights` and `thickenCover`) remain outstanding, so this is not full `spreadBelt` parity.
+
+
+Force-balance progress: `dynamics.py` now ports plate-frame basal drag transformed into the world frame, the 3x3 solve, slab-resistance tensor, collision-normal/shear coupling, smooth speed softening and hard speed cap. These functions accept precomputed loads. The world-wide force-gathering pass, which discovers slab, young-ridge, rift and mantle-flow forces from the resolved plate map, remains outstanding.

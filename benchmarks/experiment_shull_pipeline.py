@@ -14,6 +14,8 @@ import numpy as np
 import shull
 from scipy.spatial import Delaunay
 from orogen.v2.core.mesh_bfs import hop_distance
+from orogen.v2.core.seed import make_rng
+from orogen.v2.core.sphere_index import SphereIndex
 from orogen.v2.core.sphere_mesh import _cyclic_region_adjacency, generate_fibonacci_sphere, stereographic_projection
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 
@@ -69,7 +71,7 @@ if not NUMBA_AVAILABLE:
     raise RuntimeError("Install the optional speed extra to run the Numba composition test")
 
 for n in (10_000, 40_000, 80_000):
-    xyz = generate_fibonacci_sphere(n, 0.0, lambda: 0.5)
+    xyz = generate_fibonacci_sphere(n, 0.35, make_rng(12345 + 4242))
     points = np.ascontiguousarray(stereographic_projection(xyz, n), dtype=np.float64)
     scipy_tri_time, scipy_tri = timed(lambda: Delaunay(points).simplices)
     shull_tri_time, shull_tri = timed(lambda: shull.Delaunay(points).simplices)
@@ -85,6 +87,17 @@ for n in (10_000, 40_000, 80_000):
     if row_sets(scipy_offsets, scipy_adj) != row_sets(shull_offsets, shull_adj):
         raise AssertionError("spherical vertex-neighbour sets differ")
 
+    # Include the cube-map nearest-cell lookup table from build_sim_mesh.
+    xyz_with_pole = np.empty((n + 1, 3), dtype=np.float32)
+    xyz_with_pole[:n] = xyz.reshape(n, 3)
+    xyz_with_pole[n] = (0.0, 0.0, 1.0)
+    scipy_mesh_obj = SimpleNamespace(num_cells=n + 1, adj_offset=scipy_offsets, adj_list=scipy_adj)
+    shull_mesh_obj = SimpleNamespace(num_cells=n + 1, adj_offset=shull_offsets, adj_list=shull_adj)
+    scipy_index_time, scipy_index = timed(lambda: SphereIndex(xyz_with_pole.reshape(-1), scipy_mesh_obj))
+    shull_index_time, shull_index = timed(lambda: SphereIndex(xyz_with_pole.reshape(-1), shull_mesh_obj))
+    if not np.array_equal(scipy_index.table, shull_index.table):
+        raise AssertionError("SphereIndex cube-map lookup tables differ")
+
     scipy_proxy = SimpleNamespace(num_cells=n + 1, adj_offset=scipy_offsets, adj_list=scipy_adj)
     shull_proxy = SimpleNamespace(num_cells=n + 1, adj_offset=shull_offsets, adj_list=shull_adj)
     source = lambda cell: cell % max(1, n // 100) == 0
@@ -93,14 +106,15 @@ for n in (10_000, 40_000, 80_000):
     if not np.array_equal(scipy_distance, shull_distance):
         raise AssertionError("Numba BFS distances differ between triangulators")
 
-    scipy_total = scipy_tri_time + scipy_post_time
-    shull_total = shull_tri_time + shull_post_time
-    mesh_mib = (shull_faces.nbytes + shull_offsets.nbytes + shull_adj.nbytes) / (1024 * 1024)
+    scipy_total = scipy_tri_time + scipy_post_time + scipy_index_time
+    shull_total = shull_tri_time + shull_post_time + shull_index_time
+    mesh_mib = (shull_faces.nbytes + shull_offsets.nbytes + shull_adj.nbytes + shull_index.table.nbytes) / (1024 * 1024)
     print(
         f"cells={n + 1:>7} scipy_tri={scipy_tri_time:.4f}s shull_tri={shull_tri_time:.4f}s "
         f"tri_speedup={scipy_tri_time / shull_tri_time:.2f}x "
         f"scipy_post={scipy_post_time:.4f}s shull_post={shull_post_time:.4f}s "
+        f"scipy_index={scipy_index_time:.4f}s shull_index={shull_index_time:.4f}s "
         f"scipy_total={scipy_total:.4f}s shull_total={shull_total:.4f}s "
         f"pipeline_speedup={scipy_total / shull_total:.2f}x "
-        f"numba_bfs={bfs_time:.4f}s same_topology=True mesh_arrays={mesh_mib:.2f}MiB"
+        f"numba_bfs={bfs_time:.4f}s same_topology=True same_index_table=True mesh_arrays={mesh_mib:.2f}MiB"
     )

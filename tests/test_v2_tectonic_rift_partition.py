@@ -148,19 +148,21 @@ def test_exterior_sea_uses_largest_ocean_when_plate_covers_mesh():
 
 def test_elongation_handles_small_degenerate_and_rank_one_blocks():
     points = [
-        [1, 0, 0], [-1, 0, 0], [0, 1, 0],
-        [0, -1, 0], [0, 0, 1], [0, 0, -1],
+        [1, 0, 0], [-1, 0, 0], [1, 0, 0],
+        [-1, 0, 0], [0, 1, 0], [0, -1, 0],
+        [0, 0, 1],
     ]
     mesh = Mesh(points, [[] for _ in points])
-    side = np.ones(6, dtype=np.int8)
-    assert elongation_of(mesh, side, 1) == pytest.approx(1.0)
+    side = np.asarray([1, 1, 1, 1, 1, 1, 2], dtype=np.int8)
+    assert elongation_of(mesh, side, 1) == pytest.approx(math.sqrt(2.0))
 
     duplicate_mesh = Mesh([[1, 0, 0]] * 6, [[] for _ in range(6)])
-    assert elongation_of(duplicate_mesh, side, 1) == 1.0
+    six_on_one_side = np.ones(6, dtype=np.int8)
+    assert elongation_of(duplicate_mesh, six_on_one_side, 1) == 1.0
 
     line_mesh = Mesh(
         [[1, 0, 0], [-1, 0, 0]] * 3,
         [[] for _ in range(6)],
     )
-    assert elongation_of(line_mesh, side, 1) == 10.0
+    assert elongation_of(line_mesh, six_on_one_side, 1) == 10.0
     assert elongation_of(mesh, side, 2) == 1.0

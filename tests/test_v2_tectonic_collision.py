@@ -216,6 +216,7 @@ def test_choose_sides_deduplicates_neighbour_cells_shared_by_contact_cells():
 
 def test_underthrust_stops_after_target_number_of_cells():
     world, upper, lower = underthrust_world()
+    world.config["overlapCapKm"] = 2.0
     lower.crust.create(3, CrustType["CONTINENT"], -100.0, 23)
     upper.crust.create(3, CrustType["CONTINENT"], -50.0, 13)
     record = {"frontKm": 100.0}

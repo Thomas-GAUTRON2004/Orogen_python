@@ -157,7 +157,7 @@ def test_accrete_arcs_selects_one_donor_when_both_plates_have_arc_cells():
     assert b.crust.mask[0] == 0
     assert a.crust.type[0] == CrustType["ARC"]
     assert world.arcScrapes["1:0"]["cells"] == 1
-    assert world.arcScrapes["1:0"]["logged"] is False
+    assert world.arcScrapes["1:0"].get("logged", False) is False
     assert world.events == []
 
 

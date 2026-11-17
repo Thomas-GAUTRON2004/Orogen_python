@@ -17,21 +17,27 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 
 ## Requirements and installation
 
+**Required runtime dependencies:**
 - Python 3.10 or later
 - NumPy 1.24 or later
 - SciPy 1.10 or later
 
-Install the package and test dependencies:
+**Optional acceleration dependency:**
+- Numba 0.59 or later — enables the JIT-compiled performance kernels. It is not required to use Orogen; the package falls back to its pure-Python implementations when Numba is not installed.
+
+Install the package and test dependencies (without Numba):
 
 ```bash
 python -m pip install -e ".[test]"
 ```
 
-Numba acceleration is optional. Install it with the `speed` extra:
+Install with Numba acceleration enabled:
 
 ```bash
 python -m pip install -e ".[test,speed]"
 ```
+
+The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`.
 
 The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 

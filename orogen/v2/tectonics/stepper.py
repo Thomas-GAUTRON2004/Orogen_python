@@ -17,6 +17,7 @@ from .simulation import choose_step, closing_rate
 from .plumes import update_plumes
 from .supercontinent import track_cycle
 from .rifting import rift_continents
+from .subduction_init import initiate_subduction
 
 
 def step_world(
@@ -29,10 +30,10 @@ def step_world(
     """Advance one step using the ported resolve/classify/force stages.
 
     The current plate angular velocities move plates through dt first.
-    Ownership and crust consumption are then rebuilt, boundaries and trench
-    bookkeeping are classified, the supercontinent cycle is advanced (when
-    enabled), and finally a new force-balanced angular velocity is computed
-    for the next step.
+    Ownership and crust consumption are rebuilt, boundaries and trench
+    bookkeeping are classified, plumes and the supercontinent cycle advance,
+    then configured rifting/subduction stages run. When either stage changes
+    plate topology, ownership and boundaries are rebuilt before force balance.
 
     dt=None selects the adaptive step from choose_step. Pass
     update_motion=False when an external driver will set plate velocities.
@@ -57,6 +58,17 @@ def step_world(
         or getattr(world, "pendingPlumeRifts", None)
     ):
         rifts = rift_continents(world, step_dt)
+
+    subductions = 0
+    if float(world.config.get("subductionInitRatePerMyr", 0.0)) > 0.0:
+        subductions = initiate_subduction(world, step_dt)
+
+    # Rifting and foundering can add, remove, or reassign crust. Rebuild the
+    # world ownership map and boundary state before the force solve reads it.
+    if rifts or subductions:
+        tally = resolve(world)
+        classified = classify_contact_boundaries(world, 0.0)
+
     if update_motion:
         update_plate_motion(world)
 
@@ -70,5 +82,6 @@ def step_world(
         "cyclePhase": None if cycle is None else cycle.get("phase"),
         "plumes": plume_state,
         "rifts": int(rifts),
+        "subductions": int(subductions),
         "motionUpdated": bool(update_motion),
     }

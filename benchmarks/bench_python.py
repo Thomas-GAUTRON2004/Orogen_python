@@ -1,7 +1,9 @@
 import json, math, platform, statistics, sys, time
 from types import SimpleNamespace
 import numpy as np
-from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
+from orogen.v2.core._numba_kernels import (
+    NUMBA_AVAILABLE, snapshot_cells_numba, snapshot_cells_field_major_numba,
+)
 from orogen.v2.core.fast_noise import FastNoise
 from orogen.v2.core.sphere_geometry import destination_many, bearing_to_many
 import orogen.v2.core.mesh_bfs as mesh_bfs_module
@@ -109,6 +111,29 @@ def bench_crust_scalar_acceleration():
         "numba_ms": round(numba_ms, 3),
         "python_fallback_ms": round(python_ms, 3),
         "speedup": round(python_ms / numba_ms, 2) if numba_ms else None,
+    }
+
+
+def bench_snapshot_layouts():
+    """A/B both compiled snapshot memory traversals on identical data."""
+    raster = CrustRaster(N_CELLS)
+    cells = np.arange(0, N_CELLS, 2, dtype=np.int32)
+    raster.create_many(cells, CrustType["CONTINENT"], -100, cells + 1)
+
+    def measure(kernel):
+        def once():
+            global sink
+            result = kernel(raster._numba_fields, cells)
+            sink = float(result[-1, -1]) if result.size else 0.0
+        return median_ms(once)
+
+    row_major_ms = measure(snapshot_cells_numba)
+    field_major_ms = measure(snapshot_cells_field_major_numba)
+    return {
+        "workload": "snapshot_many, 6,000 cells x 55 fields, identical raster",
+        "row_major_ms": round(row_major_ms, 3),
+        "field_major_ms": round(field_major_ms, 3),
+        "field_over_row": round(field_major_ms / row_major_ms, 2) if row_major_ms else None,
     }
 
 def bench_mesh_components():
@@ -219,6 +244,7 @@ def bench_far_field_diffusion():
 far_field_comparison = bench_far_field_diffusion()
 component_comparison = bench_mesh_components()
 crust_scalar_comparison = bench_crust_scalar_acceleration()
+snapshot_layout_comparison = bench_snapshot_layouts()
 
 timings={
 "noise_fbm_ms":median_ms(bench_noise),
@@ -229,4 +255,4 @@ timings={
 "crust_create_snapshot_ms":median_ms(bench_crust),
 "crust_copy_ms":median_ms(bench_crust_copy),
 }
-print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison,"crust_scalar":crust_scalar_comparison}}))
+print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison,"crust_scalar":crust_scalar_comparison,"snapshot_layouts":snapshot_layout_comparison}}))

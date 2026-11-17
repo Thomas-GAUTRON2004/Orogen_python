@@ -58,21 +58,21 @@ runner:
 
 | Points | SciPy/Qhull | shull | Triangulation speedup |
 |---:|---:|---:|---:|
-| 10,000 | 31.6 ms | 3.0 ms | 10.68× |
-| 40,000 | 173.3 ms | 13.1 ms | 13.26× |
-| 80,000 | 549.0 ms | 27.7 ms | 19.79× |
+| 10,000 | 25.0 ms | 2.2 ms | 11.21× |
+| 40,000 | 182.4 ms | 10.1 ms | 18.04× |
+| 80,000 | 496.2 ms | 22.1 ms | 22.44× |
 
 The broader production pipeline comparison (triangulation, pole closure,
 Python cyclic CSR and `SphereIndex`) measured:
 
 | Cells | SciPy pipeline | shull pipeline | Pipeline speedup |
 |---:|---:|---:|---:|
-| 10,001 | 0.6405 s | 0.6028 s | 1.06× |
-| 40,001 | 2.6107 s | 2.4064 s | 1.08× |
-| 80,001 | 5.4474 s | 4.8474 s | 1.12× |
+| 10,001 | 0.4595 s | 0.4329 s | 1.06× |
+| 40,001 | 1.9278 s | 1.7251 s | 1.12× |
+| 80,001 | 4.0375 s | 3.4922 s | 1.16× |
 
-The actual `build_sim_mesh` wall times using production shull were 0.6166 s,
-2.5159 s and 5.0239 s for the same three input sizes. Output arrays at 80,001
+The actual `build_sim_mesh` wall times using production shull were 0.4527 s,
+1.8241 s and 3.6609 s for the same three input sizes. Output arrays at 80,001
 cells occupied about 5.19 MiB. The run asserted exact canonicalized simplex
 sets, closed faces, CSR offsets and adjacency, `SphereIndex` tables, and BFS
 distance arrays for all sizes.
@@ -82,7 +82,7 @@ The benchmark includes triangulation, pole closure, cyclic CSR and
 stage timing. The earlier 1.18×–1.23× combined figures used an experimental
 Numba CSR builder and are not claimed as production speedups.
 
-[Production pipeline benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44181122593).
+[Latest production pipeline benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44181712181).
 
 ## Reproduce the A/B test
 

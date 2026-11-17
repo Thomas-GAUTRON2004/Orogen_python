@@ -562,8 +562,9 @@ def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
         if not seeds:
             accreted += 1
             continue
-        moved = scrape_arc(world, host, donor, seeds)
-        accreted += moved
+        transfer = scrape_arc(world, host, donor, seeds)
+        moved = int(transfer["moved"])
+        accreted += moved + int(transfer["absorbed"])
         key = f"{donor.id}:{host.id}"
         record = world.arcScrapes.get(key)
         if record is None:

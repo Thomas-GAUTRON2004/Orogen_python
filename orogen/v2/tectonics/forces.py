@@ -123,9 +123,8 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         owner_id = int(world.owner[world_cell])
         if owner_id < 0:
             continue
-        load = loads.get(owner_id)
         plate = plates_by_id.get(owner_id)
-        if load is None or plate is None:
+        if plate is None:
             continue
         if int(world.landClaims[world_cell]) > 1 and int(world.collider[world_cell]) >= 0:
             other_id = int(world.collider[world_cell])
@@ -158,10 +157,12 @@ def gather_boundary_loads(world) -> dict[int, dict]:
             normal = _front_normal(
                 world, world_cell, owner_id, other_id, position, plates_by_id
             )
-            load["contacts"].append({
-                "r": position.tolist(), "n": normal, "other": other_id,
-                "weight": weight,
-            })
+            load = loads.get(owner_id)
+            if load is not None:
+                load["contacts"].append({
+                    "r": position.tolist(), "n": normal, "other": other_id,
+                    "weight": weight,
+                })
             other_load = loads.get(other_id)
             if other_load is not None:
                 other_load["contacts"].append({
@@ -170,6 +171,9 @@ def gather_boundary_loads(world) -> dict[int, dict]:
                     "other": owner_id,
                     "weight": weight,
                 })
+            continue
+        load = loads.get(owner_id)
+        if load is None:
             continue
         across = contact_at(world, world_cell, normal_out)
         if across < 0:

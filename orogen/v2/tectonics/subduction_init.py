@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import math
 
-import numpy as np
-
 from ...core.mesh_bfs import largest_piece_of
 from ..crust import CrustFlag, CrustType
 from ..world import EventKind
 from .ops.birth_ocean_plate import birth_ocean_plate, ocean_plate_name
+from .ops.plate_transfer import transfer_cells
+from .ops.rift_partition import exterior_sea
 
 
 def initiate_subduction(world, dt: float) -> int:
@@ -118,7 +118,6 @@ def initiate_subduction(world, dt: float) -> int:
         if len(segment) * edge_km < minimum_length:
             continue
 
-        upper_candidate, lower_candidate = plate_a, plate_b
         if plate_a.isBackground or plate_b.isBackground:
             background = plate_a if plate_a.isBackground else plate_b
             born = birth_ocean_plate(
@@ -264,4 +263,219 @@ __all__ = [
     "choose_foundering",
     "initiate_subduction",
     "is_on_segment",
+    "founder_within_plates",
 ]
+
+
+def founder_within_plates(world, dt: float) -> int:
+    """Found old ocean along a large plate's own outer continental margin.
+
+    A contiguous old-ocean coast is selected by age, length and a seeded
+    per-Myr chance. The ocean immediately outboard of that coast is carved
+    into a new mobile plate; the continental plate keeps the trench margin.
+    """
+    mesh, plates, config = world.mesh, world.plates, world.config
+    time = float(world.time)
+    if float(config["marginFounderRatePerMyr"]) <= 0.0:
+        return 0
+
+    num_cells = int(mesh.num_cells)
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    edge_km = float(mesh.edge_km)
+    cell_area = float(mesh.cell_area_km2)
+    minimum_cells = (
+        float(config["oceanPlateMinAreaKm2"]) / cell_area
+    )
+    reach_hops = max(
+        1,
+        math.floor(float(config["oceanPlateReachKm"]) / edge_km + 0.5),
+    )
+    minimum_age = float(config["subductionInitAgeMyr"])
+    minimum_length = float(config["subductionInitMinLengthKm"])
+    age_cap = float(config["subductionInitAgeCap"])
+    started = 0
+
+    for plate in list(plates):
+        if (
+            not plate.alive
+            or plate.isBackground
+            or plate.crust.count == 0
+            or int(plate.stats["continentalCells"]) <= 0
+            or (
+                int(plate.stats["cells"])
+                - int(plate.stats["continentalCells"])
+            ) < minimum_cells
+        ):
+            continue
+        if (
+            int(plate.stats["cells"])
+            < float(config["marginFounderMinShare"]) * num_cells
+        ):
+            continue
+
+        crust = plate.crust
+        mask, kinds = crust.mask, crust.type
+        flags, formed_at = crust.flags, crust.formedAt
+
+        def land(cell: int) -> bool:
+            return bool(
+                mask[cell]
+                and kinds[cell] in (
+                    CrustType["CONTINENT"],
+                    CrustType["CRATON"],
+                )
+            )
+
+        coast = np.zeros(num_cells, dtype=np.uint8)
+        old = []
+        for cell in range(num_cells):
+            if not mask[cell] or kinds[cell] != CrustType["OCEAN"]:
+                continue
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if not land(neighbour):
+                    continue
+                coast[cell] = 1
+                if (
+                    not (int(flags[cell]) & CrustFlag["TRENCH"])
+                    and time - float(formed_at[cell]) >= minimum_age
+                ):
+                    old.append(cell)
+                break
+
+        in_old = np.zeros(num_cells, dtype=np.uint8)
+        run_of = np.full(num_cells, -1, dtype=np.int32)
+        for cell in old:
+            in_old[cell] = 1
+
+        runs = []
+        for start in old:
+            if run_of[start] >= 0:
+                continue
+            run = [start]
+            run_of[start] = len(runs)
+            cursor = 0
+            while cursor < len(run):
+                cell = run[cursor]
+                cursor += 1
+                for edge in range(
+                    int(offsets[cell]), int(offsets[cell + 1])
+                ):
+                    neighbour = int(adjacency[edge])
+                    if in_old[neighbour] and run_of[neighbour] < 0:
+                        run_of[neighbour] = len(runs)
+                        run.append(neighbour)
+            runs.append(run)
+
+        for run in runs:
+            length_km = len(run) * edge_km
+            if length_km < minimum_length:
+                continue
+            age_myr = sum(
+                time - float(formed_at[cell]) for cell in run
+            ) / len(run)
+            chance = (
+                float(config["marginFounderRatePerMyr"])
+                * float(dt)
+                * min(age_cap, age_myr / minimum_age - 1.0)
+                * (length_km / minimum_length)
+            )
+            cycle = getattr(world, "cycle", None)
+            if (
+                cycle is not None
+                and cycle.get("phase") == "dispersing"
+                and age_myr <= time - float(cycle["breakupAt"]) + 1e-9
+            ):
+                chance *= float(config["disperseFounderFactor"])
+            if float(world.rngMarginFounder()) >= chance:
+                continue
+
+            exterior = exterior_sea(mesh, crust)
+            if not any(exterior[cell] for cell in run):
+                continue
+
+            labels = np.zeros(num_cells, dtype=np.uint8)
+            mine = int(run_of[run[0]])
+            frontier = []
+            for cell in range(num_cells):
+                if coast[cell]:
+                    labels[cell] = (
+                        1 if int(run_of[cell]) == mine else 2
+                    )
+                    frontier.append(cell)
+
+            take = []
+            for _ in range(reach_hops):
+                if not frontier:
+                    break
+                following = []
+                for cell in frontier:
+                    label = labels[cell]
+                    for edge in range(
+                        int(offsets[cell]), int(offsets[cell + 1])
+                    ):
+                        neighbour = int(adjacency[edge])
+                        if (
+                            labels[neighbour]
+                            or not mask[neighbour]
+                            or kinds[neighbour] != CrustType["OCEAN"]
+                        ):
+                            continue
+                        labels[neighbour] = label
+                        following.append(neighbour)
+                        if label == 1:
+                            take.append(neighbour)
+                frontier = following
+
+            if len(take) < minimum_cells:
+                continue
+
+            fresh = world.add_plate(ocean_plate_name(world))
+            fresh.set_quat(plate.quat.copy())
+            fresh.omega = plate.omega.copy()
+            fresh.isOceanBorn = True
+
+            for tip, direction in list(plate.wings.items()):
+                if labels[int(tip)] == 1 and not coast[int(tip)]:
+                    fresh.wings[tip] = direction
+                    del plate.wings[tip]
+
+            moved = transfer_cells(world, plate, fresh, take)
+            if moved == 0:
+                fresh.alive = False
+                continue
+
+            fresh.born = time
+            for cell in run:
+                plate.crust.arm_trench(
+                    cell, float(config["subductionInitSlabKm"])
+                )
+            plate.dirty = True
+            started += 1
+
+            area_mkm2 = len(take) * cell_area / 1e6
+            world.log(
+                EventKind["PLATE_BORN"],
+                (
+                    f"{fresh.name} is born: {area_mkm2:.1f} Mkm² of "
+                    f"{plate.name}’s old ocean breaks away"
+                ),
+                {"plate": fresh.id, "areaMkm2": area_mkm2},
+            )
+            world.log(
+                EventKind["SUBDUCTION_INIT"],
+                (
+                    f"a new trench founders along {length_km:.0f} km of "
+                    f"{plate.name}’s passive margin: {fresh.name}, ocean "
+                    f"{age_myr:.0f} Myr old, begins to go down beneath it"
+                ),
+                {
+                    "upper": plate.id,
+                    "lower": fresh.id,
+                    "lengthKm": length_km,
+                    "ageMyr": age_myr,
+                },
+            )
+            break
+
+    return started

@@ -225,3 +225,150 @@ def test_underthrust_stops_after_target_number_of_cells():
     assert lower.crust.mask[3] == 0
     assert lower.crust.mask[2] == 1
     assert world.budget["underthrustCells"] == 1
+
+
+def sea_world():
+    points = [
+        [math.cos(i * 0.1), math.sin(i * 0.1), 0.0]
+        for i in range(7)
+    ]
+    mesh = Mesh(
+        points,
+        [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5]],
+        cell_area=100.0,
+    )
+    upper = Plate(0, 7)
+    lower = Plate(1, 7)
+    upper.crust.create(0, CrustType["CONTINENT"], -100.0, 10)
+    lower.crust.create(3, CrustType["CONTINENT"], -100.0, 20)
+    owner = np.asarray([0, -1, -1, 1, -1, -1, -1], dtype=np.int16)
+    owner_cell = np.arange(7, dtype=np.int32)
+    land_claims = np.asarray([1, 0, 0, 1, 0, 0, 0], dtype=np.uint8)
+    world = SimpleNamespace(
+        mesh=mesh,
+        owner=owner,
+        ownerCell=owner_cell,
+        landClaims=land_claims,
+        plates=[upper, lower],
+        config={"sutureGapKm": 500.0},
+    )
+    return world, upper, lower
+
+
+def test_enclosed_sea_between_counts_only_small_component_bordered_by_both_plates():
+    world, upper, lower = sea_world()
+    area = enclosed_sea_between_km2(world, upper, lower)
+    assert area == 200.0
+
+
+def test_enclosed_sea_between_returns_zero_when_no_sea_component_or_joint_border():
+    world, upper, lower = sea_world()
+    world.owner[1] = upper.id
+    world.ownerCell[1] = 1
+    upper.crust.create(1, CrustType["CONTINENT"], -20.0, 11)
+    assert enclosed_sea_between_km2(world, upper, lower) == 0.0
+
+
+def test_open_sea_between_measures_facing_coasts_and_width():
+    world, upper, lower = sea_world()
+    result = open_sea_between(world, upper, lower)
+    assert result == {"km2": 300.0, "widestKm": 300.0}
+
+
+def test_open_sea_between_returns_zero_when_no_opposed_sea_is_within_gap():
+    world, upper, lower = sea_world()
+    world.config["sutureGapKm"] = 50.0
+    assert open_sea_between(world, upper, lower) == {
+        "km2": 0.0, "widestKm": 0.0
+    }
+
+
+def test_is_rift_jitter_requires_small_overlap_and_both_rift_margins():
+    world, a, b = contact_world()
+    a.crust.create(1, CrustType["CONTINENT"], -100.0, 11)
+    b.crust.create(1, CrustType["CONTINENT"], -90.0, 21)
+    a.crust.flags[1] |= CrustFlag["RIFT_MARGIN"]
+    b.crust.flags[1] |= CrustFlag["RIFT_MARGIN"]
+    world.config = {"riftJitterFrontKm": 100.0}
+    assert is_rift_jitter(world, a, b, [1])
+
+    b.crust.flags[1] = 0
+    assert not is_rift_jitter(world, a, b, [1])
+    b.crust.flags[1] |= CrustFlag["RIFT_MARGIN"]
+    assert not is_rift_jitter(world, a, b, [0, 1, 2])
+
+
+def test_recycle_small_arc_recycles_short_components_and_preserves_large_arcs():
+    world, a, _b = contact_world()
+    a.crust.create(0, CrustType["ARC"], -100.0, 30)
+    a.crust.create(1, CrustType["ARC"], -100.0, 31)
+    world.config = {"arcAccreteMinKm2": 500.0, "terraneMinAreaKm2": 50.0}
+    world.time = 10.0
+    world.budget = {"recycledCells": 0}
+    world.events = []
+    assert recycle_small_arc(world, a, 0)
+    assert a.crust.mask[0] == 0
+    assert a.crust.mask[1] == 0
+    assert world.budget["recycledCells"] == 2
+    assert a.alive is False
+    assert world.events[-1]["kind"] == "arc-recycled"
+
+    world, a, _b = contact_world()
+    a.crust.create(0, CrustType["ARC"], -100.0, 30)
+    world.config = {"arcAccreteMinKm2": 50.0, "terraneMinAreaKm2": 50.0}
+    world.time = 10.0
+    world.budget = {"recycledCells": 0}
+    world.events = []
+    assert not recycle_small_arc(world, a, 0)
+    assert a.crust.mask[0] == 1
+
+
+def test_recycle_small_arc_rejects_non_arc_cells():
+    world, a, _b = contact_world()
+    world.config = {"arcAccreteMinKm2": 500.0, "terraneMinAreaKm2": 50.0}
+    world.budget = {"recycledCells": 0}
+    world.events = []
+    assert not recycle_small_arc(world, a, 0)
+    assert world.events == []
+
+
+def test_accrete_arcs_scrapes_arc_to_non_arc_host_and_logs_threshold():
+    world, donor, host = contact_world()
+    donor.crust.type[0] = CrustType["ARC"]
+    donor.crust.terrane[0] = 30
+    donor.stats["continentalCells"] = 0
+    host.stats["continentalCells"] = 3
+    world.time = 15.0
+    world.arcScrapes = {}
+    world.budget = {"recycledCells": 0}
+    world.events = []
+    world.config = {
+        "arcAccreteMinKm2": 50.0,
+        "terraneMinAreaKm2": 100.0,
+        "arcScrapeLogKm2": 50.0,
+    }
+
+    result = accrete_arcs(world, donor, host, [0])
+
+    assert result == {"core": [], "accreted": True}
+    assert donor.crust.mask[0] == 0
+    assert host.crust.type[0] == CrustType["ARC"]
+    assert world.arcScrapes["0:1"]["cells"] == 1
+    assert world.arcScrapes["0:1"]["logged"] is True
+    assert world.events[-1]["kind"] == "arc-scrape"
+
+
+def test_accrete_arcs_returns_core_cells_when_no_arcs_overlap():
+    world, a, b = contact_world()
+    result = accrete_arcs(world, a, b, [0, 2])
+    assert result == {"core": [0, 2], "accreted": False}
+
+
+def test_dock_if_terrane_returns_false_when_both_landmasses_are_large(monkeypatch):
+    world, a, b = contact_world()
+    world.config = {"terraneMaxAreaKm2": 50.0, "terraneForeArcKm": 100.0}
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.collision.landmass_of",
+        lambda plate, mesh, seeds: list(seeds),
+    )
+    assert not dock_if_terrane(world, a, b, [0])

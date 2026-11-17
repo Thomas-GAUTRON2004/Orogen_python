@@ -10,6 +10,7 @@ import numpy as np
 from ...core.sphere_geometry import dot, normalize, tangent_toward
 from ..crust import CrustFlag, CrustType, OrogenyType
 from ..spread_belt import spread_belt
+from ..world import EventKind
 from .rift_partition import partition
 from .rift_path import find_rift, rift_context
 

@@ -53,7 +53,15 @@ def tangent_basis(point: Vector3) -> tuple[list[float], list[float]]:
 
 def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
     if NUMBA_AVAILABLE:
-        return list(destination_numba(float(point[0]), float(point[1]), float(point[2]), bearing, distance))
+        east, north = tangent_basis(point)
+        # Keep normalization in Python's math.hypot implementation.
+        raw = (
+            float(point[0]) * math.cos(distance) + (east[0] * math.cos(bearing) + north[0] * math.sin(bearing)) * math.sin(distance),
+            float(point[1]) * math.cos(distance) + (east[1] * math.cos(bearing) + north[1] * math.sin(bearing)) * math.sin(distance),
+            float(point[2]) * math.cos(distance) + (east[2] * math.cos(bearing) + north[2] * math.sin(bearing)) * math.sin(distance),
+        )
+        length = math.hypot(*raw) or 1.0
+        return list(destination_numba(*map(float, point), *east, *north, bearing, distance, length))
     east, north = tangent_basis(point)
     dx, dy = math.cos(bearing), math.sin(bearing)
     sine, cosine = math.sin(distance), math.cos(distance)
@@ -66,7 +74,8 @@ def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
 
 def bearing_to(point: Vector3, target: Vector3) -> float:
     if NUMBA_AVAILABLE:
-        return float(bearing_numba(float(point[0]), float(point[1]), float(point[2]), float(target[0]), float(target[1]), float(target[2])))
+        east, north = tangent_basis(point)
+        return float(bearing_numba(float(target[0]), float(target[1]), float(target[2]), *east, *north))
     east, north = tangent_basis(point)
     return math.atan2(dot(target, north), dot(target, east))
 

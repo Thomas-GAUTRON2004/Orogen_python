@@ -96,41 +96,19 @@ def _fbm_many_kernel(points, octaves, persistence, perm, pm3, grad):
 
 
 
-def _destination_kernel(px, py, pz, bearing, distance):
-    # Inline tangent_basis, normalize, and destination in upstream JS order.
-    if abs(pz) > 0.9:
-        ux, uy, uz = 1.0, 0.0, 0.0
-    else:
-        ux, uy, uz = 0.0, 0.0, 1.0
-    ex, ey, ez = uy*pz-uz*py, uz*px-ux*pz, ux*py-uy*px
-    el = math.hypot(ex, ey, ez) or 1.0
-    ex, ey, ez = ex/el, ey/el, ez/el
-    nx, ny, nz = py*ez-pz*ey, pz*ex-px*ez, px*ey-py*ex
+def _destination_kernel(px, py, pz, ex, ey, ez, nx, ny, nz, bearing, distance, length):
     dx, dy = math.cos(bearing), math.sin(bearing)
     sine, cosine = math.sin(distance), math.cos(distance)
     x = px*cosine + (ex*dx + nx*dy)*sine
     y = py*cosine + (ey*dx + ny*dy)*sine
     z = pz*cosine + (ez*dx + nz*dy)*sine
-    length = math.hypot(x, y, z) or 1.0
     return x/length, y/length, z/length
 
 
-def _bearing_kernel(px, py, pz, qx, qy, qz):
-    if abs(pz) > 0.9:
-        ux, uy, uz = 1.0, 0.0, 0.0
-    else:
-        ux, uy, uz = 0.0, 0.0, 1.0
-    ex, ey, ez = uy*pz-uz*py, uz*px-ux*pz, ux*py-uy*px
-    el = math.hypot(ex, ey, ez) or 1.0
-    ex, ey, ez = ex/el, ey/el, ez/el
-    nx, ny, nz = py*ez-pz*ey, pz*ex-px*ez, px*ey-py*ex
+def _bearing_kernel(qx, qy, qz, ex, ey, ez, nx, ny, nz):
     east_dot = qx*ex + qy*ey + qz*ez
     north_dot = qx*nx + qy*ny + qz*nz
     return math.atan2(north_dot, east_dot)
-
-def _crust_zero_fields_kernel(cell, fields):
-    for field in literal_unroll(fields):
-        field[cell] = 0
 
 
 def _hop_distance_kernel(offsets, adjacency, sources, max_hops):

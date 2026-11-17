@@ -7,6 +7,10 @@ is intentionally kept separate until those systems are ported.
 from __future__ import annotations
 
 from .crust import CrustFlag, CrustType
+from .config import CM_PER_YR_TO_RAD_PER_MYR
+from .contact import contact_at
+from .polarity import overrides
+from .world import BoundaryKind
 from ..core.mesh_bfs import reaches_within
 
 
@@ -89,3 +93,89 @@ def feed_trench(world, world_cell: int, crust, cell: int, subducted_km: float) -
         crust.flags[cell] |= CrustFlag["TRENCH"]
     crust.record_subduction(cell, subducted_km)
     return subducted_km > 0
+
+
+def classify_contact_boundaries(world, dt: float) -> int:
+    """Classify resolved cell contacts and update trench/polarity bookkeeping.
+
+    This is the contact-state portion of upstream classifyBoundaries. Orogenic
+    belt spreading and far-field deformation remain separate, unported stages.
+    """
+    mesh = world.mesh
+    owner, owner_cell, plates = world.owner, world.ownerCell, world.plates
+    boundary, convergence = world.boundaryKind, world.convergence
+    boundary.fill(BoundaryKind["NONE"])
+    convergence.fill(0)
+    normal = [0.0, 0.0, 0.0, 0.0]
+    contacts = []
+    classified = 0
+    xyz = mesh.xyz.reshape(-1, 3)
+    active = float(world.config["boundaryActiveCmYr"]) * CM_PER_YR_TO_RAD_PER_MYR
+    oblique = float(world.config["obliqueLimit"])
+    for w in range(mesh.num_cells):
+        a_id = int(owner[w])
+        if a_id < 0:
+            continue
+        if int(world.landClaims[w]) > 1:
+            boundary[w] = BoundaryKind["COLLISION"]
+            classified += 1
+            continue
+        plate_a = plates[a_id]
+        cell_a = int(owner_cell[w])
+        real = not bool(world.provisional[w])
+        other_w = contact_at(world, w, normal)
+        if other_w < 0:
+            if real and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]:
+                plate_a.crust.flags[cell_a] &= ~CrustFlag["TRENCH"]
+            continue
+        b_id = int(owner[other_w])
+        if b_id < 0 or b_id == a_id:
+            continue
+        plate_b = plates[b_id]
+        cell_b = int(owner_cell[other_w])
+        px, py, pz = map(float, xyz[w])
+        ox = float(plate_a.omega[0]) - float(plate_b.omega[0])
+        oy = float(plate_a.omega[1]) - float(plate_b.omega[1])
+        oz = float(plate_a.omega[2]) - float(plate_b.omega[2])
+        vx, vy, vz = oy * pz - oz * py, oz * px - ox * pz, ox * py - oy * px
+        closing = vx * normal[0] + vy * normal[1] + vz * normal[2]
+        shear = float((vx - closing * normal[0]) ** 2 +
+                      (vy - closing * normal[1]) ** 2 +
+                      (vz - closing * normal[2]) ** 2) ** 0.5
+        convergence[w] = closing / CM_PER_YR_TO_RAD_PER_MYR
+        motion = classify_motion(closing, shear, active, oblique)
+        if motion == Motion.OPENING:
+            boundary[w] = BoundaryKind["RIDGE"]
+        elif motion == Motion.SLIDING:
+            boundary[w] = BoundaryKind["TRANSFORM"]
+        elif motion == Motion.CLOSING:
+            a_overrides = overrides(plate_a, cell_a, plate_b, cell_b, int(world.oceanOverrider[w]))
+            if (int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
+                    and int(plate_b.crust.type[cell_b]) == CrustType["OCEAN"]):
+                lower, upper = (plate_a, plate_b) if a_id < b_id else (plate_b, plate_a)
+                lower_cell, upper_cell = (cell_a, cell_b) if a_id < b_id else (cell_b, cell_a)
+                trench = bool((int(plate_a.crust.flags[cell_a]) | int(plate_b.crust.flags[cell_b])) & CrustFlag["TRENCH"])
+                contacts.append({
+                    "w": w, "key": f"{lower.id}:{upper.id}",
+                    "lowerId": lower.id, "upperId": upper.id,
+                    "prefersLower": overrides(lower, lower_cell, upper, upper_cell) is True,
+                    "weight": float(world.config.get("segmentTrenchWeight", 1.0)) if trench else 1.0,
+                })
+            if a_overrides is None:
+                boundary[w] = BoundaryKind["COLLISION"]
+            elif a_overrides:
+                boundary[w] = BoundaryKind["OVERRIDING"]
+                if real:
+                    feed_trench(world, w, plate_a.crust, cell_a, closing * dt * 6371.0)
+            else:
+                boundary[w] = BoundaryKind["SUBDUCTING"]
+                if (real and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
+                        and int(plate_b.crust.type[cell_b]) != CrustType["OCEAN"]):
+                    plate_a.crust.flags[cell_a] &= ~CrustFlag["TRENCH"]
+        if boundary[w] != BoundaryKind["NONE"]:
+            classified += 1
+    if world.config.get("segmentPolarity", False):
+        vote_segments(world, contacts)
+    else:
+        world.oceanOverrider.fill(-1)
+    return classified

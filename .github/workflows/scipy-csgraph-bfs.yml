@@ -1,0 +1,16 @@
+name: scipy-csgraph-bfs benchmark
+on:
+  push:
+    branches: ["experiment/scipy-csgraph-bfs"]
+  workflow_dispatch:
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[speed]" 
+      - run: python benchmarks/experiment_csgraph.py

@@ -40,6 +40,8 @@ def test_flow_of_cycle_no_upwelling_and_world_wrapper_zero_output():
     out = [5.0, 5.0, 5.0]
     world = SimpleNamespace(config={}, cycle=None)
     assert mantle_flow_at(world, 1, 0, 0, out) == [0.0, 0.0, 0.0]
+    no_cycle_attr = SimpleNamespace(config={})
+    assert mantle_flow_at(no_cycle_attr, 1, 0, 0) == [0.0, 0.0, 0.0]
     cycle = {"up": [1.0, 0.0, 0.0], "upHeat": 1.0, "gather": 0.0, "hold": 0.0}
     assert flow_of_cycle(cycle, {}, 1.0, 0.0, 0.0) == [0.0, 0.0, 0.0]
 
@@ -50,8 +52,8 @@ def make_dispersal_world():
         plate.crust.create(0, CrustType["CONTINENT"], 0)
         plate.crust.create(1, CrustType["CRATON"], 0)
     xyz = np.array([
-        1.0, 0.0, 0.0, 0.99, 0.1, 0.0,
-        0.0, 1.0, 0.0, 0.1, 0.99, 0.0,
+        1.0, 0.0, 0.0, 0.99, 0.12, 0.0,
+        0.99, 0.14, 0.0, 0.98, 0.16, 0.0,
     ])
     xyz = xyz.reshape(-1, 3)
     xyz /= np.linalg.norm(xyz, axis=1)[:, None]
@@ -124,3 +126,46 @@ def test_gather_boundary_loads_adds_mantle_force_only_to_continent_craton(monkey
     assert len(loads[0]["byKind"]) == len(FORCE_KINDS) == 5
     assert len(loads[1]["forceByKind"]) == 5
     assert np.linalg.norm(loads[1]["flowTorque"]) > 0
+
+
+def test_dispersal_field_handles_small_cells_zero_centroid_and_global_reach():
+    world = make_dispersal_world()
+    world.mesh.cell_area_km2 = 400000.0
+    assert dispersal_field(world)["centres"] == []
+
+    world = make_dispersal_world()
+    xyz = np.asarray(world.mesh.xyz).reshape(-1, 3)
+    xyz[0] = [1.0, 0.0, 0.0]
+    xyz[1] = [-1.0, 0.0, 0.0]
+    world.mesh.xyz = xyz.ravel()
+    field = dispersal_field(world)
+    first = next(item for item in field["centres"] if item["id"] == 0)
+    assert first["c"] == [0.0, 0.0, 0.0]
+
+    world.config["dispersalRepulsionKm"] = 30000.0
+    field = dispersal_field(world)
+    assert any(item["cutoff"] == -3.0 for item in field["centres"])
+
+
+def test_dispersal_field_skips_unowned_and_noncontinental_cells():
+    world = make_dispersal_world()
+    world.owner[0] = -1
+    world.plates[0].crust.type[1] = CrustType["OCEAN"]
+    world.plates[1].crust.type[0] = CrustType["ARC"]
+    world.plates[1].crust.type[1] = CrustType["OCEAN"]
+    assert dispersal_field(world)["centres"] == []
+
+
+def test_repel_at_filters_self_far_gap_zero_tangent_and_zero_reach():
+    field = {
+        "centres": [
+            {"id": 0, "c": [1.0, 0.0, 0.0], "share": 0.5, "radius": 0.0, "cutoff": -1.0},
+            {"id": 1, "c": [-1.0, 0.0, 0.0], "share": 0.5, "radius": 0.0, "cutoff": 0.5},
+        ],
+        "touching": set(), "k": 1.0, "reach": 0.1,
+    }
+    assert repel_at(field, 0, 1.0, 0.0, 0.0) == [0.0, 0.0, 0.0]
+    field["centres"][1].update({"c": [0.0, 1.0, 0.0], "cutoff": -1.0})
+    assert repel_at(field, 0, 1.0, 0.0, 0.0) == [0.0, 0.0, 0.0]  # outside reach
+    field["centres"][1].update({"c": [1.0, 0.0, 0.0], "radius": 0.1})
+    assert repel_at(field, 0, 1.0, 0.0, 0.0) == [0.0, 0.0, 0.0]  # zero tangent

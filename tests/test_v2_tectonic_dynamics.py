@@ -137,9 +137,9 @@ def test_update_plate_motion_blends_target_and_resets_inactive_plates(monkeypatc
         "torque": [0.0, 0.0, 1.0],
         "flowTorque": [0.0, 0.0, 0.0],
         "byKind": [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0],
-                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         "forceByKind": [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         "torqueMagnitudeSum": 1.0,
         "cells": [1, 0, 0, 0, 0],
         "slabs": [], "contacts": [],
@@ -181,9 +181,9 @@ def test_update_plate_motion_respects_zero_step_and_requires_positive_relaxation
     load = {
         "torque": [0.0, 0.0, 1.0], "flowTorque": [0.0, 0.0, 0.0],
         "byKind": [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0],
-                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                   [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         "forceByKind": [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                        [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         "torqueMagnitudeSum": 1.0, "cells": [1, 0, 0, 0, 0],
         "slabs": [], "contacts": [],
     }

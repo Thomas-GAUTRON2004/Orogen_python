@@ -147,7 +147,7 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
     """
     mesh = world.mesh
     config = world.config
-    share = float(config["underthrustShare"])
+    share = float(config.get("underthrustShare", 0.0))
     km = float(shortening_km)
     if not share > 0.0 or km <= 0.0:
         return 0

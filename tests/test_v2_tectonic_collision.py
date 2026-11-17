@@ -845,3 +845,130 @@ def test_track_collisions_uses_arc_result_before_creating_record(monkeypatch):
     assert result["tracked"] == 0
     assert result["changed"] is True
     assert world.collisions == {}
+
+
+
+def test_underthrust_stops_after_reaching_the_due_target():
+    from orogen.v2.tectonics.collision import underthrust
+
+    world, upper, lower = underthrust_world()
+    record = {"frontKm": 100.0, "underthrustDue": 0.0}
+    consumed = underthrust(world, upper, lower, [0, 1, 2, 3], record, 1.0)
+    assert consumed == 1
+    assert record["underthrustCells"] == 1
+
+
+def test_accrete_arcs_recycles_tiny_fragment_without_attempting_scrape(monkeypatch):
+    from orogen.v2.tectonics import collision
+    import importlib
+
+    scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
+    world, donor, host = contact_world()
+    donor.crust.type[0] = CrustType["ARC"]
+    world.config = {
+        "arcAccreteMinKm2": 400.0,
+        "terraneMinAreaKm2": 1000.0,
+        "arcScrapeLogKm2": 1000.0,
+    }
+    monkeypatch.setattr(
+        scrape_module, "scrape_arc",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("a tiny arc fragment should be recycled")
+        ),
+    )
+    result = collision.accrete_arcs(world, donor, host, [0])
+    assert result == {"core": [], "accreted": True}
+    assert donor.crust.mask[0] == 0
+
+
+def test_track_collisions_skips_touching_pair_with_existing_record():
+    from orogen.v2.tectonics.collision import track_collisions
+
+    world, _upper, _lower = collision_tracking_world()
+    world.landClaims[:] = 0
+    world.collider[:] = -1
+    world.owner[:] = [0, 0, 1, 1, -1]
+    world.config["terraneMaxAreaKm2"] = 100.0
+    world.collisions["0:1"] = {
+        "upper": 0, "lower": 1, "sutured": False,
+        "lastActive": world.time, "startedAt": world.time,
+    }
+    result = track_collisions(world, 1.0)
+    assert result["tracked"] == 0
+    assert result["started"] == 0
+    assert world.collisions["0:1"]["lastActive"] == world.time
+
+
+def test_track_collisions_ignores_overlap_when_plate_is_dead():
+    from orogen.v2.tectonics.collision import track_collisions
+
+    world, _upper, lower = collision_tracking_world()
+    lower.alive = False
+    result = track_collisions(world, 1.0)
+    assert result["tracked"] == 0
+    assert result["started"] == 0
+    assert world.collisions == {}
+
+
+def test_track_collisions_skips_young_conjugate_rift_partner_sliver(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, upper, lower = collision_tracking_world()
+    upper.riftPartner, lower.riftPartner = lower.id, upper.id
+    upper.born = lower.born = 0.0
+    world.config.update({
+        "riftJitterFrontKm": 100.0,
+        "riftPushMyr": 20.0,
+    })
+    monkeypatch.setattr(collision, "is_rift_jitter", lambda *_args: False)
+    assert collision.are_young_rift_partners(
+        upper, lower, world.time, world.config
+    )
+    result = collision.track_collisions(world, 1.0)
+    assert result["started"] == 0
+    assert result["tracked"] == 0
+    assert world.collisions == {}
+
+
+def test_track_collisions_docks_new_overlap_and_removes_its_record(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, _upper, _lower = collision_tracking_world()
+    world.config["terraneMaxAreaKm2"] = 100.0
+    monkeypatch.setattr(collision, "dock_if_terrane", lambda *_args: True)
+    result = collision.track_collisions(world, 1.0)
+    assert result["started"] == 1
+    assert result["changed"] is True
+    assert world.collisions == {}
+
+
+def test_track_collisions_skips_record_if_its_saved_upper_plate_died():
+    from orogen.v2.tectonics.collision import track_collisions
+
+    world, _upper, lower = collision_tracking_world()
+    dead = Plate(2, 5)
+    dead.alive = False
+    world.plates.append(dead)
+    world.collisions["0:1"] = {
+        "upper": 2, "lower": 1, "sutured": False,
+        "lastActive": world.time, "startedAt": world.time,
+    }
+    result = track_collisions(world, 1.0)
+    assert result["tracked"] == 0
+    assert result["underthrustCells"] == 0
+
+
+def test_track_collisions_skips_ambiguous_neighbour_claims(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, _upper, _lower = collision_tracking_world()
+    world.landClaims[1] = 2
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+    result = collision.track_collisions(world, 1.0)
+    assert result["tracked"] == 1
+    assert world.collisions["0:1"]["frontKm"] >= 0.0

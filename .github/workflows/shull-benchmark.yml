@@ -24,4 +24,4 @@ jobs:
       - name: Install benchmark dependencies
         run: python -m pip install -e ".[benchmark]"
       - name: Compare triangulation and mesh pipeline
-        run: python benchmarks/bench_shull_pipeline.py
+        run: /usr/bin/time -v python benchmarks/bench_shull_pipeline.py

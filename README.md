@@ -2,17 +2,15 @@
 
 A progressive Python port of the **Orogen 3.0.1** procedural planetary simulation engine. The implementation is based on the upstream [planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation) repository, release `v3.0.1`.
 
-> **Status:** this repository is an incomplete port. The current `orogen.v2` package provides tested numerical and tectonic building blocks, including a partial tectonic stepper and plume/LIP lifecycle. It does not yet generate a complete planet or reproduce the full JavaScript simulation pipeline.
+> **Status:** the port contains tested numerical and tectonic subsystems, including a partial one-step orchestrator and a working continental-rifting stage. It is not yet a complete port of the JavaScript simulation pipeline and does not yet generate a complete planet.
 
 ## Documentation
-
-The documentation is organized as a small handbook:
 
 - [Documentation home](docs/README.md) — navigation and project scope.
 - [Getting started](docs/GETTING_STARTED.md) — installation and first operations.
 - [Architecture](docs/ARCHITECTURE.md) — package structure, data flow, and design decisions.
 - [Core API](docs/CORE_API.md) — random numbers, noise, meshes, geometry, and graph algorithms.
-- [Tectonics API](docs/TECTONICS_API.md) — crust, plates, kinematics, and world state.
+- [Tectonics API](docs/TECTONICS_API.md) — crust, plates, rifting, and tectonic operations.
 - [Testing and compatibility](docs/TESTING.md) — test commands, differential tests, and compatibility limits.
 - [Porting status](docs/PORTING_STATUS.md) — implemented, partial, and outstanding subsystems.
 
@@ -40,23 +38,20 @@ python -m pytest
 ```python
 from orogen.v2.core import FastNoise, build_sim_mesh, make_rng
 
-# Deterministic random stream
 random = make_rng(42)
 print(random())
 
-# Seeded 3-D simplex noise and FBM
 noise = FastNoise(42)
 print(noise.noise3d(0.1, 0.2, 0.3))
 print(noise.fbm(0.1, 0.2, 0.3, octaves=5))
 
-# Build a spherical simulation mesh
 mesh = build_sim_mesh(num_cells=128, seed=42)
 print(mesh.num_cells, mesh.edge_km, mesh.cell_area_km2)
 ```
 
 See [Getting started](docs/GETTING_STARTED.md) for a longer walkthrough and important mesh details.
 
-## What is implemented
+## Implemented subsystems
 
 ### Core (`orogen.v2.core`)
 
@@ -64,9 +59,18 @@ Deterministic seed parsing and Park–Miller RNG, 3-D simplex noise and FBM, qua
 
 ### Tectonics (`orogen.v2.tectonics`)
 
-The current port includes crust-raster storage and history fields; rigid plate state, coordinate transforms and kinematics; occupancy, claim gathering and ownership reconstruction; a first-pass contact resolver and boundary classifier; adaptive time-step selection; orogenic-belt record propagation; mantle heat memory; supercontinent analysis and cycle tracking; force collection and a partial plate-motion update; and plume births/deaths, LIP province stamping, moving plume tracks and burst-built volcanic edifices. The new `orogen.v2.tectonics.ops.rift_partition` module also ports rift-side partitioning, plate-ocean continuation, exterior-sea detection and land-block shape scoring.
+The current port includes crust-raster storage and history fields; rigid plate state, coordinate transforms and kinematics; occupancy, claim gathering and ownership reconstruction; first-pass contact resolution and boundary classification; adaptive time-step selection; orogenic-belt record propagation; mantle heat memory; supercontinent analysis and cycle tracking; force collection and a partial plate-motion update; and plume births/deaths, LIP province stamping, moving plume tracks and burst-built volcanic edifices.
 
-This is not yet the complete tectonic engine. The default `TECTONICS` configuration and initial-world/scenario builders are not ported. The rift partitioning helper is now implemented, but rift-path search, full cut validation and the plate-splitting operation are not; queued plume rifts are therefore not yet executed. The full multi-stage simulation loop and the terrain, general geology, climate, finishing and agriculture pipelines remain outstanding.
+The rifting subsystem now includes:
+- rift-path search through continental crust, with seeded crust-grain costs and coast/shape constraints;
+- partitioning a plate along the chosen path and transferring one half to a new plate;
+- rift margins, failed arms, rift-shoulder relief records, plate naming and separation-push directions;
+- queued plume-triggered rifts, waiting/expiry, forced overdue breakups and spontaneous tension/heat-driven rifting;
+- integration of the rifting stage into `step_world` when the rift configuration is present.
+
+## Remaining porting work
+
+This is not yet the complete tectonic engine. The upstream `TECTONICS` defaults and initial-world/scenario builders are not ported. Collision and orogeny event handling, subduction initiation and arcs, ocean-plate evolution/splitting, the complete simulation generator, snapshots and save/load are still outstanding. The full terrain, general geology, climate, finishing and agriculture pipelines also remain to be ported. See [Porting status](docs/PORTING_STATUS.md) for the breakdown.
 
 ## Numerical backend and reproducibility
 
@@ -76,7 +80,7 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest verified pull-request Actions run for commit `eef5de2e513affa334027be09b6b43df94fd5e22` (run #481) completed **243 passing tests** with **100% line coverage across 3,288 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or JavaScript parity.
+The latest verified pull-request Actions run for commit `ca5757b83be2b32c750fda07a7d6a11e5cefb4be` (run #540) completed **295 passing tests** with **100% line coverage across 3,938 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or prove whole-engine JavaScript parity.
 
 ## Upstream and license
 

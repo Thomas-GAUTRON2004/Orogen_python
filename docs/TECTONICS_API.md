@@ -311,3 +311,37 @@ Module: `orogen.v2.tectonics.ops`
 These are plate operations used by subduction initiation and intra-plate
 foundering. They do not yet replace the full upstream back-arc/ocean-plate
 lifecycle.
+
+
+## Terrane accretion and sea closure
+
+Module: `orogen.v2.tectonics.ops.plate_accretion`
+
+- `accrete_terrane(world, host, donor, terrane, rate_cm_yr)` transfers a
+  donor's terrane into the host plate's frame, gathers a fore-arc strip,
+  resolves overlap against existing host land, removes the transferred donor
+  cells, closes narrow straits and eligible enclosed seas, marks the suture
+  and spreads an Ural-type orogenic belt on both sides.
+- A fragment below `terraneMinAreaKm2` is treated as scrap and does not
+  receive a full suture-belt treatment.
+- `close_seas_between(out, origin, mesh, upper, config, time)` identifies sea
+  cells reached from both sides within `sealStraitKm`, preserves ocean
+  connected to the far-side open sea, and fills enclosed sea components below
+  `inlandSeaMaxKm2`. Filled cells inherit nearby land history, are dated at
+  the accretion time and receive a suture flag.
+- `landmass_of(plate, mesh, seeds)` returns the connected land component
+  containing the supplied land seeds.
+
+These functions are tested as standalone operations. They are not yet invoked
+by a collision record/event loop: collision detection, convergence tracking,
+underthrusting and plate welding remain unported.
+
+Example:
+
+```python
+from orogen.v2.tectonics.ops import accrete_terrane, landmass_of
+
+component = landmass_of(donor, world.mesh, terrane_seed_cells)
+result = accrete_terrane(world, host, donor, component, rate_cm_yr=4.0)
+print(result["cells"], result["sealed"])
+```

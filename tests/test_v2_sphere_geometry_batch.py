@@ -238,3 +238,18 @@ def test_crust_copy_many_python_fallback_and_validation(monkeypatch):
     assert target.snapshot(1) == source.snapshot(0)
     with pytest.raises(ValueError, match="one index per destination"):
         target.copy_many([0, 1], source, [0])
+
+
+def test_crust_copy_and_remove_many_empty_batches_and_implicit_sources():
+    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+
+    source = CrustRaster(3)
+    source.create_many([0, 2], CrustType["CONTINENT"], -1.0, [3, 5])
+    target = CrustRaster(3)
+    target.copy_many([0, 2], source)
+    assert target.snapshot_many([0, 2]) == source.snapshot_many([0, 2])
+    assert target.count == 2
+    target.copy_many([], source, [])
+    target.remove_many([])
+    with pytest.raises(ValueError, match="one index per destination"):
+        target.copy_many([1, 2], source, [0])

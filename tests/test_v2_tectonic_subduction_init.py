@@ -310,5 +310,5 @@ def test_founder_within_plates_restores_plate_after_failed_transfer(monkeypatch)
 
 def test_founder_within_plates_respects_dispersal_cycle_delay():
     world, _plate = make_intraplate_world(disperseFounderFactor=0.0)
-    world.cycle = {"phase": "dispersing", "breakupAt": 0.0}
+    world.cycle = {"phase": "dispersing", "breakupAt": -200.0}
     assert founder_within_plates(world, 1.0) == 0

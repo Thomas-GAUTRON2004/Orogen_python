@@ -103,3 +103,15 @@ def test_step_world_adaptive_dt_and_external_motion(monkeypatch):
 def test_step_world_rejects_invalid_dt(dt):
     with pytest.raises(ValueError):
         step_world(make_world(), dt)
+
+
+def test_step_world_runs_rifting_when_enabled(monkeypatch):
+    world = make_world()
+    world.config["riftRatePerMyr"] = 0.2
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.resolve", lambda _w: {})
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.classify_contact_boundaries", lambda _w, _dt: 0)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.track_cycle", lambda _w: None)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.rift_continents", lambda _w, dt: 2)
+    monkeypatch.setattr("orogen.v2.tectonics.stepper.update_plate_motion", lambda _w: None)
+    result = step_world(world, 1.0)
+    assert result["rifts"] == 2

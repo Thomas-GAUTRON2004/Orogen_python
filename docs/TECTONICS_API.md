@@ -233,7 +233,7 @@ Module: `orogen.v2.tectonics.forces`
 
 `gather_boundary_loads(world)` gathers slab pull, slab suction, young-ridge push, and young-rift push from a resolved world owner map. Its records are compatible with `balanced_rotation` and include per-kind torque/vector totals plus slab-resistance records.
 
-The gatherer also records land-overlap collision contacts with opposing front normals and optional craton lock weighting; fresh conjugate rift margins and arc contacts are excluded from collision locking. This remains a partial port of upstream `gatherLoads`: mantle flow and dispersal repulsion are not gathered here.
+The gatherer also records land-overlap collision contacts with opposing front normals and optional craton lock weighting; fresh conjugate rift margins and arc contacts are excluded from collision locking. It now also gathers mantle flow and dispersal repulsion when an existing cycle state enables them. The cycle tracker that discovers landmasses and advances cycle phases remains a separate outstanding stage.
 
 
 ## Plate angular-velocity update (partial)
@@ -241,3 +241,15 @@ The gatherer also records land-overlap collision contacts with opposing front no
 `update_plate_motion(world)` connects boundary-force gathering to the torque-balance solver. It solves each living non-background plate from the same start-of-step angular velocities, applies smooth and hard speed limits, then relaxes toward the solved target over `relaxMyr`. It also records a compact per-plate force diagnostic.
 
 The update uses the partial boundary-force gatherer above; collision-overlap forces and mantle-flow/repulsion are not yet included. Therefore it is not a full upstream `updatePlateMotion` replacement.
+
+
+## Mantle flow and continental dispersal
+
+Module: orogen.v2.tectonics.mantle
+
+- flow_of_cycle(cycle, config, x, y, z, out=None) evaluates tangent traction from an existing cycle state: outward from the heated upwelling, toward the downwelling during gathering, and local hold-inflow over the assembled footprint.
+- mantle_flow_at(world, x, y, z, out=None) evaluates the same field from world state.
+- dispersal_field(world) builds large-continent centres and touching-pair exclusions during the dispersing phase.
+- repel_at(field, plate_id, x, y, z, out=None) accumulates a quadratic falloff push away from other nearby large continents.
+
+gather_boundary_loads applies these vectors only to continental and cratonic cells and scales them by cell area. The field evaluator and force gatherer are ported; supercontinent landmass detection, heat evolution, seeded cycle formation and phase transitions are not yet implemented.

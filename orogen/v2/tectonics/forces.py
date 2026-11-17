@@ -13,9 +13,10 @@ import numpy as np
 from ..core.mesh_rings import rings_of
 from .contact import contact_at
 from .crust import CrustFlag, CrustType
+from .mantle import dispersal_field, mantle_flow_at, repel_at
 
 
-FORCE_KINDS = ("slab pull", "slab suction", "ridge push", "rift push")
+FORCE_KINDS = ("slab pull", "slab suction", "ridge push", "rift push", "mantle flow")
 _PULL, _SUCTION, _RIDGE, _RIFT = range(4)
 
 
@@ -118,6 +119,16 @@ def gather_boundary_loads(world) -> dict[int, dict]:
     }
     plates_by_id = {int(plate.id): plate for plate in world.plates}
     normal_out = np.zeros(4, dtype=np.float64)
+    cycle = getattr(world, "cycle", None)
+    flowing = bool(
+        cycle is not None and cycle.get("up") is not None
+        and (float(config.get("mantleOutflow", 0.0)) > 0
+             or float(config.get("mantleInflow", 0.0)) > 0
+             or float(config.get("dispersalRepulsion", 0.0)) > 0)
+    )
+    apart = dispersal_field(world) if flowing else None
+    flow = np.zeros(3, dtype=np.float64)
+    flow_area = float(mesh.cell_area_km2) / 1e4
 
     for world_cell in range(n_cells):
         owner_id = int(world.owner[world_cell])
@@ -126,6 +137,21 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         plate = plates_by_id.get(owner_id)
         if plate is None:
             continue
+        load = loads.get(owner_id)
+        if flowing and load is not None:
+            cell = int(world.ownerCell[world_cell])
+            if int(plate.crust.type[cell]) in (CrustType["CONTINENT"], CrustType["CRATON"]):
+                position = xyz[world_cell]
+                mantle_flow_at(world, *map(float, position), flow)
+                if apart is not None:
+                    repel_at(apart, owner_id, *map(float, position), flow)
+                force = flow * flow_area
+                torque = np.cross(position, force)
+                load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
+                load["flowTorque"] = (np.asarray(load["flowTorque"]) + torque).tolist()
+                load["byKind"][4] = (np.asarray(load["byKind"][4]) + torque).tolist()
+                load["forceByKind"][4] = (np.asarray(load["forceByKind"][4]) + force).tolist()
+                load["cells"][4] += 1
         if int(world.landClaims[world_cell]) > 1 and int(world.collider[world_cell]) >= 0:
             other_id = int(world.collider[world_cell])
             other = plates_by_id.get(other_id)

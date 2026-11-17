@@ -141,7 +141,7 @@ def test_update_plate_motion_blends_target_and_resets_inactive_plates(monkeypatc
         "forceByKind": [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         "torqueMagnitudeSum": 1.0,
-        "cells": [1, 0, 0, 0],
+        "cells": [1, 0, 0, 0, 0],
         "slabs": [], "contacts": [],
     }
     monkeypatch.setattr(dynamics_module, "gather_boundary_loads", lambda world: {0: load})

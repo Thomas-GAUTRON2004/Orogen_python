@@ -62,7 +62,7 @@ def test_gather_boundary_loads_builds_slab_pull_and_slab_record(monkeypatch):
     assert load["slabs"][0]["other"] == 1
     assert load["slabs"][0]["length"] == pytest.approx(1.0)
     assert load["contacts"] == []
-    assert len(FORCE_KINDS) == 4
+    assert len(FORCE_KINDS) == 5
 
 
 def test_gather_boundary_loads_builds_suction_and_young_ridge(monkeypatch):

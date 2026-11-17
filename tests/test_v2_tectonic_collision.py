@@ -1174,6 +1174,9 @@ def test_track_collisions_allows_overdue_merge_candidate_despite_large_ring(monk
     assert record["weldCandidate"] is True
     assert record["weldBlockedByRing"] is False
     assert record["mergeEligible"] is True
+    assert record["ringLogged"] is True
+    assert world.events[-1]["kind"] == "collision"
+    assert world.events[-1]["data"]["ringKm2"] == 5000.0
 
 
 def test_track_collisions_executes_merge_and_logs_suture(monkeypatch):

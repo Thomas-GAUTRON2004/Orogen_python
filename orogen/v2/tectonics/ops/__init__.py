@@ -8,7 +8,17 @@ from .rift_partition import (
     sides_of,
 )
 from .rift_path import find_rift, grain_of, rift_context
-from .rift import choose_junction, split_plate
+from .rift import (
+    choose_junction,
+    find_rift,
+    grain_of,
+    names_after_split,
+    plume_junctions,
+    pull_axis_of,
+    rift_context,
+    split_plate,
+    try_rift,
+)
 
 __all__ = [
     "elongation_of",
@@ -21,4 +31,8 @@ __all__ = [
     "rift_context",
     "choose_junction",
     "split_plate",
+    "pull_axis_of",
+    "names_after_split",
+    "try_rift",
+    "plume_junctions",
 ]

@@ -14,6 +14,7 @@ import numpy as np
 
 from ..core.min_heap import MinHeap
 from ..core.sphere_geometry import cell_distance_km
+from ..core._numba_kernels import NUMBA_AVAILABLE, far_field_distance_numba
 from .crust import CrustFlag, CrustType, OrogenyType
 from .heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
 from .spread_belt import spread_belt
@@ -140,43 +141,69 @@ def spread_push(
         }
 
     strongest = max(work for _, work in active_sources)
-    distance = np.full(count, np.inf, dtype=np.float64)
-    source_of = np.full(count, -1, dtype=np.int32)
-    heap = MinHeap(max(64, 2 * len(active_sources)))
-    for cell, work in active_sources:
-        initial = -reach_length * math.log(work / strongest)
-        if initial < distance[cell]:
-            distance[cell] = initial
-            source_of[cell] = cell
-            heap.push(initial, cell)
-
     offsets = mesh.adj_offset
     adjacency = mesh.adj_list
     max_cost = float(config["farMaxKm"])
-    reached: list[int] = []
-    while heap.size:
-        cell = heap.pop()
-        current = heap.last_key
-        if current > distance[cell]:
-            continue
-        reached.append(cell)
-        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-            neighbour = int(adjacency[edge])
-            if not crust.mask[neighbour]:
+    if NUMBA_AVAILABLE:
+        source_cells = np.asarray(
+            [cell for cell, _work in active_sources], dtype=np.int32
+        )
+        source_works = np.asarray(
+            [work for _cell, work in active_sources], dtype=np.float64
+        )
+        distance, source_of, reached_buffer, reached_count = far_field_distance_numba(
+            np.ascontiguousarray(offsets, dtype=np.int32),
+            np.ascontiguousarray(adjacency, dtype=np.int32),
+            np.ascontiguousarray(xyz),
+            np.ascontiguousarray(crust.mask),
+            np.ascontiguousarray(crust.type),
+            np.ascontiguousarray(crust.flags),
+            source_cells,
+            source_works,
+            strongest,
+            reach_length,
+            max_cost,
+            CrustType["CRATON"],
+            _WEAK,
+            float(config["farCratonCost"]),
+            float(config["farWeakCost"]),
+        )
+        reached = reached_buffer[:reached_count].tolist()
+    else:
+        distance = np.full(count, np.inf, dtype=np.float64)
+        source_of = np.full(count, -1, dtype=np.int32)
+        heap = MinHeap(max(64, 2 * len(active_sources)))
+        for cell, work in active_sources:
+            initial = -reach_length * math.log(work / strongest)
+            if initial < distance[cell]:
+                distance[cell] = initial
+                source_of[cell] = cell
+                heap.push(initial, cell)
+
+        reached = []
+        while heap.size:
+            cell = heap.pop()
+            current = heap.last_key
+            if current > distance[cell]:
                 continue
-            neighbour_type = int(crust.type[neighbour])
-            if neighbour_type == CrustType["CRATON"]:
-                factor = float(config["farCratonCost"])
-            elif int(crust.flags[neighbour]) & _WEAK:
-                factor = float(config["farWeakCost"])
-            else:
-                factor = 1.0
-            candidate = current + cell_distance_km(xyz, cell, neighbour) * factor
-            if candidate >= distance[neighbour] or candidate > max_cost:
-                continue
-            distance[neighbour] = candidate
-            source_of[neighbour] = int(source_of[cell])
-            heap.push(candidate, neighbour)
+            reached.append(cell)
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if not crust.mask[neighbour]:
+                    continue
+                neighbour_type = int(crust.type[neighbour])
+                if neighbour_type == CrustType["CRATON"]:
+                    factor = float(config["farCratonCost"])
+                elif int(crust.flags[neighbour]) & _WEAK:
+                    factor = float(config["farWeakCost"])
+                else:
+                    factor = 1.0
+                candidate = current + cell_distance_km(xyz, cell, neighbour) * factor
+                if candidate >= distance[neighbour] or candidate > max_cost:
+                    continue
+                distance[neighbour] = candidate
+                source_of[neighbour] = int(source_of[cell])
+                heap.push(candidate, neighbour)
 
     output_cells: list[int] = []
     increments: list[float] = []

@@ -136,3 +136,62 @@ def test_numba_dijkstra_matches_python_for_float32_and_float64(monkeypatch):
             expected = spread_km(mesh, initial.copy(), max_km=max_km)
             monkeypatch.setattr(min_heap_module, "NUMBA_AVAILABLE", True)
             np.testing.assert_array_equal(actual, expected)
+
+
+def test_numba_far_field_weighted_dijkstra_matches_python_fallback(monkeypatch):
+    from types import SimpleNamespace
+
+    from orogen.v2.tectonics import far_field
+    from orogen.v2.tectonics.crust import CrustFlag, CrustType, CrustRaster
+
+    class Mesh:
+        num_cells = 5
+        xyz = np.column_stack((
+            np.cos(np.arange(5, dtype=np.float64) * 0.01),
+            np.sin(np.arange(5, dtype=np.float64) * 0.01),
+            np.zeros(5, dtype=np.float64),
+        )).ravel()
+        adj_offset = np.asarray([0, 1, 3, 5, 7, 8], dtype=np.int32)
+        adj_list = np.asarray([1, 0, 2, 1, 3, 2, 4, 3], dtype=np.int32)
+
+    config = {
+        "farReachKm": 1000.0,
+        "farFrontRefKm": 1000.0,
+        "farMaxKm": 1000.0,
+        "farCratonCost": 0.3,
+        "farWeakCost": 1.6,
+        "farCratonTake": 0.15,
+        "farWeakTake": 1.6,
+        "farFoldMyr": 100.0,
+    }
+
+    def run(sources):
+        crust = CrustRaster(5)
+        for cell, crust_type in enumerate([
+            CrustType["CONTINENT"], CrustType["CRATON"],
+            CrustType["CONTINENT"], CrustType["CONTINENT"],
+            CrustType["CONTINENT"],
+        ]):
+            crust.create(cell, crust_type, -20.0, cell + 1)
+        crust.flags[2] |= CrustFlag["SUTURE"]
+        world = SimpleNamespace(mesh=Mesh(), config=dict(config), time=10.0)
+        plate = SimpleNamespace(crust=crust)
+        result = far_field.spread_push(world, plate, sources, 1000.0, 10.0)
+        state = {
+            name: getattr(crust, name).copy()
+            for name in ("farWork", "farDist", "farFold", "farAt", "farDx", "farDy", "farDz")
+        }
+        return result, state
+
+    for sources in ({0: 100.0}, {0: 10.0, 4: 100.0}):
+        actual, actual_state = run(sources)
+        monkeypatch.setattr(far_field, "NUMBA_AVAILABLE", False)
+        expected, expected_state = run(sources)
+        monkeypatch.setattr(far_field, "NUMBA_AVAILABLE", True)
+
+        assert actual["cells"] == expected["cells"]
+        np.testing.assert_array_equal(actual["inc"], expected["inc"])
+        np.testing.assert_array_equal(actual["from"], expected["from"])
+        np.testing.assert_array_equal(actual["dist"], expected["dist"])
+        for name in actual_state:
+            np.testing.assert_array_equal(actual_state[name], expected_state[name])

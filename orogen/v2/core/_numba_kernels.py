@@ -122,6 +122,112 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     return distance
 
 
+
+def _far_field_distance_kernel(
+    offsets, adjacency, xyz, mask, crust_type, flags,
+    source_cells, source_works, strongest, reach_length, max_cost,
+    craton_type, weak_mask, craton_factor, weak_factor,
+):
+    """Weighted far-field Dijkstra; side effects remain in the Python caller."""
+    n = mask.size
+    distance = np.full(n, math.inf, dtype=np.float64)
+    source_of = np.full(n, -1, dtype=np.int32)
+    reached = np.empty(n, dtype=np.int32)
+    reached_count = 0
+    capacity = adjacency.size + n + 1
+    heap_keys = np.empty(capacity, dtype=np.float64)
+    heap_ids = np.empty(capacity, dtype=np.int32)
+    heap_size = 0
+
+    # Keep the insertion order of the source mapping, including equal keys.
+    for i in range(source_cells.size):
+        cell = int(source_cells[i])
+        initial = -reach_length * math.log(source_works[i] / strongest)
+        if initial < distance[cell]:
+            distance[cell] = initial
+            source_of[cell] = cell
+            index = heap_size
+            heap_size += 1
+            while index > 0:
+                parent = (index - 1) >> 1
+                if heap_keys[parent] <= initial:
+                    break
+                heap_keys[index] = heap_keys[parent]
+                heap_ids[index] = heap_ids[parent]
+                index = parent
+            heap_keys[index] = initial
+            heap_ids[index] = cell
+
+    while heap_size > 0:
+        cell = int(heap_ids[0])
+        current = heap_keys[0]
+        count = heap_size - 1
+        heap_size = count
+
+        if count > 0:
+            key = heap_keys[count]
+            identifier = heap_ids[count]
+            index = 0
+            while True:
+                left = 2 * index + 1
+                if left >= count:
+                    break
+                right = left + 1
+                child = right if right < count and heap_keys[right] < heap_keys[left] else left
+                if heap_keys[child] >= key:
+                    break
+                heap_keys[index] = heap_keys[child]
+                heap_ids[index] = heap_ids[child]
+                index = child
+            heap_keys[index] = key
+            heap_ids[index] = identifier
+
+        if current > distance[cell]:
+            continue
+
+        reached[reached_count] = cell
+        reached_count += 1
+        for edge in range(offsets[cell], offsets[cell + 1]):
+            neighbour = int(adjacency[edge])
+            if not mask[neighbour]:
+                continue
+            neighbour_type = int(crust_type[neighbour])
+            if neighbour_type == craton_type:
+                factor = craton_factor
+            elif (int(flags[neighbour]) & weak_mask) != 0:
+                factor = weak_factor
+            else:
+                factor = 1.0
+
+            a = 3 * cell
+            b = 3 * neighbour
+            cosine = (
+                float(xyz[a]) * float(xyz[b])
+                + float(xyz[a + 1]) * float(xyz[b + 1])
+                + float(xyz[a + 2]) * float(xyz[b + 2])
+            )
+            edge_distance = math.acos(max(-1.0, min(1.0, cosine))) * 6371.0
+            candidate = current + edge_distance * factor
+            if candidate >= distance[neighbour] or candidate > max_cost:
+                continue
+            distance[neighbour] = candidate
+            source_of[neighbour] = int(source_of[cell])
+
+            index = heap_size
+            heap_size += 1
+            while index > 0:
+                parent = (index - 1) >> 1
+                if heap_keys[parent] <= candidate:
+                    break
+                heap_keys[index] = heap_keys[parent]
+                heap_ids[index] = heap_ids[parent]
+                index = parent
+            heap_keys[index] = candidate
+            heap_ids[index] = neighbour
+
+    return distance, source_of, reached, reached_count
+
+
 def _spread_km_kernel(offsets, adjacency, edge_km, distance, max_km):
     """Full Dijkstra traversal with the same lazy-deletion binary heap as JS."""
     n = distance.size
@@ -207,5 +313,6 @@ if NUMBA_AVAILABLE:
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
     spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
+    far_field_distance_numba = njit(cache=True, fastmath=False)(_far_field_distance_kernel)
 else:
-    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = None
+    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None

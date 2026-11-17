@@ -415,29 +415,55 @@ def _bearing_to_many_kernel(points, targets):
 
 
 
-def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotation, rotate):
-    """Copy cells in order, including JS-compatible far-field-axis rounding."""
+def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotation, rotate, same_raster):
+    """Copy a batch, retaining alias semantics and rotating far-field axes."""
     added = 0
     for row in range(destinations.size):
         target = int(destinations[row])
-        source = int(sources[row])
         if not mask[target]:
             added += 1
         mask[target] = 1
+
+    if same_raster:
+        # Preserve scalar copy_from ordering when reads can observe earlier writes.
+        for row in range(destinations.size):
+            target = int(destinations[row])
+            source = int(sources[row])
+            for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+                out_fields[column][target] = in_fields[column][source]
+            if rotate:
+                x = int(out_fields[52][target])
+                y = int(out_fields[53][target])
+                z = int(out_fields[54][target])
+                if x or y or z:
+                    u = rotation[0] * x + rotation[1] * y + rotation[2] * z
+                    v = rotation[3] * x + rotation[4] * y + rotation[5] * z
+                    w = rotation[6] * x + rotation[7] * y + rotation[8] * z
+                    length = math.sqrt(u * u + v * v + w * w) or 1.0
+                    out_fields[52][target] = math.floor(127.0 * u / length + 0.5)
+                    out_fields[53][target] = math.floor(127.0 * v / length + 0.5)
+                    out_fields[54][target] = math.floor(127.0 * w / length + 0.5)
+    else:
+        # For distinct rasters, traverse each typed array contiguously.
         for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
-            out_fields[column][target] = in_fields[column][source]
+            destination_field = out_fields[column]
+            source_field = in_fields[column]
+            for row in range(destinations.size):
+                destination_field[int(destinations[row])] = source_field[int(sources[row])]
         if rotate:
-            x = int(out_fields[52][target])
-            y = int(out_fields[53][target])
-            z = int(out_fields[54][target])
-            if x or y or z:
-                u = rotation[0] * x + rotation[1] * y + rotation[2] * z
-                v = rotation[3] * x + rotation[4] * y + rotation[5] * z
-                w = rotation[6] * x + rotation[7] * y + rotation[8] * z
-                length = math.sqrt(u * u + v * v + w * w) or 1.0
-                out_fields[52][target] = math.floor(127.0 * u / length + 0.5)
-                out_fields[53][target] = math.floor(127.0 * v / length + 0.5)
-                out_fields[54][target] = math.floor(127.0 * w / length + 0.5)
+            for row in range(destinations.size):
+                target = int(destinations[row])
+                x = int(out_fields[52][target])
+                y = int(out_fields[53][target])
+                z = int(out_fields[54][target])
+                if x or y or z:
+                    u = rotation[0] * x + rotation[1] * y + rotation[2] * z
+                    v = rotation[3] * x + rotation[4] * y + rotation[5] * z
+                    w = rotation[6] * x + rotation[7] * y + rotation[8] * z
+                    length = math.sqrt(u * u + v * v + w * w) or 1.0
+                    out_fields[52][target] = math.floor(127.0 * u / length + 0.5)
+                    out_fields[53][target] = math.floor(127.0 * v / length + 0.5)
+                    out_fields[54][target] = math.floor(127.0 * w / length + 0.5)
     return added
 
 

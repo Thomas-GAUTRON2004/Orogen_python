@@ -11,6 +11,7 @@ import pytest
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
 from orogen.v2.core.mesh_bfs import hop_distance
+from orogen.v2.core.min_heap import spread_km
 
 
 pytestmark = pytest.mark.skipif(not NUMBA_AVAILABLE, reason="install orogen[speed] to test Numba kernels")
@@ -106,3 +107,32 @@ def test_numba_fbm_matches_upstream_javascript_bit_for_bit():
     expected = np.asarray(json.loads(result.stdout), dtype=np.float64)
     actual = FastNoise(9876).fbm_many(points, 5, 2/3)
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_numba_dijkstra_matches_python_for_float32_and_float64(monkeypatch):
+    import orogen.v2.core.min_heap as min_heap_module
+
+    class Mesh:
+        num_cells = 5
+        adj_offset = np.asarray([0, 1, 5, 6, 7, 8], dtype=np.int32)
+        adj_list = np.asarray([1, 0, 2, 3, 4, 1, 1, 1], dtype=np.int32)
+        xyz = np.asarray([
+            1.0, 0.0, 0.0,
+            math.cos(0.01), math.sin(0.01), 0.0,
+            math.cos(0.02), math.sin(0.02), 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ], dtype=np.float64)
+
+    mesh = Mesh()
+    for dtype in (np.float64, np.float32):
+        for max_km in (100.0, 20000.0):
+            initial = np.full(mesh.num_cells, np.inf, dtype=dtype)
+            initial[0] = 0.0
+            initial[4] = 15.0
+            actual = spread_km(mesh, initial.copy(), max_km=max_km)
+
+            monkeypatch.setattr(min_heap_module, "NUMBA_AVAILABLE", False)
+            expected = spread_km(mesh, initial.copy(), max_km=max_km)
+            monkeypatch.setattr(min_heap_module, "NUMBA_AVAILABLE", True)
+            np.testing.assert_array_equal(actual, expected)

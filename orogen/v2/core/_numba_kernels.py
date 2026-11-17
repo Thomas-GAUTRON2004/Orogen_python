@@ -122,6 +122,82 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     return distance
 
 
+def _spread_km_kernel(offsets, adjacency, edge_km, distance, max_km):
+    """Full Dijkstra traversal with the same lazy-deletion binary heap as JS."""
+    n = distance.size
+    capacity = adjacency.size + n + 1
+    heap_keys = np.empty(capacity, dtype=np.float64)
+    heap_ids = np.empty(capacity, dtype=np.int32)
+    heap_size = 0
+
+    # Seed insertion order is ascending cell index, matching spreadKm.
+    for cell in range(n):
+        if distance[cell] < math.inf:
+            key = float(distance[cell])
+            index = heap_size
+            heap_size += 1
+            while index > 0:
+                parent = (index - 1) >> 1
+                if heap_keys[parent] <= key:
+                    break
+                heap_keys[index] = heap_keys[parent]
+                heap_ids[index] = heap_ids[parent]
+                index = parent
+            heap_keys[index] = key
+            heap_ids[index] = cell
+
+    while heap_size > 0:
+        cell = int(heap_ids[0])
+        current_distance = heap_keys[0]
+        count = heap_size - 1
+        heap_size = count
+
+        if count > 0:
+            key = heap_keys[count]
+            identifier = heap_ids[count]
+            index = 0
+            while True:
+                left = 2 * index + 1
+                if left >= count:
+                    break
+                right = left + 1
+                child = right if right < count and heap_keys[right] < heap_keys[left] else left
+                if heap_keys[child] >= key:
+                    break
+                heap_keys[index] = heap_keys[child]
+                heap_ids[index] = heap_ids[child]
+                index = child
+            heap_keys[index] = key
+            heap_ids[index] = identifier
+
+        if current_distance > distance[cell]:
+            continue
+
+        for edge in range(offsets[cell], offsets[cell + 1]):
+            neighbour = int(adjacency[edge])
+            candidate = current_distance + edge_km[edge]
+            if candidate >= distance[neighbour] or candidate > max_km:
+                continue
+
+            # Queue the stored value, not the pre-cast candidate. This is
+            # important for float32 distance arrays, just as in the JS port.
+            distance[neighbour] = candidate
+            stored_distance = float(distance[neighbour])
+            index = heap_size
+            heap_size += 1
+            while index > 0:
+                parent = (index - 1) >> 1
+                if heap_keys[parent] <= stored_distance:
+                    break
+                heap_keys[index] = heap_keys[parent]
+                heap_ids[index] = heap_ids[parent]
+                index = parent
+            heap_keys[index] = stored_distance
+            heap_ids[index] = neighbour
+
+    return distance
+
+
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
     # Compile dependencies first and expose their dispatchers to the next kernel.
@@ -130,5 +206,6 @@ if NUMBA_AVAILABLE:
     _fbm_kernel = fbm_numba
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
+    spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
 else:
-    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = None
+    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = None

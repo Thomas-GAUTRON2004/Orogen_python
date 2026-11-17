@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 from .sphere_geometry import PLANET_RADIUS_KM
+from ._numba_kernels import NUMBA_AVAILABLE, spread_km_numba
 
 
 class MinHeap:
@@ -108,6 +109,15 @@ def spread_km(
     """Multi-source Dijkstra over mesh edges measured in great-circle km."""
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
     edge = _edge_km_of(mesh)
+    if NUMBA_AVAILABLE and can_enter is None and on_reach is None:
+        spread_km_numba(
+            np.ascontiguousarray(offsets, dtype=np.int32),
+            np.ascontiguousarray(adjacency, dtype=np.int32),
+            edge,
+            dist,
+            float(max_km),
+        )
+        return dist
     heap = MinHeap(4096)
     for cell in range(len(dist)):
         if dist[cell] < math.inf:

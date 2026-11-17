@@ -2,7 +2,7 @@
 
 A progressive Python port of the **Orogen 3.0.1** procedural planetary simulation engine. The implementation is based on the upstream [planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation) repository, release `v3.0.1`.
 
-> **Status:** this repository is an incomplete port. The current `orogen.v2` package provides tested numerical and tectonic building blocks; it does not yet generate a complete planet or reproduce the full JavaScript simulation pipeline.
+> **Status:** this repository is an incomplete port. The current `orogen.v2` package provides tested numerical and tectonic building blocks, including a partial tectonic stepper and plume/LIP lifecycle. It does not yet generate a complete planet or reproduce the full JavaScript simulation pipeline.
 
 ## Documentation
 
@@ -64,9 +64,9 @@ Deterministic seed parsing and Park–Miller RNG, 3-D simplex noise and FBM, qua
 
 ### Tectonics (`orogen.v2.tectonics`)
 
-Crust-raster storage and history fields, rigid plate state and coordinate transforms, plate kinematics, occupancy bins, claim gathering, subduction-polarity rules, owner reconstruction, physical conversion constants, and ridge/fracture-zone coordinates.
+The current port includes crust-raster storage and history fields; rigid plate state, coordinate transforms and kinematics; occupancy, claim gathering and ownership reconstruction; a first-pass contact resolver and boundary classifier; adaptive time-step selection; orogenic-belt record propagation; mantle heat memory; supercontinent analysis and cycle tracking; force collection and a partial plate-motion update; and plume births/deaths, LIP province stamping, moving plume tracks and burst-built volcanic edifices.
 
-These are components, not a complete simulation. Tectonic configuration defaults, full world initialization, the collision/subduction resolver, time-stepping orchestration, and terrain, geology, climate, finishing, and agriculture pipelines are not yet ported.
+This is not yet the complete tectonic engine. The default `TECTONICS` configuration and initial-world/scenario builders are not ported. The rifting operations that cut and split plates are not implemented, so queued plume rifts are not yet executed. The full multi-stage simulation loop and the terrain, general geology, climate, finishing and agriculture pipelines remain outstanding.
 
 ## Numerical backend and reproducibility
 
@@ -76,7 +76,7 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The current CI suite has verified **107 passing tests** and **100% line coverage** for `orogen.v2` (1,276 statements). CI enforces the 100% threshold. Coverage measures execution of the implemented Python package; it does not measure feature completeness or JavaScript parity.
+The latest verified GitHub Actions run for the port branch completed **236 passing tests** with **100% line coverage across 3,060 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or JavaScript parity.
 
 ## Upstream and license
 

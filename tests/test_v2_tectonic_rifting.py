@@ -330,3 +330,118 @@ def test_loose_shape_restores_configuration_even_when_action_raises():
 def test_rift_continents_short_circuits_when_disabled_and_no_pending():
     world = make_world(config=base_config(riftRatePerMyr=0.0))
     assert rift_continents(world, 1.0) == 0
+
+
+def test_dead_plate_is_skipped_for_lifecycle_and_pending_requests():
+    world = make_world(config=base_config())
+    world.plates[0].alive = False
+    world.pendingPlumeRifts = [{
+        "plate": 0,
+        "cell": 1,
+        "since": 0.0,
+        "junctions": [1],
+        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+    }]
+    assert rift_continents(world, 1.0) == 0
+    assert world.pendingPlumeRifts == []
+
+
+def test_assembled_supercontinent_holds_plume_rift_until_tenure_expires():
+    config = base_config(
+        riftMinGapMyr=5.0,
+        superTenureMyr=40.0,
+        plumeRiftWaitMyr=30.0,
+    )
+    world = make_world(time=10.0, config=config)
+    world.cycle = {
+        "phase": "assembled",
+        "formedAt": 1.0,
+        "largestPlates": [0],
+        "gather": 0.0,
+    }
+    world.pendingPlumeRifts = [{
+        "plate": 0,
+        "cell": 1,
+        "since": 0.0,
+        "junctions": [1],
+        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+    }]
+    assert rift_continents(world, 1.0) == 0
+    assert len(world.pendingPlumeRifts) == 1
+
+
+def test_second_paced_plume_request_waits_after_first_split(monkeypatch):
+    config = base_config(riftMinGapMyr=1.0, plumeRiftWaitMyr=30.0)
+    world = make_world(time=50.0, config=config)
+    request = {
+        "plate": 0,
+        "cell": 1,
+        "since": 49.0,
+        "junctions": [1],
+        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+    }
+    world.pendingPlumeRifts = [dict(request), dict(request)]
+    calls = []
+    monkeypatch.setattr(
+        rifting,
+        "try_rift",
+        lambda *_args: calls.append(True) or True,
+    )
+    assert rift_continents(world, 1.0) == 1
+    assert len(calls) == 1
+    assert len(world.pendingPlumeRifts) == 1
+
+
+def test_unpaced_recently_clumped_piece_uses_hot_tenure():
+    config = base_config(
+        riftRatePerMyr=1.0,
+        riftMinGapMyr=0.0,
+        riftTenureHotMyr=20.0,
+    )
+    world = make_world(time=10.0, config=config, dynamics={"tension": 1.0})
+    world.cycle = {"clump": [0]}
+    assert rift_continents(world, 1.0) == 0
+
+
+def test_unpaced_hot_rift_born_piece_uses_interpolated_tenure(monkeypatch):
+    config = base_config(
+        riftRatePerMyr=1.0,
+        riftMinGapMyr=0.0,
+        riftHeatGain=1.0,
+        riftTenureMyr=60.0,
+        riftTenureHotMyr=20.0,
+    )
+    world = make_world(time=10.0, config=config, dynamics={"tension": 1.0})
+    world.plates[0].bornOfRift = True
+    monkeypatch.setattr(rifting, "_heat_under_continents", lambda _w: {0: 1.0})
+    assert rift_continents(world, 1.0) == 0
+
+
+def test_unpaced_cool_piece_uses_base_tenure(monkeypatch):
+    config = base_config(
+        riftRatePerMyr=1.0,
+        riftMinGapMyr=0.0,
+        riftTenureMyr=30.0,
+        riftTenureHotMyr=20.0,
+    )
+    world = make_world(time=10.0, config=config, dynamics={"tension": 1.0})
+    monkeypatch.setattr(rifting, "_heat_under_continents", lambda _w: None)
+    assert rift_continents(world, 1.0) == 0
+
+
+def test_spontaneous_rift_is_skipped_when_random_draw_exceeds_chance(monkeypatch):
+    config = base_config(
+        riftRatePerMyr=0.01,
+        riftMinGapMyr=0.0,
+        riftTenureMyr=0.0,
+        riftTenureHotMyr=0.0,
+        riftMaxGapMyr=1000.0,
+    )
+    world = make_world(
+        time=100.0,
+        config=config,
+        dynamics={"tension": 0.1},
+    )
+    world.rng = lambda: 0.99
+    monkeypatch.setattr(rifting, "try_rift", lambda *_args: pytest.fail("must not try"))
+    assert rift_continents(world, 1.0) == 0

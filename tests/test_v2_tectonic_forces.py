@@ -1,0 +1,162 @@
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
+from orogen.v2.tectonics.forces import FORCE_KINDS, gather_boundary_loads
+from orogen.v2.tectonics.plate import Plate
+
+
+def make_world(monkeypatch, kind):
+    born = 100.0 if kind == "rift" else 0.0
+    a, b = Plate(0, 1, born=born), Plate(1, 1, born=born)
+    type_a = CrustType["OCEAN"] if kind in ("pull", "ridge") else CrustType["CONTINENT"]
+    type_b = CrustType["CONTINENT"] if kind == "pull" else CrustType["OCEAN"]
+    a.crust.create(0, type_a, 0.0)
+    b.crust.create(0, type_b, 0.0)
+    if kind == "pull":
+        a.crust.formedAt[0] = 0
+        b.crust.arm_trench(0, 600)
+    elif kind == "suction":
+        a.crust.arm_trench(0, 600)
+        b.crust.type[0] = CrustType["OCEAN"]
+        b.crust.formedAt[0] = 0
+    elif kind == "ridge":
+        a.crust.formedAt[0] = 95
+        b.crust.formedAt[0] = 95
+    elif kind == "rift":
+        a.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
+        b.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
+        a.riftPartner, b.riftPartner = 1, 0
+    xyz = np.array([1, 0, 0, 0, 1, 0], dtype=np.float64)
+    mesh = SimpleNamespace(
+        num_cells=2, xyz=xyz, edge_km=100.0 * np.sqrt(3.0), cell_area_km2=10000.0
+    )
+    world = SimpleNamespace(
+        mesh=mesh, owner=np.array([0, 1]), ownerCell=np.array([0, 0]),
+        landClaims=np.zeros(2, dtype=np.uint8), collider=np.full(2, -1),
+        plates=[a, b], config={
+            "slabPull": 1.0, "slabSuction": 0.25, "slabPullAgeRefMyr": 80.0,
+            "slabMatureKm": 600.0, "ridgeMaxAgeMyr": 40.0,
+            "riftPushMyr": 20.0, "riftPush": 0.5,
+        }, time=100.0, occupancyStamp=1,
+    )
+
+    def contact(_world, cell, out):
+        if cell == 0:
+            out[:] = [0.0, 1.0, 0.0, 1.0]
+            return 1
+        return -1
+
+    monkeypatch.setattr("orogen.v2.tectonics.forces.contact_at", contact)
+    return world
+
+
+def test_gather_boundary_loads_builds_slab_pull_and_slab_record(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    loads = gather_boundary_loads(world)
+    load = loads[0]
+    assert load["cells"][0] == 1
+    assert load["torque"][2] == pytest.approx(1.0)
+    assert load["slabs"][0]["other"] == 1
+    assert load["slabs"][0]["length"] == pytest.approx(1.0)
+    assert load["contacts"] == []
+    assert len(FORCE_KINDS) == 4
+
+
+def test_gather_boundary_loads_builds_suction_and_young_ridge(monkeypatch):
+    world = make_world(monkeypatch, "suction")
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][1] == 1
+    assert loads[0]["torque"][2] == pytest.approx(0.25)
+
+    world = make_world(monkeypatch, "ridge")
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][2] == 1
+    assert loads[0]["torque"][2] == pytest.approx(-0.05)
+
+
+def test_gather_boundary_loads_detects_partner_rift_push_and_direction(monkeypatch):
+    world = make_world(monkeypatch, "rift")
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][3] == 1
+    assert loads[0]["torque"][2] == pytest.approx(-0.5)
+    world.plates[0].riftPushDir = [0, 1, 0]
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][3] == 1
+    assert loads[0]["torque"][2] == pytest.approx(0.5)
+    world.plates[0].riftPartner = -1
+    assert gather_boundary_loads(world)[0]["cells"][3] == 0
+
+
+def test_gather_boundary_loads_skips_overlaps_and_background(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.landClaims[0] = 2
+    world.collider[0] = 1
+    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0]
+    world.landClaims[0] = 0
+    world.plates[0].isBackground = True
+    assert 0 not in gather_boundary_loads(world)
+
+
+def test_gather_boundary_loads_validates_arrays_and_zero_edge_length(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.ownerCell = np.array([0])
+    with pytest.raises(ValueError):
+        gather_boundary_loads(world)
+    world = make_world(monkeypatch, "pull")
+
+    def no_length(_world, cell, out):
+        out[:] = [0.0, 1.0, 0.0, 0.0]
+        return 1
+
+    monkeypatch.setattr("orogen.v2.tectonics.forces.contact_at", no_length)
+    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0]
+
+
+def test_gather_boundary_loads_ignores_missing_owner_contact_and_unknown_plate(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.owner[:] = [-1, -1]
+    assert gather_boundary_loads(world) == {0: {
+        "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
+        "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+        "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0], "slabs": [], "contacts": [],
+    }, 1: {
+        "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
+        "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+        "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0], "slabs": [], "contacts": [],
+    }}
+    world = make_world(monkeypatch, "pull")
+
+    def no_contact(_world, cell, out):
+        return -1
+
+    monkeypatch.setattr("orogen.v2.tectonics.forces.contact_at", no_contact)
+    assert sum(gather_boundary_loads(world)[0]["cells"]) == 0
+
+    def unknown_contact(_world, cell, out):
+        out[:] = [0.0, 1.0, 0.0, 1.0]
+        return 1
+
+    monkeypatch.setattr("orogen.v2.tectonics.forces.contact_at", unknown_contact)
+    world.owner[1] = 99
+    assert sum(gather_boundary_loads(world)[0]["cells"]) == 0
+
+
+def test_gather_boundary_loads_handles_zero_force_and_clips_maturity(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.plates[0].crust.formedAt[0] = 101.0
+    assert sum(gather_boundary_loads(world)[0]["cells"]) == 0
+    world.plates[0].crust.formedAt[0] = 0
+    world.plates[1].crust.slabKm[0] = 0
+    assert sum(gather_boundary_loads(world)[0]["cells"]) == 0
+
+
+def test_gather_boundary_loads_rejects_bad_xyz_layout(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.mesh.xyz = np.zeros(3)
+    with pytest.raises(ValueError):
+        gather_boundary_loads(world)

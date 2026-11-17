@@ -73,7 +73,7 @@ class ComponentMesh:
 def test_mesh_components_keep_seed_order_neighbour_order_and_first_tie():
     from orogen.v2.core.mesh_bfs import largest_piece_of, pieces_of
 
-    selected = [6, 0, 5, 3, 1, 7, 2, 4, 5]
+    selected = [6, 0, 5, 3, 1, 7, 4, 5]
     expected = [[6, 7], [0, 1, 2], [5], [3, 4]]
     mesh = ComponentMesh()
     assert pieces_of(mesh, selected) == expected

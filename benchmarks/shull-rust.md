@@ -30,17 +30,53 @@ warm-up and should only be compared on the same runner/environment.
 
 ## First isolated result
 
-The first isolated run on GitHub Actions (10k/40k/80k points) measured:
+The first isolated run used an unjittered Fibonacci sphere. A more representative
+run now uses the production jitter factor (0.35) and deterministic Orogen seed
+initialization. On the same GitHub runner, the latest five-round medians were:
 
 | Points | SciPy/Qhull | shull | Speedup |
 |---:|---:|---:|---:|
-| 10,000 | 26.0 ms | 1.9 ms | 13.99x |
-| 40,000 | 177.1 ms | 8.2 ms | 21.57x |
-| 80,000 | 467.3 ms | 15.9 ms | 29.40x |
+| 10,000 | 26.9 ms | 2.6 ms | 10.43x |
+| 40,000 | 154.4 ms | 7.6 ms | 20.36x |
+| 80,000 | 344.2 ms | 15.4 ms | 22.40x |
 
-These are triangulation-only microbenchmarks on one shared runner, not full
-build_sim_mesh or planet-generation timings. The new pipeline benchmark is
-required before recommending replacement in production.
+The exact simplex set matched for all three sizes. This is still triangulation-
+only; the full mesh-stage result below is much smaller because mesh construction
+and SphereIndex are significant costs.
+
+## Full mesh-stage result and Numba composition
+
+The expanded pipeline uses the actual Orogen jitter factor (0.35) and seeded
+Fibonacci sphere coordinates. It times triangulation, pole closure, cyclic CSR
+construction and SphereIndex construction. Coordinate generation/projection
+are prepared once outside the timed region. It then runs the existing Numba
+BFS against both graphs and requires identical distances.
+
+| Cells | SciPy + Python CSR | shull + Python CSR | shull + Numba CSR | Combined speedup vs baseline |
+|---:|---:|---:|---:|---:|
+| 10,001 | 0.3876 s | 0.3609 s | 0.3280 s | **1.18x** |
+| 40,001 | 1.5761 s | 1.4444 s | 1.3092 s | **1.20x** |
+| 80,001 | 3.2428 s | 2.8978 s | 2.6271 s | **1.23x** |
+
+The experimental Numba CSR builder was **28.56x**, **23.70x** and **17.71x**
+faster than the Python cyclic-CSR builder at these sizes. It reproduced the
+Python offsets and adjacency order exactly for each backend. After rotating
+each cyclic row to a deterministic minimum-neighbour start, both triangulators
+also produced identical SphereIndex lookup tables. The Numba BFS distances
+matched exactly.
+
+At 80,001 cells, triangulation itself took 323 ms with SciPy and 20.5 ms with
+shull, but SphereIndex construction still took about 1.87 s. That is why a
+22.4x triangulation gain becomes only a 1.23x measured mesh-stage gain after
+adding Numba CSR. SphereIndex and other Python mesh-building work are now the
+larger optimization targets.
+
+The Numba CSR implementation currently lives only in the experiment script;
+it has not been moved into the production package. The combined result
+therefore demonstrates a viable design, not a production speedup already
+available in Orogen.
+
+[Full pipeline + Numba benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44177187113).
 
 ## Why shull and Numba can complement each other
 

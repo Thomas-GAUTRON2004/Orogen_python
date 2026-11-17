@@ -17,7 +17,7 @@ def test_classify_motion_all_four_states_and_obliquity():
     assert classify_motion(2, 0.1, 0.5, 1.0) == Motion.CLOSING
     assert classify_motion(0.1, 2, 0.5, 1.0) == Motion.SLIDING
     assert classify_motion(0.1, 0.1, 0.5, 1.0) == Motion.LOCKED
-    assert classify_motion(2, 3, 0.5, 0.5) == Motion.SLIDING
+    assert classify_motion(2, 5, 0.5, 0.5) == Motion.SLIDING
 
 
 def test_vote_segments_empty_clears_previous_votes():

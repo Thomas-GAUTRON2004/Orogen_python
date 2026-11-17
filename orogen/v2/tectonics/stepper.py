@@ -1,8 +1,8 @@
 """Single-step orchestration for the currently ported tectonic subsystems.
 
-This is intentionally not the full upstream simulation loop: collision and
-orogeny event stages, ocean-plate evolution, arcs, and slow terrain/geology
-stages are not orchestrated here. Continental rifting is included when its
+This is intentionally not the full upstream simulation loop: collision tracking
+is partial; welding/orogeny events, ocean-plate evolution, arcs, and slow
+terrain/geology stages are not fully orchestrated here. Continental rifting is included when its
 configuration is present.
 """
 from __future__ import annotations
@@ -18,6 +18,7 @@ from .plumes import update_plumes
 from .supercontinent import track_cycle
 from .rifting import rift_continents
 from .subduction_init import initiate_subduction
+from .collision import track_collisions
 
 
 def step_world(
@@ -69,6 +70,13 @@ def step_world(
         tally = resolve(world)
         classified = classify_contact_boundaries(world, 0.0)
 
+    collision_state = {"tracked": 0, "started": 0, "underthrustCells": 0, "changed": False}
+    if "collisionForgetMyr" in world.config:
+        collision_state = track_collisions(world, step_dt)
+        if collision_state["changed"]:
+            tally = resolve(world)
+            classified = classify_contact_boundaries(world, 0.0)
+
     if update_motion:
         update_plate_motion(world)
 
@@ -83,5 +91,6 @@ def step_world(
         "plumes": plume_state,
         "rifts": int(rifts),
         "subductions": int(subductions),
+        "collisions": collision_state,
         "motionUpdated": bool(update_motion),
     }

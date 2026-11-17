@@ -107,7 +107,7 @@ def spread_push(
 
     Path cost is reduced through cratons (which pass the push on) and raised
     through sutures/failed-rift/rift-margin cells (which absorb it). Ocean
-    cells are not traversed and receive no records.
+    cells can be crossed but, like the V2 source, receive no records.
     """
     config, mesh, crust = world.config, world.mesh, plate.crust
     xyz = mesh.xyz

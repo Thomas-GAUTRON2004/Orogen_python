@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 import { median } from "./bench-utils.mjs";
 import { FastNoise } from "../tests/reference/v2/core/fast-noise.mjs";
 import * as geom from "../tests/reference/v2/core/sphere-geom.mjs";
-import { hopDistance } from "../tests/reference/v2/core/mesh-bfs.mjs";
+import { hopDistance, piecesOf } from "../tests/reference/v2/core/mesh-bfs.mjs";
 import { spreadKm } from "../tests/reference/v2/core/min-heap.mjs";
 import { CrustRaster, CrustType } from "../tests/reference/v2/tectonics/crust.mjs";
 
@@ -45,10 +45,15 @@ function makeInputs() {
 }
 const {points,vectors,mesh}=makeInputs();
 const noise=new FastNoise(9876);
+const selectedCells = [];
+for (let start = 0; start < N_CELLS; start += 68) {
+  for (let cell = start; cell < Math.min(start + 64, N_CELLS); cell++) selectedCells.push(cell);
+}
 const jsResults = {
   noise_fbm_ms: measure(() => { let s=0; for(const p of points) s+=noise.fbm(...p,5,2/3); globalThis.__benchSink=s; }),
   spherical_geometry_ms: measure(() => { let s=0; for(const p of vectors){const q=geom.destination(p,0.71,0.013);s+=geom.bearingTo(p,q)+geom.dot(p,q);} globalThis.__benchSink=s; }),
   mesh_bfs_ms: measure(() => { const d=hopDistance(mesh,c=>c===0, N_CELLS); globalThis.__benchSink=d[N_CELLS-1]; }),
+  mesh_components_ms: measure(() => { const pieces=piecesOf(mesh,selectedCells); globalThis.__benchSink=pieces.reduce((n,p)=>n+p.length,0); }),
   mesh_dijkstra_ms: measure(() => { const d=new Float64Array(N_CELLS); d.fill(Infinity); d[0]=0; spreadKm(mesh,d,{maxKm:20000}); globalThis.__benchSink=d[N_CELLS-1]; }),
   crust_create_snapshot_ms: measure(() => { const c=new CrustRaster(N_CELLS); let s=0; for(let i=0;i<N_CELLS;i+=2){c.create(i,CrustType.CONTINENT,-100,i+1);s+=c.snapshot(i).length;} globalThis.__benchSink=s; }),
 };

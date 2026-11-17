@@ -128,7 +128,10 @@ def test_crust_batch_create_and_snapshot_match_scalar_order():
     assert batch.count == scalar.count == 4
     for cell in range(5):
         assert batch.snapshot(cell) == scalar.snapshot(cell)
-    assert batch.snapshot_many(cells) == [batch.snapshot(int(cell)) for cell in cells]
+    np.testing.assert_array_equal(
+        batch.snapshot_many(cells),
+        np.asarray([batch.snapshot(int(cell)) for cell in cells], dtype=np.float64),
+    )
 
 
 def test_crust_batch_methods_broadcast_and_handle_empty_inputs():
@@ -137,9 +140,12 @@ def test_crust_batch_methods_broadcast_and_handle_empty_inputs():
     raster = CrustRaster(4)
     raster.create_many([0, 2], CrustType["CONTINENT"], -12.0, 9)
     assert raster.count == 2
-    assert raster.snapshot_many([2, 0]) == [raster.snapshot(2), raster.snapshot(0)]
+    np.testing.assert_array_equal(
+        raster.snapshot_many([2, 0]),
+        np.asarray([raster.snapshot(2), raster.snapshot(0)], dtype=np.float64),
+    )
     raster.create_many([], CrustType["OCEAN"], 0.0)
-    assert raster.snapshot_many([]) == []
+    assert raster.snapshot_many([]).shape == (0, len(raster.fields))
     with pytest.raises(ValueError, match="one-dimensional integer"):
         raster.create_many([[1]], 1, 0.0)
     with pytest.raises(ValueError, match="crust_type must be a scalar"):
@@ -157,7 +163,10 @@ def test_crust_batch_methods_use_python_fallback(monkeypatch):
     raster = crust_module.CrustRaster(3)
     raster.create_many([0, 2], crust_module.CrustType["CONTINENT"], -5.0, [7, 8])
     expected = [raster.snapshot(0), raster.snapshot(2)]
-    assert raster.snapshot_many([0, 2]) == expected
+    np.testing.assert_array_equal(
+        raster.snapshot_many([0, 2]),
+        np.asarray(expected, dtype=np.float64),
+    )
     assert raster.count == 2
 
 
@@ -247,7 +256,9 @@ def test_crust_copy_and_remove_many_empty_batches_and_implicit_sources():
     source.create_many([0, 2], CrustType["CONTINENT"], -1.0, [3, 5])
     target = CrustRaster(3)
     target.copy_many([0, 2], source)
-    assert target.snapshot_many([0, 2]) == source.snapshot_many([0, 2])
+    np.testing.assert_array_equal(
+        target.snapshot_many([0, 2]), source.snapshot_many([0, 2]),
+    )
     assert target.count == 2
     target.copy_many([], source, [])
     target.remove_many([])

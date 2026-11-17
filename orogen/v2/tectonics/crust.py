@@ -126,12 +126,14 @@ class CrustRaster:
                     int(cell), int(types[row]), float(times[row]), int(terranes[row]),
                 )
 
-    def snapshot_many(self, cells) -> list[list]:
-        """Return snapshots for multiple cells in input order."""
+    def snapshot_many(self, cells) -> np.ndarray:
+        """Return snapshots as a row-major float64 array in CELL_FIELDS order."""
         indices = self._cell_indices(cells)
         if NUMBA_AVAILABLE:
-            return snapshot_cells_numba(self._numba_fields, indices).tolist()
-        return [self.snapshot(int(cell)) for cell in indices]
+            return snapshot_cells_numba(self._numba_fields, indices)
+        return np.asarray(
+            [self.snapshot(int(cell)) for cell in indices], dtype=np.float64,
+        ).reshape((len(indices), len(self.fields)))
 
     def copy_many(self, cells, other: "CrustRaster", sources=None, rot=None) -> None:
         """Copy a sequence of source cells in one compiled call when available.

@@ -193,13 +193,13 @@ def test_record_push_keeps_axis_sign_blind_and_handles_source_or_antipode():
     second_axis = np.asarray(
         [crust.farDx[2], crust.farDy[2], crust.farDz[2]], dtype=float
     )
-    assert np.dot(first_axis, second_axis) > 0.0
+    assert abs(float(np.dot(first_axis, second_axis))) > 0.99 * float(np.dot(first_axis, first_axis))
 
     record_push(crust, 1, 2.0, 50.0, world.mesh.xyz, 1, 12.0, 100.0)
     assert crust.farWork[1] == pytest.approx(2.0)
 
     xyz = world.mesh.xyz.copy()
-    xyz[3:6] = -xyz[0:3]
+    xyz[9:12] = -xyz[0:3]
     record_push(crust, 3, 1.0, 5.0, xyz, 0, 12.0, 100.0)
     assert crust.farWork[3] == pytest.approx(1.0)
 
@@ -253,3 +253,28 @@ def test_evolve_far_field_rejects_invalid_dt(dt):
     world, _plate = make_world()
     with pytest.raises(ValueError, match="finite and non-negative"):
         evolve_far_field(world, dt)
+
+
+
+def test_spread_push_does_not_cross_missing_crust_cells():
+    world, plate = make_world()
+    plate.crust.remove(2)
+    result = spread_push(world, plate, {0: 10.0}, 1000.0, world.time)
+    assert 1 in result["cells"]
+    assert 2 not in result["cells"]
+    assert 3 not in result["cells"]
+
+
+def test_spread_push_drops_arrivals_below_recording_threshold():
+    world, plate = make_world([
+        CrustType["CONTINENT"],
+        CrustType["CONTINENT"],
+        CrustType["CONTINENT"],
+        CrustType["CONTINENT"],
+        CrustType["CONTINENT"],
+    ])
+    world.config["farReachKm"] = 1.0
+    world.config["farMaxKm"] = 1000.0
+    result = spread_push(world, plate, {0: 1.0}, 1000.0, world.time)
+    assert result["cells"] == [0]
+    assert plate.crust.farWork[1] == 0.0

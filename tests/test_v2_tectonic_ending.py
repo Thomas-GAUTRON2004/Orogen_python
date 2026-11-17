@@ -87,3 +87,17 @@ def test_frames_ending_none_stage_obeys_minimum_time():
     frames = [state(time=0.0), state(time=50.0), state(time=100.0), state(time=150.0)]
     assert frames_ending(frames, 75.0, None, CFG) == frames[:2]
     assert frames_ending(frames[:2], 100.0, None, CFG) is None
+
+
+def test_breakup_ending_requires_a_supercontinent_event_and_a_rift():
+    cycle = {"state": "assembled", "share": 0.9}
+    assert not in_stage(state(cycle=cycle, events=[]), "breakup", CFG)
+    events = [
+        {"kind": EventKind["SUPERCONTINENT"], "time": 80.0},
+        {"kind": EventKind["DISPERSED"], "time": 95.0},
+    ]
+    assert not in_stage(state(cycle=cycle, events=events), "breakup", CFG)
+
+
+def test_frames_ending_none_returns_none_for_empty_history():
+    assert frames_ending([], 100.0, None, CFG) is None

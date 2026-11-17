@@ -10,6 +10,7 @@ from .rift_partition import (
 from .rift_path import find_rift, grain_of, rift_context
 from .scrape_arc import scrape_arc
 from .plate_transfer import free_cell_beside, transfer_cells
+from .birth_ocean_plate import birth_ocean_plate, ocean_plate_name
 from .rift import (
     choose_junction,
     names_after_split,
@@ -37,4 +38,6 @@ __all__ = [
     "scrape_arc",
     "free_cell_beside",
     "transfer_cells",
+    "birth_ocean_plate",
+    "ocean_plate_name",
 ]

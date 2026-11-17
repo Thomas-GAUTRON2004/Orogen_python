@@ -208,6 +208,8 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     output = CrustRaster(num_cells)
     origin = np.zeros(num_cells, dtype=np.int8)
     moved = np.zeros(3, dtype=np.float64)
+    upper_targets = []
+    upper_sources = []
     for cell in range(num_cells):
         source = cell
         delta = displacement[cell]
@@ -219,29 +221,38 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             length = float(np.linalg.norm(moved))
             if length > 0:
                 source = int(index.nearest(*map(float, moved / length)))
-        if not upper_crust.mask[source]:
-            continue
-        output.copy_from(cell, upper_crust, source)
-        origin[cell] = 1
-        if upper_crust.type[source] == CrustType["CRATON"]:
-            output.type[cell] = CrustType["CONTINENT"]
+        if upper_crust.mask[source]:
+            upper_targets.append(cell)
+            upper_sources.append(source)
+
+    if upper_targets:
+        upper_targets_array = np.asarray(upper_targets, dtype=np.int32)
+        upper_sources_array = np.asarray(upper_sources, dtype=np.int32)
+        output.copy_many(upper_targets_array, upper_crust, upper_sources_array)
+        origin[upper_targets_array] = 1
+        upper_cratons = (
+            upper_crust.type[upper_sources_array] == CrustType["CRATON"]
+        )
+        output.type[upper_targets_array[upper_cratons]] = CrustType["CONTINENT"]
 
     _stamp_cratons_rigidly(output, upper_crust, displacement, mesh)
 
-    for cell in range(num_cells):
-        source = int(from_lower[cell])
-        if source < 0:
-            continue
-        land = lower_crust.type[source] != CrustType["OCEAN"]
-        if not land and output.mask[cell]:
-            continue
-        if (
-            output.mask[cell]
-            and output.type[cell] == CrustType["CRATON"]
-        ):
-            continue
-        output.copy_from(cell, lower_crust, source, lower_to_upper)
-        origin[cell] = 2
+    lower_targets = np.flatnonzero(from_lower >= 0).astype(np.int32)
+    if lower_targets.size:
+        lower_sources = from_lower[lower_targets].astype(np.int32, copy=False)
+        occupied = output.mask[lower_targets] != 0
+        lower_land = lower_crust.type[lower_sources] != CrustType["OCEAN"]
+        keep_upper_craton = (
+            occupied & (output.type[lower_targets] == CrustType["CRATON"])
+        )
+        accept = (lower_land | ~occupied) & ~keep_upper_craton
+        lower_targets = lower_targets[accept]
+        lower_sources = lower_sources[accept]
+        if lower_targets.size:
+            output.copy_many(
+                lower_targets, lower_crust, lower_sources, lower_to_upper,
+            )
+            origin[lower_targets] = 2
 
     # Fill interior holes left by the inverse warp; preserve genuine plate edges.
     for _pass in range(2):
@@ -271,11 +282,21 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             source = land_source if 2 * land_count >= crust_count else sea_source
             if source >= 0:
                 fills.append((cell, source))
-        for cell, source in fills:
-            output.copy_from(cell, output, source)
-            if output.type[cell] == CrustType["CRATON"]:
-                output.type[cell] = CrustType["CONTINENT"]
-            origin[cell] = origin[source]
+        if fills:
+            fill_targets = np.fromiter(
+                (cell for cell, _source in fills),
+                dtype=np.int32,
+                count=len(fills),
+            )
+            fill_sources = np.fromiter(
+                (source for _cell, source in fills),
+                dtype=np.int32,
+                count=len(fills),
+            )
+            output.copy_many(fill_targets, output, fill_sources)
+            filled_cratons = output.type[fill_targets] == CrustType["CRATON"]
+            output.type[fill_targets[filled_cratons]] = CrustType["CONTINENT"]
+            origin[fill_targets] = origin[fill_sources]
         if not fills:
             break
 

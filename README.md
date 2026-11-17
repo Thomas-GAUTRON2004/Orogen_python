@@ -101,14 +101,16 @@ See [Porting status](docs/PORTING_STATUS.md) for the subsystem-by-subsystem brea
 ## Experimental shull backend
 
 A draft branch evaluates shull as a Rust implementation of the 2-D Delaunay
-stage. The first isolated benchmark measured 13.99x, 21.57x and 29.40x over
-SciPy/Qhull at 10k, 40k and 80k projected sphere points on one GitHub runner.
-These are triangulation-only results, not full spherical-mesh speedups.
+stage. With Orogen's production jitter factor (0.35), the latest isolated benchmark
+measured 10.43x, 20.36x and 22.40x over SciPy/Qhull at 10k, 40k and 80k
+projected sphere points. A broader mesh-stage test, including pole closure,
+cyclic CSR and SphereIndex construction, measured 1.18x–1.23x overall when
+combining shull with an experimental Numba CSR builder.
 
-The extended experiment now checks exact simplex-set equality, Orogen's
-north-pole closure, cyclic CSR neighbour sets and downstream Numba BFS results.
-SciPy remains the production default until full-pipeline timing, memory,
-determinism and licensing are validated. See benchmarks/shull-rust.md.
+The experiment checks exact simplex-set equality, spherical neighbour sets,
+SphereIndex lookup-table equality and downstream Numba BFS distances. The
+Numba CSR prototype is not yet production code; SciPy remains the production
+default pending further validation. See benchmarks/shull-rust.md.
 
 shull and Numba are complementary: shull computes Delaunay simplices in native
 Rust; Numba accelerates Orogen's later graph and numerical kernels over NumPy

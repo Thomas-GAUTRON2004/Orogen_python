@@ -998,7 +998,6 @@ def track_collisions(world, dt: float) -> dict:
             )
             upper_kind = "himalayan" if major else "ural"
             lower_kind = "foreland" if major else "ural"
-            relative_speed = math.hypot(*relative_omega)
             velocity = cross(relative_omega, centre)
             relative_speed = math.hypot(*velocity)
             shape = belt_shape(

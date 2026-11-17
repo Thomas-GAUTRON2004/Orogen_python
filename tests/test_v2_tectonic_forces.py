@@ -94,7 +94,7 @@ def test_gather_boundary_loads_skips_invalid_collider_and_background(monkeypatch
     world = make_world(monkeypatch, "pull")
     world.landClaims[0] = 2
     world.collider[0] = 99
-    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0]
+    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0, 0]
     world.landClaims[0] = 0
     world.plates[0].isBackground = True
     assert 0 not in gather_boundary_loads(world)
@@ -112,7 +112,7 @@ def test_gather_boundary_loads_validates_arrays_and_zero_edge_length(monkeypatch
         return 1
 
     monkeypatch.setattr("orogen.v2.tectonics.forces.contact_at", no_length)
-    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0]
+    assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0, 0]
 
 
 def test_gather_boundary_loads_ignores_missing_owner_contact_and_unknown_plate(monkeypatch):
@@ -122,12 +122,12 @@ def test_gather_boundary_loads_ignores_missing_owner_contact_and_unknown_plate(m
         "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
         "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
         "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0], "slabs": [], "contacts": [],
+        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0, 0], "slabs": [], "contacts": [],
     }, 1: {
         "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
         "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
         "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0], "slabs": [], "contacts": [],
+        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0, 0], "slabs": [], "contacts": [],
     }}
     world = make_world(monkeypatch, "pull")
 

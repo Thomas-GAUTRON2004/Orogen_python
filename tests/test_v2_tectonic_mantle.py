@@ -55,7 +55,7 @@ def make_dispersal_world():
     ])
     xyz = xyz.reshape(-1, 3)
     xyz /= np.linalg.norm(xyz, axis=1)[:, None]
-    mesh = SimpleNamespace(num_cells=4, xyz=xyz.ravel(), cell_area_km2=300000.0)
+    mesh = SimpleNamespace(num_cells=4, xyz=xyz.ravel(), cell_area_km2=600000.0, edge_km=173.20508075688772)
     world = SimpleNamespace(
         mesh=mesh, plates=plates,
         owner=np.array([0, 0, 1, 1]),
@@ -105,7 +105,7 @@ def test_gather_boundary_loads_adds_mantle_force_only_to_continent_craton(monkey
     world.owner = np.array([0, 0, 1, 1])
     world.ownerCell = np.array([0, 1, 0, 1])
     world.cycle = {
-        "up": [0.0, 0.0, 1.0], "down": [0.0, 1.0, 0.0],
+        "up": [1.0, 0.0, 0.0], "down": [0.0, 1.0, 0.0],
         "upHeat": 1.0, "gather": 0.0, "hold": 0.0,
         "phase": "assembled",
     }

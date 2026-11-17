@@ -7,6 +7,7 @@ from .rift_partition import (
     partition,
     sides_of,
 )
+from .rift_path import find_rift, grain_of, rift_context
 
 __all__ = [
     "elongation_of",
@@ -14,4 +15,7 @@ __all__ = [
     "masked_cells",
     "partition",
     "sides_of",
+    "find_rift",
+    "grain_of",
+    "rift_context",
 ]

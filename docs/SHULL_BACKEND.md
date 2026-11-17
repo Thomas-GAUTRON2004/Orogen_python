@@ -58,33 +58,33 @@ runner:
 
 | Points | SciPy/Qhull | shull | Triangulation speedup |
 |---:|---:|---:|---:|
-| 10,000 | 31.6 ms | 2.9 ms | 11.04× |
-| 40,000 | 164.9 ms | 12.7 ms | 13.03× |
-| 80,000 | 522.4 ms | 28.2 ms | 18.53× |
+| 10,000 | 25.6 ms | 2.2 ms | 11.90× |
+| 40,000 | 119.3 ms | 9.8 ms | 12.20× |
+| 80,000 | 367.7 ms | 21.0 ms | 17.52× |
 
 The broader production pipeline comparison (triangulation, pole closure,
 Python cyclic CSR and `SphereIndex`) measured:
 
 | Cells | SciPy pipeline | shull pipeline | Pipeline speedup |
 |---:|---:|---:|---:|
-| 10,001 | 0.6239 s | 0.5382 s | 1.16× |
-| 40,001 | 2.3914 s | 2.1822 s | 1.10× |
-| 80,001 | 5.0361 s | 4.4000 s | 1.14× |
+| 10,001 | 0.4033 s | 0.3662 s | 1.10× |
+| 40,001 | 1.5637 s | 1.4452 s | 1.08× |
+| 80,001 | 3.2971 s | 2.8801 s | 1.14× |
 
-The actual `build_sim_mesh` wall times using production shull were 0.5645 s,
-2.2830 s and 4.5716 s for the same three input sizes. Output arrays at 80,001
+The actual `build_sim_mesh` wall times using production shull were 0.3721 s,
+1.5048 s and 3.0348 s for the same three input sizes. Output arrays at 80,001
 cells occupied about 5.19 MiB. The run asserted exact canonicalized simplex
 sets, closed faces, CSR offsets and adjacency, `SphereIndex` tables, and BFS
 distance arrays for all sizes.
 
-The benchmark workflow wraps the process with GNU `/usr/bin/time -v` and records its maximum resident set size (peak RSS). The latest run reported **343,008 KiB (about 335 MiB)** for the entire A/B process, including imports, both backends and full production builds; it is not a per-backend memory attribution. The script also reports the size of retained output arrays for each resolution (5.19 MiB at 80,001 cells).
+The benchmark workflow wraps the process with GNU `/usr/bin/time -v` and records its maximum resident set size (peak RSS). The latest run reported **344,204 KiB (about 336 MiB)** for the entire A/B process, including imports, both backends and full production builds; it is not a per-backend memory attribution. The script also reports the size of retained output arrays for each resolution (5.19 MiB at 80,001 cells).
 
 The benchmark includes triangulation, pole closure, cyclic CSR and
 `SphereIndex`; coordinate generation/projection is prepared outside the
 stage timing. The earlier 1.18×–1.23× combined figures used an experimental
 Numba CSR builder and are not claimed as production speedups.
 
-[Latest production pipeline benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44183315189).
+[Latest production pipeline benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44183846060).
 
 ## Reproduce the A/B test
 

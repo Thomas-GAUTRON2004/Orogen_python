@@ -344,7 +344,7 @@ def test_line_strike_uses_stable_tangent_basis_near_pole():
         plate.crust.flags[cell] |= CrustFlag["SUTURE"]
     points = []
     for offset in (-0.02, -0.01, 0.0, 0.01, 0.02):
-        points.extend([math.cos(offset), 0.0, math.sin(offset)])
+        points.extend([math.sin(offset), 0.0, math.cos(offset)])
     world.mesh.xyz = np.asarray(points, dtype=np.float64)
     strike = line_strike(plate.crust, world.mesh, 2)
     assert strike is not None
@@ -444,9 +444,12 @@ def test_reactivate_skips_invalid_or_coincident_sources_and_subthreshold_work(mo
     calls = []
     monkeypatch.setattr(far_field, "spread_belt", lambda *args: calls.append(args))
     far_field.reactivate(
+        world, plate, _push([2], [100.0], [0], [1000.0]), 4.0
+    )  # An antipodal source has no well-defined tangent direction.
+    far_field.reactivate(
         world,
         plate,
-        _push([2, 2, 2], [100.0] * 3, [-1, 9, 2], [1000.0] * 3),
+        _push([2, 2], [100.0] * 2, [-1, 9], [1000.0] * 2),
         4.0,
     )
     assert calls == []
@@ -568,3 +571,46 @@ def test_rejuvenation_handles_multiple_sources_and_rejects_zero_uplift_scale():
     }
     with pytest.raises(ValueError, match="must be positive"):
         far_field._rejuvenate(world, plate, [2], [150.0], [50.0])
+
+
+
+def test_reactivate_rejects_non_positive_near_field_scale():
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world()
+    world.config.update(_reactivation_config())
+    world.config["farNearKm"] = 0.0
+    with pytest.raises(ValueError, match="farNearKm and farBeltWorkKm"):
+        far_field.reactivate(world, plate, _push([], [], [], []), 1.0)
+
+
+def test_rejuvenation_does_not_cross_cells_outside_the_old_belt():
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    crust.oroType[2] = 3
+    crust.oroLast[2] = 0.0
+    crust.beltReach[2] = 200.0
+    crust.beltU[2] = 0.1
+    far_field._rejuvenate(world, plate, [2], [120.0], [50.0])
+    assert crust.rugged[2] > 0.0
+    assert crust.rugged[1] == 0.0
+    assert crust.rugged[3] == 0.0
+
+
+def test_rejuvenation_skips_ocean_cells():
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    crust.type[2] = CrustType["OCEAN"]
+    crust.oroType[2] = 3
+    crust.oroLast[2] = 0.0
+    crust.beltReach[2] = 200.0
+    before = crust.rugged.copy()
+    far_field._rejuvenate(world, plate, [2], [120.0], [50.0])
+    assert np.array_equal(crust.rugged, before)
+    assert np.array_equal(crust.upliftKm, np.zeros(5, dtype=np.float32))

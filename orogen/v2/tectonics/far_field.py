@@ -536,7 +536,7 @@ def _rejuvenate(
                 old_reach,
             )
         )
-        if target_uplift > float(crust.rugged[cell]):
+        if target_crests > float(crust.rugged[cell]):
             crust.rugged[cell] += (target_crests - float(crust.rugged[cell])) * share
         if target_uplift > float(crust.upliftKm[cell]):
             crust.upliftKm[cell] += (

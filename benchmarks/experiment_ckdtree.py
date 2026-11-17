@@ -17,7 +17,7 @@ def timed(fn, repeats=3):
 
 for n in (10_000, 40_000, 80_000):
     mesh, xyz=build_sphere(n, 0.0, lambda: 0.5)
-    cells=np.asarray(xyz, dtype=np.float64).reshape(-1,3)[:n]
+    cells=np.asarray(xyz, dtype=np.float64).reshape(-1,3)
     rng=np.random.default_rng(1234)
     q=rng.normal(size=(min(20_000,n),3)); q/=np.linalg.norm(q,axis=1)[:,None]
     index=SphereIndex(xyz, mesh)

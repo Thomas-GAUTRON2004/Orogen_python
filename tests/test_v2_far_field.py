@@ -278,3 +278,293 @@ def test_spread_push_drops_arrivals_below_recording_threshold():
     result = spread_push(world, plate, {0: 1.0}, 1000.0, world.time)
     assert result["cells"] == [0]
     assert plate.crust.farWork[1] == 0.0
+
+def _reactivation_config():
+    config = far_config()
+    config.update({
+        "farReactivate": 1.0,
+        "farReactMinKmPerMyr": 10.0,
+        "farNearKm": 100.0,
+        "farBeltKm": [110.0, 320.0],
+        "farBeltWorkKm": 60.0,
+        "farRejuvenateCrests": 0.75,
+        "farRejuvenateUplift": 0.35,
+        "orogenyQuietMyr": 5.0,
+    })
+    return config
+
+
+def _push(cells, inc, sources, distances):
+    return {
+        "cells": list(cells),
+        "inc": np.asarray(inc, dtype=np.float32),
+        "from": np.asarray(sources, dtype=np.int32),
+        "dist": np.asarray(distances, dtype=np.float64),
+    }
+
+
+def test_line_strike_finds_the_long_axis_of_a_weak_line():
+    from orogen.v2.tectonics.far_field import line_strike
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    for cell in range(5):
+        plate.crust.flags[cell] |= CrustFlag["SUTURE"]
+
+    strike = line_strike(plate.crust, world.mesh, 2)
+    assert strike is not None
+    assert abs(strike[1]) > 0.99
+    assert abs(strike[0]) < 0.02
+
+
+def test_line_strike_filters_missing_cells_and_non_weak_neighbours():
+    from orogen.v2.tectonics.far_field import line_strike
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    for cell in range(5):
+        plate.crust.flags[cell] |= CrustFlag["SUTURE"]
+    plate.crust.remove(0)
+    plate.crust.flags[4] = 0
+    assert line_strike(plate.crust, world.mesh, 2) is None
+
+
+def test_line_strike_returns_none_for_too_few_weak_cells():
+    from orogen.v2.tectonics.far_field import line_strike
+
+    world, plate = make_world()
+    plate.crust.flags[2] |= CrustFlag["SUTURE"]
+    plate.crust.flags[1] |= CrustFlag["FAILED_RIFT"]
+    assert line_strike(plate.crust, world.mesh, 2) is None
+
+
+def test_line_strike_uses_stable_tangent_basis_near_pole():
+    from orogen.v2.tectonics.far_field import line_strike
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    for cell in range(5):
+        plate.crust.flags[cell] |= CrustFlag["SUTURE"]
+    points = []
+    for offset in (-0.02, -0.01, 0.0, 0.01, 0.02):
+        points.extend([math.cos(offset), 0.0, math.sin(offset)])
+    world.mesh.xyz = np.asarray(points, dtype=np.float64)
+    strike = line_strike(plate.crust, world.mesh, 2)
+    assert strike is not None
+    assert abs(strike[0]) > 0.99
+
+
+def test_line_strike_rejects_degenerate_position():
+    from orogen.v2.tectonics.far_field import line_strike
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    for cell in range(5):
+        plate.crust.flags[cell] |= CrustFlag["SUTURE"]
+    world.mesh.xyz[6:9] = 0.0
+    assert line_strike(plate.crust, world.mesh, 2) is None
+
+
+def test_smoothstep_has_flat_ends_and_smooth_middle():
+    from orogen.v2.tectonics.far_field import _smoothstep
+
+    assert _smoothstep(-1.0) == 0.0
+    assert _smoothstep(2.0) == 1.0
+    assert _smoothstep(0.5) == pytest.approx(0.5)
+
+
+def test_reactivate_spreads_a_rootless_belt_on_a_distant_weak_line(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    plate.crust.flags[2] |= CrustFlag["SUTURE"]
+    monkeypatch.setattr(far_field, "line_strike", lambda *_args: [0.0, 0.0, 1.0])
+    calls = []
+    monkeypatch.setattr(
+        far_field, "spread_belt",
+        lambda p, m, sources, belt, cfg: calls.append((p, m, list(sources), dict(belt), cfg)),
+    )
+    far_field.reactivate(
+        world, plate, _push([2], [100.0], [0], [1000.0]), 4.0
+    )
+
+    assert len(calls) == 1
+    assert calls[0][2] == [2]
+    belt = calls[0][3]
+    assert belt["type"] == 8
+    assert belt["noRoot"] is True
+    assert belt["works"][0] == pytest.approx(60.0)
+    assert belt["widths"][0] == pytest.approx(110.0 + 210.0 * math.tanh(1.0))
+
+
+def test_reactivate_uses_no_strike_when_a_weak_line_has_insufficient_geometry(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    plate.crust.flags[2] |= CrustFlag["FAILED_RIFT"]
+    monkeypatch.setattr(far_field, "line_strike", lambda *_args: None)
+    calls = []
+    monkeypatch.setattr(far_field, "spread_belt", lambda *args: calls.append(args))
+    far_field.reactivate(world, plate, _push([2], [100.0], [0], [150.0]), 0.0)
+    assert len(calls) == 1
+
+
+def test_reactivate_skips_cratons_near_fronts_and_active_ranges(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([
+        CrustType["CRATON"], CrustType["CONTINENT"],
+        CrustType["CONTINENT"], CrustType["CONTINENT"],
+        CrustType["CONTINENT"],
+    ])
+    world.config.update(_reactivation_config())
+    plate.crust.flags[0] |= CrustFlag["SUTURE"]
+    plate.crust.flags[1] |= CrustFlag["SUTURE"]
+    plate.crust.flags[2] |= CrustFlag["SUTURE"]
+    plate.crust.oroType[2] = 1
+    plate.crust.oroLast[2] = world.time
+    monkeypatch.setattr(far_field, "line_strike", lambda *_args: None)
+    calls = []
+    monkeypatch.setattr(far_field, "spread_belt", lambda *args: calls.append(args))
+    far_field.reactivate(
+        world,
+        plate,
+        _push([0, 1, 2], [100.0] * 3, [4] * 3, [1000.0, 50.0, 1000.0]),
+        4.0,
+    )
+    assert calls == []
+
+
+def test_reactivate_skips_invalid_or_coincident_sources_and_subthreshold_work(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    plate.crust.flags[2] |= CrustFlag["SUTURE"]
+    world.mesh.xyz[0:3] = -world.mesh.xyz[6:9]
+    monkeypatch.setattr(far_field, "line_strike", lambda *_args: None)
+    calls = []
+    monkeypatch.setattr(far_field, "spread_belt", lambda *args: calls.append(args))
+    far_field.reactivate(
+        world,
+        plate,
+        _push([2, 2, 2], [100.0] * 3, [-1, 9, 2], [1000.0] * 3),
+        4.0,
+    )
+    assert calls == []
+
+    world.mesh.xyz[0:3] = np.asarray([1.0, 0.0, 0.0])
+    world.config["farReactMinKmPerMyr"] = 1000.0
+    far_field.reactivate(
+        world, plate, _push([2], [100.0], [0], [1000.0]), 4.0
+    )
+    assert calls == []
+
+
+def test_reactivate_rejects_invalid_belt_widths_and_malformed_push(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world()
+    world.config.update(_reactivation_config())
+    world.config["farBeltKm"] = [320.0, 110.0]
+    with pytest.raises(ValueError, match="ordered non-negative"):
+        far_field.reactivate(world, plate, _push([], [], [], []), 1.0)
+    world.config["farBeltKm"] = [-1.0, 110.0]
+    with pytest.raises(ValueError, match="ordered non-negative"):
+        far_field.reactivate(world, plate, _push([], [], [], []), 1.0)
+    world.config.update(_reactivation_config())
+    with pytest.raises(ValueError, match="equal lengths"):
+        far_field.reactivate(
+            world, plate, {"cells": [0], "inc": [], "from": [], "dist": []}, 1.0
+        )
+
+
+def test_reactivate_rejuvenates_an_old_range_without_seeding_a_new_belt(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    for cell in range(5):
+        plate.crust.flags[cell] |= CrustFlag["SUTURE"]
+        plate.crust.oroType[cell] = 3
+        plate.crust.oroLast[cell] = 0.0
+        plate.crust.beltReach[cell] = 200.0
+        plate.crust.beltU[cell] = 0.2
+        plate.crust.beltSide[cell] = 1
+    monkeypatch.setattr(far_field, "line_strike", lambda *_args: [0.0, 0.0, 1.0])
+    monkeypatch.setattr(
+        far_field, "spread_belt",
+        lambda *_args: pytest.fail("old ranges must be rejuvenated in place"),
+    )
+    before_rugged = plate.crust.rugged.copy()
+    before_uplift = plate.crust.upliftKm.copy()
+    far_field.reactivate(
+        world, plate, _push([2], [100.0], [0], [1000.0]), 0.0
+    )
+    assert np.all(plate.crust.rugged >= before_rugged)
+    assert np.all(plate.crust.upliftKm >= before_uplift)
+    assert plate.crust.rugged[2] > 0.0
+    assert plate.crust.upliftKm[2] > 0.0
+
+
+def test_old_range_predicate_requires_a_quiet_non_cratonic_belt():
+    from orogen.v2.tectonics.far_field import _old_range
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    assert not _old_range(world, crust, 2)
+    crust.oroType[2] = 6
+    crust.beltReach[2] = 100.0
+    crust.oroLast[2] = 0.0
+    assert not _old_range(world, crust, 2)
+    crust.oroType[2] = 3
+    assert _old_range(world, crust, 2)
+    crust.oroLast[2] = world.time
+    assert not _old_range(world, crust, 2)
+    crust.oroLast[2] = 0.0
+    crust.type[2] = CrustType["CRATON"]
+    assert not _old_range(world, crust, 2)
+
+
+def test_evolve_far_field_runs_reactivation_with_the_spread_window(monkeypatch):
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world()
+    world.config.update(_reactivation_config())
+    calls = []
+    monkeypatch.setattr(
+        far_field, "spread_push",
+        lambda *_args: {"cells": [1], "inc": [1.0], "from": [0], "dist": [500.0]},
+    )
+    monkeypatch.setattr(
+        far_field, "reactivate",
+        lambda w, p, push, window: calls.append((w, p, push, window)),
+    )
+    feed_far_field(world, plate, "front", [0], 10.0, 200.0, 1.0)
+    evolve_far_field(world, 2.0)
+    assert len(calls) == 1
+    assert calls[0][0] is world
+    assert calls[0][1] is plate
+    assert calls[0][3] == pytest.approx(2.0)
+
+
+def test_rejuvenation_handles_multiple_sources_and_rejects_zero_uplift_scale():
+    from orogen.v2.tectonics import far_field
+
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    for cell in range(5):
+        crust.oroType[cell] = 3
+        crust.oroLast[cell] = 0.0
+        crust.beltReach[cell] = 200.0
+        crust.beltU[cell] = 0.2
+        crust.beltSide[cell] = 1
+    far_field._rejuvenate(
+        world, plate, [2, 2], [150.0, 100.0], [50.0, 40.0]
+    )
+    assert np.any(crust.rugged > 0.0)
+    world.config["heights"] = {
+        "upliftBuildKm": {8: 0.0},
+    }
+    with pytest.raises(ValueError, match="must be positive"):
+        far_field._rejuvenate(world, plate, [2], [150.0], [50.0])

@@ -1051,8 +1051,9 @@ def track_collisions(world, dt: float) -> dict:
         underthrust_total += under_now
         changed = changed or under_now > 0
 
-        # Mark records that have met the first-order shortening/contact
-        # thresholds. Actual welding waits for sea-gap closure and merge logic.
+        # A first candidate must also have a sufficiently long front. The
+        # full suture configuration enables periodic gap/ring measurements;
+        # welding itself remains delegated to a future plate-merge port.
         ready = (
             float(record["shorteningKm"])
             >= float(config.get("sutureShorteningKm", math.inf))
@@ -1072,6 +1073,99 @@ def track_collisions(world, dt: float) -> dict:
             and float(record["frontMaxKm"])
             >= float(config.get("sutureMinContactKm", math.inf))
         )
+        record["weldCandidate"] = False
+        record["weldBlockedByRing"] = False
+        record["mergeEligible"] = False
+
+        gap_keys = {
+            "sutureCheckMyr",
+            "sutureGapKm",
+            "sutureGapWidthKm",
+            "sutureStallGiveUpMyr",
+            "sutureGapStallMyr",
+            "sutureLockMaxMyr",
+            "sutureStackKm",
+            "ringSeaKm2",
+        }
+        if record["sutureCandidate"] and gap_keys.issubset(config):
+            time = float(world.time)
+            due = not (
+                time - float(record.get("checkedAt", -math.inf))
+                < float(config["sutureCheckMyr"])
+            )
+            if due:
+                gap = open_sea_between(world, upper, lower)
+                record["gapKm2"] = float(gap["km2"])
+                record["gapWidestKm"] = float(gap["widestKm"])
+                best_gap = float(record.get("gapBestKm2", math.inf))
+                if not record["gapKm2"] >= 0.9 * best_gap:
+                    record["gapBestKm2"] = record["gapKm2"]
+                    record["gapShrankAt"] = time
+
+            record.setdefault("gapKm2", math.inf)
+            closed = (
+                float(record.get("gapWidestKm", math.inf))
+                <= float(config["sutureGapWidthKm"])
+                or float(record["stalledMyr"])
+                >= float(config["sutureStallGiveUpMyr"])
+                or time - float(record.get("gapShrankAt", time))
+                >= float(config["sutureGapStallMyr"])
+            )
+            overdue = (
+                float(record["contactMyr"])
+                >= float(config["sutureLockMaxMyr"])
+            )
+            stacked = (
+                (len(cells) - under_now) * cell_area
+                / max(float(record["frontKm"]), edge_km)
+                >= float(config["sutureStackKm"])
+            )
+            would_weld = bool(
+                (
+                    ready and (closed or stacked)
+                    or overdue
+                )
+                and float(record["frontMaxKm"])
+                >= float(config["sutureMinContactKm"])
+            )
+            if would_weld and (
+                due or "ringKm2" not in record
+            ):
+                record["ringKm2"] = enclosed_sea_between_km2(
+                    world, upper, lower
+                )
+            if due:
+                record["checkedAt"] = time
+
+            ring_area = float(record.get("ringKm2", math.inf))
+            ring_blocked = bool(
+                would_weld
+                and ring_area > float(config["ringSeaKm2"])
+                and not stacked
+                and not overdue
+            )
+            record["weldCandidate"] = would_weld
+            record["weldBlockedByRing"] = ring_blocked
+            record["mergeEligible"] = bool(
+                would_weld and not ring_blocked
+            )
+            if (
+                ring_blocked
+                and not record.get("ringLogged", False)
+            ):
+                record["ringLogged"] = True
+                world.log(
+                    EventKind["COLLISION"],
+                    (
+                        f"{lower.name} and {upper.name} stay apart: their "
+                        f"land rings a {ring_area / 1e6:.1f} Mkm² sea"
+                    ),
+                    {
+                        "upper": upper.id,
+                        "lower": lower.id,
+                        "ringKm2": ring_area,
+                    },
+                )
         tracked += 1
 
     return {

@@ -119,8 +119,8 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 The latest successful test result on the production `shull` branch is **477 tests passed** with **100% line coverage** (5,925 executable lines) for `orogen.v2`:
 
-- [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44182194923)
-- Validated revision: `9112b1704c306d9f758e81fbf6050f115f54e015` (2026-11-17)
+- [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44183831755)
+- Validated revision: `9c2041363dffcbe0cd42d53ae1a6ba763a593d99` (2026-11-17)
 
 The complete suite includes the seven selected Delaunator differential fixtures. Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
 

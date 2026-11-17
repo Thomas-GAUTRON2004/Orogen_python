@@ -119,3 +119,6 @@ Orogeny porting now includes the spatial `spread_belt` record-propagation pass: 
 
 
 Force-balance progress: `dynamics.py` now ports plate-frame basal drag transformed into the world frame, the 3x3 solve, slab-resistance tensor, collision-normal/shear coupling, smooth speed softening and hard speed cap. These functions accept precomputed loads. The world-wide force-gathering pass, which discovers slab, young-ridge, rift and mantle-flow forces from the resolved plate map, remains outstanding.
+
+
+Boundary force gathering has begun: `forces.py` now collects slab pull, slab suction, ridge push and partner-rift push from the resolved owner map, including shared-edge length, age/maturity scaling and slab-resistance records consumed by `dynamics.py`. It explicitly omits collision-overlap contacts and mantle-flow/repulsion, which remain unported.

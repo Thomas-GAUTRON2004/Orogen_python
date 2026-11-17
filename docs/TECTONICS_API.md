@@ -225,3 +225,12 @@ Module: `orogen.v2.tectonics.dynamics`
 - `soften_speed` and `clamp_speed` apply the upstream smooth and hard angular-speed limits.
 
 These are balance-stage primitives, not a complete plate-dynamics update: the world-wide force gathering pass (`gatherLoads`), mantle-flow forcing and simulation integration are still outstanding.
+
+
+## Boundary-force gathering (partial)
+
+Module: `orogen.v2.tectonics.forces`
+
+`gather_boundary_loads(world)` gathers slab pull, slab suction, young-ridge push, and young-rift push from a resolved world owner map. Its records are compatible with `balanced_rotation` and include per-kind torque/vector totals plus slab-resistance records.
+
+This is deliberately a partial port of upstream `gatherLoads`: land-overlap collision contacts, mantle flow, and dispersal repulsion are not gathered here.

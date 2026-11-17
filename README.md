@@ -117,12 +117,12 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest successful test result explicitly documented in the repository is **476 tests passed** with **100% line coverage** for `orogen.v2`:
+The latest successful test result on the production `shull` branch is **477 tests passed** with **100% line coverage** (5,925 executable lines) for `orogen.v2`:
 
-- [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148)
-- Associated project revision: `6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17)
+- [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44182194923)
+- Validated revision: `9112b1704c306d9f758e81fbf6050f115f54e015` (2026-11-17)
 
-This is a historical verification point, not confirmation that the current branch head has passed CI. The current documentation-only commits have not been used as a basis for a fresh test claim. Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
+The complete suite includes the seven selected Delaunator differential fixtures. Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
 
 For benchmark methodology and results, including workloads where Python remains slower than JavaScript, see [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md).
 

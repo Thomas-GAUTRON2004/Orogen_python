@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 
-from ...core.sphere_geometry import dot
 from ..crust import CrustFlag, CrustType
 from ..plate import frame_rotation
 
@@ -21,7 +20,6 @@ def transfer_cells(world, source, target, cells) -> int:
     xyz, index = mesh.xyz, mesh.index
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
     source_crust, target_crust = source.crust, target.crust
-    point = [0.0, 0.0, 0.0]
     moved = 0
     rotation = None
 

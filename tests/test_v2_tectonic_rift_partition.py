@@ -119,6 +119,29 @@ def test_through_ocean_extends_both_ends_and_short_paths_are_unchanged():
     assert _through_ocean(mesh, crust, [1]) == [1]
 
 
+def test_through_ocean_uses_javascript_half_up_rounding():
+    points = [
+        [math.cos((cell - 3) * 0.01), 0.0, math.sin((cell - 3) * 0.01)]
+        for cell in range(8)
+    ]
+    neighbours = [
+        [1], [0, 2], [1, 3], [2, 4],
+        [3, 5], [4, 6], [5, 7], [6],
+    ]
+    mesh = Mesh(points, neighbours, edge_km=2920.0)  # 7300 / 2920 = 2.5
+    crust = CrustRaster(8)
+    for cell in range(8):
+        kind = (
+            CrustType["CONTINENT"]
+            if cell in (3, 4)
+            else CrustType["OCEAN"]
+        )
+        crust.create(cell, kind, 0.0)
+
+    # JavaScript Math.round(2.5) is 3, whereas Python round(2.5) is 2.
+    assert _through_ocean(mesh, crust, [3, 4]) == list(range(8))
+
+
 def test_exterior_sea_floods_from_unmasked_cells():
     mesh = Mesh(
         [[1, 0, 0], [0.9, 0.1, 0], [0.8, 0.2, 0], [0.7, 0.3, 0], [0.6, 0.4, 0]],

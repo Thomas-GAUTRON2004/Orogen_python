@@ -301,3 +301,27 @@ The lifecycle layer is implemented in `orogen.v2.tectonics.plumes`:
 `_erupt_lip` builds the LIP footprint from overlapping, rotated elliptical flows, five low-order radial lobes, and warped simplex-fBm edge noise. The province grows over the mesh adjacency graph; eligible owned cells receive `VolcanicType.LIP`, thickness, source and `CrustFlag.LIP` records. The shape seed comes from `rngVolcano` while the initial area draw uses `rngHotspot`, preserving the independent streams. This is a numerical port of the upstream head-province stage, not a demonstrated bit-for-bit match for all meshes.
 
 `_stamp_track` finds the plate currently over a live mantle plume, grows a connected ribbon within `hotspotTrackKm`, preserves existing LIP cells, and marks other cells as `VolcanicType.TRACK`. `_erupted_during` advances alternating quiet/burst intervals; burst intensity and duration scale edifice growth inside `hotspotEdificeKm`, capped by `hotspotMaxKm`. The remaining hotspot gap is execution of the queued plume-triggered rifts.
+
+
+## Rift partitioning operations (partial)
+
+Module: `orogen.v2.tectonics.ops.rift_partition`
+
+These functions operate on a plate-local `CrustRaster` and a simulation mesh:
+
+- `masked_cells(crust)` returns the occupied plate cells in index order.
+- `partition(mesh, crust, path, cells=None)` marks the left/right land blocks created by a proposed rift, then propagates oceanic crust to the nearest block. It returns the side array (`1` or `2`), land-cell counts and unique craton counts.
+- `sides_of(mesh, crust, path, cells=None)` summarizes the smaller land-block share, maximum block elongation and whether both sides retain cratons.
+- `exterior_sea(mesh, crust)` marks ocean connected to the outside of a plate, or its largest ocean basin when the plate covers the whole mesh.
+- `elongation_of(mesh, side, which, cells=None)` estimates a block's long/short axis ratio from the position covariance.
+
+Example:
+
+```python
+from orogen.v2.tectonics.ops import partition, sides_of
+
+side, land_counts, craton_counts = partition(mesh, crust, rift_path)
+shape = sides_of(mesh, crust, rift_path)
+```
+
+This is the partitioning and scoring layer only. It does not find a valid rift path, split a `Plate`, create a new plate, or execute `world.pendingPlumeRifts`. Those operations remain part of the outstanding `ops/rift-path.js`, `ops/rift.js` and `step/rifting.js` port.

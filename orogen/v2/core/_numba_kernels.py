@@ -369,7 +369,7 @@ def _tangent_basis_components(x, y, z):
         ex, ey, ez = 0.0, -z, y
     else:
         ex, ey, ez = -y, x, 0.0
-    length = math.hypot(ex, ey, ez) or 1.0
+    length = math.sqrt(ex * ex + ey * ey + ez * ez) or 1.0
     ex, ey, ez = ex / length, ey / length, ez / length
     nx = y * ez - z * ey
     ny = z * ex - x * ez
@@ -392,7 +392,7 @@ def _destination_many_kernel(points, bearings, distances):
         qx = x * cosine + tx * sine
         qy = y * cosine + ty * sine
         qz = z * cosine + tz * sine
-        length = math.hypot(qx, qy, qz) or 1.0
+        length = math.sqrt(qx * qx + qy * qy + qz * qz) or 1.0
         out[i, 0] = qx / length
         out[i, 1] = qy / length
         out[i, 2] = qz / length
@@ -439,6 +439,8 @@ if NUMBA_AVAILABLE:
     pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
     _pieces_of_kernel = pieces_of_numba
     largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
+    # Compile the helper first; Numba does not automatically infer undecorated globals.
+    _tangent_basis_components = njit(cache=True, fastmath=False)(_tangent_basis_components)
     destination_many_numba = njit(cache=True, fastmath=False)(_destination_many_kernel)
     bearing_to_many_numba = njit(cache=True, fastmath=False)(_bearing_to_many_kernel)
     zero_cell_fields_numba = njit(cache=True, fastmath=False)(_zero_cell_fields_kernel)

@@ -12,5 +12,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e ".[speed]" shull
+      - run: python -m pip install -e ".[speed]" shull==0.4.0
       - run: python benchmarks/experiment_shull.py
+      - run: python benchmarks/experiment_shull_pipeline.py

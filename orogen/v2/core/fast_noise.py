@@ -30,7 +30,7 @@ class FastNoise:
             permutation[i], permutation[j] = permutation[j], permutation[i]
         self.perm = np.empty(512, dtype=np.uint8)
         self.pm3 = np.empty(512, dtype=np.uint8)
-        self._grad = self._grad
+        self._grad = np.asarray(_GRAD, dtype=np.float64)
         for i in range(512):
             value = permutation[i & 255]
             self.perm[i] = value

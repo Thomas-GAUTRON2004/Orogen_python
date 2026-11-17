@@ -64,9 +64,9 @@ Deterministic seed parsing and Park–Miller RNG, 3-D simplex noise and FBM, qua
 
 ### Tectonics (`orogen.v2.tectonics`)
 
-The current port includes crust-raster storage and history fields; rigid plate state, coordinate transforms and kinematics; occupancy, claim gathering and ownership reconstruction; a first-pass contact resolver and boundary classifier; adaptive time-step selection; orogenic-belt record propagation; mantle heat memory; supercontinent analysis and cycle tracking; force collection and a partial plate-motion update; and plume births/deaths, LIP province stamping, moving plume tracks and burst-built volcanic edifices.
+The current port includes crust-raster storage and history fields; rigid plate state, coordinate transforms and kinematics; occupancy, claim gathering and ownership reconstruction; a first-pass contact resolver and boundary classifier; adaptive time-step selection; orogenic-belt record propagation; mantle heat memory; supercontinent analysis and cycle tracking; force collection and a partial plate-motion update; and plume births/deaths, LIP province stamping, moving plume tracks and burst-built volcanic edifices. The new `orogen.v2.tectonics.ops.rift_partition` module also ports rift-side partitioning, plate-ocean continuation, exterior-sea detection and land-block shape scoring.
 
-This is not yet the complete tectonic engine. The default `TECTONICS` configuration and initial-world/scenario builders are not ported. The rifting operations that cut and split plates are not implemented, so queued plume rifts are not yet executed. The full multi-stage simulation loop and the terrain, general geology, climate, finishing and agriculture pipelines remain outstanding.
+This is not yet the complete tectonic engine. The default `TECTONICS` configuration and initial-world/scenario builders are not ported. The rift partitioning helper is now implemented, but rift-path search, full cut validation and the plate-splitting operation are not; queued plume rifts are therefore not yet executed. The full multi-stage simulation loop and the terrain, general geology, climate, finishing and agriculture pipelines remain outstanding.
 
 ## Numerical backend and reproducibility
 
@@ -76,7 +76,7 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest verified GitHub Actions run for the port branch completed **236 passing tests** with **100% line coverage across 3,060 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or JavaScript parity.
+The latest verified pull-request Actions run for commit `eef5de2e513affa334027be09b6b43df94fd5e22` (run #481) completed **243 passing tests** with **100% line coverage across 3,288 statements** in `orogen.v2`. CI enforces the 100% threshold. Coverage measures execution of implemented Python code; it does not measure feature completeness or JavaScript parity.
 
 ## Upstream and license
 

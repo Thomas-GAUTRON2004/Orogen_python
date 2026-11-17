@@ -62,3 +62,21 @@ def test_rings_of_caches_breadth_first_neighbourhoods():
     assert cells[start[0 * stride + 1]:start[0 * stride + 2]].tolist() == [1]
     assert cells[start[0 * stride + 2]:start[0 * stride + 3]].tolist() == [2, 3]
     assert rings_of(m) is rings
+
+
+class ComponentMesh:
+    num_cells = 8
+    adj_offset = np.asarray([0, 2, 4, 6, 7, 8, 8, 9, 10], dtype=np.int32)
+    adj_list = np.asarray([1, 2, 0, 2, 0, 1, 4, 3, 7, 6], dtype=np.int32)
+
+
+def test_mesh_components_keep_seed_order_neighbour_order_and_first_tie():
+    from orogen.v2.core.mesh_bfs import largest_piece_of, pieces_of
+
+    selected = [6, 0, 5, 3, 1, 7, 2, 4, 5]
+    expected = [[6, 7], [0, 1, 2], [5], [3, 4]]
+    mesh = ComponentMesh()
+    assert pieces_of(mesh, selected) == expected
+    assert largest_piece_of(mesh, selected) == [6, 7]
+    assert pieces_of(mesh, []) == []
+    assert largest_piece_of(mesh, []) == []

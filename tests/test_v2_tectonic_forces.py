@@ -160,3 +160,59 @@ def test_gather_boundary_loads_rejects_bad_xyz_layout(monkeypatch):
     world.mesh.xyz = np.zeros(3)
     with pytest.raises(ValueError):
         gather_boundary_loads(world)
+
+
+def configure_collision_world(monkeypatch, owner_neighbour=True):
+    world = make_world(monkeypatch, "pull")
+    a, b = world.plates
+    a.crust.type[0] = CrustType["CONTINENT"]
+    b.crust.type[0] = CrustType["CONTINENT"]
+    a.capCenter = [0.0, 0.0, 1.0]
+    b.capCenter = [0.0, 1.0, 0.0]
+    b.cell_at = lambda index, x, y, z: 0
+    world.mesh.index = object()
+    world.mesh.adj_offset = np.array([0, 1, 2], dtype=np.int32)
+    world.mesh.adj_list = np.array([1, 0], dtype=np.int32)
+    world.landClaims[0] = 2
+    world.collider[0] = 1
+    if not owner_neighbour:
+        world.owner[1] = -1
+    return world
+
+
+def test_gather_boundary_loads_records_collision_contacts_with_opposite_normals(monkeypatch):
+    world = configure_collision_world(monkeypatch)
+    loads = gather_boundary_loads(world)
+    a_contact = loads[0]["contacts"][0]
+    b_contact = loads[1]["contacts"][0]
+    assert a_contact["other"] == 1
+    assert b_contact["other"] == 0
+    assert a_contact["weight"] == 1.0
+    assert a_contact["n"] == pytest.approx([0.0, 1.0, 0.0])
+    assert b_contact["n"] == pytest.approx([0.0, -1.0, 0.0])
+    assert a_contact["r"] == [1.0, 0.0, 0.0]
+
+
+def test_gather_boundary_loads_uses_craton_lock_weight_and_fallback_normal(monkeypatch):
+    world = configure_collision_world(monkeypatch, owner_neighbour=False)
+    world.config["cratonLockFactor"] = 3.5
+    world.plates[0].crust.type[0] = CrustType["CRATON"]
+    loads = gather_boundary_loads(world)
+    contact = loads[0]["contacts"][0]
+    assert contact["weight"] == pytest.approx(3.5)
+    assert np.linalg.norm(contact["n"]) == pytest.approx(1.0)
+    assert contact["n"] == pytest.approx([0.0, 1 / np.sqrt(2), -1 / np.sqrt(2)])
+
+
+def test_gather_boundary_loads_skips_arc_and_young_rift_margin_jitter(monkeypatch):
+    world = configure_collision_world(monkeypatch)
+    world.plates[1].crust.type[0] = CrustType["ARC"]
+    assert gather_boundary_loads(world)[0]["contacts"] == []
+
+    world = configure_collision_world(monkeypatch)
+    a, b = world.plates
+    a.born = b.born = 95.0
+    a.riftPartner, b.riftPartner = 1, 0
+    a.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
+    b.crust.flags[0] |= CrustFlag["RIFT_MARGIN"]
+    assert gather_boundary_loads(world)[0]["contacts"] == []

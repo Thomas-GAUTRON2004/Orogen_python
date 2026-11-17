@@ -75,10 +75,16 @@ def test_track_cycle_waits_for_sustained_supercontinent_then_assembles():
     assert cycle["hold"] == 1.0
     assert cycle["upHeat"] == pytest.approx(2.5)
     assert world.events[-1]["kind"] == "supercontinent"
+    world.config["cycleUpwellingKm"] = 1.0
+    world.time = 11.0
+    cycle = track_cycle(world)
+    assert len(cycle["near"]) == 0
+    assert cycle["upHeat"] == 0.0
 
 
 def test_track_cycle_schedules_rift_breakup_and_gathering_phase():
     world = make_world()
+    track_cycle(world)
     world.time = 10.0
     cycle = track_cycle(world)
     world.events.append({"kind": "rift", "time": 20.0, "text": "rift", "data": {}})
@@ -99,6 +105,7 @@ def test_track_cycle_schedules_rift_breakup_and_gathering_phase():
 
 def test_track_cycle_logs_breakup_after_low_share_is_held():
     world = make_world()
+    track_cycle(world)
     world.time = 10.0
     track_cycle(world)
     world.events.append({"kind": "rift", "time": 20.0, "text": "rift", "data": {}})
@@ -117,6 +124,7 @@ def test_track_cycle_logs_breakup_after_low_share_is_held():
 
 def test_track_cycle_ignores_old_rifts_and_disabled_cycle():
     world = make_world()
+    track_cycle(world)
     world.time = 10.0
     track_cycle(world)
     world.events.append({"kind": "rift", "time": -1.0, "text": "old", "data": {}})

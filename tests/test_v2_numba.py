@@ -237,3 +237,28 @@ def test_numba_far_field_python_fallback_skips_missing_crust_cells(monkeypatch):
 
     assert result["cells"] == [0, 1]
     assert 2 not in result["cells"]
+
+
+
+def test_numba_mesh_components_match_python_fallback_and_tie_order(monkeypatch):
+    import orogen.v2.core.mesh_bfs as mesh_bfs_module
+
+    class Mesh:
+        num_cells = 8
+        adj_offset = np.asarray([0, 2, 4, 6, 7, 8, 8, 9, 10], dtype=np.int32)
+        adj_list = np.asarray([1, 2, 0, 2, 0, 1, 4, 3, 7, 6], dtype=np.int32)
+
+    mesh = Mesh()
+    selected = [6, 0, 5, 3, 1, 7, 2, 4, 5]
+    monkeypatch.setattr(mesh_bfs_module, "NUMBA_AVAILABLE", False)
+    expected = mesh_bfs_module.pieces_of(mesh, selected)
+    expected_largest = mesh_bfs_module.largest_piece_of(mesh, selected)
+
+    monkeypatch.setattr(mesh_bfs_module, "NUMBA_AVAILABLE", True)
+    actual = mesh_bfs_module.pieces_of(mesh, selected)
+    actual_largest = mesh_bfs_module.largest_piece_of(mesh, selected)
+
+    assert actual == expected == [[6, 7], [0, 1, 2], [5], [3, 4]]
+    assert actual_largest == expected_largest == [6, 7]
+    assert mesh_bfs_module.pieces_of(mesh, []) == []
+    assert mesh_bfs_module.largest_piece_of(mesh, []) == []

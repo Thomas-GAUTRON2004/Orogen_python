@@ -51,28 +51,38 @@ cloud receives the same triangulation from both algorithms.
 
 ## Performance measurements
 
-The previous experimental branch measured isolated triangulation on the same
-seeded Orogen point clouds. These results are directional runner medians:
+A fresh GitHub Actions run on Python 3.12.16, NumPy 2.5.5 and SciPy
+1.18.1 measured the new production backend against the optional SciPy
+baseline. These are three-round medians after warm-up on a hosted Linux
+runner:
 
 | Points | SciPy/Qhull | shull | Triangulation speedup |
 |---:|---:|---:|---:|
-| 10,000 | 26.9 ms | 2.6 ms | 10.43× |
-| 40,000 | 154.4 ms | 7.6 ms | 20.36× |
-| 80,000 | 344.2 ms | 15.4 ms | 22.40× |
+| 10,000 | 31.6 ms | 3.0 ms | 10.68× |
+| 40,000 | 173.3 ms | 13.1 ms | 13.26× |
+| 80,000 | 549.0 ms | 27.7 ms | 19.79× |
 
-The broader pipeline comparison with the production Python CSR builder (not
-the experimental Numba CSR prototype) measured:
+The broader production pipeline comparison (triangulation, pole closure,
+Python cyclic CSR and `SphereIndex`) measured:
 
-| Cells | SciPy + Python CSR | shull + Python CSR | Pipeline speedup |
+| Cells | SciPy pipeline | shull pipeline | Pipeline speedup |
 |---:|---:|---:|---:|
-| 10,001 | 0.3876 s | 0.3609 s | 1.07× |
-| 40,001 | 1.5761 s | 1.4444 s | 1.09× |
-| 80,001 | 3.2428 s | 2.8978 s | 1.12× |
+| 10,001 | 0.6405 s | 0.6028 s | 1.06× |
+| 40,001 | 2.6107 s | 2.4064 s | 1.08× |
+| 80,001 | 5.4474 s | 4.8474 s | 1.12× |
+
+The actual `build_sim_mesh` wall times using production shull were 0.6166 s,
+2.5159 s and 5.0239 s for the same three input sizes. Output arrays at 80,001
+cells occupied about 5.19 MiB. The run asserted exact canonicalized simplex
+sets, closed faces, CSR offsets and adjacency, `SphereIndex` tables, and BFS
+distance arrays for all sizes.
 
 The benchmark includes triangulation, pole closure, cyclic CSR and
 `SphereIndex`; coordinate generation/projection is prepared outside the
-timed region. The old 1.18×–1.23× combined figures used an experimental
+stage timing. The earlier 1.18×–1.23× combined figures used an experimental
 Numba CSR builder and are not claimed as production speedups.
+
+[Production pipeline benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44181122593).
 
 ## Reproduce the A/B test
 

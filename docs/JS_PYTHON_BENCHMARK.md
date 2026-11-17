@@ -122,3 +122,19 @@ The paired benchmark measured a 12,000-cell degree-6 ring graph with selected 64
 
 This is a synthetic CSR-graph microbenchmark, not a full collision or planet-generation timing. Tests compare component contents and traversal ordering against the Python fallback, including duplicate seeds, empty selections and first-component tie handling.
 
+## Paired JavaScript comparison including connected components — 2026-11-17
+
+The benchmark now measures the upstream JavaScript `piecesOf` implementation against the Python Numba `pieces_of` path on the same synthetic 12,000-cell degree-6 ring. Both implementations receive the same ordered selection: 64-cell contiguous blocks separated by 4-cell gaps. Each side includes component construction and result materialization. Five measured rounds follow one warm-up.
+
+| Workload | JavaScript | Python + Numba | Python / JS | Faster |
+|---|---:|---:|---:|---|
+| 3-D simplex FBM, 40,000 points × 5 octaves | 10.378 ms | 9.743 ms | 0.94× | Python, 1.07× |
+| Spherical geometry, 80,000 points | 18.731 ms | 159.392 ms | 8.51× | JavaScript, 8.51× |
+| Mesh BFS, 12,000 cells | 0.465 ms | 0.711 ms | 1.53× | JavaScript, 1.53× |
+| Connected components, 12,000 cells | 2.403 ms | 1.546 ms | 0.64× | Python + Numba, 1.55× |
+| Mesh Dijkstra, 12,000 cells | 0.504 ms | 0.008 ms | 0.02× | Python + Numba, about 63× |
+| Crust creation + snapshots, 6,000 cells | 3.860 ms | 119.421 ms | 30.94× | JavaScript, 30.94× |
+
+[Paired benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44160409232).
+
+These are directional microbenchmark results from one shared GitHub-hosted runner, not end-to-end simulation timings. The connected-component comparison now uses the actual upstream JS helper and the same graph and ordered seed list as Python. The Dijkstra path is callback-free and uses the synthetic ring graph with `max_km=20,000`; the very small Python time should not be generalized to production spherical meshes. Geometry and crust remain the largest measured Python gaps.

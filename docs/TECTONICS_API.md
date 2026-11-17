@@ -262,4 +262,7 @@ Module: `orogen.v2.tectonics.supercontinent`
 - `is_continental(world, cell)` classifies continental and cratonic cells, excluding island arcs and unowned cells.
 - `landmasses(world)` counts connected continental components of at least 1 Mkm² and returns the largest cohesive mass, its share of total continental cells, and the large-component count. Narrow necks are split by growing inland cores back through continental crust using geodesic distance.
 
-The result is ready for the supercontinent cycle tracker. That tracker still needs to manage heat history, cycle formation and breakup timing, event consumption, and seeded downwelling placement.
+The result feeds `track_cycle(world)`, which consumes rift events, waits for sustained continental-share thresholds, places seeded upwellings/downwellings, and advances assembled, dispersing and gathering phases. It reads mantle heat from `world.mantleHeat` but does not evolve that field; heat production/decay remains a separate hotspot/thermal stage.
+
+
+`track_cycle(world)` advances the world cycle state. It uses `world.rngCycle` for deterministic downwelling orientation and cycle duration, logs supercontinent/dispersal events, records the large plates of a clump, computes the upwelling heat average, and updates `phase`, `gather`, `clump`, and `hold`. Required cycle parameters are read from `world.config`.

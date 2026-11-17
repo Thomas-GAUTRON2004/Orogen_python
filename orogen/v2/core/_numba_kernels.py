@@ -508,16 +508,6 @@ def _snapshot_cells_kernel(fields, cells):
             out[row, column] = fields[column][cell]
     return out
 
-
-def _snapshot_cells_field_major_kernel(fields, cells):
-    """Experimental field-major variant for an in-process locality comparison."""
-    out = np.empty((cells.size, len(fields)), dtype=np.float64)
-    for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
-        field = fields[column]
-        for row in range(cells.size):
-            out[row, column] = field[int(cells[row])]
-    return out
-
 def _zero_cell_fields_kernel(fields, cell):
     """Reset all heterogeneous structure-of-arrays fields at one cell."""
     for field in literal_unroll(fields):
@@ -552,7 +542,6 @@ if NUMBA_AVAILABLE:
     snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(_snapshot_cell_fields_kernel)
     create_cells_numba = njit(cache=True, fastmath=False)(_create_cells_kernel)
     snapshot_cells_numba = njit(cache=True, fastmath=False)(_snapshot_cells_kernel)
-    snapshot_cells_field_major_numba = njit(cache=True, fastmath=False)(_snapshot_cells_field_major_kernel)
     copy_cells_numba = njit(cache=True, fastmath=False)(_copy_cells_kernel)
     remove_cells_numba = njit(cache=True, fastmath=False)(_remove_cells_kernel)
 else:
@@ -561,5 +550,4 @@ else:
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
     create_cells_numba = snapshot_cells_numba = None
-    snapshot_cells_field_major_numba = None
     copy_cells_numba = remove_cells_numba = None

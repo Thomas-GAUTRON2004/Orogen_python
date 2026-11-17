@@ -214,3 +214,9 @@ These are synthetic microbenchmarks on shared GitHub-hosted runners. Timings var
 CI for the matrix-returning snapshot_many implementation: **476 tests passed, 100% coverage**.
 
 [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
+
+### Snapshot traversal order experiment
+
+An additional same-process A/B compared row-major and field-major Numba materialization on the same 6,000-cell raster (55 fields), alternating the timing order over five measured rounds after compiling both kernels. The row-major implementation measured **0.610 ms** and the field-major alternative **0.618 ms**. The difference is below a meaningful optimization threshold and slightly favours row-major, so the experimental field-major kernel was removed; the production `snapshot_many` implementation remains row-major.
+
+[A/B benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171170128).

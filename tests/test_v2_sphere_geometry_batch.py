@@ -264,20 +264,3 @@ def test_crust_copy_and_remove_many_empty_batches_and_implicit_sources():
     target.remove_many([])
     with pytest.raises(ValueError, match="one index per destination"):
         target.copy_many([1, 2], source, [0])
-
-
-@pytest.mark.skipif(not NUMBA_AVAILABLE, reason="install orogen[speed] to test Numba kernels")
-def test_snapshot_field_major_experimental_kernel_matches_public_batch_api():
-    from orogen.v2.core._numba_kernels import snapshot_cells_field_major_numba
-    from orogen.v2.tectonics.crust import CrustRaster, CrustType
-
-    raster = CrustRaster(7)
-    cells = np.asarray([5, 1, 5, 0, 6], dtype=np.int32)
-    raster.create_many(cells, CrustType["CONTINENT"], -3.5, np.arange(5))
-    expected = raster.snapshot_many(cells)
-    actual = snapshot_cells_field_major_numba(raster._numba_fields, cells)
-    np.testing.assert_array_equal(actual, expected)
-    empty = snapshot_cells_field_major_numba(
-        raster._numba_fields, np.empty(0, dtype=np.int32),
-    )
-    assert empty.shape == (0, len(raster.fields))

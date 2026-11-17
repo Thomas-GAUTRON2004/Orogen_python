@@ -112,6 +112,67 @@ def bench_crust_scalar_acceleration():
     }
 
 
+
+def bench_crust_batch_stages():
+    """Isolate raster construction, create_many and snapshot_many costs."""
+    cells = np.arange(0, N_CELLS, 2, dtype=np.int32)
+    types = CrustType["CONTINENT"]
+
+    def construct():
+        global sink
+        raster = CrustRaster(N_CELLS)
+        sink = raster.numCells
+
+    constructor_ms = median_ms(construct)
+
+    create_raster = CrustRaster(N_CELLS)
+
+    def run_create(use_numba):
+        previous = crust_module.NUMBA_AVAILABLE
+        crust_module.NUMBA_AVAILABLE = bool(use_numba and NUMBA_AVAILABLE)
+
+        def once():
+            global sink
+            create_raster.create_many(cells, types, -100, cells + 1)
+            sink = create_raster.count
+
+        try:
+            return median_ms(once)
+        finally:
+            crust_module.NUMBA_AVAILABLE = previous
+
+    snapshot_raster = CrustRaster(N_CELLS)
+    snapshot_raster.create_many(cells, types, -100, cells + 1)
+
+    def run_snapshot(use_numba):
+        previous = crust_module.NUMBA_AVAILABLE
+        crust_module.NUMBA_AVAILABLE = bool(use_numba and NUMBA_AVAILABLE)
+
+        def once():
+            global sink
+            result = snapshot_raster.snapshot_many(cells)
+            sink = float(result[-1, -1]) if result.size else 0.0
+
+        try:
+            return median_ms(once)
+        finally:
+            crust_module.NUMBA_AVAILABLE = previous
+
+    create_numba_ms = run_create(True)
+    create_python_ms = run_create(False)
+    snapshot_numba_ms = run_snapshot(True)
+    snapshot_python_ms = run_snapshot(False)
+    return {
+        "workload": "6,000 cells, 55 crust fields; constructor / batch create / batch snapshot",
+        "constructor_ms": round(constructor_ms, 3),
+        "create_many_numba_ms": round(create_numba_ms, 3),
+        "create_many_python_ms": round(create_python_ms, 3),
+        "create_many_speedup": round(create_python_ms / create_numba_ms, 2) if create_numba_ms else None,
+        "snapshot_many_numba_ms": round(snapshot_numba_ms, 3),
+        "snapshot_many_python_ms": round(snapshot_python_ms, 3),
+        "snapshot_many_speedup": round(snapshot_python_ms / snapshot_numba_ms, 2) if snapshot_numba_ms else None,
+    }
+
 def bench_mesh_components():
     """Compare selected-cell connected components with and without Numba."""
     selected = []
@@ -220,6 +281,7 @@ def bench_far_field_diffusion():
 far_field_comparison = bench_far_field_diffusion()
 component_comparison = bench_mesh_components()
 crust_scalar_comparison = bench_crust_scalar_acceleration()
+crust_batch_stages = bench_crust_batch_stages()
 
 timings={
 "noise_fbm_ms":median_ms(bench_noise),
@@ -230,4 +292,4 @@ timings={
 "crust_create_snapshot_ms":median_ms(bench_crust),
 "crust_copy_ms":median_ms(bench_crust_copy),
 }
-print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison,"crust_scalar":crust_scalar_comparison}}))
+print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison,"crust_scalar":crust_scalar_comparison,"crust_batch_stages":crust_batch_stages}}))

@@ -3,15 +3,15 @@
 ## Package map
 
 The package is split into deterministic numerical primitives and stateful
-tectonic operations. The current implementation includes these groups:
+tectonic operations. The current implementation includes:
 
 - `orogen.v2.core`: seed/RNG, noise, rotations, spherical geometry and meshes,
   spatial indexing, interpolation, graph traversal, neighbourhood rings, heap
   and weighted propagation.
 - `orogen.v2.tectonics`: crust and plate state, kinematics, occupancy and claim
   gathering, resolution and boundary classification, force/dynamics helpers,
-  orogenic-belt spreading, mantle heat, supercontinent cycle, plume lifecycle
-  and a partial stepper.
+  orogenic-belt spreading, mantle heat, supercontinent cycle, plume lifecycle,
+  rift-path search, plate splitting and rift orchestration.
 
 The exact exported names are listed in the package `__init__.py` files and
 summarized in the API reference pages. Internal helpers beginning with an
@@ -33,8 +33,8 @@ not know about a complete geological scenario.
 
 ### Tectonics
 
-Tectonics currently provides more than state containers, but it is not yet a
-complete simulation engine.
+Tectonics provides state structures and several working evolution subsystems,
+but not yet a complete simulation engine.
 
 - `CrustRaster` stores one record per mesh cell in a plate-local frame.
 - `Plate` stores a rigid orientation, angular velocity, and its crust raster.
@@ -48,13 +48,17 @@ complete simulation engine.
   force-balanced motion.
 - Orogeny, mantle heat, supercontinent-cycle and plume modules update their
   respective records and fields.
+- The `ops` rift modules partition a candidate cut, search for a valid
+  coast-to-coast path, split the plate and record new rift margins.
+- `rift_continents` handles queued plume rifts, paced/overdue breakups and
+  spontaneous rifting.
 - `step_world` connects the currently ported movement, resolution,
-  classification, plume, cycle and motion stages.
+  classification, plume, cycle, rifting and motion stages.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
-not yet ported. The rifting operations that search for a cut and split a plate
-are also absent, so the current stepper cannot execute queued plume rifts or
-the full spontaneous-rifting stage.
+not yet ported. The full collision/orogeny event pipeline, subduction/arc
+stages, ocean-plate evolution, terrain/geology stages, snapshots and run/resume
+handling remain outstanding.
 
 ## Coordinate conventions
 
@@ -114,10 +118,11 @@ dependency versions is output-neutral.
 
 The current `step_world` function is a partial one-step orchestration. It
 advances plate poses, resolves world ownership, classifies contacts, updates
-plumes and mantle heat, advances the supercontinent cycle and optionally
-updates plate motion. It does not run the complete upstream sequence of
-collisions, rifting, ocean-plate evolution, arcs, slow tectonic stages, terrain,
-geology or snapshots. It should not be treated as a full `simulate` generator.
+plumes and mantle heat, advances the supercontinent cycle, processes
+continental rifting when the rift configuration is present, and optionally
+updates plate motion. It does not run the complete upstream collision/orogeny,
+subduction initiation, arc, ocean-plate, slow terrain/geology or snapshot
+sequence. It should not be treated as a full `simulate` generator.
 
 ## Extension principles
 

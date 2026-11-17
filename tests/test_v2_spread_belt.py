@@ -95,7 +95,7 @@ def test_spread_belt_traverses_apron_from_ocean_to_land_only():
     )
     plate.crust.mask[4] = 0
     belt["widthKm"] = 500.0
-    reached = spread_belt(plate, mesh, [0, 1], belt, config)
+    reached = spread_belt(plate, mesh, [0], belt, config)
     assert reached == [2]
     assert plate.crust.oroType[2] == OrogenyType["ANDEAN"]
     assert plate.crust.oroType[3] == OrogenyType["NONE"]

@@ -19,6 +19,7 @@ def test_relief_maturity_and_profiles_cover_every_belt_kind():
         assert math.isfinite(broad_profile(kind, BeltSide["LOWER"], 200, 1000))
     assert math.isfinite(broad_profile(OrogenyType["RIFT"], BeltSide["UPPER"], 200, 1000, wear_g=5000))
     assert math.isfinite(broad_profile(OrogenyType["ANDEAN"], BeltSide["UPPER"], 200, 1000, wear_g=5000))
+    assert math.isfinite(broad_profile(OrogenyType["LARAMIDE"], BeltSide["UPPER"], 200, 1000, wear_g=5000))
 
 
 def test_build_heights_root_uplift_rugged_and_arc_scaling():

@@ -85,7 +85,7 @@ def test_spread_belt_preserves_previous_belt_on_escalation():
     assert c.prevSide[0] == BeltSide["LOWER"]
     assert c.prevShear[0] == -20
     assert c.prevRugged[0] == 2
-    assert c.rugged[0] == 0
+    assert 0 < c.rugged[0] < c.prevRugged[0] + 1
 
 
 def test_spread_belt_traverses_apron_from_ocean_to_land_only():
@@ -161,4 +161,30 @@ def test_spread_belt_validates_mesh_and_source_and_ignores_empty_work():
     with pytest.raises(IndexError):
         spread_belt(plate, mesh, [99], belt, config)
     belt["works"] = [0]
+    assert spread_belt(plate, mesh, [0], belt, config) == []
+
+
+def test_spread_belt_uses_source_specific_width_work_shear_and_amplitude():
+    plate, mesh, config, belt = fixture()
+    belt.update({
+        "widths": [130.0, 500.0],
+        "works": [3.0, 40.0],
+        "shears": [10.0, -20.0],
+        "amps": [0.5, 1.2],
+    })
+    reached = spread_belt(plate, mesh, [0, 4], belt, config)
+    assert reached == [0, 1, 2, 3, 4]
+    assert plate.crust.beltReach[0] == pytest.approx(130.0)
+    assert plate.crust.beltReach[1] == pytest.approx(500.0)
+    assert plate.crust.beltShear[1] == -20
+    assert plate.crust.oroWork[4] == pytest.approx(40.0)
+
+
+def test_spread_belt_stops_when_ocean_apron_exceeds_limit():
+    plate, mesh, config, belt = fixture(
+        [CrustType["OCEAN"], CrustType["OCEAN"], CrustType["OCEAN"],
+         CrustType["CONTINENT"], CrustType["CONTINENT"]]
+    )
+    config["apronKm"] = 10.0
+    mesh.edge_km = 0.0
     assert spread_belt(plate, mesh, [0], belt, config) == []

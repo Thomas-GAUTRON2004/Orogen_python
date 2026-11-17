@@ -14,6 +14,8 @@ import numpy as np
 
 from ..core.sphere_geometry import cell_distance_km
 from .crust import BeltSide, CrustFlag, CrustType, OrogenyType
+from .geology import thicken_cover
+from .heights import build_heights
 
 
 def _value(values, index: int, fallback: float) -> float:
@@ -165,6 +167,15 @@ def spread_belt(
                 * float(config["thickeningPerWorkKm"])
             )
         crust.thickKm[cell] += thickened
+        amp = _value(belt.get("amps"), source_index, 1.0)
+        relief_share = float(config["cratonRimShare"]) if rim_cell else 1.0
+        build_heights(
+            crust, cell, oro_type, side, u, reach, work, thickened, config,
+            relief_share * amp,
+        )
+        geology = config.get("geology")
+        if thickened > 0 and geology and geology.get("records"):
+            thicken_cover(crust, cell, thickened, time, geology)
         reached.append(cell)
 
     return reached

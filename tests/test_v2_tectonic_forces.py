@@ -237,3 +237,15 @@ def test_gather_boundary_loads_records_collision_on_only_loaded_side(monkeypatch
     assert len(loads[1]["contacts"]) == 1
     assert loads[1]["contacts"][0]["other"] == 0
     assert loads[1]["contacts"][0]["n"] == pytest.approx([0.0, -1.0, 0.0])
+
+
+def test_front_normal_ignores_disputed_and_oceanic_neighbours(monkeypatch):
+    world = configure_collision_world(monkeypatch)
+    world.landClaims[1] = 2
+    loads = gather_boundary_loads(world)
+    assert np.linalg.norm(loads[0]["contacts"][0]["n"]) == pytest.approx(1.0)
+
+    world = configure_collision_world(monkeypatch)
+    world.plates[1].crust.type[0] = CrustType["OCEAN"]
+    loads = gather_boundary_loads(world)
+    assert np.linalg.norm(loads[0]["contacts"][0]["n"]) == pytest.approx(1.0)

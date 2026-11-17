@@ -179,3 +179,51 @@ def test_step_world_runs_subduction_without_rifting_config(monkeypatch):
     assert result["rifts"] == 0
     assert result["subductions"] == 1
     assert subductions == [1.0]
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_step_world_schedules_collision_tracking_and_rebuilds_after_crust_changes(monkeypatch, changed):
+    world = make_world()
+    world.config["collisionForgetMyr"] = 8.0
+    calls = []
+
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.resolve",
+        lambda _world: calls.append("resolve") or {"created": 0},
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.classify_contact_boundaries",
+        lambda _world, dt: calls.append(("classify", dt)) or 0,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plumes",
+        lambda _world, _dt: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.track_cycle",
+        lambda _world: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.track_collisions",
+        lambda _world, dt: (
+            calls.append(("collisions", dt))
+            or {
+                "tracked": 1,
+                "started": 1,
+                "underthrustCells": 2 if changed else 0,
+                "changed": changed,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plate_motion",
+        lambda _world: calls.append("motion"),
+    )
+
+    result = step_world(world, 2.0)
+
+    assert result["collisions"]["tracked"] == 1
+    assert ("collisions", 2.0) in calls
+    assert calls.count("resolve") == (2 if changed else 1)
+    assert calls.count(("classify", 0.0)) == (1 if changed else 0)
+    assert calls[-1] == "motion"

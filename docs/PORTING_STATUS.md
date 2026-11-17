@@ -66,8 +66,8 @@ test coverage.
 
 ## Latest verification
 
-The latest completed successful CI runs are push #740 and PR #741 on commit
-`ca7e0edcb88c37258e1eeb841c92c9572425c019` (2026-11-17):
+The latest completed successful CI runs are push #751 and PR #752 on commit
+`5c16e0a2fd13ed43c5b326b9bdf82d019167ff2c` (2026-11-17):
 
 - **414 tests passed**.
 - `collision.py` and `ops/merge_plates.py` each reached **100% line coverage**.

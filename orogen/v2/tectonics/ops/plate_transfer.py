@@ -54,7 +54,10 @@ def transfer_cells(world, source, target, cells) -> int:
                 target_cell, source_crust, cell, rotation
             )
             if land:
-                target_crust.flags[target_cell] &= ~CrustFlag["TRENCH"]
+                target_crust.flags[target_cell] = (
+                    int(target_crust.flags[target_cell])
+                    & (0xFF ^ CrustFlag["TRENCH"])
+                )
             moved += 1
 
         source_crust.remove(cell)

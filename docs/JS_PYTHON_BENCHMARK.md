@@ -42,25 +42,43 @@ A later run after keeping only the validated FBM and BFS Numba paths measured:
 
 The run-to-run variation is substantial on shared hosted runners, especially for geometry, BFS and crust. Treat these numbers as directional, not stable performance guarantees. Scalar JIT wrappers for geometry and per-cell crust initialization were tested and removed: Python-to-Numba call overhead made both paths slower. The retained acceleration is limited to kernels with useful work per compiled call (batched FBM and full BFS traversal).
 
+
+## After compiling Dijkstra traversal with Numba — 2026-11-17
+
+The Dijkstra workload now uses one compiled kernel for the complete heap traversal whenever neither `can_enter` nor `on_reach` is supplied. The Python implementation remains active for callback-based use.
+
+| Workload | JavaScript | Python + Numba | Python / JS |
+|---|---:|---:|---:|
+| 3-D simplex FBM, 40,000 points × 5 octaves | 9.673 ms | 9.497 ms | **0.98×** |
+| Spherical geometry, 80,000 points | 27.063 ms | 162.268 ms | 6.00× slower |
+| Mesh BFS, 12,000 cells | 0.435 ms | 0.679 ms | 1.56× slower |
+| Mesh Dijkstra, 12,000 cells | 0.509 ms | 0.0074 ms | **0.015×** (about 69× faster) |
+| Crust creation + snapshots, 6,000 cells | 2.299 ms | 115.908 ms | 50.41× slower |
+
+[Benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44147545592).
+
+The Dijkstra measurement is a five-round median after one warm-up on the synthetic degree-6 ring graph, with `max_km=20,000`. It is not an end-to-end simulation result. Hosted-runner timings for the other workloads remain variable; use these figures as directional measurements only.
+
 ## What changed
 
-- FBM moved from about **48× slower** to slightly faster than the JS reference on this batch workload.
-- BFS moved from about **28.6× slower** to about **1.36× slower**.
-- These gains come from Numba-compiled loops, not changed noise formulas or graph semantics.
-- Geometry and crust snapshots remain major performance gaps. Dijkstra results vary between hosted-runner samples and should not be over-interpreted.
+- FBM moved from about **48× slower** to near parity or slightly faster than the JS reference on the measured batch workloads.
+- BFS moved from about **28.6× slower** to around **1.4–1.9× slower** across the latest runs.
+- The full callback-free Dijkstra traversal is now compiled; the latest synthetic benchmark measured about **69× faster** than the JS sample, but that result must not be extrapolated to full-world graphs.
+- Geometry and crust snapshots remain major performance gaps. Shared-runner results vary and remain directional.
 
 ## Numerical-equivalence policy
 
 - Numba kernels use float64 inputs and outputs for noise, preserve the same operation order, and set `fastmath=False`.
 - The Numba FBM results are checked bit-for-bit against the retained pure-Python implementation.
 - BFS uses the same CSR adjacency, ascending source initialization, FIFO traversal, and int16 distance output. Its compiled path is used only when `can_enter` is absent; arbitrary Python predicates retain the original Python implementation.
+- Dijkstra retains the JS heap push/pop ordering, ascending seed insertion, lazy stale-entry checks, max-distance cutoff, and writes the value stored in the destination array back to the heap (including float32 rounding). Its Numba path is used only without `can_enter` or `on_reach`; callback-based calls use Python. Differential tests compare float32 and float64 arrays.
 - The pure-Python path remains available when Numba is not installed.
 - Differential checks against the upstream JavaScript implementation remain part of CI. Performance is accepted only alongside numerical and behavioural tests.
 
 ## Method and limitations
 
 - Timings are medians of five measured runs after one warm-up; they are microbenchmarks, not end-to-end planet-generation timings.
-- The mesh benchmark uses a synthetic 12,000-cell degree-6 ring graph, not a production spherical mesh.
+- The mesh benchmark uses a synthetic 12,000-cell degree-6 ring graph, not a production spherical mesh. The Dijkstra workload also stops at `max_km=20,000`, so it does not visit every cell.
 - The benchmark does not measure Delaunay/sphere-mesh generation, full tectonic `step_world`, long geological histories, memory use, or complete planet generation.
 - Python FBM uses one batch call to amortize Python-to-Numba call overhead. Scalar `noise3d` and `fbm` methods are also JIT-dispatched, but real pipeline speed depends on call patterns.
 - Results depend on the hosted runner and are a baseline, not a universal JavaScript/Python ratio.

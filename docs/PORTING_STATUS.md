@@ -17,8 +17,9 @@ Last updated: 2026-11-17
 ## Performance optimization (Numba)
 
 - Added an optional `speed` extra and retained a pure-Python fallback.
-- Numba compiles batched 3-D simplex FBM and CSR BFS (`fastmath=False`). FBM is checked bit-for-bit against both the pure-Python port and upstream JavaScript; BFS retains FIFO order, source order and int16 output semantics.
-- Paired CI microbenchmarks show FBM near or slightly faster than JavaScript and BFS substantially closer to parity than the initial Python implementation. See `docs/JS_PYTHON_BENCHMARK.md` for measurements and runner variability.
+- Numba compiles batched 3-D simplex FBM, CSR BFS, and the complete callback-free Dijkstra heap traversal (`fastmath=False`). FBM is checked bit-for-bit against Python and upstream JavaScript; BFS retains FIFO/source order and int16 semantics; Dijkstra preserves heap ordering and float32/float64 distance storage.
+- Dijkstra retains the Python path when `can_enter` or `on_reach` callbacks are provided. Differential tests compare the compiled result to the Python fallback for both distance dtypes.
+- The latest paired CI sample measured FBM near parity and a large speedup for synthetic Dijkstra; geometry and crust updates remain slower. See `docs/JS_PYTHON_BENCHMARK.md` for method, results and runner variability.
 - Scalar JIT wrappers for spherical geometry and per-cell crust resets were benchmarked and removed because call overhead regressed performance. Further work must batch meaningful workloads and retain differential parity.
 
 ## Target
@@ -75,13 +76,15 @@ test coverage.
 
 ## Latest verification
 
-The latest completed successful CI run is push #771 on commit
-`d14b8f508b6c27c82dd5ebcece1614df6907a1ce` (2026-11-17):
+The latest completed successful CI run is commit
+`7718de8bf2c69b371339546d102b5f6bd4428996` (2026-11-17):
 
-- **452 tests passed**.
-- The complete `orogen.v2` package met its enforced **100% line-coverage threshold**.
+- **458 tests passed** in 37.47 seconds.
+- The complete `orogen.v2` package met its enforced **100% line-coverage threshold** (5,796 statements, 0 missing).
 - The Python suite and JavaScript differential checks both completed successfully.
-- `far_field.py` itself has **100% line coverage**.
+- The paired JS/Python benchmark also completed successfully on this commit.
+
+Validation run: [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44147555927). Benchmark: [JS vs Python](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44147545592).
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

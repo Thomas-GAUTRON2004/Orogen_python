@@ -12,6 +12,12 @@ These cover edge cases, array invariants, graph behaviour, geometry, state mutat
 python -m pytest
 ```
 
+### Spherical mesh backend tests
+
+The production mesh builder uses the pinned native dependency `shull==0.4.0`. The mesh tests check closed spherical topology, CSR ring invariants, deterministic mesh construction, and error translation from the native triangulator. A dedicated workflow checks this path on Python 3.10, 3.12 and 3.14 across Linux, Windows and macOS.
+
+For an optional SciPy-versus-shull A/B benchmark, install `python -m pip install -e ".[benchmark]"` and run `python benchmarks/bench_shull_pipeline.py`. SciPy is not a runtime dependency.
+
 ### JavaScript differential tests
 
 The differential harness executes vendored JavaScript reference modules from upstream tag `v3.0.1`. It compares selected Python operations against the reference implementation; it is not a whole-engine comparison.

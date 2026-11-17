@@ -98,7 +98,7 @@ The same run measured the general callback-free mesh Dijkstra benchmark at 0.522
 
 - Timings are medians of five measured runs after one warm-up; they are microbenchmarks, not end-to-end planet-generation timings.
 - The mesh benchmark uses a synthetic 12,000-cell degree-6 ring graph, not a production spherical mesh. The Dijkstra workload also stops at `max_km=20,000`, so it does not visit every cell.
-- The benchmark does not measure Delaunay/sphere-mesh generation, full tectonic `step_world`, long geological histories, memory use, or complete planet generation. The far-field A/B uses a synthetic equatorial ring graph and has no direct JavaScript comparison.
+- This JavaScript/Python kernel benchmark does not measure full tectonic `step_world`, long geological histories, or complete planet generation. Delaunay/sphere-mesh generation and the SciPy-versus-shull pipeline are measured separately in [shull backend](SHULL_BACKEND.md). The far-field A/B uses a synthetic equatorial ring graph and has no direct JavaScript comparison.
 - Python FBM uses one batch call to amortize Python-to-Numba call overhead. Scalar `noise3d` and `fbm` methods are also JIT-dispatched, but real pipeline speed depends on call patterns.
 - Results depend on the hosted runner and are a baseline, not a universal JavaScript/Python ratio.
 

@@ -158,3 +158,17 @@ from orogen.v2.tectonics import resolve
 result = resolve(world)
 # {"created": ..., "consumed": ..., "collisionCells": ...}
 ```
+
+
+## Boundary-motion primitives
+
+Module: `orogen.v2.tectonics.boundaries`
+
+The current port exposes four deterministic building blocks from the upstream boundary pass:
+
+- `classify_motion(closing, shear, active_speed, oblique_limit)` distinguishes opening, closing, sliding, and locked contacts.
+- `vote_segments(world, contacts)` computes a single weighted polarity vote for each connected ocean-ocean contact segment.
+- `near_land(plate, mesh, cell, config)` checks for non-ocean crust within the configured subduction-apron reach.
+- `feed_trench(world, world_cell, crust, cell, subducted_km)` starts or extends a trench only when this cell or an adjacent world cell consumed crust.
+
+These are helper ports, not yet the complete `classifyBoundaries(world, dt)` pass. Full boundary classification also requires the still-unported orogeny and far-field deformation systems.

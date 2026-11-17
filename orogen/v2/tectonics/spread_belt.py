@@ -52,7 +52,7 @@ def spread_belt(
     # Multi-source shortest path; normalized distance is specific to each front source.
     best_u = np.full(count, np.inf, dtype=np.float64)
     best_src = np.full(count, -1, dtype=np.int32)
-    heap: list[tuple[float, int, int, float]] = []
+    heap: list[tuple[float, int, int, float, float]] = []
     for source_index, cell in enumerate(sources):
         cell = int(cell)
         if cell < 0 or cell >= count:
@@ -63,10 +63,10 @@ def spread_belt(
         if best_src[cell] < 0 or reach > width_for(int(best_src[cell])):
             best_u[cell] = 0.0
             best_src[cell] = source_index
-            heapq.heappush(heap, (0.0, cell, source_index, 0.0))
+            heapq.heappush(heap, (0.0, cell, source_index, 0.0, 0.0))
 
     while heap:
-        u, cell, source_index, sea_km = heapq.heappop(heap)
+        u, cell, source_index, sea_km, rim_km = heapq.heappop(heap)
         if u > best_u[cell] + 1e-12 or source_index != best_src[cell]:
             continue
         cell_type = int(crust.type[cell])
@@ -86,7 +86,7 @@ def spread_belt(
                     continue
                 best_u[nb] = 0.0
                 best_src[nb] = source_index
-                heapq.heappush(heap, (0.0, nb, source_index, next_sea))
+                heapq.heappush(heap, (0.0, nb, source_index, next_sea, 0.0))
                 continue
 
             hop = distance
@@ -105,7 +105,7 @@ def spread_belt(
                 continue
             best_u[nb] = next_u
             best_src[nb] = source_index
-            heapq.heappush(heap, (next_u, nb, source_index, 0.0))
+            heapq.heappush(heap, (next_u, nb, source_index, 0.0, rim))
 
     reached: list[int] = []
     oro_type = int(belt["type"])

@@ -120,15 +120,29 @@ def bench_snapshot_layouts():
     cells = np.arange(0, N_CELLS, 2, dtype=np.int32)
     raster.create_many(cells, CrustType["CONTINENT"], -100, cells + 1)
 
-    def measure(kernel):
-        def once():
-            global sink
-            result = kernel(raster._numba_fields, cells)
-            sink = float(result[-1, -1]) if result.size else 0.0
-        return median_ms(once)
+    def once(kernel):
+        global sink
+        result = kernel(raster._numba_fields, cells)
+        sink = float(result[-1, -1]) if result.size else 0.0
 
-    row_major_ms = measure(snapshot_cells_numba)
-    field_major_ms = measure(snapshot_cells_field_major_numba)
+    # Compile both dispatchers before timing, then alternate order each round
+    # to avoid giving one traversal a systematic warm-cache advantage.
+    once(snapshot_cells_numba)
+    once(snapshot_cells_field_major_numba)
+    row_samples, field_samples = [], []
+    for round_index in range(ROUNDS):
+        kernels = (
+            (snapshot_cells_numba, row_samples),
+            (snapshot_cells_field_major_numba, field_samples),
+        )
+        if round_index % 2:
+            kernels = kernels[::-1]
+        for kernel, samples in kernels:
+            start = time.perf_counter()
+            once(kernel)
+            samples.append((time.perf_counter() - start) * 1000)
+    row_major_ms = statistics.median(row_samples)
+    field_major_ms = statistics.median(field_samples)
     return {
         "workload": "snapshot_many, 6,000 cells x 55 fields, identical raster",
         "row_major_ms": round(row_major_ms, 3),

@@ -1174,3 +1174,115 @@ def test_track_collisions_allows_overdue_merge_candidate_despite_large_ring(monk
     assert record["weldCandidate"] is True
     assert record["weldBlockedByRing"] is False
     assert record["mergeEligible"] is True
+
+
+def test_track_collisions_executes_merge_and_logs_suture(monkeypatch):
+    from orogen.v2.tectonics import collision
+    from orogen.v2.tectonics.world import EventKind
+
+    world, upper, lower = collision_tracking_world()
+    world.config.update(suture_gap_config())
+    world.config.update({
+        "sutureShorteningKm": 0.0,
+        "belts": {
+            "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+            "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+            "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+        },
+        "beltSpeedFactorMin": 0.6,
+        "beltSpeedFactorMax": 1.6,
+        "beltSpeedRefCmYr": 5.0,
+        "beltSpeedExponent": 0.5,
+        "beltObliqueMin": 0.35,
+        "apronKm": 100.0,
+        "orogenyQuietMyr": 10.0,
+        "beltWorkShare": 0.5,
+        "thickeningPerWorkKm": 0.1,
+        "weakCellCost": 0.5,
+        "cratonRimKm": 200.0,
+        "cratonRimCost": 2.0,
+        "cratonRimShare": 0.25,
+        "indentFalloffKm": 1500.0,
+        "indentGain": 1.5,
+        "escapeShare": 0.75,
+        "sutureHalfWidthKm": 80.0,
+        "sealStraitKm": 260.0,
+        "inlandSeaMaxKm2": 500000.0,
+    })
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "spread_belt", lambda *_args, **_kwargs: []
+    )
+    monkeypatch.setattr(
+        collision, "open_sea_between",
+        lambda *_args: {"km2": 0.0, "widestKm": 0.0},
+    )
+    monkeypatch.setattr(
+        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
+    )
+    calls = []
+
+    def fake_merge(w, a, b, cells, record):
+        calls.append((w, a, b, list(cells), record))
+        b.alive = False
+        return {
+            "landLostCells": 2,
+            "maxIndentKm": 300.0,
+            "meanIndentKm": 120.0,
+            "overlapCells": len(cells),
+            "sealedCells": 1,
+        }
+
+    monkeypatch.setattr(collision, "merge_plates", fake_merge)
+
+    result = collision.track_collisions(world, 1.0)
+
+    record = world.collisions["0:1"]
+    assert result["tracked"] == 1
+    assert result["changed"] is True
+    assert len(calls) == 1
+    assert calls[0][:4] == (world, upper, lower, [2])
+    assert calls[0][4] is record
+    assert record["sutured"] is True
+    assert record["sutureReason"] == "shortening"
+    assert lower.alive is False
+    assert world.events[-1]["kind"] == EventKind["SUTURE"]
+    assert world.events[-1]["data"]["maxIndentKm"] == 300.0
+    assert world.events[-1]["data"]["sealedCells"] == 1
+
+
+def test_track_collisions_keeps_merge_candidate_pending_without_merge_config(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, _upper, _lower = collision_tracking_world()
+    world.config.update(suture_gap_config())
+    world.config["sutureLockMaxMyr"] = 0.0
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "open_sea_between",
+        lambda *_args: {"km2": 0.0, "widestKm": 0.0},
+    )
+    monkeypatch.setattr(
+        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
+    )
+    calls = []
+    monkeypatch.setattr(
+        collision, "merge_plates", lambda *_args: calls.append(True)
+    )
+
+    collision.track_collisions(world, 1.0)
+
+    record = world.collisions["0:1"]
+    assert record["mergeEligible"] is True
+    assert record.get("sutured", False) is False
+    assert calls == []

@@ -100,7 +100,7 @@ def gather_boundary_loads(world) -> dict[int, dict]:
     """Gather four local boundary-force families for living non-background plates.
 
     Output records can be passed to balanced_rotation. Requires a resolved
-    owner/ownerCell map and returns contacts empty by design.
+    owner/ownerCell map and includes slab, collision-lock and boundary-force records.
     """
     mesh = world.mesh
     n_cells = int(mesh.num_cells)

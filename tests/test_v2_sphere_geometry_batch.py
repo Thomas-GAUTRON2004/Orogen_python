@@ -83,3 +83,30 @@ def test_crust_numba_snapshot_reset_round_trip():
     raster.restore(2, snapshot)
     assert raster.snapshot(2) == snapshot
     assert raster.count == 2
+
+
+def test_batch_spherical_geometry_rejects_invalid_shapes():
+    points = _sample_points()
+    with pytest.raises(ValueError, match=r"points must have shape"):
+        geometry.destination_many(np.zeros((3, 2)), 0.5, 0.1)
+    with pytest.raises(ValueError, match=r"bearing must be a scalar"):
+        geometry.destination_many(points, np.zeros(2), 0.1)
+    with pytest.raises(ValueError, match=r"distance must be a scalar"):
+        geometry.destination_many(points, 0.5, np.zeros((len(points), 1)))
+    with pytest.raises(ValueError, match="same shape as points"):
+        geometry.bearing_to_many(points, np.zeros((len(points) - 1, 3)))
+
+
+def test_crust_python_fallback_keeps_create_and_snapshot(monkeypatch):
+    import orogen.v2.tectonics.crust as crust_module
+
+    monkeypatch.setattr(crust_module, "NUMBA_AVAILABLE", False)
+    raster = crust_module.CrustRaster(2)
+    raster.create(1, crust_module.CrustType["CONTINENT"], -8.5, 12)
+    raster.flags[1] = 3
+    snapshot = raster.snapshot(1)
+    assert len(snapshot) == len(raster.fields)
+    assert snapshot[raster.fields.index(raster.type)] == crust_module.CrustType["CONTINENT"]
+    raster.create(1, crust_module.CrustType["OCEAN"], 4.0, 2)
+    assert raster.flags[1] == 0
+    assert raster.count == 1

@@ -75,7 +75,7 @@ def rift_continents(world, dt: float) -> int:
     step_dt = float(dt)
     pending = getattr(world, "pendingPlumeRifts", [])
     rate = float(config.get("riftRatePerMyr", 0.0))
-    if rate <= 0.0 and not pending:
+    if "riftRatePerMyr" not in config and not pending:
         return 0
 
     min_gap = float(config.get("riftMinGapMyr", 0.0))

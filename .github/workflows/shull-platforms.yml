@@ -1,0 +1,30 @@
+name: shull platform compatibility
+
+on:
+  push:
+    branches:
+      - "port/**"
+  pull_request:
+    paths:
+      - "orogen/v2/core/sphere_mesh.py"
+      - "tests/test_v2_sphere_mesh.py"
+      - "pyproject.toml"
+      - ".github/workflows/shull-platforms.yml"
+
+jobs:
+  sphere-mesh:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.12", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Orogen and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Test production spherical mesh backend
+        run: python -m pytest -q tests/test_v2_sphere_mesh.py

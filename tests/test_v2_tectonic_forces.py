@@ -39,7 +39,7 @@ def make_world(monkeypatch, kind):
         plates=[a, b], config={
             "slabPull": 1.0, "slabSuction": 0.25, "slabPullAgeRefMyr": 80.0,
             "slabMatureKm": 600.0, "ridgeMaxAgeMyr": 40.0,
-            "riftPushMyr": 20.0, "riftPush": 0.5,
+            "riftPushMyr": 20.0, "riftPush": 0.5, "ridgePush": 0.05,
         }, time=100.0, occupancyStamp=1,
     )
 

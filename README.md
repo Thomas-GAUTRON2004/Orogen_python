@@ -13,17 +13,21 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 - [Tectonics API](docs/TECTONICS_API.md) — crust, plates, rifting, and tectonic operations.
 - [Testing and compatibility](docs/TESTING.md) — test commands, differential tests, and compatibility limits.
 - [Porting status](docs/PORTING_STATUS.md) — implemented, partial, and outstanding subsystems.
-- [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md) — benchmark methodology, measured workloads, and limitations.
+- [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md) — numerical-kernel benchmark methodology and limitations.
+- [shull backend](docs/SHULL_BACKEND.md) — production triangulation backend, validation, and A/B pipeline benchmark.
 
 ## Requirements and installation
 
 **Required runtime dependencies:**
 - Python 3.10 or later
 - NumPy 1.24 or later
-- SciPy 1.10 or later
+- shull 0.4.0 (Rust-backed Delaunay triangulation)
 
 **Optional acceleration dependency:**
 - Numba 0.59 or later — enables the JIT-compiled performance kernels. It is not required to use Orogen; the package falls back to its pure-Python implementations when Numba is not installed.
+
+**Optional benchmark dependencies:**
+- SciPy 1.10 or later and Numba 0.59 or later — installed by the `benchmark` extra only for the comparative triangulation/pipeline benchmark. SciPy is no longer a runtime dependency.
 
 Install the package and test dependencies (without Numba):
 
@@ -38,6 +42,13 @@ python -m pip install -e ".[test,speed]"
 ```
 
 The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`.
+
+Install the optional SciPy-vs-shull pipeline benchmark dependencies:
+
+```bash
+python -m pip install -e ".[benchmark]"
+python benchmarks/bench_shull_pipeline.py
+```
 
 The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 
@@ -100,7 +111,7 @@ See [Porting status](docs/PORTING_STATUS.md) for the subsystem-by-subsystem brea
 
 ## Numerical backend and reproducibility
 
-Production spherical triangulation uses SciPy/Qhull, whereas the upstream JavaScript implementation uses Delaunator. Differential checks match topology for seven selected seed/resolution pairs; this does not guarantee identical connectivity for every input.
+Production spherical triangulation uses `shull==0.4.0` (Rust), while the upstream JavaScript implementation uses Delaunator. The existing differential fixtures verify identical topology for seven selected seed/resolution pairs; this does not guarantee identical connectivity for every possible input. SciPy is retained only in the optional `benchmark` extra as an A/B reference.
 
 The code preserves upstream deterministic seed and random-number conventions where implemented. Reproducibility depends on using the same parameters and supported execution paths. Numba is optional and has a pure-Python fallback. See [Architecture](docs/ARCHITECTURE.md#numerical-and-reproducibility-contract) and [Testing](docs/TESTING.md).
 

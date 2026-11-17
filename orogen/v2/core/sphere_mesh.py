@@ -1,6 +1,6 @@
 """Fibonacci sphere and Delaunay dual mesh builder from Orogen's V1 sphere-mesh.js.
 
-SciPy/Qhull supplies the planar Delaunay triangulation. The spherical closure
+shull supplies the planar Delaunay triangulation in native Rust. The spherical closure
 and cyclic CSR region adjacency follow the upstream half-edge construction.
 """
 from __future__ import annotations
@@ -9,7 +9,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.spatial import Delaunay, QhullError
+import shull
 
 
 @dataclass(slots=True)
@@ -75,15 +75,26 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
 
 
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
-    """Triangulate the projected points and close the convex hull at the pole."""
+    """Triangulate with shull, then close the planar convex hull at the pole."""
     try:
-        delaunay = Delaunay(points_2d)
-    except QhullError as exc:
-        raise ValueError("Delaunay triangulation failed for the projected sphere") from exc
+        delaunay = shull.Delaunay(
+            np.ascontiguousarray(points_2d, dtype=np.float64)
+        )
+    except Exception as exc:
+        raise ValueError(
+            "Delaunay triangulation failed for the projected sphere"
+        ) from exc
+    return _close_simplices(points_2d, delaunay.simplices, pole_id)
 
-    triangles = np.asarray(delaunay.simplices, dtype=np.int32).copy()
-    # Normalize simplex winding. Qhull normally emits CCW simplices, but make
-    # the winding contract explicit before pairing directed half-edges.
+
+def _close_simplices(
+    points_2d: np.ndarray,
+    simplices: np.ndarray,
+    pole_id: int,
+) -> np.ndarray:
+    """Normalize triangle winding and close a planar hull at the north pole."""
+    triangles = np.asarray(simplices, dtype=np.int32).copy()
+    # Normalize simplex winding before pairing directed half-edges.
     p = points_2d
     for tri in triangles:
         a, b, c = map(int, tri)
@@ -111,7 +122,6 @@ def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
     # A planar hull edge u→v is closed by the spherical triangle v→u→pole.
     pole_triangles = np.asarray([(v, u, pole_id) for u, v in hull], dtype=np.int32)
     return np.concatenate((triangles, pole_triangles), axis=0)
-
 
 def _cyclic_region_adjacency(
     triangles: np.ndarray,

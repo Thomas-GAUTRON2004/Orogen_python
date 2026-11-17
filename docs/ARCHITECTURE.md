@@ -114,10 +114,11 @@ The port aims to preserve upstream semantics where they are implemented:
   operations.
 
 There are also explicit implementation differences:
-- SciPy/Qhull builds the production Delaunay triangulation; upstream uses
-  Delaunator.
-- NumPy and SciPy may have different low-level numerical behaviour from
-  JavaScript typed arrays and math functions.
+- `shull==0.4.0` builds the production 2-D Delaunay triangulation in Rust;
+  upstream uses Delaunator. Orogen retains its own pole closure and cyclic CSR
+  construction rather than using shull's non-cyclic adjacency.
+- SciPy is an optional benchmark-only dependency and is not imported by the
+  production package.
 - Differential agreement for selected fixtures is evidence for those
   fixtures only, not a universal equivalence proof.
 

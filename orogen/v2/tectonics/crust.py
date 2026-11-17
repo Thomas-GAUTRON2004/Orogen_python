@@ -79,9 +79,10 @@ class CrustRaster:
             mine[cell] = theirs[source]
         if rot is not None and (self.farDx[cell] or self.farDy[cell] or self.farDz[cell]):
             x, y, z = int(self.farDx[cell]), int(self.farDy[cell]), int(self.farDz[cell])
-            u = rot[0] * x + rot[1] * y + rot[2] * z
-            v = rot[3] * x + rot[4] * y + rot[5] * z
-            w = rot[6] * x + rot[7] * y + rot[8] * z
+            matrix = np.asarray(rot, dtype=np.float64).reshape(9)
+            u = matrix[0] * x + matrix[1] * y + matrix[2] * z
+            v = matrix[3] * x + matrix[4] * y + matrix[5] * z
+            w = matrix[6] * x + matrix[7] * y + matrix[8] * z
             length = math.hypot(u, v, w) or 1.0
             self.farDx[cell] = math.floor(127 * u / length + 0.5)
             self.farDy[cell] = math.floor(127 * v / length + 0.5)

@@ -55,7 +55,7 @@ const jsResults = {
 const py = spawnSync("python", ["benchmarks/bench_python.py"], {encoding:"utf8"});
 if (py.status !== 0) throw new Error("Python benchmark failed:\n"+py.stderr+"\n"+py.stdout);
 const pyResults=JSON.parse(py.stdout);
-const results={runtime:{node:process.version,python:pyResults.runtime.python,platform:process.platform,arch:process.arch},iterations:{noise:N_NOISE,geometry:N_GEOM,cells:N_CELLS,rounds:ROUNDS},javascript:jsResults,python:pyResults.timings};
+const results={runtime:{node:process.version,python:pyResults.runtime.python,platform:process.platform,arch:process.arch},iterations:{noise:N_NOISE,geometry:N_GEOM,cells:N_CELLS,rounds:ROUNDS},javascript:jsResults,python:pyResults.timings,accelerator_comparisons:pyResults.accelerator_comparisons};
 const comparison={};
 for(const key of Object.keys(jsResults)){
  const js=jsResults[key], python=pyResults.timings[key];

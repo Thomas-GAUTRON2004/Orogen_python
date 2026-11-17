@@ -88,8 +88,8 @@ The production `shull` branch has a successful full test run:
 
 - **477 tests passed**.
 - **100% line coverage** for `orogen.v2` (5,925 executable lines).
-- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44182194923).
-- Validated revision: `9112b1704c306d9f758e81fbf6050f115f54e015` (2026-11-17).
+- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44183831755).
+- Validated revision: `9c2041363dffcbe0cd42d53ae1a6ba763a593d99` (2026-11-17).
 
 The complete suite includes the seven selected Delaunator differential fixtures.
 Rerun the test workflow after subsequent source changes before describing a

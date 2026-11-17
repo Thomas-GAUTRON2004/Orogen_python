@@ -13,6 +13,7 @@ from .dynamics import update_plate_motion
 from .kinematics import advance_plates
 from .resolve import resolve
 from .simulation import choose_step, closing_rate
+from .thermal import update_mantle_heat
 from .supercontinent import track_cycle
 
 
@@ -46,6 +47,7 @@ def step_world(
     world.lastDt = step_dt
     tally = resolve(world)
     classified = classify_contact_boundaries(world, step_dt)
+    update_mantle_heat(world, step_dt)
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
     if update_motion:
         update_plate_motion(world)

@@ -275,3 +275,14 @@ Module: `orogen.v2.tectonics.stepper`
 `step_world(world, dt=None, update_motion=True, update_cycle=True)` advances one step using the ported stages in upstream order: advance plates, resolve the world owner map, classify boundary/trench state, update the supercontinent cycle, then compute force-balanced motion for the next step. When `dt` is omitted, it uses `choose_step(world)`; it returns a diagnostic record with step duration, cell displacement estimate, resolve tally, boundary count, cycle phase and motion-update status.
 
 This is a partial orchestrator, not a complete `simulate.js` port. Collision/orogeny event handling, rifting, subduction initiation, arcs, ocean-plate splitting, hotspot evolution, geology/relief evolution, snapshots and run/resume handling remain outside this stepper.
+
+
+## Mantle thermal memory (partial hotspot stage)
+
+Module: `orogen.v2.tectonics.thermal`
+
+- `insulate_at_start(world)` initializes mantle heat to 1 below continental/cratonic cells and 0 elsewhere.
+- `update_mantle_heat(world, dt)` exponentially warms mantle under continental lids and cools it elsewhere using `mantleInsulateMyr` and `mantleCoolMyr`.
+- `plume_heat_factor(world, plate)` returns the normalized thermal multiplier for plume-triggered continental rifting.
+
+The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. Plume placement, LIP province generation, plume life cycles and volcanic-track stamping are not yet ported.

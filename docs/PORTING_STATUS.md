@@ -131,3 +131,6 @@ The cohesive landmass analyser is now ported in `supercontinent.py`. It counts c
 
 
 A first partial stepper now connects the ported kinematics, resolver, boundary classifier, supercontinent-cycle tracker and force-balanced motion update. It selects the adaptive dt when none is supplied and emits a compact step diagnostic. The wider event loop and slow stages (collisions/orogeny/rifts/subduction/arcs/hotspots/terrain/geology/snapshots) have not yet been wired into a full simulate generator.
+
+
+The mantle thermal-memory component is now ported: initial continental insulation, exponential warming beneath continents, cooling elsewhere and the normalized plume-heat rift multiplier. The partial stepper runs this heat update before the cycle tracker. It does not yet generate hotspots/LIPs or evolve plume tails and volcanic tracks.

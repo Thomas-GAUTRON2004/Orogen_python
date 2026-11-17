@@ -120,6 +120,7 @@ def test_step_world_runs_rifting_when_enabled(monkeypatch):
 def test_step_world_runs_subduction_stage_and_rebuilds_after_topology_changes(monkeypatch):
     world = make_world()
     world.config["subductionInitRatePerMyr"] = 0.5
+    world.config["riftRatePerMyr"] = 0.0
     calls = []
 
     monkeypatch.setattr(

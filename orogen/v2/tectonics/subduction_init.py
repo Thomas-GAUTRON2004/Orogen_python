@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 from ..core.mesh_bfs import largest_piece_of
-from ..crust import CrustFlag, CrustType
+from .crust import CrustFlag, CrustType
 from .world import EventKind
 from .ops.birth_ocean_plate import birth_ocean_plate, ocean_plate_name
 from .ops.plate_transfer import transfer_cells

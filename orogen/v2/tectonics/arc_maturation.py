@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+from .crust import CrustFlag, CrustType
+
 
 def mature_arcs(world, dt: float) -> int:
     """Convert old island-arc cells touching continental crust, one ring per call.
@@ -43,8 +45,8 @@ def mature_arcs(world, dt: float) -> int:
         for cell in range(int(mesh.num_cells)):
             if (
                 not mask[cell]
-                or kinds[cell] != 3
-                or int(flags[cell]) & 64
+                or kinds[cell] != CrustType["ARC"]
+                or int(flags[cell]) & CrustFlag["MARGIN_ISLE"]
                 or time - float(formed_at[cell]) < minimum_age
             ):
                 continue
@@ -52,7 +54,7 @@ def mature_arcs(world, dt: float) -> int:
                 neighbour = int(adjacency[edge])
                 if (
                     mask[neighbour]
-                    and int(kinds[neighbour]) in (1, 2)
+                    and int(kinds[neighbour]) in (CrustType["CONTINENT"], CrustType["CRATON"])
                 ):
                     ring.append(cell)
                     break
@@ -61,7 +63,7 @@ def mature_arcs(world, dt: float) -> int:
             continue
 
         for cell in ring:
-            kinds[cell] = 1
+            kinds[cell] = CrustType["CONTINENT"]
         world.budget["arcMaturedCells"] = (
             int(world.budget.get("arcMaturedCells", 0)) + len(ring)
         )

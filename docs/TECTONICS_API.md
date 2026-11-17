@@ -284,5 +284,6 @@ Module: `orogen.v2.tectonics.thermal`
 - `insulate_at_start(world)` initializes mantle heat to 1 below continental/cratonic cells and 0 elsewhere.
 - `update_mantle_heat(world, dt)` exponentially warms mantle under continental lids and cools it elsewhere using `mantleInsulateMyr` and `mantleCoolMyr`.
 - `plume_heat_factor(world, plate)` returns the normalized thermal multiplier for plume-triggered continental rifting.
+- `pick_plume_site(world, rng)` draws a world cell by the weight `plumeOceanWeight + (1 - plumeOceanWeight) * mantleHeat[cell]`, excluding cells within `plumeSpacingKm` of a live plume.
 
-The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. Plume placement, LIP province generation, plume life cycles and volcanic-track stamping are not yet ported.
+The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector is ported. Plume birth/life cycles, LIP province generation and volcanic-track stamping are not yet ported.

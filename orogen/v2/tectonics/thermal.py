@@ -71,3 +71,43 @@ def plume_heat_factor(world, plate) -> float:
     if denominator <= 0:
         return 1.0
     return (floor + gain * mean_heat ** power) / denominator
+
+
+def pick_plume_site(world, rng) -> int:
+    """Choose a plume origin weighted by ocean allowance plus retained mantle heat.
+
+    A live plume excludes cells within plumeSpacingKm. The caller owns the
+    random stream so plume selection remains deterministic and isolated from
+    unrelated tectonic mechanisms.
+    """
+    mesh, config, mantle_heat = world.mesh, world.config, world.mantleHeat
+    count = int(mesh.num_cells)
+    xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape(-1, 3)
+    if xyz.shape[0] != count or len(mantle_heat) != count:
+        raise ValueError("mesh coordinates and mantleHeat must match num_cells")
+    ocean_weight = float(config["plumeOceanWeight"])
+    if not 0.0 <= ocean_weight <= 1.0:
+        raise ValueError("plumeOceanWeight must be between zero and one")
+    near = math.cos(float(config["plumeSpacingKm"]) / 6371.0)
+    live = [
+        np.asarray(h["xyz"] if isinstance(h, dict) else h.xyz, dtype=np.float64)
+        for h in getattr(world, "hotspots", ())
+        if (h.get("alive", True) if isinstance(h, dict) else getattr(h, "alive", True))
+    ]
+    weights = np.zeros(count, dtype=np.float32)
+    total = 0.0
+    for cell in range(count):
+        position = xyz[cell]
+        if any(float(np.dot(position, plume)) > near for plume in live):
+            continue
+        weight = ocean_weight + (1.0 - ocean_weight) * float(mantle_heat[cell])
+        weights[cell] = weight
+        total += float(weight)
+    if total <= 0.0:
+        return -1
+    draw = float(rng()) * total
+    for cell in range(count):
+        draw -= float(weights[cell])
+        if draw <= 0.0 and weights[cell] > 0:
+            return cell
+    return -1

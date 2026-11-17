@@ -6,7 +6,7 @@ import pytest
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.thermal import (
-    insulate_at_start, plume_heat_factor, update_mantle_heat,
+    insulate_at_start, pick_plume_site, plume_heat_factor, update_mantle_heat,
 )
 
 
@@ -86,3 +86,49 @@ def test_plume_heat_factor_uses_continental_mean_and_disabled_fallback():
     ) == 1.0
     world.owner[:] = -1
     assert plume_heat_factor(world, world.plates[0]) == pytest.approx(1 / 6)
+
+
+def test_pick_plume_site_weights_heat_and_keeps_ocean_probability():
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        -1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+        0.0, 0.0, 1.0,
+    ])
+    world.config.update({"plumeOceanWeight": 0.0, "plumeSpacingKm": 0.0})
+    world.mantleHeat[:] = [0.0, 1.0, 0.0, 0.0, 0.0]
+    assert pick_plume_site(world, lambda: 0.0) == 1
+    world.config["plumeOceanWeight"] = 0.2
+    world.mantleHeat[:] = 0.0
+    assert pick_plume_site(world, lambda: 0.0) == 0
+
+
+def test_pick_plume_site_excludes_live_plume_spacing_and_returns_none_when_empty():
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0, 0.999, 0.0447, 0.0,
+        0.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+        0.0, 0.0, 1.0,
+    ])
+    world.hotspots = [{"xyz": [1.0, 0.0, 0.0], "alive": True}]
+    world.config.update({"plumeOceanWeight": 0.0, "plumeSpacingKm": 500.0})
+    world.mantleHeat[:] = [1.0, 1.0, 0.0, 0.0, 0.0]
+    assert pick_plume_site(world, lambda: 0.0) == -1
+    world.hotspots[0]["alive"] = False
+    assert pick_plume_site(world, lambda: 0.0) == 0
+
+
+def test_pick_plume_site_handles_all_cells_excluded_and_validates_inputs():
+    world = make_world()
+    world.mesh.xyz = np.array([
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        -1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+        0.0, 0.0, 1.0,
+    ])
+    world.hotspots = [{"xyz": [1.0, 0.0, 0.0], "alive": True}]
+    world.config.update({"plumeOceanWeight": 0.0, "plumeSpacingKm": 20000.0})
+    world.mantleHeat[:] = 1.0
+    assert pick_plume_site(world, lambda: 0.5) == -1
+    world.config["plumeOceanWeight"] = 1.1
+    with pytest.raises(ValueError):
+        pick_plume_site(world, lambda: 0.5)

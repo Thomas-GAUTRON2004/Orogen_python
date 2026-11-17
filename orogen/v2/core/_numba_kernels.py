@@ -9,10 +9,9 @@ import math
 import numpy as np
 
 try:
-    from numba import njit, literal_unroll
+    from numba import njit
 except ImportError:  # Numba is an optional acceleration extra.
     njit = None
-    literal_unroll = None
 
 NUMBA_AVAILABLE = njit is not None
 
@@ -95,27 +94,6 @@ def _fbm_many_kernel(points, octaves, persistence, perm, pm3, grad):
     return out
 
 
-
-def _destination_kernel(px, py, pz, ex, ey, ez, nx, ny, nz, bearing, distance, length):
-    dx, dy = math.cos(bearing), math.sin(bearing)
-    sine, cosine = math.sin(distance), math.cos(distance)
-    x = px*cosine + (ex*dx + nx*dy)*sine
-    y = py*cosine + (ey*dx + ny*dy)*sine
-    z = pz*cosine + (ez*dx + nz*dy)*sine
-    return x/length, y/length, z/length
-
-
-def _bearing_kernel(qx, qy, qz, ex, ey, ez, nx, ny, nz):
-    east_dot = qx*ex + qy*ey + qz*ez
-    north_dot = qx*nx + qy*ny + qz*nz
-    return math.atan2(north_dot, east_dot)
-
-
-def _crust_zero_fields_kernel(cell, fields):
-    for field in literal_unroll(fields):
-        field[cell] = 0
-
-
 def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     n = sources.size
     distance = np.full(n, -1, dtype=np.int16)
@@ -152,9 +130,5 @@ if NUMBA_AVAILABLE:
     _fbm_kernel = fbm_numba
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
-    destination_numba = njit(cache=True, fastmath=False)(_destination_kernel)
-    bearing_numba = njit(cache=True, fastmath=False)(_bearing_kernel)
-    crust_zero_fields_numba = njit(cache=True, fastmath=False)(_crust_zero_fields_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = None
-    destination_numba = bearing_numba = crust_zero_fields_numba = None

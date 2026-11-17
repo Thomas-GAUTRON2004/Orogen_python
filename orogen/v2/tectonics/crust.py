@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import math
 import numpy as np
-from ..core._numba_kernels import NUMBA_AVAILABLE, crust_zero_fields_numba
 
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
 OrogenyType = {
@@ -60,17 +59,14 @@ class CrustRaster:
         for name in CELL_FIELDS:
             setattr(self, name, np.zeros(num_cells, dtype=_DTYPES[name]))
         self.count = 0
-        self.fields = tuple(getattr(self, name) for name in CELL_FIELDS)
+        self.fields = [getattr(self, name) for name in CELL_FIELDS]
 
     def create(self, cell: int, crust_type: int, formed_at: float, terrane: int = 0) -> None:
         if not self.mask[cell]:
             self.count += 1
         self.mask[cell] = 1
-        if NUMBA_AVAILABLE:
-            crust_zero_fields_numba(cell, self.fields)
-        else:
-            for field in self.fields:
-                field[cell] = 0
+        for field in self.fields:
+            field[cell] = 0
         self.type[cell] = crust_type
         self.formedAt[cell] = formed_at
         self.terrane[cell] = terrane

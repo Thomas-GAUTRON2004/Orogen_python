@@ -437,3 +437,408 @@ def test_track_collisions_rejects_non_positive_or_non_finite_dt():
             assert "finite positive" in str(error)
         else:
             raise AssertionError("invalid dt should be rejected")
+
+
+
+def test_collect_contacts_detects_overlap_and_touching_pairs():
+    from orogen.v2.tectonics.collision import collect_contacts
+
+    world, a, b = contact_world()
+    for plate in (a, b):
+        for cell in range(1, 5):
+            plate.crust.create(cell, CrustType["CONTINENT"], -10.0, plate.id + 10)
+    world.owner = np.asarray([0, 0, 1, 1, -1], dtype=np.int16)
+    world.ownerCell = np.arange(5, dtype=np.int32)
+    world.landClaims = np.zeros(5, dtype=np.uint8)
+    world.collider = np.full(5, -1, dtype=np.int16)
+    world.landClaims[2] = 2
+    world.collider[2] = 1
+
+    contacts = collect_contacts(world)
+    assert contacts["overlap"] == {"0:1": [2]}
+    assert contacts["touching"] == {}
+
+    world.landClaims[2] = 0
+    world.collider[2] = -1
+    contacts = collect_contacts(world)
+    assert contacts["overlap"] == {}
+    assert contacts["touching"]["0:1"] == [1, 2]
+
+
+def test_collect_contacts_ignores_invalid_and_non_land_claims():
+    from orogen.v2.tectonics.collision import collect_contacts
+    from orogen.v2.tectonics.crust import CrustFlag
+
+    world, a, b = contact_world()
+    for plate in (a, b):
+        for cell in range(1, 5):
+            plate.crust.create(cell, CrustType["CONTINENT"], -10.0, plate.id + 1)
+    world.owner = np.asarray([0, 0, 1, 1, -1], dtype=np.int16)
+    world.ownerCell = np.arange(5, dtype=np.int32)
+    world.landClaims = np.zeros(5, dtype=np.uint8)
+    world.collider = np.full(5, -1, dtype=np.int16)
+
+    # A missing, oceanic, rift-margin or background cell is not land contact.
+    b.crust.remove(2)
+    assert collect_contacts(world)["touching"] == {}
+    b.crust.create(2, CrustType["OCEAN"], -10.0, 2)
+    assert collect_contacts(world)["touching"] == {}
+    b.crust.type[2] = CrustType["CONTINENT"]
+    b.crust.flags[2] = CrustFlag["RIFT_MARGIN"]
+    assert collect_contacts(world)["touching"] == {}
+    b.crust.flags[2] = 0
+    b.isBackground = True
+    assert collect_contacts(world)["touching"] == {}
+
+    b.isBackground = False
+    world.landClaims[2] = 2
+    world.collider[2] = 1
+    world.owner[2] = -1
+    assert collect_contacts(world)["overlap"] == {}
+
+
+def test_forget_stale_collisions_keeps_recent_and_sutured_pairs():
+    from orogen.v2.tectonics.collision import forget_stale_collisions
+
+    world, _a, _b = contact_world()
+    world.time = 20.0
+    world.config = {"collisionForgetMyr": 8.0}
+    world.collisions = {
+        "old": {"lastActive": 1.0, "sutured": False},
+        "recent": {"lastActive": 15.0, "sutured": False},
+        "sutured": {"lastActive": 1.0, "sutured": True},
+    }
+    assert forget_stale_collisions(world) == 1
+    assert set(world.collisions) == {"recent", "sutured"}
+
+
+def test_young_rift_partners_require_reciprocal_recent_relationship():
+    from orogen.v2.tectonics.collision import are_young_rift_partners
+
+    world, a, b = contact_world()
+    a.riftPartner, b.riftPartner = b.id, a.id
+    a.born, b.born = 5.0, 8.0
+    assert are_young_rift_partners(a, b, 20.0, {"riftPushMyr": 15.0})
+    assert not are_young_rift_partners(a, b, 24.0, {"riftPushMyr": 15.0})
+    b.riftPartner = -1
+    assert not are_young_rift_partners(a, b, 10.0, {"riftPushMyr": 100.0})
+
+
+def test_choose_sides_prefers_trench_flag_then_continental_area():
+    from orogen.v2.tectonics.collision import choose_sides
+    from orogen.v2.tectonics.crust import CrustFlag
+
+    world, a, b = contact_world()
+    a.crust.create(1, CrustType["CONTINENT"], -10.0, 1)
+    b.crust.create(1, CrustType["CONTINENT"], -10.0, 2)
+    a.crust.flags[1] = CrustFlag["TRENCH"]
+    result = choose_sides(world, a, b, [0, 2])
+    assert result == {"upper": a, "lower": b}
+
+    a.crust.flags[1] = 0
+    a.stats["continentalCells"] = 1
+    b.stats["continentalCells"] = 3
+    result = choose_sides(world, a, b, [0])
+    assert result == {"upper": b, "lower": a}
+
+
+def underthrust_world():
+    mesh = Mesh(5)
+    upper, lower = Plate(0, 5), Plate(1, 5)
+    for cell in range(5):
+        upper.crust.create(cell, CrustType["CONTINENT"], -10.0, 10)
+        lower.crust.create(cell, CrustType["CONTINENT"], -20.0, 20)
+    upper.stats["continentalCells"] = 5
+    lower.stats["continentalCells"] = 5
+    owner = np.asarray([0, 0, 0, 0, 1], dtype=np.int16)
+    land_claims = np.zeros(5, dtype=np.uint8)
+    land_claims[[1, 2, 3]] = 2
+    world = SimpleNamespace(
+        mesh=mesh,
+        plates=[upper, lower],
+        owner=owner,
+        ownerCell=np.arange(5, dtype=np.int32),
+        landClaims=land_claims,
+        budget={"underthrustCells": 0},
+        config={
+            "underthrustShare": 1.0,
+            "overlapCapKm": 1000.0,
+            "underthrustThickenKm": 25.0,
+            "underthrustMaxThickKm": 40.0,
+        },
+    )
+    return world, upper, lower
+
+
+def test_underthrust_consumes_lower_edge_and_roots_upper_plate():
+    from orogen.v2.tectonics.collision import underthrust
+
+    world, upper, lower = underthrust_world()
+    record = {"frontKm": 100.0, "underthrustDue": 0.0}
+    consumed = underthrust(world, upper, lower, [1, 2, 3], record, 2.0)
+
+    assert consumed == 2
+    assert lower.crust.mask[1] == 0
+    assert lower.crust.mask[2] == 0
+    assert upper.crust.thickKm[1] == pytest.approx(25.0)
+    assert upper.crust.rootKm[2] == pytest.approx(25.0)
+    assert record["underthrustDue"] == 0.0
+    assert record["underthrustCells"] == 2
+    assert world.budget["underthrustCells"] == 2
+    assert lower.reshaped is True
+    assert upper.dirty is True
+
+
+def test_underthrust_skips_without_convergence_or_lower_side_and_caps_unpaid_due():
+    from orogen.v2.tectonics.collision import underthrust
+
+    world, upper, lower = underthrust_world()
+    record = {"frontKm": 100.0, "underthrustDue": 0.0}
+    assert underthrust(world, upper, lower, [1, 2, 3], record, 0.0) == 0
+    world.owner[4] = upper.id
+    assert underthrust(world, upper, lower, [1, 2, 3], record, 2.0) == 0
+    assert record["underthrustDue"] == pytest.approx(1.0)
+    assert world.budget["underthrustCells"] == 0
+
+
+def test_underthrust_skips_missing_ocean_and_craton_cells():
+    from orogen.v2.tectonics.collision import underthrust
+
+    world, upper, lower = underthrust_world()
+    lower.crust.remove(2)
+    lower.crust.type[1] = CrustType["CRATON"]
+    lower.crust.type[3] = CrustType["OCEAN"]
+    record = {"frontKm": 100.0, "underthrustDue": 0.0}
+    assert underthrust(world, upper, lower, [1, 2, 3], record, 2.0) == 0
+    assert world.budget["underthrustCells"] == 0
+    assert record["underthrustDue"] == pytest.approx(1.0)
+
+
+def test_enclosed_sea_detects_a_small_pocket_but_excludes_world_ocean():
+    from orogen.v2.tectonics.collision import enclosed_sea_between_km2
+
+    mesh = Mesh(7)
+    upper, lower = Plate(0, 7), Plate(1, 7)
+    upper.crust.create(0, CrustType["CONTINENT"], -10.0, 1)
+    lower.crust.create(2, CrustType["CONTINENT"], -10.0, 2)
+    world = SimpleNamespace(
+        mesh=mesh,
+        plates=[upper, lower],
+        owner=np.asarray([0, -1, 1, -1, -1, -1, -1], dtype=np.int16),
+        ownerCell=np.arange(7, dtype=np.int32),
+        landClaims=np.zeros(7, dtype=np.uint8),
+    )
+    assert enclosed_sea_between_km2(world, upper, lower) == pytest.approx(100.0)
+
+
+def test_open_sea_between_measures_directly_opposed_coasts(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, upper, lower = sea_world()
+    monkeypatch.setattr(
+        collision,
+        "tangent_toward",
+        lambda _a, _b, source: (
+            [1.0, 0.0, 0.0] if float(source[1]) < 0.05
+            else [-1.0, 0.0, 0.0]
+        ),
+    )
+    result = open_sea_between(world, upper, lower)
+    assert result["km2"] > 0.0
+    assert result["widestKm"] > 0.0
+
+
+def test_open_sea_between_returns_zero_without_coastal_land():
+    from orogen.v2.tectonics.collision import open_sea_between
+
+    world, upper, lower = sea_world()
+    world.owner[:] = -1
+    assert open_sea_between(world, upper, lower) == {
+        "km2": 0.0, "widestKm": 0.0
+    }
+
+
+def test_is_rift_jitter_requires_small_front_and_both_margin_flags():
+    from orogen.v2.tectonics.collision import is_rift_jitter
+    from orogen.v2.tectonics.crust import CrustFlag
+
+    world, a, b = contact_world()
+    world.config = {"riftJitterFrontKm": 2.0}
+    a.crust.flags[0] = CrustFlag["RIFT_MARGIN"]
+    b.crust.flags[0] = CrustFlag["RIFT_MARGIN"]
+    assert is_rift_jitter(world, a, b, [0])
+    b.crust.flags[0] = 0
+    assert not is_rift_jitter(world, a, b, [0])
+    assert not is_rift_jitter(world, a, b, [0, 1, 2])
+
+
+def test_recycle_logs_sizable_arc_and_retires_donor():
+    from orogen.v2.tectonics.collision import recycle
+
+    world, donor, _host = contact_world()
+    donor.crust.create(0, CrustType["ARC"], -20.0, 30)
+    world.mesh.cell_area_km2 = 100.0
+    world.config = {"terraneMinAreaKm2": 100.0}
+    world.budget = {"recycledCells": 0}
+    world.events = []
+    world.log = lambda kind, text, data=None: world.events.append(
+        {"kind": kind, "text": text, "data": data}
+    )
+    assert recycle(world, donor, [0]) == 1
+    assert world.events[0]["kind"] == "arc-recycled"
+    assert donor.alive is False
+    assert donor.omega == [0.0, 0.0, 0.0]
+    assert donor.dynamics is None
+
+
+def test_recycle_small_arc_recycles_only_components_below_area_threshold():
+    from orogen.v2.tectonics.collision import recycle_small_arc
+
+    world, donor, _host = contact_world()
+    donor.crust.create(0, CrustType["ARC"], -20.0, 30)
+    donor.crust.create(1, CrustType["ARC"], -20.0, 30)
+    world.config = {
+        "arcAccreteMinKm2": 250.0,
+        "terraneMinAreaKm2": 1000.0,
+    }
+    assert recycle_small_arc(world, donor, 0)
+    assert donor.crust.mask[0] == 0
+    assert donor.crust.mask[1] == 0
+
+    donor.crust.create(0, CrustType["ARC"], -20.0, 30)
+    donor.crust.create(1, CrustType["ARC"], -20.0, 30)
+    donor.crust.create(2, CrustType["ARC"], -20.0, 30)
+    assert not recycle_small_arc(world, donor, 0)
+    donor.crust.type[3] = CrustType["CONTINENT"]
+    assert not recycle_small_arc(world, donor, 3)
+
+
+def test_accrete_arcs_returns_core_when_both_contacts_are_continent():
+    from orogen.v2.tectonics.collision import accrete_arcs
+
+    world, a, b = contact_world()
+    world.config = {}
+    assert accrete_arcs(world, a, b, [0]) == {
+        "core": [0], "accreted": False
+    }
+
+
+def test_accrete_arcs_prefers_smaller_arc_donor_and_logs_transfer(monkeypatch):
+    from orogen.v2.tectonics import collision
+    from orogen.v2.tectonics.ops import scrape_arc as scrape_module
+
+    world, a, b = contact_world()
+    a.crust.type[0] = CrustType["ARC"]
+    b.crust.type[0] = CrustType["ARC"]
+    a.stats["continentalCells"] = 1
+    b.stats["continentalCells"] = 4
+    world.config = {
+        "arcAccreteMinKm2": 0.0,
+        "terraneMinAreaKm2": 100.0,
+        "arcScrapeLogKm2": 100.0,
+    }
+    world.mesh.cell_area_km2 = 100.0
+    calls = []
+    monkeypatch.setattr(
+        scrape_module,
+        "scrape_arc",
+        lambda _world, host, donor, cells: (
+            calls.append((host.id, donor.id, list(cells)))
+            or {"moved": 1, "absorbed": 0}
+        ),
+    )
+    world.log = lambda kind, text, data=None: world.events.append(
+        {"kind": kind, "text": text, "data": data}
+    )
+
+    result = collision.accrete_arcs(world, a, b, [0])
+
+    assert result == {"core": [], "accreted": True}
+    assert calls == [(1, 0, [0])]
+    assert world.arcScrapes["0:1"]["logged"] is True
+    assert world.events[-1]["kind"] == "arc-scrape"
+
+
+def test_dock_if_terrane_returns_false_for_two_large_continents(monkeypatch):
+    import importlib
+
+    collision_module = importlib.import_module("orogen.v2.tectonics.collision")
+    accretion_module = importlib.import_module(
+        "orogen.v2.tectonics.ops.plate_accretion"
+    )
+    world, a, b = contact_world()
+    world.mesh.cell_area_km2 = 100.0
+    world.config = {"terraneMaxAreaKm2": 50.0}
+    monkeypatch.setattr(
+        accretion_module, "landmass_of",
+        lambda plate, _mesh, _seeds: [0],
+    )
+    assert not collision_module.dock_if_terrane(world, a, b, [0])
+
+
+def test_track_collisions_skips_sutured_records_and_marks_ready_sutures(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, upper, lower = collision_tracking_world()
+    world.collisions["0:1"] = {
+        "upper": 0, "lower": 1, "sutured": True,
+        "lastActive": 10.0, "startedAt": 0.0,
+    }
+    result = collision.track_collisions(world, 1.0)
+    assert result["tracked"] == 0
+    assert world.collisions["0:1"]["sutured"] is True
+
+    world.collisions.clear()
+    world.config.update({
+        "sutureShorteningKm": 0.0,
+        "sutureMinContactKm": 0.0,
+    })
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+    result = collision.track_collisions(world, 1.0)
+    assert result["tracked"] == 1
+    assert world.collisions["0:1"]["sutureCandidate"] is True
+
+
+def test_track_collisions_removes_a_newly_detected_parting_sliver(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, _upper, lower = collision_tracking_world()
+    lower.omega = [0.0, 0.0, -0.01]
+    world.config["collisionJitterFrontKm"] = 100.0
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+
+    result = collision.track_collisions(world, 1.0)
+
+    assert result["tracked"] == 0
+    assert world.collisions == {}
+
+
+def test_track_collisions_uses_arc_result_before_creating_record(monkeypatch):
+    from orogen.v2.tectonics import collision
+
+    world, _upper, _lower = collision_tracking_world()
+    world.config.update({
+        "arcAccreteMinKm2": 100.0,
+        "terraneMinAreaKm2": 100.0,
+        "arcScrapeLogKm2": 100.0,
+    })
+    monkeypatch.setattr(
+        collision, "accrete_arcs",
+        lambda *_args: {"core": [], "accreted": True},
+    )
+
+    result = collision.track_collisions(world, 1.0)
+
+    assert result["tracked"] == 0
+    assert result["changed"] is True
+    assert world.collisions == {}

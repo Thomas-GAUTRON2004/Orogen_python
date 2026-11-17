@@ -227,3 +227,34 @@ def test_step_world_schedules_collision_tracking_and_rebuilds_after_crust_change
     assert calls.count("resolve") == (2 if changed else 1)
     assert calls.count(("classify", 0.0)) == (1 if changed else 0)
     assert calls[-1] == "motion"
+
+
+def test_step_world_schedules_far_field_clock(monkeypatch):
+    world = make_world()
+    world.config["farFieldEveryMyr"] = 4.0
+    calls = []
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.resolve", lambda _world: {}
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.classify_contact_boundaries",
+        lambda _world, _dt: 0,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plumes", lambda _world, _dt: None
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.track_cycle", lambda _world: None
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.evolve_far_field",
+        lambda _world, dt: calls.append(dt) or 0,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plate_motion", lambda _world: None
+    )
+
+    result = step_world(world, 1.5, update_motion=False)
+
+    assert result["farField"] == 0
+    assert calls == [1.5]

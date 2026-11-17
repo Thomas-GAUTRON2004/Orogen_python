@@ -9,9 +9,10 @@ import math
 import numpy as np
 
 try:
-    from numba import njit
+    from numba import njit, literal_unroll
 except ImportError:  # Numba is an optional acceleration extra.
     njit = None
+    literal_unroll = None
 
 NUMBA_AVAILABLE = njit is not None
 
@@ -361,6 +362,70 @@ def _largest_piece_kernel(offsets, adjacency, ordered_cells):
             best_size = size
     return flat[best_start:best_start + best_size].copy()
 
+
+def _tangent_basis_components(x, y, z):
+    """Return east and north tangent vectors without allocating Python lists."""
+    if abs(z) > 0.9:
+        ex, ey, ez = 0.0, -z, y
+    else:
+        ex, ey, ez = -y, x, 0.0
+    length = math.hypot(ex, ey, ez) or 1.0
+    ex, ey, ez = ex / length, ey / length, ez / length
+    nx = y * ez - z * ey
+    ny = z * ex - x * ez
+    nz = x * ey - y * ex
+    return ex, ey, ez, nx, ny, nz
+
+
+def _destination_many_kernel(points, bearings, distances):
+    """Batch equivalent of destination(), preserving its scalar operation order."""
+    count = points.shape[0]
+    out = np.empty((count, 3), dtype=np.float64)
+    for i in range(count):
+        x, y, z = points[i, 0], points[i, 1], points[i, 2]
+        ex, ey, ez, nx, ny, nz = _tangent_basis_components(x, y, z)
+        dx, dy = math.cos(bearings[i]), math.sin(bearings[i])
+        sine, cosine = math.sin(distances[i]), math.cos(distances[i])
+        tx = ex * dx + nx * dy
+        ty = ey * dx + ny * dy
+        tz = ez * dx + nz * dy
+        qx = x * cosine + tx * sine
+        qy = y * cosine + ty * sine
+        qz = z * cosine + tz * sine
+        length = math.hypot(qx, qy, qz) or 1.0
+        out[i, 0] = qx / length
+        out[i, 1] = qy / length
+        out[i, 2] = qz / length
+    return out
+
+
+def _bearing_to_many_kernel(points, targets):
+    """Batch equivalent of bearing_to(), with no per-point Python allocations."""
+    count = points.shape[0]
+    out = np.empty(count, dtype=np.float64)
+    for i in range(count):
+        x, y, z = points[i, 0], points[i, 1], points[i, 2]
+        ex, ey, ez, nx, ny, nz = _tangent_basis_components(x, y, z)
+        qx, qy, qz = targets[i, 0], targets[i, 1], targets[i, 2]
+        east_dot = qx * ex + qy * ey + qz * ez
+        north_dot = qx * nx + qy * ny + qz * nz
+        out[i] = math.atan2(north_dot, east_dot)
+    return out
+
+
+def _zero_cell_fields_kernel(fields, cell):
+    """Reset all heterogeneous structure-of-arrays fields at one cell."""
+    for field in literal_unroll(fields):
+        field[cell] = 0
+
+
+def _snapshot_cell_fields_kernel(fields, cell):
+    """Copy a cell snapshot in upstream field order into numeric storage."""
+    values = np.empty(len(fields), dtype=np.float64)
+    for index, field in enumerate(literal_unroll(fields)):
+        values[index] = field[cell]
+    return values
+
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
     # Compile dependencies first and expose their dispatchers to the next kernel.
@@ -374,6 +439,12 @@ if NUMBA_AVAILABLE:
     pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
     _pieces_of_kernel = pieces_of_numba
     largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
+    destination_many_numba = njit(cache=True, fastmath=False)(_destination_many_kernel)
+    bearing_to_many_numba = njit(cache=True, fastmath=False)(_bearing_to_many_kernel)
+    zero_cell_fields_numba = njit(cache=True, fastmath=False)(_zero_cell_fields_kernel)
+    snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(_snapshot_cell_fields_kernel)
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None
     pieces_of_numba = largest_piece_numba = None
+    destination_many_numba = bearing_to_many_numba = None
+    zero_cell_fields_numba = snapshot_cell_fields_numba = None

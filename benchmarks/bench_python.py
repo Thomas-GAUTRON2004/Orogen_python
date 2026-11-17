@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
-from orogen.v2.core.sphere_geometry import destination, bearing_to, dot
+from orogen.v2.core.sphere_geometry import destination_many, bearing_to_many
 import orogen.v2.core.mesh_bfs as mesh_bfs_module
 from orogen.v2.core.mesh_bfs import hop_distance, pieces_of
 from orogen.v2.core.min_heap import spread_km
@@ -22,10 +22,10 @@ def median_ms(fn):
     return statistics.median(samples)
 
 points=np.asarray([(math.sin(i*.013)*17.0, math.cos(i*.007)*11.0, math.sin(i*.003+.4)*23.0) for i in range(N_NOISE)], dtype=np.float64)
-vectors=[]
+vectors=np.empty((N_GEOM,3),dtype=np.float64)
 for i in range(N_GEOM):
     z=1-2*(i+.5)/N_GEOM; a=i*2.399963229728653; r=math.sqrt(1-z*z)
-    vectors.append((r*math.cos(a),r*math.sin(a),z))
+    vectors[i]=(r*math.cos(a),r*math.sin(a),z)
 xyz=np.empty(N_CELLS*3,dtype=np.float32)
 for i in range(N_CELLS):
     z=1-2*(i+.5)/N_CELLS; a=i*2.399963229728653; r=math.sqrt(1-z*z)
@@ -46,11 +46,9 @@ def bench_noise():
     sink=s
 def bench_geometry():
     global sink
-    s=0.0
-    for p in vectors:
-        q=destination(p,.71,.013)
-        s+=bearing_to(p,q)+dot(p,q)
-    sink=s
+    targets=destination_many(vectors,.71,.013)
+    angles=bearing_to_many(vectors,targets)
+    sink=float(np.sum(angles+np.sum(vectors*targets,axis=1)))
 def bench_bfs():
     global sink
     d=hop_distance(mesh,lambda c:c==0,N_CELLS)

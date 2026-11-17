@@ -2,7 +2,12 @@
 from __future__ import annotations
 
 import math
+import numpy as np
 from collections.abc import Callable, Iterable, Sequence
+
+from ._numba_kernels import (
+    NUMBA_AVAILABLE, destination_many_numba, bearing_to_many_numba,
+)
 
 PLANET_RADIUS_KM = 6_371.0
 Vector3 = Sequence[float]
@@ -63,6 +68,58 @@ def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
 def bearing_to(point: Vector3, target: Vector3) -> float:
     east, north = tangent_basis(point)
     return math.atan2(dot(target, north), dot(target, east))
+
+
+def _points_array(values, name: str) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64)
+    if array.ndim != 2 or array.shape[1] != 3:
+        raise ValueError(f"{name} must have shape (n, 3)")
+    return np.ascontiguousarray(array)
+
+
+def _parameter_array(values, count: int, name: str) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64)
+    if array.ndim == 0:
+        return np.full(count, float(array), dtype=np.float64)
+    if array.ndim != 1 or array.size != count:
+        raise ValueError(f"{name} must be a scalar or have one value per point")
+    return np.ascontiguousarray(array)
+
+
+def destination_many(
+    points: Sequence[Vector3], bearing: float | Sequence[float],
+    distance: float | Sequence[float],
+) -> np.ndarray:
+    """Vectorised destination() for an (n, 3) array of unit-sphere points.
+
+    Bearing and distance may each be scalars or one-dimensional arrays. The
+    Numba path fuses the scalar geometry operations into one compiled loop.
+    """
+    values = _points_array(points, "points")
+    bearings = _parameter_array(bearing, len(values), "bearing")
+    distances = _parameter_array(distance, len(values), "distance")
+    if NUMBA_AVAILABLE:
+        return destination_many_numba(values, bearings, distances)
+    out = np.empty((len(values), 3), dtype=np.float64)
+    for index in range(len(values)):
+        out[index] = destination(values[index], bearings[index], distances[index])
+    return out
+
+
+def bearing_to_many(
+    points: Sequence[Vector3], targets: Sequence[Vector3],
+) -> np.ndarray:
+    """Vectorised bearing_to() for matching arrays of points and targets."""
+    values = _points_array(points, "points")
+    destinations = _points_array(targets, "targets")
+    if destinations.shape != values.shape:
+        raise ValueError("targets must have the same shape as points")
+    if NUMBA_AVAILABLE:
+        return bearing_to_many_numba(values, destinations)
+    return np.asarray(
+        [bearing_to(values[i], destinations[i]) for i in range(len(values))],
+        dtype=np.float64,
+    )
 
 
 def cap_fraction(radius_rad: float) -> float:

@@ -4,6 +4,10 @@ from __future__ import annotations
 import math
 import numpy as np
 
+from ..core._numba_kernels import (
+    NUMBA_AVAILABLE, zero_cell_fields_numba, snapshot_cell_fields_numba,
+)
+
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
 OrogenyType = {
     "NONE": 0, "ANDEAN": 1, "LARAMIDE": 2, "URAL": 3, "HIMALAYAN": 4,
@@ -60,13 +64,17 @@ class CrustRaster:
             setattr(self, name, np.zeros(num_cells, dtype=_DTYPES[name]))
         self.count = 0
         self.fields = [getattr(self, name) for name in CELL_FIELDS]
+        self._numba_fields = tuple(self.fields)
 
     def create(self, cell: int, crust_type: int, formed_at: float, terrane: int = 0) -> None:
         if not self.mask[cell]:
             self.count += 1
         self.mask[cell] = 1
-        for field in self.fields:
-            field[cell] = 0
+        if NUMBA_AVAILABLE:
+            zero_cell_fields_numba(self._numba_fields, cell)
+        else:
+            for field in self.fields:
+                field[cell] = 0
         self.type[cell] = crust_type
         self.formedAt[cell] = formed_at
         self.terrane[cell] = terrane
@@ -89,6 +97,10 @@ class CrustRaster:
             self.farDz[cell] = math.floor(127 * w / length + 0.5)
 
     def snapshot(self, cell: int) -> list:
+        if NUMBA_AVAILABLE:
+            # float64 represents every Float32 and current integer field value exactly;
+            # tolist() boxes the snapshot in one C-level conversion, matching JS Numbers.
+            return snapshot_cell_fields_numba(self._numba_fields, cell).tolist()
         return [field[cell].item() for field in self.fields]
 
     def restore(self, cell: int, values) -> None:

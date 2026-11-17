@@ -17,9 +17,9 @@ Last updated: 2026-11-17
 ## Performance optimization (Numba)
 
 - Added an optional `speed` extra and retained a pure-Python fallback.
-- Numba compiles batched 3-D simplex FBM, CSR BFS, and the complete callback-free Dijkstra heap traversal (`fastmath=False`). FBM is checked bit-for-bit against Python and upstream JavaScript; BFS retains FIFO/source order and int16 semantics; Dijkstra preserves heap ordering and float32/float64 distance storage.
-- Dijkstra retains the Python path when `can_enter` or `on_reach` callbacks are provided. Differential tests compare the compiled result to the Python fallback for both distance dtypes.
-- The latest paired CI sample measured FBM near parity and a large speedup for synthetic Dijkstra; geometry and crust updates remain slower. See `docs/JS_PYTHON_BENCHMARK.md` for method, results and runner variability.
+- Numba compiles batched 3-D simplex FBM, CSR BFS, callback-free mesh Dijkstra, and the weighted far-field traversal used by tectonic `spread_push` (`fastmath=False`). FBM is checked bit-for-bit against Python and upstream JavaScript; BFS retains FIFO/source order and int16 semantics; Dijkstra preserves heap ordering and float32/float64 distance storage.
+- Mesh Dijkstra retains the Python path when `can_enter` or `on_reach` callbacks are provided. Far-field diffusion keeps crust-history recording in Python and retains the complete Python graph-traversal fallback. Differential tests compare reached order, source assignment, distance arrays and crust history.
+- The latest paired CI sample measured FBM near parity, a large speedup for synthetic mesh Dijkstra, and a **3.35×** full-path speedup for synthetic far-field diffusion versus its Python fallback. Geometry and per-cell crust snapshots remain slower. See `docs/JS_PYTHON_BENCHMARK.md` for method, results and runner variability.
 - Scalar JIT wrappers for spherical geometry and per-cell crust resets were benchmarked and removed because call overhead regressed performance. Further work must batch meaningful workloads and retain differential parity.
 
 ## Target
@@ -77,14 +77,14 @@ test coverage.
 ## Latest verification
 
 The latest completed successful CI run is commit
-`7718de8bf2c69b371339546d102b5f6bd4428996` (2026-11-17):
+`6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17):
 
-- **458 tests passed** in 37.47 seconds.
-- The complete `orogen.v2` package met its enforced **100% line-coverage threshold** (5,796 statements, 0 missing).
+- **460 tests passed** in 39.73 seconds.
+- The complete `orogen.v2` package met its enforced **100% line-coverage threshold** (5,802 statements, 0 missing).
 - The Python suite and JavaScript differential checks both completed successfully.
-- The paired JS/Python benchmark also completed successfully on this commit.
+- The paired JS/Python benchmark and far-field Numba/Python A/B measurement also completed successfully.
 
-Validation run: [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44147555927). Benchmark: [JS vs Python](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44147545592).
+Validation run: [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44149930307). Benchmark: [JS vs Python and far-field A/B](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44149930378).
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

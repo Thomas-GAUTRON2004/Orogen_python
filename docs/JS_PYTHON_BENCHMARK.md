@@ -59,11 +59,29 @@ The Dijkstra workload now uses one compiled kernel for the complete heap travers
 
 The Dijkstra measurement is a five-round median after one warm-up on the synthetic degree-6 ring graph, with `max_km=20,000`. It is not an end-to-end simulation result. Hosted-runner timings for the other workloads remain variable; use these figures as directional measurements only.
 
+
+## Far-field diffusion kernel — 2026-11-17
+
+The tectonic `spread_push` path now sends its complete weighted Dijkstra traversal to one Numba kernel. It computes great-circle edge costs, applies the crust-type/weak-line multipliers, maintains the source that delivered the strongest arrival, and returns reached cells in heap-pop order. Crust-history recording remains in Python. The original Python traversal remains available when Numba is absent.
+
+The benchmark compares the full `spread_push` path, including Python-side history writes, with Numba enabled and with the Python fallback forced:
+
+| Workload | Numba | Python fallback | Speedup |
+|---|---:|---:|---:|
+| `spread_push`, 12,000 cells, degree-6 equatorial ring, two sources | 60.856 ms | 203.843 ms | **3.35×** |
+
+[Benchmark run on GitHub Actions](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44149930378).
+
+This is an A/B comparison within Python, not a JavaScript comparison: there is no checked-in JavaScript far-field fixture in this repository. It is a synthetic graph and must not be interpreted as full-history simulation performance. The Numba result is compared against the Python fallback in tests, including reached-cell order, source assignment, distance arrays, and the recorded crust-history arrays.
+
+The same run measured the general callback-free mesh Dijkstra benchmark at 0.522 ms in JavaScript and 0.0106 ms in Python + Numba. That workload is a synthetic ring graph stopped at `max_km=20,000`.
+
 ## What changed
 
 - FBM moved from about **48× slower** to near parity or slightly faster than the JS reference on the measured batch workloads.
 - BFS moved from about **28.6× slower** to around **1.4–1.9× slower** across the latest runs.
-- The full callback-free Dijkstra traversal is now compiled; the latest synthetic benchmark measured about **69× faster** than the JS sample, but that result must not be extrapolated to full-world graphs.
+- The full callback-free mesh Dijkstra traversal is now compiled; the latest synthetic benchmark measured about **49× faster** than the JS sample, but that result must not be extrapolated to full-world graphs.
+- The real tectonic far-field `spread_push` traversal is also compiled as one batch; its full-path A/B benchmark measured **3.35× faster** than the Python fallback.
 - Geometry and crust snapshots remain major performance gaps. Shared-runner results vary and remain directional.
 
 ## Numerical-equivalence policy
@@ -72,6 +90,7 @@ The Dijkstra measurement is a five-round median after one warm-up on the synthet
 - The Numba FBM results are checked bit-for-bit against the retained pure-Python implementation.
 - BFS uses the same CSR adjacency, ascending source initialization, FIFO traversal, and int16 distance output. Its compiled path is used only when `can_enter` is absent; arbitrary Python predicates retain the original Python implementation.
 - Dijkstra retains the JS heap push/pop ordering, ascending seed insertion, lazy stale-entry checks, max-distance cutoff, and writes the value stored in the destination array back to the heap (including float32 rounding). Its Numba path is used only without `can_enter` or `on_reach`; callback-based calls use Python. Differential tests compare float32 and float64 arrays.
+- Far-field diffusion compiles weighted graph traversal, great-circle edge costs, source propagation and reached order; crust history fields are then updated in Python. Its output is checked against the Python fallback.
 - The pure-Python path remains available when Numba is not installed.
 - Differential checks against the upstream JavaScript implementation remain part of CI. Performance is accepted only alongside numerical and behavioural tests.
 
@@ -79,7 +98,7 @@ The Dijkstra measurement is a five-round median after one warm-up on the synthet
 
 - Timings are medians of five measured runs after one warm-up; they are microbenchmarks, not end-to-end planet-generation timings.
 - The mesh benchmark uses a synthetic 12,000-cell degree-6 ring graph, not a production spherical mesh. The Dijkstra workload also stops at `max_km=20,000`, so it does not visit every cell.
-- The benchmark does not measure Delaunay/sphere-mesh generation, full tectonic `step_world`, long geological histories, memory use, or complete planet generation.
+- The benchmark does not measure Delaunay/sphere-mesh generation, full tectonic `step_world`, long geological histories, memory use, or complete planet generation. The far-field A/B uses a synthetic equatorial ring graph and has no direct JavaScript comparison.
 - Python FBM uses one batch call to amortize Python-to-Numba call overhead. Scalar `noise3d` and `fbm` methods are also JIT-dispatched, but real pipeline speed depends on call patterns.
 - Results depend on the hosted runner and are a baseline, not a universal JavaScript/Python ratio.
 
@@ -87,4 +106,4 @@ The Dijkstra measurement is a five-round median after one warm-up on the synthet
 
 1. Add batch geometry operations at real simulation call sites, so one Numba invocation processes many points rather than one scalar.
 2. Optimize crust creation/copy/snapshot in batches, preserving snapshot field order and typed-array rounding.
-3. Benchmark on realistic spherical meshes and full tectonic steps.
+3. Benchmark the far-field kernel and remaining graph kernels on realistic spherical meshes and full tectonic steps.

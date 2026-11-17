@@ -1,10 +1,13 @@
 # Tectonics API reference
 
-Import tectonic components from `orogen.v2.tectonics`. This namespace currently exposes state models and individual operations. It does not contain the full upstream tectonic evolution engine.
+Import tectonic components from `orogen.v2.tectonics`. This namespace exposes
+state models and tested individual operations, including a partial
+one-step orchestrator. It is not the full upstream tectonic evolution engine.
 
 ## Enumerations and flags
 
-The port represents upstream enumerations as dictionaries of string keys to integer values.
+The port represents upstream enumerations as dictionaries of string keys to
+integer values.
 
 ### Crust types
 
@@ -16,23 +19,30 @@ The port represents upstream enumerations as dictionaries of string keys to inte
 
 ### Other classifications
 
-- `OrogenyType`: NONE, ANDEAN, LARAMIDE, URAL, HIMALAYAN, ARC, RIFT, TRANSPRESSION, INTRAPLATE.
+- `OrogenyType`: NONE, ANDEAN, LARAMIDE, URAL, HIMALAYAN, ARC, RIFT,
+  TRANSPRESSION, INTRAPLATE.
 - `VolcanicType`: NONE, TRACK, LIP.
 - `BeltSide`: NONE, UPPER, LOWER.
-- `CrustFlag`: bit flags including TRENCH, SUTURE, FAILED_RIFT, RIFT_MARGIN, LIP, APRON, MARGIN_ISLE, and EROSIVE.
-- `BoundaryKind`, `EventKind`, and `Provisional` are defined in `world.py` and exported from the package.
+- `CrustFlag`: bit flags including TRENCH, SUTURE, FAILED_RIFT, RIFT_MARGIN,
+  LIP, APRON, MARGIN_ISLE, and EROSIVE.
+- `BoundaryKind`, `EventKind`, and `Provisional` are defined in `world.py`
+  and exported from the package.
 
-Use the named constants instead of embedding numeric values in application code.
+Use the named constants instead of embedding numeric values in application
+code.
 
 ## CrustRaster
 
-`CrustRaster(num_cells)` stores crust in a structure-of-arrays layout for one plate-local mesh.
+`CrustRaster(num_cells)` stores crust in a structure-of-arrays layout for one
+plate-local mesh.
 
 Important attributes:
 - `numCells`: number of cells.
 - `mask`: Uint8-like occupancy mask.
 - `count`: number of occupied cells.
-- Per-cell arrays: `type`, `flags`, `formedAt`, `terrane`, `slabKm`, `thickKm`, orogeny and belt fields, volcanic fields, cover fields, and other history attributes.
+- Per-cell arrays: `type`, `flags`, `formedAt`, `terrane`, `slabKm`,
+  `thickKm`, orogeny and belt fields, volcanic fields, cover fields, and other
+  history attributes.
 - `fields`: ordered list of field arrays used by snapshot/copy operations.
 
 Main methods:
@@ -56,36 +66,47 @@ crust.arm_trench(12, slab_km=80.0)
 crust.restore(12, snapshot)
 ```
 
-The arrays are mutable. Directly editing `mask` or other fields can make the cached `count` inconsistent; prefer the methods when changing occupancy.
+The arrays are mutable. Directly editing `mask` or other fields can make the
+cached `count` inconsistent; prefer the methods when changing occupancy.
 
 ## Plate
 
-`Plate(plate_id, num_cells, born=0.0)` stores a rigid plate pose and a `CrustRaster`.
+`Plate(plate_id, num_cells, born=0.0)` stores a rigid plate pose and a
+`CrustRaster`.
 
-Key attributes include `id`, `name`, `alive`, `born`, `quat`, `mat`, `omega`, `crust`, `stats`, and spatial culling-cap fields.
+Key attributes include `id`, `name`, `alive`, `born`, `quat`, `mat`,
+`omega`, `crust`, `stats`, and spatial culling-cap fields.
 
 Methods:
 - `set_quat(quaternion)` updates the quaternion and its rotation matrix.
 - `to_world(x, y, z)` transforms a plate-frame vector into world coordinates.
 - `to_plate_frame(x, y, z)` applies the inverse rotation.
-- `cell_at(index, x, y, z)` transforms a world vector into plate coordinates and queries the supplied spatial index.
+- `cell_at(index, x, y, z)` transforms a world vector into plate coordinates
+  and queries the supplied spatial index.
 - `cap_in_world(mesh)` returns the plate extent cap in world coordinates.
 - `mark_reshaped()` marks the plate as changed.
-- `refresh_extent(xyz)` recomputes occupied-cell statistics and the bounding cap.
+- `refresh_extent(xyz)` recomputes occupied-cell statistics and the bounding
+  cap.
 
-`frame_rotation(source, target)` returns the rotation matrix from source plate coordinates into target plate coordinates.
+`frame_rotation(source, target)` returns the rotation matrix from source
+plate coordinates into target plate coordinates.
 
 ## Kinematics
 
 The kinematics module exports:
 
 - `lat_lon_to_xyz(lat_deg, lon_deg)`: degrees to unit Cartesian coordinates.
-- `xyz_to_lat_lon(x, y, z)`: unit Cartesian coordinates to degree-valued latitude/longitude.
-- `omega_from_euler_pole(pole_xyz, speed_cm_yr)`: Euler-pole vector and angular speed conversion.
-- `surface_velocity(omega, px, py, pz, out=None)`: local surface velocity vector.
+- `xyz_to_lat_lon(x, y, z)`: unit Cartesian coordinates to degree-valued
+  latitude/longitude.
+- `omega_from_euler_pole(pole_xyz, speed_cm_yr)`: Euler-pole vector and
+  angular speed conversion.
+- `surface_velocity(omega, px, py, pz, out=None)`: local surface velocity
+  vector.
 - `speed_cm_yr_at(omega, px, py, pz)`: local speed in centimetres per year.
-- `advance_plates(world, dt)`: integrate the pose of each living plate and advance world time/step.
-- `pose_at_constant_omega(q0, omega, t)`: evaluate a quaternion pose at constant angular velocity.
+- `advance_plates(world, dt)`: integrate the pose of each living plate and
+  advance world time/step.
+- `pose_at_constant_omega(q0, omega, t)`: evaluate a quaternion pose at
+  constant angular velocity.
 
 Conversion constants:
 - `CM_PER_YR_TO_KM_PER_MYR = 10.0`
@@ -95,233 +116,136 @@ The radius used by these conversions is 6,371 km.
 
 ## Occupancy and claim operations
 
-- `BinIndex`, `bin_index`, `mark_bin`, and `may_have_crust_near` implement spatial occupancy bins.
-- `clear_world_view` and `for_each_claim` gather plate crust claims into the world frame.
-- `overrides` applies the currently ported subduction-polarity decision rules.
-- `reconstruct` rebuilds ownership and claim counters from the available plate data without mutating crust.
+- `BinIndex`, `bin_index`, `mark_bin`, and `may_have_crust_near`
+  implement spatial occupancy bins.
+- `clear_world_view` and `for_each_claim` gather plate crust claims into the
+  world frame.
+- `overrides` applies the currently ported subduction-polarity decision
+  rules.
+- `reconstruct` rebuilds ownership and claim counters from the available
+  plate data without mutating crust.
 
-These functions are low-level. They do not resolve all plate collisions, create a complete tectonic boundary network, or execute a full simulation step.
+These functions are low-level. They do not resolve all plate collisions,
+create a complete tectonic boundary network, or execute a full simulation
+step.
 
 ## TectonicWorld
 
-`TectonicWorld(sim_mesh, seed, config, overrides=None)` creates a mutable world-state container.
+`TectonicWorld(sim_mesh, seed, config, overrides=None)` creates a mutable
+world-state container.
 
-The constructor requires an explicit configuration mapping. The upstream `TECTONICS` default configuration has not yet been ported; there is no supported built-in default to substitute here.
+The constructor requires an explicit configuration mapping. The upstream
+`TECTONICS` default configuration has not yet been ported; there is no
+supported built-in default to substitute here.
 
 The world contains:
 - mesh reference, seed, configuration, time, and step counters;
 - a list of plates and event records;
 - independent deterministic random streams for separate tectonic mechanisms;
-- per-cell ownership, claim, collider, boundary, convergence, and provisional-state arrays;
-- budgets and auxiliary collections for collisions, arc scrapes, hotspots, and plumes.
+- per-cell ownership, claim, collider, boundary, convergence, and
+  provisional-state arrays;
+- budgets and auxiliary collections for collisions, arc scrapes, hotspots,
+  and plumes.
 
-Methods include `add_plate(name)`, `next_terrane_id()`, `name_by_cratons(plate, fallback)`, and `log(kind, text, data=None)`.
+Methods include `add_plate(name)`, `next_terrane_id()`,
+`name_by_cratons(plate, fallback)`, and `log(kind, text, data=None)`.
 
-The container does not initialize a physically complete planet, resolve boundaries, or run the upstream tectonic step pipeline. Supply a configuration only if you know the fields expected by the specific downstream operation you are integrating.
+The container does not initialize a physically complete planet, resolve
+boundaries, or run the upstream tectonic step pipeline. Supply a configuration
+only if you know the fields expected by the specific downstream operation you
+are integrating.
 
 ## Ridge segments
 
 - `PLANET_RADIUS_KM = 6371.0`
 - `SEGMENT_KM = 400.0`
-- `fracture_coordinate(px, py, pz, omega)` computes a ridge-floor coordinate in segment lengths about a spreading pole. It returns 0.5 for a near-zero angular-velocity vector; zero is reserved for cells without a recorded coordinate.
+- `fracture_coordinate(px, py, pz, omega)` computes a ridge-floor coordinate
+  in segment lengths about a spreading pole. It returns 0.5 for a near-zero
+  angular-velocity vector; zero is reserved for cells without a recorded
+  coordinate.
 
-## Boundary contact geometry
+## Rift operations
 
-Module: `orogen.v2.tectonics.contact`
+The rift helpers are available from `orogen.v2.tectonics.ops`.
 
-`contact_at(world, cell, out)` finds the neighbouring world cell across a plate boundary. It writes a four-value result to `out`: the averaged unit normal `(nx, ny, nz)` pointing toward foreign plate neighbours, followed by the number of shared foreign-neighbour edges. It returns `-1` for an interior cell.
-
-The result is cached per world cell and is valid until `world.occupancyStamp` changes. The normalized direction of each mesh adjacency edge is cached per mesh. Increment the stamp whenever the owner map is rebuilt; otherwise callers may reuse a previous contact result.
-
-```python
-import numpy as np
-from orogen.v2.tectonics import contact_at
-
-normal = np.zeros(4)
-across = contact_at(world, world_cell, normal)
-if across >= 0:
-    nx, ny, nz, shared_edges = normal
-```
-
-
-## Tectonic convergence and divergence resolver
-
-Module: `orogen.v2.tectonics.resolve`
-
-`resolve(world)` rebuilds the current world-frame claims and settles plate overlap. It applies the upstream ocean/continent and ocean/ocean polarity rules, leaves continental collisions overlapping for later boundary/event handling, attempts symmetric oceanic crust growth into divergent gaps, assigns provisional owners to unresolved gap cells, updates creation/consumption budgets, and refreshes dirty plate extents. It returns integer counts `created`, `consumed`, and `collisionCells`.
-
-The diagnostic helpers `candidate_cells(world, grower, gaps)` and `decide_birth(world, grower, cell, everyone)` expose the candidate and birth-rule stages. This is the first port of the resolver pass; the wider tectonic event, boundary-classification, force, and time-stepping pipeline remains separate and is not implied by this function.
-
-```python
-from orogen.v2.tectonics import resolve
-
-result = resolve(world)
-# {"created": ..., "consumed": ..., "collisionCells": ...}
-```
-
-
-## Boundary-motion primitives
-
-Module: `orogen.v2.tectonics.boundaries`
-
-The current port exposes four deterministic building blocks from the upstream boundary pass:
-
-- `classify_motion(closing, shear, active_speed, oblique_limit)` distinguishes opening, closing, sliding, and locked contacts.
-- `vote_segments(world, contacts)` computes a single weighted polarity vote for each connected ocean-ocean contact segment.
-- `near_land(plate, mesh, cell, config)` checks for non-ocean crust within the configured subduction-apron reach.
-- `feed_trench(world, world_cell, crust, cell, subducted_km)` starts or extends a trench only when this cell or an adjacent world cell consumed crust.
-
-These are helper ports, not yet the complete `classifyBoundaries(world, dt)` pass. Full boundary classification also requires the still-unported orogeny and far-field deformation systems.
-
-
-### Contact boundary classification
-
-`classify_contact_boundaries(world, dt)` performs the currently ported contact-state pass over a resolved world view. It sets per-cell boundary kinds and convergence, handles collision and interior trench-flag bookkeeping, resolves closing-contact polarity, records trench consumption, and optionally votes ocean-ocean contact segments when `segmentPolarity` is enabled.
-
-This remains a partial port of upstream `classifyBoundaries`: mountain-belt spreading, transpression/orogeny records, flat-slab decisions, and far-field force recording are not yet included.
-
-
-## Adaptive simulation stepping
-
-Module: `orogen.v2.tectonics.simulation`
-
-- `fastest_speed(omega, plate, centre)` computes the fastest angular surface speed over a plate's spherical cap.
-- `closing_rate(world)` sums the two highest living-plate cap speeds.
-- `choose_step(world)` applies the upstream adaptive time-step limit in mesh-cell units, with the configured maximum-step and oceanic-speed floor.
-
-These helpers port the time-step calculation from `simulate.js`; they do not yet implement the full simulation generator or event pipeline.
-
-
-## Orogenic belt geometry
-
-Module: `orogen.v2.tectonics.orogeny`
-
-- `belt_width_km(kind, work_km, rate_cm_yr, config)` reproduces the upstream belt-width rule, including speed clamps and maximum width.
-- `belt_shape(head_on, slab_age_myr, config)` applies obliquity and slab-age scaling.
-- `obliquity_deg(velocity, normal, position, closing)` returns signed dextral/sinistral obliquity.
-
-`spread_belt(plate, mesh, sources, belt, config, allow=None)` propagates a front across connected land cells, with source-specific reach/work, weak-line costs, craton-rim restrictions, and optional cell filtering. It records orogeny history, previous-belt overprints, belt geometry/shear, and crustal thickening, and calls the ported `build_heights` helper to update root/uplift/ruggedness. When `config['geology']['records']` is enabled, it also calls `thicken_cover` for existing sediment. It returns the reached continental cell indices. Time-dependent erosion, ridge/crest synthesis, and full sediment deposition remain outstanding.
-
-
-## Orogenic relief and sediment response
-
-Modules: `orogen.v2.tectonics.heights` and `orogen.v2.tectonics.geology`
-
-- `belt_relief_km(type, reach_km, heights)` scales mature relief by belt reach.
-- `broad_profile(type, side, distance_km, reach_km)` evaluates the smoothed cross-belt uplift profile.
-- `build_heights(crust, cell, type, side, u, reach_km, work_km, thickened_km, config, amp=1)` updates root, broad uplift, and ruggedness for one cell.
-- `thicken_cover(crust, cell, thickened_km, time_myr, geology)` increases existing sediment thickness as the underlying crust thickens and updates maximum burial and unroofing records.
-
-The erosion/evolution pass, full terrain synthesis, ridge/crest construction, and full basin sediment-deposition model remain separate unported stages.
-
-
-## Force-balance primitives
-
-Module: `orogen.v2.tectonics.dynamics`
-
-- `drag_tensor(plate, mesh, config)` computes the basal-drag tensor in the world frame, weighting oceanic, continental and cratonic crust separately.
-- `solve3(matrix, vector)` solves the 3x3 linear system used for angular velocity, with a zero-vector fallback for singular systems.
-- `balanced_rotation(plate, mesh, load, omega_of, config)` solves driving torque against basal drag, slab resistance and land-collision coupling. The load must be supplied by a force-gathering stage.
-- `soften_speed` and `clamp_speed` apply the upstream smooth and hard angular-speed limits.
-
-These are balance-stage primitives, not a complete plate-dynamics update: the world-wide force gathering pass (`gatherLoads`), mantle-flow forcing and simulation integration are still outstanding.
-
-
-## Boundary-force gathering (partial)
-
-Module: `orogen.v2.tectonics.forces`
-
-`gather_boundary_loads(world)` gathers slab pull, slab suction, young-ridge push, and young-rift push from a resolved world owner map. Its records are compatible with `balanced_rotation` and include per-kind torque/vector totals plus slab-resistance records.
-
-The gatherer also records land-overlap collision contacts with opposing front normals and optional craton lock weighting; fresh conjugate rift margins and arc contacts are excluded from collision locking. It now also gathers mantle flow and dispersal repulsion when an existing cycle state enables them. The cycle tracker that discovers landmasses and advances cycle phases remains a separate outstanding stage.
-
-
-## Plate angular-velocity update (partial)
-
-`update_plate_motion(world)` connects boundary-force gathering to the torque-balance solver. It solves each living non-background plate from the same start-of-step angular velocities, applies smooth and hard speed limits, then relaxes toward the solved target over `relaxMyr`. It also records a compact per-plate force diagnostic.
-
-The update uses the partial boundary-force gatherer above; collision-overlap forces and mantle-flow/repulsion are not yet included. Therefore it is not a full upstream `updatePlateMotion` replacement.
-
-
-## Mantle flow and continental dispersal
-
-Module: orogen.v2.tectonics.mantle
-
-- flow_of_cycle(cycle, config, x, y, z, out=None) evaluates tangent traction from an existing cycle state: outward from the heated upwelling, toward the downwelling during gathering, and local hold-inflow over the assembled footprint.
-- mantle_flow_at(world, x, y, z, out=None) evaluates the same field from world state.
-- dispersal_field(world) builds large-continent centres and touching-pair exclusions during the dispersing phase.
-- repel_at(field, plate_id, x, y, z, out=None) accumulates a quadratic falloff push away from other nearby large continents.
-
-gather_boundary_loads applies these vectors only to continental and cratonic cells and scales them by cell area. The field evaluator and force gatherer are ported; supercontinent landmass detection, heat evolution, seeded cycle formation and phase transitions are not yet implemented.
-
-
-## Cohesive continental landmasses
-
-Module: `orogen.v2.tectonics.supercontinent`
-
-- `is_continental(world, cell)` classifies continental and cratonic cells, excluding island arcs and unowned cells.
-- `landmasses(world)` counts connected continental components of at least 1 Mkm² and returns the largest cohesive mass, its share of total continental cells, and the large-component count. Narrow necks are split by growing inland cores back through continental crust using geodesic distance.
-
-The result feeds `track_cycle(world)`, which consumes rift events, waits for sustained continental-share thresholds, places seeded upwellings/downwellings, and advances assembled, dispersing and gathering phases. It reads mantle heat from `world.mantleHeat` but does not evolve that field; heat production/decay remains a separate hotspot/thermal stage.
-
-
-`track_cycle(world)` advances the world cycle state. It uses `world.rngCycle` for deterministic downwelling orientation and cycle duration, logs supercontinent/dispersal events, records the large plates of a clump, computes the upwelling heat average, and updates `phase`, `gather`, `clump`, and `hold`. Required cycle parameters are read from `world.config`.
-
-
-## Partial tectonic step orchestration
-
-Module: `orogen.v2.tectonics.stepper`
-
-`step_world(world, dt=None, update_motion=True, update_cycle=True)` advances one step using the ported stages in upstream order: advance plates, resolve the world owner map, classify boundary/trench state, update the supercontinent cycle, then compute force-balanced motion for the next step. When `dt` is omitted, it uses `choose_step(world)`; it returns a diagnostic record with step duration, cell displacement estimate, resolve tally, boundary count, cycle phase and motion-update status.
-
-This is a partial orchestrator, not a complete `simulate.js` port. Collision/orogeny event handling, rifting, subduction initiation, arcs, ocean-plate splitting, hotspot evolution, geology/relief evolution, snapshots and run/resume handling remain outside this stepper.
-
-
-## Mantle thermal memory (partial hotspot stage)
-
-Module: `orogen.v2.tectonics.thermal`
-
-- `insulate_at_start(world)` initializes mantle heat to 1 below continental/cratonic cells and 0 elsewhere.
-- `update_mantle_heat(world, dt)` exponentially warms mantle under continental lids and cools it elsewhere using `mantleInsulateMyr` and `mantleCoolMyr`.
-- `plume_heat_factor(world, plate)` returns the normalized thermal multiplier for plume-triggered continental rifting.
-- `pick_plume_site(world, rng)` draws a world cell by the weight `plumeOceanWeight + (1 - plumeOceanWeight) * mantleHeat[cell]`, excluding cells within `plumeSpacingKm` of a live plume.
-
-The partial `step_world` now advances this heat-memory field before updating the supercontinent cycle. The weighted plume-site selector, plume birth/life records, head LIP rasterization, and live-tail volcanic tracks are ported. Tail tracks now preserve LIP crust while recording TRACK cells and pulse-driven edifice growth.
-
-## Mantle heat and plume lifecycle
-
-`insulate_at_start(world)` and `update_mantle_heat(world, dt)` maintain the world-frame mantle-memory field. Continental and cratonic cells insulate the mantle; exposed cells cool toward zero. `plume_heat_factor(world, plate)` exposes the normalized heat bias used by plume-triggered rift decisions, and `pick_plume_site(world, rng)` selects a site while respecting the spacing from live plumes.
-
-The lifecycle layer is implemented in `orogen.v2.tectonics.plumes`:
-
-- `birth_plume(world, xyz, ...)` normalizes a mantle-frame location, creates a persistent plume record, logs `PLUME_RISE`, rasterizes a LIP province for a plume head, and may append a request to `world.pendingPlumeRifts`.
-- `update_plumes(world, dt)` initializes pre-existing plumes, advances mantle heat, consumes scheduled `world.plumes` entries (mantle-frame positions or plate/cell pairs), performs probabilistic births, and logs deaths.
-- The `step_world` orchestration now calls this lifecycle stage before supercontinent tracking and force balancing.
-
-`_erupt_lip` builds the LIP footprint from overlapping, rotated elliptical flows, five low-order radial lobes, and warped simplex-fBm edge noise. The province grows over the mesh adjacency graph; eligible owned cells receive `VolcanicType.LIP`, thickness, source and `CrustFlag.LIP` records. The shape seed comes from `rngVolcano` while the initial area draw uses `rngHotspot`, preserving the independent streams. This is a numerical port of the upstream head-province stage, not a demonstrated bit-for-bit match for all meshes.
-
-`_stamp_track` finds the plate currently over a live mantle plume, grows a connected ribbon within `hotspotTrackKm`, preserves existing LIP cells, and marks other cells as `VolcanicType.TRACK`. `_erupted_during` advances alternating quiet/burst intervals; burst intensity and duration scale edifice growth inside `hotspotEdificeKm`, capped by `hotspotMaxKm`. The remaining hotspot gap is execution of the queued plume-triggered rifts.
-
-
-## Rift partitioning operations (partial)
+### Partition and score a proposed rift
 
 Module: `orogen.v2.tectonics.ops.rift_partition`
 
-These functions operate on a plate-local `CrustRaster` and a simulation mesh:
+- `masked_cells(crust)` returns occupied plate cells in index order.
+- `partition(mesh, crust, path, cells=None)` marks left/right land blocks
+  around a proposed rift path and propagates oceanic crust to the nearest
+  block. It returns a side array (1 or 2), land-cell counts and unique craton
+  counts.
+- `sides_of(mesh, crust, path, cells=None)` summarizes the smaller land-block
+  share, maximum block elongation and whether both sides retain cratons.
+- `exterior_sea(mesh, crust)` marks ocean connected to the outside of the
+  plate, or the largest ocean basin when the plate covers the whole mesh.
+- `elongation_of(mesh, side, which, cells=None)` estimates a block's
+  long/short axis ratio from position covariance.
 
-- `masked_cells(crust)` returns the occupied plate cells in index order.
-- `partition(mesh, crust, path, cells=None)` marks the left/right land blocks created by a proposed rift, then propagates oceanic crust to the nearest block. It returns the side array (`1` or `2`), land-cell counts and unique craton counts.
-- `sides_of(mesh, crust, path, cells=None)` summarizes the smaller land-block share, maximum block elongation and whether both sides retain cratons.
-- `exterior_sea(mesh, crust)` marks ocean connected to the outside of a plate, or its largest ocean basin when the plate covers the whole mesh.
-- `elongation_of(mesh, side, which, cells=None)` estimates a block's long/short axis ratio from the position covariance.
+### Find a coast-to-coast path
+
+Module: `orogen.v2.tectonics.ops.rift_path`
+
+- `grain_of(world)` returns a seeded, cached crust-grain multiplier.
+- `rift_context(world, plate)` caches the plate cells, exterior sea,
+  distance from the outer coast and grain field for repeated junction trials.
+- `find_rift(world, plate, junction, pull_axis=None,
+  need_cratons_both_sides=True, ctx=None)` scores coast-to-coast paths from
+  one junction. Cratons cannot be traversed; old sutures/failed-rift margins
+  receive lower costs. Candidate paths are checked for coast-hugging,
+  overhang, block share, craton retention and block elongation.
+
+The result contains `path`, `failed_arm`, three `arms`, the `across`
+normal and a comparative `value`. A result of `None` means that no
+candidate passed the configured constraints.
+
+### Split a plate and execute a rift
+
+Module: `orogen.v2.tectonics.ops.rift`
+
+- `choose_junction(world, plate, rng)` selects a weighted interior land cell,
+  favouring weak lines and excluding cratons.
+- `plume_junctions(world, plate, xyz)` samples eligible land cells near a
+  plume head.
+- `split_plate(world, plate, path, failed_arm, name_for, across=None)`
+  transfers one partition to a new `Plate`, copies pose and crust records,
+  moves wing tips, flags rift margins/failed arms, spreads rift-shoulder
+  records, updates rift partners and calculates separation-push directions.
+- `try_rift(world, plate, junctions, cause,
+  need_cratons_both_sides=True)` tests the supplied junctions, chooses the
+  lowest-valued valid cut, splits the plate and records the rift event.
+- `pull_axis_of(plate, mesh)` estimates the principal axis of trench pull.
+- `names_after_split(world, plate_a, plate_b, before)` uses craton letters
+  where distinct, otherwise allocates unused numbered names.
+
+### Run the rifting stage
+
+Module: `orogen.v2.tectonics.rifting`
+
+- `pace_of(age, config)` computes the age-dependent breakup pace.
+- `search_junctions(world, request)` evaluates a batch of junctions in order.
+- `rift_continents(world, dt)` processes queued plume requests (including
+  waiting and expiry), temporarily held supercontinent pieces, overdue forced
+  rifts and spontaneous tension/heat-driven breakup attempts.
+
+`step_world(world, dt=None, update_motion=True, update_cycle=True)`
+integrates this stage after plume and supercontinent updates when
+`riftRatePerMyr` exists in the world configuration or plume-rift requests are
+pending. It reports the number of plate splits in the `rifts` field.
 
 Example:
 
 ```python
-from orogen.v2.tectonics.ops import partition, sides_of
+from orogen.v2.tectonics import TectonicWorld, step_world
 
-side, land_counts, craton_counts = partition(mesh, crust, rift_path)
-shape = sides_of(mesh, crust, rift_path)
+world = TectonicWorld(mesh, seed=123, config=tectonics_config)
+diagnostic = step_world(world, dt=1.0)
+print(diagnostic["rifts"])
 ```
 
-This is the partitioning and scoring layer only. It does not find a valid rift path, split a `Plate`, create a new plate, or execute `world.pendingPlumeRifts`. Those operations remain part of the outstanding `ops/rift-path.js`, `ops/rift.js` and `step/rifting.js` port.
+This is a tested rifting subsystem and a partial stepper integration, not the
+entire `simulate.js` generator. The upstream collision/orogeny, subduction,
+arc, ocean-plate evolution, terrain, geology, climate and snapshot stages are
+still outstanding.

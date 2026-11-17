@@ -84,18 +84,16 @@ test coverage.
 
 ## Latest documented verification
 
-The latest successful test run explicitly recorded in the benchmark documentation is:
+The production `shull` branch has a successful full test run:
 
-- **476 tests passed**.
-- **100% line coverage** for `orogen.v2`.
-- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
-- Paired JS/Python benchmark: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460176).
+- **477 tests passed**.
+- **100% line coverage** for `orogen.v2` (5,925 executable lines).
+- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44182194923).
+- Validated revision: `9112b1704c306d9f758e81fbf6050f115f54e015` (2026-11-17).
 
-The test run is associated in the project history with commit
-`6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17). It is a historical
-verification point, not evidence that later branch changes have passed CI.
-Rerun the test workflow after subsequent code changes before describing the
-current branch head as verified.
+The complete suite includes the seven selected Delaunator differential fixtures.
+Rerun the test workflow after subsequent source changes before describing a
+changed source revision as verified.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

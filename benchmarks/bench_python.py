@@ -8,6 +8,7 @@ import orogen.v2.core.mesh_bfs as mesh_bfs_module
 from orogen.v2.core.mesh_bfs import hop_distance, pieces_of
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
+import orogen.v2.tectonics.crust as crust_module
 from orogen.v2.tectonics import far_field
 
 N_NOISE, N_GEOM, N_CELLS, ROUNDS = 40000, 80000, 12000, 5
@@ -78,6 +79,37 @@ def bench_crust_copy():
     target.copy_many(copy_cells,copy_source,copy_cells)
     sink=target.count
 
+
+
+
+def bench_crust_scalar_acceleration():
+    """A/B the existing per-cell API with Numba enabled and Python fallback."""
+    def run(use_numba):
+        previous = crust_module.NUMBA_AVAILABLE
+        crust_module.NUMBA_AVAILABLE = bool(use_numba and NUMBA_AVAILABLE)
+
+        def once():
+            global sink
+            raster = CrustRaster(N_CELLS)
+            total = 0
+            for cell in range(0, N_CELLS, 2):
+                raster.create(cell, CrustType["CONTINENT"], -100, cell + 1)
+                total += len(raster.snapshot(cell))
+            sink = total
+
+        try:
+            return median_ms(once)
+        finally:
+            crust_module.NUMBA_AVAILABLE = previous
+
+    numba_ms = run(True)
+    python_ms = run(False)
+    return {
+        "workload": "6,000 scalar create+snapshot calls",
+        "numba_ms": round(numba_ms, 3),
+        "python_fallback_ms": round(python_ms, 3),
+        "speedup": round(python_ms / numba_ms, 2) if numba_ms else None,
+    }
 
 def bench_mesh_components():
     """Compare selected-cell connected components with and without Numba."""
@@ -186,6 +218,7 @@ def bench_far_field_diffusion():
 
 far_field_comparison = bench_far_field_diffusion()
 component_comparison = bench_mesh_components()
+crust_scalar_comparison = bench_crust_scalar_acceleration()
 
 timings={
 "noise_fbm_ms":median_ms(bench_noise),
@@ -196,4 +229,4 @@ timings={
 "crust_create_snapshot_ms":median_ms(bench_crust),
 "crust_copy_ms":median_ms(bench_crust_copy),
 }
-print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison}}))
+print(json.dumps({"runtime":{"python":sys.version.split()[0],"numpy":np.__version__,"numba_available":NUMBA_AVAILABLE,"platform":platform.platform()},"timings":timings,"accelerator_comparisons":{"far_field_diffusion":far_field_comparison,"mesh_components":component_comparison,"crust_scalar":crust_scalar_comparison}}))

@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 
 from .crust import CrustFlag, CrustType
+from .config import CM_PER_YR_TO_RAD_PER_MYR
+from .world import EventKind
 from ..core.mesh_bfs import hops_from
+from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
 
 
 def collect_contacts(world) -> dict:
@@ -258,4 +261,466 @@ __all__ = [
     "collect_contacts",
     "forget_stale_collisions",
     "underthrust",
+    "accrete_arcs",
+    "dock_if_terrane",
+    "enclosed_sea_between_km2",
+    "is_rift_jitter",
+    "open_sea_between",
+    "recycle",
+    "recycle_small_arc",
 ]
+
+
+def enclosed_sea_between_km2(world, upper, lower) -> float:
+    """Largest enclosed sea component bordered by both plates, in km²."""
+    mesh = world.mesh
+    owner = world.owner
+    owner_cell = world.ownerCell
+    land_claims = world.landClaims
+    plates = world.plates
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    n = int(mesh.num_cells)
+
+    def is_sea(cell: int) -> bool:
+        plate_id = int(owner[cell])
+        return bool(
+            plate_id < 0
+            or (
+                int(land_claims[cell]) <= 1
+                and plates[plate_id].crust.type[int(owner_cell[cell])]
+                == CrustType["OCEAN"]
+            )
+        )
+
+    component = [-1] * n
+    sizes = []
+    for start in range(n):
+        if not is_sea(start) or component[start] >= 0:
+            continue
+        identifier = len(sizes)
+        queue = [start]
+        component[start] = identifier
+        cursor = 0
+        while cursor < len(queue):
+            cell = queue[cursor]
+            cursor += 1
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if component[neighbour] < 0 and is_sea(neighbour):
+                    component[neighbour] = identifier
+                    queue.append(neighbour)
+        sizes.append(len(queue))
+
+    if not sizes:
+        return 0.0
+    world_ocean = max(range(len(sizes)), key=lambda identifier: sizes[identifier])
+    borders_upper = [False] * len(sizes)
+    borders_lower = [False] * len(sizes)
+    for cell in range(n):
+        plate_id = int(owner[cell])
+        if plate_id not in (upper.id, lower.id) or is_sea(cell):
+            continue
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+            identifier = component[int(adjacency[edge])]
+            if identifier >= 0:
+                if plate_id == upper.id:
+                    borders_upper[identifier] = True
+                else:
+                    borders_lower[identifier] = True
+
+    largest = 0
+    for identifier, size in enumerate(sizes):
+        if (
+            identifier != world_ocean
+            and borders_upper[identifier]
+            and borders_lower[identifier]
+        ):
+            largest = max(largest, size)
+    return float(largest) * float(mesh.cell_area_km2)
+
+
+def open_sea_between(world, upper, lower) -> dict[str, float]:
+    """Measure the still-open sea directly between two opposed continental fronts."""
+    mesh = world.mesh
+    owner, owner_cell = world.owner, world.ownerCell
+    land_claims, plates = world.landClaims, world.plates
+    xyz = mesh.xyz
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    edge_km = float(mesh.edge_km)
+    cell_area = float(mesh.cell_area_km2)
+    config = world.config
+    n = int(mesh.num_cells)
+
+    def is_sea(cell: int) -> bool:
+        plate_id = int(owner[cell])
+        return bool(
+            plate_id < 0
+            or (
+                int(land_claims[cell]) <= 1
+                and plates[plate_id].crust.type[int(owner_cell[cell])]
+                == CrustType["OCEAN"]
+            )
+        )
+
+    coast_upper = []
+    coast_lower = []
+    for cell in range(n):
+        plate_id = int(owner[cell])
+        if plate_id not in (upper.id, lower.id) or is_sea(cell):
+            continue
+        touches_sea = any(
+            is_sea(int(adjacency[edge]))
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1]))
+        )
+        if touches_sea:
+            (coast_upper if plate_id == upper.id else coast_lower).append(cell)
+
+    hops = max(
+        1,
+        math.floor(float(config["sutureGapKm"]) / edge_km + 0.5),
+    )
+    dist_upper, source_upper = hops_from(
+        mesh, coast_upper, is_sea, hops
+    )
+    dist_lower, source_lower = hops_from(
+        mesh, coast_lower, is_sea, hops
+    )
+
+    def direction_to(cell: int, source: int) -> list[float]:
+        return tangent_toward(
+            _position(xyz, cell),
+            _position(xyz, cell),
+            _position(xyz, int(source)),
+        )
+
+    count = 0
+    widest = 0
+    for cell in range(n):
+        du = int(dist_upper[cell])
+        dl = int(dist_lower[cell])
+        if du <= 0 or dl <= 0 or du + dl > hops + 1:
+            continue
+        to_upper = direction_to(cell, int(source_upper[cell]))
+        to_lower = direction_to(cell, int(source_lower[cell]))
+        facing = dot(to_upper, to_lower)
+        if facing < -0.5:
+            count += 1
+        if facing < -0.87:
+            widest = max(widest, du + dl - 1)
+
+    return {
+        "km2": count * cell_area,
+        "widestKm": widest * edge_km,
+    }
+
+
+def is_rift_jitter(world, plate_a, plate_b, cells) -> bool:
+    """Detect a one-cell sliver where conjugate, young rift margins jitter."""
+    mesh = world.mesh
+    if (
+        len(cells) * float(mesh.cell_area_km2) / float(mesh.edge_km)
+        > float(world.config["riftJitterFrontKm"])
+    ):
+        return False
+
+    xyz, index = mesh.xyz, mesh.index
+    for world_cell in cells:
+        offset = 3 * int(world_cell)
+        point = (
+            float(xyz[offset]),
+            float(xyz[offset + 1]),
+            float(xyz[offset + 2]),
+        )
+        cell_a = plate_a.cell_at(index, *point)
+        cell_b = plate_b.cell_at(index, *point)
+        if not (
+            int(plate_a.crust.flags[cell_a]) & CrustFlag["RIFT_MARGIN"]
+            and int(plate_b.crust.flags[cell_b]) & CrustFlag["RIFT_MARGIN"]
+        ):
+            return False
+    return True
+
+
+def recycle(world, donor, cells) -> int:
+    """Remove an arc fragment into the mantle and retire an empty donor."""
+    area_km2 = len(cells) * float(world.mesh.cell_area_km2)
+    for cell in cells:
+        donor.crust.remove(int(cell))
+    donor.mark_reshaped()
+    world.budget["recycledCells"] += len(cells)
+    if area_km2 >= float(world.config["terraneMinAreaKm2"]):
+        world.log(
+            EventKind["ARC_RECYCLED"],
+            (
+                f"a small island arc of {donor.name} "
+                f"({area_km2 / 1e3:.0f}k km²) goes down with its slab "
+                "instead of accreting"
+            ),
+            {"donor": donor.id, "areaKm2": area_km2},
+        )
+    if donor.crust.count == 0:
+        donor.alive = False
+        donor.omega = [0.0, 0.0, 0.0]
+        donor.dynamics = None
+    return len(cells)
+
+
+def recycle_small_arc(world, donor, cell: int) -> bool:
+    """Recycle a connected arc fragment below the configured accretion area."""
+    mesh = world.mesh
+    crust = donor.crust
+    if (
+        not crust.mask[cell]
+        or crust.type[cell] != CrustType["ARC"]
+    ):
+        return False
+
+    limit = math.ceil(
+        float(world.config["arcAccreteMinKm2"])
+        / float(mesh.cell_area_km2)
+    )
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    component = [int(cell)]
+    seen = {int(cell)}
+    cursor = 0
+    while cursor < len(component) and len(component) < limit:
+        current = component[cursor]
+        cursor += 1
+        for edge in range(int(offsets[current]), int(offsets[current + 1])):
+            neighbour = int(adjacency[edge])
+            if (
+                neighbour not in seen
+                and crust.mask[neighbour]
+                and crust.type[neighbour] == CrustType["ARC"]
+            ):
+                seen.add(neighbour)
+                component.append(neighbour)
+    if len(component) >= limit:
+        return False
+    recycle(world, donor, component)
+    return True
+
+
+def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
+    """Scrape overlapping island arcs onto the opposite plate before core collision."""
+    from .ops.scrape_arc import scrape_arc
+
+    mesh = world.mesh
+    xyz, index = mesh.xyz, mesh.index
+
+    def cell_of(plate, world_cell: int) -> int:
+        offset = 3 * int(world_cell)
+        return plate.cell_at(
+            index,
+            float(xyz[offset]),
+            float(xyz[offset + 1]),
+            float(xyz[offset + 2]),
+        )
+
+    def is_arc(plate, cell: int) -> bool:
+        return bool(
+            plate.crust.mask[cell]
+            and plate.crust.type[cell] == CrustType["ARC"]
+        )
+
+    core = []
+    from_a = []
+    from_b = []
+    arc_a_loses = (
+        plate_a.stats["continentalCells"] < plate_b.stats["continentalCells"]
+        or (
+            plate_a.stats["continentalCells"]
+            == plate_b.stats["continentalCells"]
+            and plate_a.id > plate_b.id
+        )
+    )
+    for world_cell in overlap:
+        cell_a = cell_of(plate_a, world_cell)
+        cell_b = cell_of(plate_b, world_cell)
+        arc_a = is_arc(plate_a, cell_a)
+        arc_b = is_arc(plate_b, cell_b)
+        if not arc_a and not arc_b:
+            core.append(int(world_cell))
+        elif arc_a and arc_b:
+            (from_a if arc_a_loses else from_b).append(cell_a if arc_a_loses else cell_b)
+        elif arc_a:
+            from_a.append(cell_a)
+        else:
+            from_b.append(cell_b)
+
+    accreted = 0
+    for donor, host, arriving in (
+        (plate_a, plate_b, from_a),
+        (plate_b, plate_a, from_b),
+    ):
+        if not arriving or not donor.alive or not host.alive:
+            continue
+        seeds = []
+        for cell in dict.fromkeys(arriving):
+            if not recycle_small_arc(world, donor, int(cell)):
+                seeds.append(int(cell))
+        if not seeds:
+            accreted += 1
+            continue
+        moved = scrape_arc(world, host, donor, seeds)
+        accreted += moved
+        key = f"{donor.id}:{host.id}"
+        record = world.arcScrapes.get(key)
+        if record is None:
+            record = {
+                "cells": 0,
+                "since": float(world.time),
+                "donorName": donor.name,
+            }
+            world.arcScrapes[key] = record
+        record["cells"] += moved
+        record["last"] = float(world.time)
+        if (
+            not record.get("logged", False)
+            and record["cells"] * float(mesh.cell_area_km2)
+            >= float(world.config["arcScrapeLogKm2"])
+        ):
+            record["logged"] = True
+            area_mkm2 = (
+                record["cells"] * float(mesh.cell_area_km2) / 1e6
+            )
+            world.log(
+                EventKind["ARC_SCRAPE"],
+                (
+                    f"island arc of {record['donorName']} is scraped onto "
+                    f"{host.name} ({area_mkm2:.2f} Mkm² so far): the ocean "
+                    f"behind it keeps going down"
+                    + (f"; {record['donorName']} is gone" if not donor.alive else "")
+                ),
+                {
+                    "host": host.id,
+                    "donor": donor.id,
+                    "areaMkm2": area_mkm2,
+                    "donorGone": not donor.alive,
+                },
+            )
+    return {"core": core, "accreted": bool(accreted)}
+
+
+def dock_if_terrane(world, plate_a, plate_b, cells) -> bool:
+    """Dock a small landmass or mostly-arc piece as a terrane rather than equal plates."""
+    from .ops.plate_accretion import accrete_terrane, landmass_of
+
+    mesh, config = world.mesh, world.config
+    xyz, index = mesh.xyz, mesh.index
+    cell_area = float(mesh.cell_area_km2)
+
+    def contact_cells(plate):
+        result = []
+        for world_cell in cells:
+            offset = 3 * int(world_cell)
+            result.append(
+                plate.cell_at(
+                    index,
+                    float(xyz[offset]),
+                    float(xyz[offset + 1]),
+                    float(xyz[offset + 2]),
+                )
+            )
+        return result
+
+    mass_a = landmass_of(plate_a, mesh, contact_cells(plate_a))
+    mass_b = landmass_of(plate_b, mesh, contact_cells(plate_b))
+    area_a = len(mass_a) * cell_area
+    area_b = len(mass_b) * cell_area
+
+    def mostly_arc(plate, mass) -> bool:
+        return bool(
+            mass
+            and sum(
+                plate.crust.type[cell] == CrustType["ARC"]
+                for cell in mass
+            ) * 2 > len(mass)
+        )
+
+    terrane_a = bool(
+        area_a > 0
+        and (
+            area_a < float(config["terraneMaxAreaKm2"])
+            or mostly_arc(plate_a, mass_a)
+        )
+    )
+    terrane_b = bool(
+        area_b > 0
+        and (
+            area_b < float(config["terraneMaxAreaKm2"])
+            or mostly_arc(plate_b, mass_b)
+        )
+    )
+    if not terrane_a and not terrane_b:
+        return False
+    if area_a == 0 or area_b == 0:
+        return False
+
+    a_hosts = not terrane_a or (
+        terrane_b
+        and plate_a.stats["continentalCells"]
+        >= plate_b.stats["continentalCells"]
+    )
+    host, donor, mass = (
+        (plate_a, plate_b, mass_b)
+        if a_hosts
+        else (plate_b, plate_a, mass_a)
+    )
+    relative_omega = [
+        float(donor.omega[i]) - float(host.omega[i])
+        for i in range(3)
+    ]
+    centre = centroid_of_cells(xyz, cells)
+    velocity = cross(relative_omega, centre)
+    rate = math.hypot(*velocity) / CM_PER_YR_TO_RAD_PER_MYR
+    arc_piece = mostly_arc(donor, mass)
+
+    if (
+        arc_piece
+        and len(mass) * cell_area
+        < float(config["arcAccreteMinKm2"])
+    ):
+        recycle(world, donor, mass)
+        return True
+
+    donor_name = donor.name
+    result = accrete_terrane(world, host, donor, mass, rate)
+    if result.get("scrap", False):
+        return True
+
+    area_mkm2 = len(mass) * cell_area / 1e6
+    kind = "island arc" if arc_piece else "terrane"
+    world.log(
+        EventKind["DOCK"],
+        (
+            f"{kind} of {donor_name} ({area_mkm2:.2f} Mkm²) accretes to "
+            f"{host.name}: {result['cells']} cells transferred"
+            + (
+                f", {result['sealed']} cells of strait closed"
+                if result["sealed"]
+                else ""
+            )
+            + f"; subduction jumps to its outboard side"
+            + (f"; {donor_name} is gone" if not donor.alive else "")
+        ),
+        {
+            "host": host.id,
+            "donor": donor.id,
+            "arc": arc_piece,
+            "areaMkm2": area_mkm2,
+            "cells": result["cells"],
+            "sealed": result["sealed"],
+            "donorGone": not donor.alive,
+        },
+    )
+    return True
+
+
+def _position(xyz, cell: int):
+    offset = 3 * int(cell)
+    return (
+        float(xyz[offset]),
+        float(xyz[offset + 1]),
+        float(xyz[offset + 2]),
+    )

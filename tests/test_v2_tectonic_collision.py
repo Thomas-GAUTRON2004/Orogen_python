@@ -727,7 +727,8 @@ def test_accrete_arcs_returns_core_when_both_contacts_are_continent():
 
 def test_accrete_arcs_prefers_smaller_arc_donor_and_logs_transfer(monkeypatch):
     from orogen.v2.tectonics import collision
-    import importlib\n    scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
+    import importlib
+    scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
 
     world, a, b = contact_world()
     a.crust.type[0] = CrustType["ARC"]

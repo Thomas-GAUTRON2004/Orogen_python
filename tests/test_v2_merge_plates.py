@@ -35,14 +35,35 @@ def merge_config():
     }
 
 
+class Index:
+    def __init__(self, points):
+        self.points = np.asarray(points, dtype=float)
+
+    def nearest(self, x, y, z):
+        point = np.asarray([x, y, z], dtype=float)
+        return int(np.argmin(np.sum((self.points - point) ** 2, axis=1)))
+
+
+class Mesh:
+    def __init__(self):
+        angles = np.arange(5, dtype=float) * 0.02
+        points = np.column_stack((
+            np.cos(angles), np.sin(angles), np.zeros(5)
+        ))
+        self.xyz = points.astype(np.float32).ravel()
+        self.num_cells = 5
+        self.edge_km = 100.0
+        self.edge_rad = self.edge_km / 6371.0
+        self.cell_area_km2 = 100.0
+        self.index = Index(points)
+        self.adj_offset = np.asarray([0, 4, 5, 6, 7, 8], dtype=np.int32)
+        self.adj_list = np.asarray([1, 2, 3, 4, 0, 0, 0, 0], dtype=np.int32)
+
+
 def merge_fixture(gain=0.01):
     # A five-cell star gives the missing centre four crust neighbours so the
     # inverse-warp pinhole repair is exercised as well.
-    from tests.test_v2_tectonic_collision import Mesh
-
-    mesh = Mesh(5)
-    mesh.adj_offset = np.asarray([0, 4, 5, 6, 7, 8], dtype=np.int32)
-    mesh.adj_list = np.asarray([1, 2, 3, 4, 0, 0, 0, 0], dtype=np.int32)
+    mesh = Mesh()
     upper, lower = Plate(0, 5), Plate(1, 5)
     upper.name, lower.name = "Upper", "Lower"
     upper.capCenter = [0.0, 0.0, 1.0]

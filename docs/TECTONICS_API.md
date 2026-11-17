@@ -365,3 +365,23 @@ Module: `orogen.v2.tectonics.ending` (also exported from
 
 The helpers are tested independently. They do not yet imply that the full
 upstream `simulate.js` stage sequence or snapshot codec has been ported.
+
+
+## Collision tracking
+
+`track_collisions(world, dt)` is the first integrated slice of the upstream
+collision stage. It gathers continent-on-continent overlaps by plate pair,
+creates and updates collision records, determines upper/lower plates, measures
+convergence and contact-front length, and advances the shortening and stall
+counters. Where enabled in the supplied configuration, it also accounts for
+lower-plate underthrusting and routes touching terranes or overlapping arcs
+through the existing accretion helpers.
+
+The function returns a mapping with `tracked`, `started`,
+`underthrustCells`, and `changed`. `step_world` calls it only when
+`collisionForgetMyr` is present in the world configuration, and rebuilds the
+world view after crust transfers.
+
+This stage is deliberately incomplete. It does not yet spread collision
+orogenic belts, measure sea-gap closure, or weld/merge plates. A
+`sutureCandidate` record is only a threshold marker, not a completed suture.

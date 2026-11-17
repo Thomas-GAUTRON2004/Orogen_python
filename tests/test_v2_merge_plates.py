@@ -3,7 +3,7 @@
 import numpy as np
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
-from orogen.v2.tectonics.ops.merge_plates import (\n    _stamp_cratons_rigidly, merge_plates,\n)
+from orogen.v2.tectonics.ops.merge_plates import _stamp_cratons_rigidly, merge_plates
 from orogen.v2.tectonics.plate import Plate
 
 

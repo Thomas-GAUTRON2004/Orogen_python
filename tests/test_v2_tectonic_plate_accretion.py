@@ -248,3 +248,66 @@ def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     result = landmass_of(host, world.mesh, [0])
 
     assert result == [0, 1, 2]
+
+
+def test_close_seas_between_converts_craton_source_when_sealing_two_cell_strait():
+    points = [
+        [1, 0, 0],
+        [0.5, 0.866, 0],
+        [-0.5, 0.866, 0],
+        [-1, 0, 0],
+    ]
+    mesh = Mesh(points, [[1], [0, 2], [1, 3], [2]])
+    crust = CrustRaster(4)
+    crust.create(0, CrustType["CONTINENT"], -100.0, 10)
+    crust.create(1, CrustType["OCEAN"], -20.0, 11)
+    crust.create(2, CrustType["OCEAN"], -30.0, 12)
+    crust.create(3, CrustType["CRATON"], -200.0, 30)
+    origin = np.asarray([1, 0, 0, 2], dtype=np.int8)
+    upper = Plate(0, 4)
+    upper.capCenter = [1.0, 0.0, 0.0]
+    cfg = {"sealStraitKm": 200.0, "inlandSeaMaxKm2": 0.0}
+
+    assert close_seas_between(crust, origin, mesh, upper, cfg, 8.0) == 2
+    assert crust.type[2] == CrustType["CONTINENT"]
+    assert crust.terrane[2] == 30
+    assert crust.flags[2] == CrustFlag["SUTURE"]
+    assert origin.tolist() == [1, 3, 3, 2]
+
+
+def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeypatch):
+    points = [
+        [1.0, 0.0, 0.0],
+        [0.5, math.sqrt(0.75), 0.0],
+        [-0.5, math.sqrt(0.75), 0.0],
+        [0.0, -1.0, 0.0],
+    ]
+    mesh = Mesh(points, [[1], [0, 2], [1], []])
+    host = Plate(0, 4)
+    donor = Plate(1, 4)
+    host.crust.create(0, CrustType["CONTINENT"], -100.0, 10)
+    host.crust.create(3, CrustType["OCEAN"], -10.0, 40)
+    donor.crust.create(1, CrustType["OCEAN"], -50.0, 21)
+    donor.crust.create(2, CrustType["CONTINENT"], -80.0, 30)
+    donor.crust.flags[1] = CrustFlag["TRENCH"]
+    world = SimpleNamespace(
+        mesh=mesh,
+        config={
+            "terraneForeArcKm": 100.0,
+            "terraneMinAreaKm2": 100.0,
+            "sealStraitKm": 100.0,
+            "inlandSeaMaxKm2": 0.0,
+            "belts": {"ural": {"baseKm": 100.0, "perKm": 1.0, "maxKm": 300.0}},
+            "beltSpeedFactorMax": 1.6,
+            "beltSpeedFactorMin": 0.6,
+            "beltSpeedRefCmYr": 5.0,
+            "beltSpeedExponent": 0.5,
+        },
+        time=10.0,
+    )
+    monkeypatch.setattr(plate_accretion, "spread_belt", lambda *_args, **_kwargs: None)
+
+    result = accrete_terrane(world, host, donor, [2], 5.0)
+
+    assert result["cells"] == 1
+    assert host.crust.type[3] == CrustType["OCEAN"]

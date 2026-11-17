@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from scipy.spatial import QhullError
 
 from orogen.v2.core import fast_noise, seed, sphere_mesh
 from orogen.v2.core.min_heap import MinHeap, _edge_km_of, forget_edge_km, spread_km
@@ -134,15 +133,15 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
 
     class BrokenDelaunay:
         def __init__(self, points):
-            raise QhullError("bad geometry")
-    monkeypatch.setattr(sphere_mesh, "Delaunay", BrokenDelaunay)
+            raise RuntimeError("bad geometry")
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", BrokenDelaunay)
     with pytest.raises(ValueError, match="Delaunay triangulation failed"):
         sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
 
     class EmptyDelaunay:
         def __init__(self, points):
             self.simplices = np.empty((0, 3), dtype=np.int32)
-    monkeypatch.setattr(sphere_mesh, "Delaunay", EmptyDelaunay)
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", EmptyDelaunay)
     with pytest.raises(ValueError, match="no closed convex hull"):
         sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
 
@@ -216,7 +215,7 @@ def test_sphere_mesh_normalizes_clockwise_simplex_winding(monkeypatch):
     class ClockwiseDelaunay:
         def __init__(self, points):
             self.simplices = np.array([[0, 1, 2]], dtype=np.int32)
-    monkeypatch.setattr(sphere_mesh, "Delaunay", ClockwiseDelaunay)
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", ClockwiseDelaunay)
     points = np.array([[0., 0.], [0., 1.], [1., 0.]])
     triangles = sphere_mesh._closed_triangles(points, 3)
     assert triangles[0].tolist() == [0, 2, 1]

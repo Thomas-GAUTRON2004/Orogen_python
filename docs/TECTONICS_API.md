@@ -200,4 +200,4 @@ Module: `orogen.v2.tectonics.orogeny`
 - `belt_shape(head_on, slab_age_myr, config)` applies obliquity and slab-age scaling.
 - `obliquity_deg(velocity, normal, position, closing)` returns signed dextral/sinistral obliquity.
 
-The spatial `spreadBelt` operation is not included yet.
+`spread_belt(plate, mesh, sources, belt, config, allow=None)` propagates a front across connected land cells, with source-specific reach/work, weak-line costs, craton-rim restrictions, and optional cell filtering. It records orogeny history, previous-belt overprints, belt geometry/shear, and crustal thickening. It returns the reached continental cell indices. The port deliberately does not call upstream `buildHeights` or `thickenCover`; relief synthesis and sediment-cover updates remain outstanding.

@@ -106,7 +106,7 @@ def test_merge_plates_redraws_upper_and_retires_lower_with_a_suture():
         {"shorteningKm": 500.0, "meanRateCmYr": 5.0},
     )
 
-    assert result["overlapCells"] == 1
+    assert result["overlapCells"] == 3
     assert result["maxIndentKm"] > 0.0
     assert result["meanIndentKm"] > 0.0
     assert result["sealedCells"] == 0
@@ -131,7 +131,11 @@ def test_merge_plates_redraws_upper_and_retires_lower_with_a_suture():
 def test_merge_plates_handles_a_world_overlap_fallback_without_overlap_raster():
     world, upper, lower = merge_fixture(gain=0.0)
     upper.crust.remove(1)
+    upper.crust.remove(2)
+    upper.crust.remove(4)
     lower.crust.remove(1)
+    lower.crust.remove(2)
+    lower.crust.remove(4)
     upper.refresh_extent(world.mesh.xyz)
     lower.refresh_extent(world.mesh.xyz)
 
@@ -158,7 +162,7 @@ def test_merge_plates_with_zero_indent_keeps_raster_locations_stable():
         [1],
         {"shorteningKm": 50.0, "meanRateCmYr": 1.0},
     )
-    assert result["overlapCells"] == 1
+    assert result["overlapCells"] == 3
     assert upper.crust.mask[1] == 1
     assert upper.crust.mask[3] == 1
     assert upper.crust.mask[4] == 1

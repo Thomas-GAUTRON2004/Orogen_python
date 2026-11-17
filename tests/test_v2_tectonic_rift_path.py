@@ -177,6 +177,9 @@ def test_is_monotone_accepts_forward_path_and_rejects_backstep():
 
 def test_find_rift_builds_a_coast_to_coast_path_and_failed_arm():
     world, plate = square_world()
+    # A sealed ocean pocket is not land and cannot enter the path-search tree.
+    plate.crust.type[2 * 7 + 2] = CrustType["OCEAN"]
+    world.config["riftFailedArmKm"] = 50.0
     result = find_rift(
         world,
         plate,
@@ -220,3 +223,46 @@ def test_find_rift_rejects_ocean_craton_and_single_coast_junctions():
     )
     tiny_plate = SimpleNamespace(crust=crust)
     assert find_rift(tiny_world, tiny_plate, junction=0) is None
+
+
+
+def test_find_rift_rejects_short_chords():
+    world, plate = square_world()
+    world.config["riftMinChordKm"] = 100_000.0
+    assert find_rift(
+        world, plate, junction=24, need_cratons_both_sides=False
+    ) is None
+
+
+def test_find_rift_continues_after_non_monotone_candidates(monkeypatch):
+    world, plate = square_world()
+    monkeypatch.setattr(rift_path, "_is_monotone", lambda *_args: False)
+    assert find_rift(
+        world, plate, junction=24, need_cratons_both_sides=False
+    ) is None
+
+
+def test_find_rift_continues_after_coast_hugging_candidates(monkeypatch):
+    world, plate = square_world()
+    monkeypatch.setattr(
+        rift_path, "_crosses_rather_than_hugs", lambda *_args: False
+    )
+    assert find_rift(
+        world, plate, junction=24, need_cratons_both_sides=False
+    ) is None
+
+
+def test_find_rift_rejects_poorly_balanced_land_blocks(monkeypatch):
+    world, plate = square_world()
+    monkeypatch.setattr(
+        rift_path,
+        "sides_of",
+        lambda *_args: {
+            "share": 0.0,
+            "elongation": 1.0,
+            "cratonsBothSides": False,
+        },
+    )
+    assert find_rift(
+        world, plate, junction=24, need_cratons_both_sides=False
+    ) is None

@@ -249,7 +249,7 @@ def test_numba_mesh_components_match_python_fallback_and_tie_order(monkeypatch):
         adj_list = np.asarray([1, 2, 0, 2, 0, 1, 4, 3, 7, 6], dtype=np.int32)
 
     mesh = Mesh()
-    selected = [6, 0, 5, 3, 1, 7, 2, 4, 5]
+    selected = [6, 0, 5, 3, 1, 7, 4, 5]
     monkeypatch.setattr(mesh_bfs_module, "NUMBA_AVAILABLE", False)
     expected = mesh_bfs_module.pieces_of(mesh, selected)
     expected_largest = mesh_bfs_module.largest_piece_of(mesh, selected)

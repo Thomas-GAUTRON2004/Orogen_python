@@ -15,6 +15,7 @@ from .resolve import resolve
 from .simulation import choose_step, closing_rate
 from .plumes import update_plumes
 from .supercontinent import track_cycle
+from .rifting import rift_continents
 
 
 def step_world(
@@ -49,6 +50,12 @@ def step_world(
     classified = classify_contact_boundaries(world, step_dt)
     plume_state = update_plumes(world, step_dt)
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
+    rifts = 0
+    if (
+        float(world.config.get("riftRatePerMyr", 0.0)) > 0.0
+        or getattr(world, "pendingPlumeRifts", None)
+    ):
+        rifts = rift_continents(world, step_dt)
     if update_motion:
         update_plate_motion(world)
 
@@ -61,5 +68,6 @@ def step_world(
         "classifiedBoundaries": int(classified),
         "cyclePhase": None if cycle is None else cycle.get("phase"),
         "plumes": plume_state,
+        "rifts": int(rifts),
         "motionUpdated": bool(update_motion),
     }

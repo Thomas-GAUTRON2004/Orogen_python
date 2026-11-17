@@ -172,3 +172,10 @@ The current port exposes four deterministic building blocks from the upstream bo
 - `feed_trench(world, world_cell, crust, cell, subducted_km)` starts or extends a trench only when this cell or an adjacent world cell consumed crust.
 
 These are helper ports, not yet the complete `classifyBoundaries(world, dt)` pass. Full boundary classification also requires the still-unported orogeny and far-field deformation systems.
+
+
+### Contact boundary classification
+
+`classify_contact_boundaries(world, dt)` performs the currently ported contact-state pass over a resolved world view. It sets per-cell boundary kinds and convergence, handles collision and interior trench-flag bookkeeping, resolves closing-contact polarity, records trench consumption, and optionally votes ocean-ocean contact segments when `segmentPolarity` is enabled.
+
+This remains a partial port of upstream `classifyBoundaries`: mountain-belt spreading, transpression/orogeny records, flat-slab decisions, and far-field force recording are not yet included.

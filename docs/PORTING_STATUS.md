@@ -107,3 +107,6 @@ The first resolver pass is now implemented as `orogen.v2.tectonics.resolve.resol
 
 
 Boundary processing has started: `orogen.v2.tectonics.boundaries` now contains the pure motion classifier, connected-segment polarity voting, apron-near-land query, and trench-feed bookkeeping. The integrated boundary pass remains outstanding because it depends on orogeny spreading and far-field deformation, which have not yet been ported.
+
+
+The boundary module now also exposes `classify_contact_boundaries(world, dt)`, which classifies resolved contacts as ridge, transform, subducting, overriding, or collision and updates convergence, trench flags, slab consumption, and optional segment polarity. It deliberately does not claim full upstream boundary-pass parity: orogeny spreading, flat-slab logic, and far-field deformation remain unported.

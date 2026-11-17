@@ -238,10 +238,12 @@ def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
     grower.crust.flags[0] |= CrustFlag["TRENCH"]
     grower.crust.wingKm[0] = 5
     grower.refresh_extent(mesh.xyz)
+    rival = world.add_plate("rival")
+    rival.cap_in_world = lambda mesh: [0.0, 0.0, 1.0, -2.0]
     monkeypatch.setattr(module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0})
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: False)
     monkeypatch.setattr(module, "_is_behind", lambda *args: True)
-    result = module.decide_birth(world, grower, 1, [(grower, grower.cap_in_world(mesh))])
+    result = module.decide_birth(world, grower, 1, [(grower, grower.cap_in_world(mesh)), (rival, rival.cap_in_world(mesh))])
     assert result == {"born": True, "trenchParent": -1}
 
 

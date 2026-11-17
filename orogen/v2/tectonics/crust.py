@@ -70,7 +70,11 @@ class CrustRaster:
 
     def _cell_indices(self, cells) -> np.ndarray:
         raw = np.asarray(cells)
-        if raw.ndim != 1 or not np.issubdtype(raw.dtype, np.integer):
+        if raw.ndim != 1:
+            raise ValueError("cells must be a one-dimensional integer sequence")
+        if raw.size == 0:
+            return np.empty(0, dtype=np.int32)
+        if not np.issubdtype(raw.dtype, np.integer):
             raise ValueError("cells must be a one-dimensional integer sequence")
         indices = np.asarray(raw, dtype=np.int64)
         indices = np.where(indices < 0, indices + self.numCells, indices)

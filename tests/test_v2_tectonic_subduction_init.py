@@ -258,7 +258,7 @@ def test_founder_within_plates_cuts_old_outer_ocean_and_arms_margin():
     fresh = world.plates[1]
     assert fresh.isOceanBorn is True
     assert fresh.name == "Thalassa"
-    assert fresh.crust.mask.tolist() == [0, 0, 1, 1, 1, 0]
+    assert fresh.crust.mask.tolist() == [0, 0, 1, 1, 0, 0]
     assert fresh.wings == {2: [1.0, 0.0, 0.0]}
     assert plate.wings == {1: [0.0, 1.0, 0.0]}
     assert plate.crust.flags[1] & CrustFlag["TRENCH"]

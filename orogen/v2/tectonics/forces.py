@@ -10,6 +10,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from ..core.mesh_rings import rings_of
 from .contact import contact_at
 from .crust import CrustFlag, CrustType
 
@@ -44,6 +45,57 @@ def _rift_age(plate_a, crust_a, cell_a: int, plate_b, crust_b, cell_b: int, time
     return float(time) - born if (margin_a or young_a) and (margin_b or young_b) else math.inf
 
 
+def _are_young_rift_partners(plate_a, plate_b, time: float, config: Mapping) -> bool:
+    return (
+        plate_a.riftPartner == plate_b.id
+        and plate_b.riftPartner == plate_a.id
+        and float(time) - max(float(plate_a.born), float(plate_b.born))
+        < float(config["riftPushMyr"])
+    )
+
+
+def _front_normal(world, cell: int, plate_a_id: int, plate_b_id: int, position, plates_by_id) -> list[float]:
+    """Estimate the collision-front normal from nearby uncontested land."""
+    mesh = world.mesh
+    ring_data = rings_of(mesh)
+    start, cells, stride = ring_data["start"], ring_data["cells"], ring_data["stride"]
+    vx = vy = vz = 0.0
+    first = int(start[cell * stride + 1])
+    stop = int(start[cell * stride + stride - 1])
+    for offset in range(first, stop):
+        neighbour = int(cells[offset])
+        owner_id = int(world.owner[neighbour])
+        if owner_id not in (plate_a_id, plate_b_id):
+            continue
+        if int(world.landClaims[neighbour]) > 1:
+            continue
+        plate = plates_by_id[owner_id]
+        local_cell = int(world.ownerCell[neighbour])
+        if int(plate.crust.type[local_cell]) == CrustType["OCEAN"]:
+            continue
+        sign = 1.0 if owner_id == plate_b_id else -1.0
+        vx += sign * float(mesh.xyz[3 * neighbour])
+        vy += sign * float(mesh.xyz[3 * neighbour + 1])
+        vz += sign * float(mesh.xyz[3 * neighbour + 2])
+
+    r = np.asarray(position, dtype=np.float64)
+    vector = np.array([vx, vy, vz], dtype=np.float64)
+    vector -= float(np.dot(vector, r)) * r
+    length = float(np.linalg.norm(vector))
+    if length > 1e-9:
+        return (vector / length).tolist()
+
+    plate_a, plate_b = plates_by_id[plate_a_id], plates_by_id[plate_b_id]
+    centre_a = plate_a.to_world(*map(float, plate_a.capCenter))
+    centre_b = plate_b.to_world(*map(float, plate_b.capCenter))
+    vector = np.asarray(centre_b) - np.asarray(centre_a)
+    vector -= float(np.dot(vector, r)) * r
+    length = float(np.linalg.norm(vector))
+    if length < 1e-12:
+        return [0.0, 0.0, 0.0]
+    return (vector / length).tolist()
+
+
 def gather_boundary_loads(world) -> dict[int, dict]:
     """Gather four local boundary-force families for living non-background plates.
 
@@ -75,6 +127,48 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         if load is None or plate is None:
             continue
         if int(world.landClaims[world_cell]) > 1 and int(world.collider[world_cell]) >= 0:
+            other_id = int(world.collider[world_cell])
+            other = plates_by_id.get(other_id)
+            if other is None:
+                continue
+            r0, r1, r2 = map(float, xyz[world_cell])
+            other_cell = int(other.cell_at(mesh.index, r0, r1, r2))
+            crust_a, crust_b = plate.crust, other.crust
+            flags_a = int(crust_a.flags[int(world.ownerCell[world_cell])])
+            flags_b = int(other.crust.flags[other_cell])
+            if (
+                _are_young_rift_partners(plate, other, float(world.time), config)
+                and flags_a & CrustFlag["RIFT_MARGIN"]
+                and flags_b & CrustFlag["RIFT_MARGIN"]
+            ):
+                continue
+            cell_a = int(world.ownerCell[world_cell])
+            if (
+                int(crust_a.type[cell_a]) == CrustType["ARC"]
+                or int(crust_b.type[other_cell]) == CrustType["ARC"]
+            ):
+                continue
+            craton = (
+                int(crust_a.type[cell_a]) == CrustType["CRATON"]
+                or int(crust_b.type[other_cell]) == CrustType["CRATON"]
+            )
+            weight = float(config["cratonLockFactor"]) if craton else 1.0
+            position = xyz[world_cell]
+            normal = _front_normal(
+                world, world_cell, owner_id, other_id, position, plates_by_id
+            )
+            load["contacts"].append({
+                "r": position.tolist(), "n": normal, "other": other_id,
+                "weight": weight,
+            })
+            other_load = loads.get(other_id)
+            if other_load is not None:
+                other_load["contacts"].append({
+                    "r": position.tolist(),
+                    "n": [-normal[0], -normal[1], -normal[2]],
+                    "other": owner_id,
+                    "weight": weight,
+                })
             continue
         across = contact_at(world, world_cell, normal_out)
         if across < 0:

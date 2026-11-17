@@ -258,7 +258,7 @@ def test_numba_mesh_components_match_python_fallback_and_tie_order(monkeypatch):
     actual = mesh_bfs_module.pieces_of(mesh, selected)
     actual_largest = mesh_bfs_module.largest_piece_of(mesh, selected)
 
-    assert actual == expected == [[6, 7], [0, 1, 2], [5], [3, 4]]
+    assert actual == expected == [[6, 7], [0, 1], [5], [3, 4]]
     assert actual_largest == expected_largest == [6, 7]
     assert mesh_bfs_module.pieces_of(mesh, []) == []
     assert mesh_bfs_module.largest_piece_of(mesh, []) == []

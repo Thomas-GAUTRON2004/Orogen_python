@@ -36,12 +36,12 @@ def test_closing_rate_uses_two_fastest_living_nonempty_plates():
         plate.crust.create(0, 0, 0, 1)
         plate.refresh_extent(mesh.xyz)
         plate.capCos = -1.0
-    a.omega = [0.0, 0.0, 0.01]
+    a.omega = [0.0, 0.0, 0.03]
     b.omega = [0.0, 0.0, 0.02]
-    c.omega = [0.0, 0.0, 0.03]
+    c.omega = [0.0, 0.0, 0.01]
     assert closing_rate(world) == 0.05
     c.alive = False
-    assert closing_rate(world) == 0.03
+    assert closing_rate(world) == 0.05
 
 
 def test_choose_step_stationary_and_rate_limited():

@@ -37,6 +37,13 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: latest
+
+      - name: Verify dependency lockfile
+        run: uv lock --check
+
       - name: Show toolchain versions
         run: |
           python --version
@@ -81,6 +88,7 @@ jobs:
             echo "No changed Python files in the active Ruff lint baseline."
           fi
           python -m ruff format --check scripts/check_mypy_regressions.py
+          python -m ruff format --check orogen scripts tests
 
       - name: Check complexity of newly added Python files
         env:

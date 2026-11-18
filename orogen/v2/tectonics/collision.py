@@ -662,7 +662,7 @@ def dock_if_terrane(world, plate_a, plate_b, cells) -> bool:
                 if result["sealed"]
                 else ""
             )
-            + f"; subduction jumps to its outboard side"
+            + "; subduction jumps to its outboard side"
             + (f"; {donor_name} is gone" if not donor.alive else "")
         ),
         {
@@ -911,9 +911,10 @@ def track_collisions(world, dt: float) -> dict:
             if key in overlaps or key in world.collisions:
                 continue
             id_a, id_b = map(int, key.split(":"))
-            if both_alive(id_a, id_b):
-                if dock_if_terrane(world, plates[id_a], plates[id_b], cells):
-                    changed = True
+            if both_alive(id_a, id_b) and dock_if_terrane(
+                world, plates[id_a], plates[id_b], cells
+            ):
+                changed = True
 
     mesh = world.mesh
     xyz, index = mesh.xyz, mesh.index

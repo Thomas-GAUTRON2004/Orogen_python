@@ -51,12 +51,12 @@ Ruff, mypy, Xenon and Bandit were not available locally and could not be install
 
 - Extracted slab pull/suction classification, young-rift/ridge classification and force accumulation from `gather_boundary_loads` into dedicated helpers. The existing force, dynamics and stepper tests pass (34 tests) with a temporary SciPy-backed test adapter.
 - Extracted suture readiness, gap/ring checks and configured welding from `track_collisions` into `_update_suture_state`; the targeted collision/force/rifting/spread/orogeny suite passes 105 tests with the same adapter.
-- Fixed the initial Ruff findings and restored the missing cKDTree benchmark script exposed by the first PR CI run. The updated CI result is pending.
+- Ran the full Ruff formatting pass in a dedicated formatting-only commit (`1a359d8`), covering the Python package, scripts and tests.
+- Generated `uv.lock` on GitHub Actions with CPython 3.12; uv resolved 44 packages and `uv lock --check` passed. The lockfile is committed separately (`5015af8`).
+- Fixed the initial Ruff findings and restored the missing cKDTree benchmark script exposed by the first PR CI run. The latest full Python test workflow is still being validated.
 
 ## Remaining plan items
 
-- Run and commit the full Ruff formatting pass as a dedicated formatting-only change; historical formatting debt has not been globally removed here.
-- Generate and validate `uv.lock` in an online dependency-resolution environment.
 - Run the updated GitHub Actions workflow against the actual native `shull` backend and confirm full-package branch coverage is at least 95%.
 - Verify that mypy introduces no new diagnostics relative to the PR base, then work down the existing baseline in `crust.py`, `ops/merge_plates.py`, `_numba_kernels.py` and `ops/rift_path.py`.
 - Measure Radon/Xenon complexity and Numba performance before/after; the local environment did not provide a usable Radon/Xenon installation or a complete benchmark comparison.

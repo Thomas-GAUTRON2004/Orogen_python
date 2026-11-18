@@ -55,11 +55,7 @@ def open_back_arcs(world, dt: float) -> int:
     owner/ownerCell before a later stage reads the world view.
     """
     config = world.config
-    rejoined = (
-        _rejoin_finished_strips(world)
-        if _REJOIN_CONFIG.issubset(config)
-        else 0
-    )
+    rejoined = _rejoin_finished_strips(world) if _REJOIN_CONFIG.issubset(config) else 0
     if not _BACKARC_CONFIG.issubset(config) or dt <= 0.0:
         return rejoined
     if float(config["backArcRatePerMyr"]) <= 0.0:
@@ -124,7 +120,8 @@ def _rollback_fronts(world) -> dict:
 
         key = (a_id, b_id)
         front = fronts.setdefault(
-            key, {"plate": plate_a, "cells": [], "ages": 0.0, "direction": [0.0, 0.0, 0.0]}
+            key,
+            {"plate": plate_a, "cells": [], "ages": 0.0, "direction": [0.0, 0.0, 0.0]},
         )
         front["cells"].append(w)
         front["ages"] += slab_age
@@ -195,9 +192,7 @@ def _strip_behind(world, plate: Plate, segment: list[int]) -> dict | None:
         for cell in range(world.mesh.num_cells)
     )
     if not has_land:
-        in_strip = _band_behind(
-            world, plate, segment, float(config["backArcWidthKm"])
-        )
+        in_strip = _band_behind(world, plate, segment, float(config["backArcWidthKm"]))
     return _judge_strip(world, plate, in_strip)
 
 
@@ -303,11 +298,7 @@ def _split_strip(
     fresh.backArcPushDir = [float(value) for value in push_direction]
 
     partner_id = int(parent.riftPartner)
-    partner = (
-        world.plates[partner_id]
-        if 0 <= partner_id < len(world.plates)
-        else None
-    )
+    partner = world.plates[partner_id] if 0 <= partner_id < len(world.plates) else None
     still_rifting = bool(
         partner is not None
         and partner.alive
@@ -357,8 +348,7 @@ def _rejoin_finished_strips(world) -> int:
         if (
             not strip.alive
             or int(strip.backArcOf) < 0
-            or float(world.time) - float(strip.born)
-            < float(config["backArcActiveMyr"])
+            or float(world.time) - float(strip.born) < float(config["backArcActiveMyr"])
         ):
             continue
 
@@ -409,9 +399,7 @@ def _bridge_pieces(plate: Plate, mesh, max_km: float) -> int:
     max_hops = max(2, math.floor(float(max_km) / float(mesh.edge_km) + 0.5))
 
     def over_empty(cells):
-        return hops_from(
-            mesh, cells, lambda cell: not crust.mask[cell], max_hops
-        )[0]
+        return hops_from(mesh, cells, lambda cell: not crust.mask[cell], max_hops)[0]
 
     main_distance = over_empty(pieces[0])
     filled = 0
@@ -425,12 +413,12 @@ def _bridge_pieces(plate: Plate, mesh, max_km: float) -> int:
             and main_distance[cell] > 0
             and distance[cell] + main_distance[cell] <= max_hops + 1
         ]
-        between.sort(
-            key=lambda cell: min(distance[cell], main_distance[cell])
-        )
+        between.sort(key=lambda cell: min(distance[cell], main_distance[cell]))
         for cell in between:
             source = -1
-            for edge in range(int(mesh.adj_offset[cell]), int(mesh.adj_offset[cell + 1])):
+            for edge in range(
+                int(mesh.adj_offset[cell]), int(mesh.adj_offset[cell + 1])
+            ):
                 neighbour = int(mesh.adj_list[edge])
                 if crust.mask[neighbour] and (
                     source < 0 or int(crust.type[neighbour]) == CrustType["OCEAN"]
@@ -472,16 +460,13 @@ def steer_back_arc_strips(world) -> int:
         if not parent.alive:
             continue
         centre = np.asarray(strip.to_world(*strip.capCenter), dtype=np.float64)
-        direction = np.asarray(
-            strip.to_world(*strip.backArcPushDir), dtype=np.float64
-        )
+        direction = np.asarray(strip.to_world(*strip.backArcPushDir), dtype=np.float64)
         tangent = direction - float(np.dot(direction, centre)) * centre
         pole = np.cross(centre, tangent)
         length = float(np.linalg.norm(pole)) or 1.0
         rate = float(strip.rollbackCmYr) * CM_PER_YR_TO_RAD_PER_MYR / length
         strip.omega = [
-            float(parent.omega[axis]) + float(pole[axis]) * rate
-            for axis in range(3)
+            float(parent.omega[axis]) + float(pole[axis]) * rate for axis in range(3)
         ]
         steered += 1
     return steered

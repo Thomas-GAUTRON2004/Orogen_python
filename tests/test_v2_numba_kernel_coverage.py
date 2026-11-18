@@ -202,9 +202,9 @@ def test_numba_kernel_heap_stale_entry_and_zero_axis_branches():
 def test_numba_piece_kernel_empty_and_multiple_component_size_branches():
     offsets = np.asarray([0, 1, 2, 2, 2], dtype=np.int32)
     adjacency = np.asarray([1, 0], dtype=np.int32)
-    selected = np.asarray([0, 1, 2, 3], dtype=np.int32)
+    selected = np.asarray([2, 0, 1, 3], dtype=np.int32)
     pieces = kernels.pieces_of_numba.py_func(offsets, adjacency, selected)
-    assert pieces[1].tolist() == [0, 2, 4]
+    assert pieces[1].tolist() == [0, 1, 3, 4]
     # A later, strictly larger component replaces the first candidate.
     assert kernels.largest_piece_numba.py_func(
         offsets, adjacency, selected,

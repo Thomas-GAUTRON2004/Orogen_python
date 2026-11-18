@@ -1321,3 +1321,21 @@ def test_track_collisions_feeds_far_field_from_both_collision_fronts(monkeypatch
     assert calls[0][4] == calls[1][4] == pytest.approx(63.71)
     assert calls[0][5] == calls[1][5] == world.collisions["0:1"]["frontKm"]
     assert calls[0][6] == calls[1][6] == 0.5
+
+def test_underthrust_consumes_lower_cells_without_upper_land_to_thicken():
+    from orogen.v2.tectonics.collision import underthrust
+    world, upper, lower = underthrust_world()
+    upper.crust.remove(1)
+    upper.crust.type[2] = CrustType["OCEAN"]
+    record = {"frontKm": 100.0, "underthrustDue": 2.0}
+    consumed = underthrust(
+        world, upper, lower, [1, 2, 3], record, 2.0
+    )
+    assert consumed == 2
+    assert lower.crust.mask[1] == 0
+    assert lower.crust.mask[2] == 0
+    assert upper.crust.mask[3] == 1
+    # The oceanic upper cell is consumed below but must not be thickened.
+    assert upper.crust.thickKm[2] == pytest.approx(0.0)
+    assert upper.crust.rootKm[2] == pytest.approx(0.0)
+

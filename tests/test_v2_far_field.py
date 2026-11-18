@@ -614,3 +614,51 @@ def test_rejuvenation_skips_ocean_cells():
     far_field._rejuvenate(world, plate, [2], [120.0], [50.0])
     assert np.array_equal(crust.rugged, before)
     assert np.array_equal(crust.upliftKm, np.zeros(5, dtype=np.float32))
+
+def test_feed_far_field_ignores_non_positive_work_values():
+    world, plate = make_world()
+    feed_far_field(world, plate, "negative", [0, 1], [-1.0, 0.0], 100.0, 1.0)
+    assert world.farPending["negative"]["cells"] == {}
+
+def test_python_fallback_spread_push_discards_stale_heap_entries(monkeypatch):
+    from orogen.v2.tectonics import far_field
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    monkeypatch.setattr(far_field, "NUMBA_AVAILABLE", False)
+    result = spread_push(
+        world, plate, {0: 1.0, 4: 100.0}, 1000.0, world.time
+    )
+    assert result["cells"]
+    assert result["from"][result["cells"].index(2)] == 4
+
+
+def test_rejuvenation_replaces_duplicate_source_with_wider_reach():
+    from orogen.v2.tectonics import far_field
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    for cell in range(5):
+        crust.oroType[cell] = 3
+        crust.oroLast[cell] = 0.0
+        crust.beltReach[cell] = 200.0
+        crust.beltU[cell] = 0.2
+        crust.beltSide[cell] = 1
+    far_field._rejuvenate(
+        world, plate, [2, 2], [100.0, 200.0], [50.0, 80.0]
+    )
+    assert crust.rugged[2] > 0.0
+
+
+def test_rejuvenation_skips_zero_work_on_non_ocean_source():
+    from orogen.v2.tectonics import far_field
+    world, plate = make_world([CrustType["CONTINENT"]] * 5)
+    world.config.update(_reactivation_config())
+    crust = plate.crust
+    crust.oroType[2] = 3
+    crust.oroLast[2] = 0.0
+    crust.beltReach[2] = 200.0
+    crust.beltU[2] = 0.2
+    crust.beltSide[2] = 1
+    before = crust.rugged.copy()
+    far_field._rejuvenate(world, plate, [2], [100.0], [0.0])
+    assert np.array_equal(crust.rugged, before)
+

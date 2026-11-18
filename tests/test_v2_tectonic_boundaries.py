@@ -2,9 +2,9 @@
 import numpy as np
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics.boundaries import Motion, classify_motion, vote_segments, near_land, feed_trench
+from orogen.v2.tectonics.boundaries import Motion, classify_motion, vote_segments, near_land, feed_trench, classify_contact_boundaries
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
-from orogen.v2.tectonics.world import TectonicWorld
+from orogen.v2.tectonics.world import TectonicWorld, BoundaryKind
 
 
 def _world():
@@ -82,3 +82,36 @@ def test_feed_trench_can_start_from_adjacent_consumption():
     world.consumedAt[neighbour] = 1
     assert feed_trench(world, 0, plate.crust, 0, 4.0) is True
     assert plate.crust.slabKm[0] == 4.0
+
+def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(monkeypatch):
+    import orogen.v2.tectonics.boundaries as boundaries
+
+    mesh, world = _world()
+    world.config.update({"boundaryActiveCmYr": 0.5, "obliqueLimit": 1.0, "segmentPolarity": False})
+    a, b = world.add_plate("A"), world.add_plate("B")
+    a.crust.create(0, CrustType["CONTINENT"], 0, 1)
+    b.crust.create(0, CrustType["CONTINENT"], 0, 2)
+    world.owner[:] = -1
+    world.owner[:2] = [a.id, b.id]
+    world.ownerCell[:2] = [0, 0]
+    world.provisional[0] = True
+    def contact(_world, cell, normal):
+        if cell == 0:
+            normal[:] = [1.0, 0.0, 0.0, 1.0]
+            return 1
+        return -1
+    monkeypatch.setattr(boundaries, "contact_at", contact)
+    monkeypatch.setattr(boundaries, "overrides", lambda *_args: True)
+
+    monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.OPENING)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["RIDGE"]
+
+    monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.LOCKED)
+    assert classify_contact_boundaries(world, 1.0) == 0
+    assert world.boundaryKind[0] == BoundaryKind["NONE"]
+
+    monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.CLOSING)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
+

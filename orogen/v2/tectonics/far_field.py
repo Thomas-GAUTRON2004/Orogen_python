@@ -173,12 +173,14 @@ def spread_push(
         distance = np.full(count, np.inf, dtype=np.float64)
         source_of = np.full(count, -1, dtype=np.int32)
         heap = MinHeap(max(64, 2 * len(active_sources)))
+        # ``sources`` is a mapping, so each active cell occurs once.
+        # Its distance starts at infinity; the comparison was always true
+        # and introduced an unreachable branch into coverage.
         for cell, work in active_sources:
             initial = -reach_length * math.log(work / strongest)
-            if initial < distance[cell]:
-                distance[cell] = initial
-                source_of[cell] = cell
-                heap.push(initial, cell)
+            distance[cell] = initial
+            source_of[cell] = cell
+            heap.push(initial, cell)
 
         reached = []
         while heap.size:

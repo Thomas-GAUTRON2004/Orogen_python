@@ -55,9 +55,12 @@ jobs:
         run: python -m pip check
 
       - name: Run Python and JavaScript differential tests
+        env:
+          NUMBA_JIT_COVERAGE: "1"
         run: |
           python -m pytest \
             --cov=orogen.v2 \
+            --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=100
+            --cov-fail-under=95

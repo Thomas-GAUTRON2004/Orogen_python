@@ -1334,14 +1334,13 @@ def test_underthrust_consumes_lower_cells_without_upper_land_to_thicken():
     assert upper.crust.thickKm[2] == pytest.approx(0.0)
     assert upper.crust.rootKm[2] == pytest.approx(0.0)
 
+
 def test_collision_front_cells_returns_unique_valid_land_contacts():
     from orogen.v2.tectonics.collision import _collision_front_cells
 
     world, upper, lower = collision_tracking_world()
 
-    upper_cells, lower_cells = _collision_front_cells(
-        world, upper, lower, [2, 2]
-    )
+    upper_cells, lower_cells = _collision_front_cells(world, upper, lower, [2, 2])
     assert upper_cells == [2]
     assert lower_cells == [2]
 

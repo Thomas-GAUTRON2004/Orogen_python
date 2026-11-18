@@ -319,7 +319,7 @@ def _old_ocean_margin_runs(mesh, crust, time: float, minimum_age: float):
     for cell in old:
         in_old[cell] = 1
 
-    runs = []
+    runs: list[list[int]] = []
     for start in old:
         if run_of[start] >= 0:
             continue

@@ -257,6 +257,60 @@ __all__ = [
 ]
 
 
+def _old_ocean_margin_runs(mesh, crust, time: float, minimum_age: float):
+    """Return coastal ocean cells and connected runs of old, untrenched margin."""
+    num_cells = int(mesh.num_cells)
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    mask, kinds = crust.mask, crust.type
+    flags, formed_at = crust.flags, crust.formedAt
+
+    def land(cell: int) -> bool:
+        return bool(
+            mask[cell]
+            and kinds[cell] in (CrustType["CONTINENT"], CrustType["CRATON"])
+        )
+
+    coast = np.zeros(num_cells, dtype=np.uint8)
+    old = []
+    for cell in range(num_cells):
+        if not mask[cell] or kinds[cell] != CrustType["OCEAN"]:
+            continue
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+            neighbour = int(adjacency[edge])
+            if not land(neighbour):
+                continue
+            coast[cell] = 1
+            if (
+                not (int(flags[cell]) & CrustFlag["TRENCH"])
+                and time - float(formed_at[cell]) >= minimum_age
+            ):
+                old.append(cell)
+            break
+
+    in_old = np.zeros(num_cells, dtype=np.uint8)
+    run_of = np.full(num_cells, -1, dtype=np.int32)
+    for cell in old:
+        in_old[cell] = 1
+
+    runs = []
+    for start in old:
+        if run_of[start] >= 0:
+            continue
+        run = [start]
+        run_of[start] = len(runs)
+        cursor = 0
+        while cursor < len(run):
+            cell = run[cursor]
+            cursor += 1
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if in_old[neighbour] and run_of[neighbour] < 0:
+                    run_of[neighbour] = len(runs)
+                    run.append(neighbour)
+        runs.append(run)
+    return coast, run_of, runs
+
+
 def founder_within_plates(world, dt: float) -> int:
     """Found old ocean along a large plate's own outer continental margin.
 
@@ -313,44 +367,9 @@ def founder_within_plates(world, dt: float) -> int:
                 )
             )
 
-        coast = np.zeros(num_cells, dtype=np.uint8)
-        old = []
-        for cell in range(num_cells):
-            if not mask[cell] or kinds[cell] != CrustType["OCEAN"]:
-                continue
-            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-                neighbour = int(adjacency[edge])
-                if not land(neighbour):
-                    continue
-                coast[cell] = 1
-                if (
-                    not (int(flags[cell]) & CrustFlag["TRENCH"])
-                    and time - float(formed_at[cell]) >= minimum_age
-                ):
-                    old.append(cell)
-                break
-
-        in_old = np.zeros(num_cells, dtype=np.uint8)
-        run_of = np.full(num_cells, -1, dtype=np.int32)
-        for cell in old:
-            in_old[cell] = 1
-
-        runs = []
-        for start in old:
-            if run_of[start] >= 0:
-                continue
-            run = [start]
-            run_of[start] = len(runs)
-            cursor = 0
-            while cursor < len(run):
-                cell = run[cursor]
-                cursor += 1
-                for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-                    neighbour = int(adjacency[edge])
-                    if in_old[neighbour] and run_of[neighbour] < 0:
-                        run_of[neighbour] = len(runs)
-                        run.append(neighbour)
-            runs.append(run)
+        coast, run_of, runs = _old_ocean_margin_runs(
+            mesh, crust, time, minimum_age
+        )
 
         for run in runs:
             length_km = len(run) * edge_km

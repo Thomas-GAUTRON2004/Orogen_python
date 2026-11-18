@@ -7,6 +7,7 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 ## Documentation
 
 - [Documentation home](docs/README.md) — navigation and project scope.
+- [Changelog](CHANGELOG.md) — user-visible changes, fixes and compatibility notes.
 - [Getting started](docs/GETTING_STARTED.md) — installation and first operations.
 - [Architecture](docs/ARCHITECTURE.md) — package structure, data flow, and design decisions.
 - [Core API](docs/CORE_API.md) — random numbers, noise, meshes, geometry, and graph algorithms.

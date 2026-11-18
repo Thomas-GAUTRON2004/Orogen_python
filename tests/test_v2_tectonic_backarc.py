@@ -8,6 +8,7 @@ from orogen.v2.tectonics.backarc import (
     rollback_cm_yr,
     steer_back_arc_strips,
 )
+from orogen.v2.core.sphere_geometry import PLANET_RADIUS_KM
 from orogen.v2.tectonics.config import CM_PER_YR_TO_RAD_PER_MYR
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.world import BoundaryKind, EventKind, TectonicWorld
@@ -27,7 +28,7 @@ class Mesh:
         self.num_cells = len(points)
         self.xyz = np.asarray(points, dtype=np.float32).reshape(-1)
         self.edge_km = float(edge_km)
-        self.edge_rad = self.edge_km / 6371.0
+        self.edge_rad = self.edge_km / PLANET_RADIUS_KM
         self.cell_area_km2 = float(cell_area_km2)
         offsets = [0]
         adjacency = []

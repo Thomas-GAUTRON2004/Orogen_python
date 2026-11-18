@@ -7,7 +7,7 @@ import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.boundaries import classify_contact_boundaries
-from orogen.v2.tectonics.crust import CrustFlag, CrustType
+from orogen.v2.tectonics.crust import CrustFlag, CrustType, OrogenyType
 from orogen.v2.tectonics.world import BoundaryKind, TectonicWorld
 
 
@@ -302,3 +302,153 @@ def test_subduction_flat_slab_hysteresis_and_quiet_gap_reset(monkeypatch):
     assert upper.lastFedAt == pytest.approx(world.time)
     assert world.events == []
     assert len(feed_calls) == 2
+
+
+
+def _subduction_local_belt_config():
+    return {
+        "belts": {
+            "andean": {"baseKm": 120.0, "perKm": 1.0, "maxKm": 400.0},
+            "laramide": {"baseKm": 200.0, "perKm": 0.6, "maxKm": 1800.0},
+            "transpression": {"baseKm": 40.0, "perKm": 0.3, "maxKm": 150.0},
+        },
+        "beltSpeedRefCmYr": 5.0,
+        "beltSpeedExponent": 0.5,
+        "beltSpeedFactorMin": 0.6,
+        "beltSpeedFactorMax": 1.6,
+        "beltYoungSlabBoost": 0.5,
+        "beltYoungSlabRefMyr": 60.0,
+        "beltOldSlabMin": 0.75,
+        "arcBeltMaxKm": 243.0,
+        "cratonRimKm": 150.0,
+        "cratonRimCost": 2.0,
+        "cratonRimShare": 0.35,
+        "weakCellCost": 0.4,
+        "beltWorkShare": 0.35,
+        "thickeningPerWorkKm": 0.05,
+    }
+
+
+@pytest.mark.parametrize(
+    ("slab_age_myr", "expected_type"),
+    [
+        (60.0, OrogenyType["ANDEAN"]),
+        (10.0, OrogenyType["LARAMIDE"]),
+    ],
+)
+def test_contact_classifier_spreads_local_andean_and_laramide_belts(
+    monkeypatch, slab_age_myr, expected_type
+):
+    module, _mesh, world, upper, _lower = _subduction_contact(
+        monkeypatch, slab_age_myr
+    )
+    world.config.update(_subduction_local_belt_config())
+    calls = []
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+    monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert bool(upper.flatSlab) is (expected_type == OrogenyType["LARAMIDE"])
+    assert len(calls) == 1
+
+    plate, _mesh, cells, belt, _config = calls[0]
+    assert plate is upper
+    assert cells == [0]
+    assert belt["type"] == expected_type
+    assert len(belt["widths"]) == len(belt["works"]) == len(belt["shears"]) == 1
+
+    km = 0.01 * 6371.0
+    rate = km / 10.0
+    speed_factor = min(1.6, max(0.6, (rate / 5.0) ** 0.5))
+    steep = min(400.0, 120.0 + km * 0.4) * speed_factor
+    shape = 1.0 + 0.5 * (1.0 - slab_age_myr / 60.0)
+    if expected_type == OrogenyType["LARAMIDE"]:
+        laramide = (200.0 + 0.6 * km) * speed_factor
+        expected_width = min(1800.0 * 1.6, max(steep, laramide) * shape)
+    else:
+        expected_width = min(400.0 * 1.6, steep * shape)
+    assert belt["widths"] == pytest.approx([expected_width])
+    assert belt["works"] == pytest.approx([km * 0.4])
+    assert belt["shears"] == pytest.approx([0.0])
+
+
+def test_contact_classifier_keeps_arc_belts_narrow_and_silent_over_flat_slabs(
+    monkeypatch,
+):
+    module, _mesh, world, upper, _lower = _subduction_contact(
+        monkeypatch, slab_age_myr=60.0
+    )
+    world.config.update(_subduction_local_belt_config())
+    upper.crust.type[0] = CrustType["ARC"]
+    calls = []
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+    monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert len(calls) == 1
+    assert calls[0][2] == [0]
+    assert calls[0][3]["type"] == OrogenyType["ARC"]
+    assert calls[0][3]["widths"][0] <= world.config["arcBeltMaxKm"]
+
+    flat_module, _mesh, flat_world, flat_upper, _flat_lower = _subduction_contact(
+        monkeypatch, slab_age_myr=10.0
+    )
+    flat_world.config.update(_subduction_local_belt_config())
+    flat_upper.crust.type[0] = CrustType["ARC"]
+    flat_calls = []
+    monkeypatch.setattr(flat_module, "feed_far_field", lambda *_args: None)
+    monkeypatch.setattr(
+        flat_module, "spread_belt", lambda *args: flat_calls.append(args)
+    )
+    assert classify_contact_boundaries(flat_world, 1.0) == 1
+    assert flat_upper.flatSlab is True
+    assert flat_calls == []
+
+
+def test_contact_classifier_spreads_transpression_on_oblique_land_closing(
+    monkeypatch,
+):
+    import orogen.v2.tectonics.boundaries as module
+
+    mesh, world, upper, _lower, position, normal = _setup()
+    world.config.update(_subduction_far_field_config())
+    world.config.update(_subduction_local_belt_config())
+    world.time = 10.0
+    upper.crust.type[0] = CrustType["CONTINENT"]
+    tangent = np.cross(position, normal)
+    velocity = normal * 0.001 + tangent * 0.01
+    upper.omega = list(np.cross(position, velocity))
+
+    def contact(_world, cell, out):
+        if cell == 0:
+            out[:] = [*normal, 1.0]
+            return 1
+        return -1
+
+    monkeypatch.setattr(module, "contact_at", contact)
+    calls = []
+    monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["TRANSFORM"]
+    assert len(calls) == 1
+    plate, _mesh, cells, belt, _config = calls[0]
+    assert plate is upper
+    assert cells == [0]
+    assert belt["type"] == OrogenyType["TRANSPRESSION"]
+    assert belt["works"][0] == pytest.approx(0.001 * 6371.0)
+    assert belt["widths"][0] > 0.0
+    assert belt["shears"][0] != pytest.approx(0.0)
+
+
+def test_local_belt_spreading_remains_disabled_for_partial_far_field_config(
+    monkeypatch,
+):
+    module, _mesh, world, _upper, _lower = _subduction_contact(monkeypatch)
+    calls = []
+    monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert calls == []

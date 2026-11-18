@@ -105,8 +105,9 @@ all seeds, resolutions or simulation histories.
 
 ## Numerical compatibility limits
 
-The current SciPy/Qhull production triangulation has matched Delaunator for
-seven selected resolution/seed pairs (12/99, 24/1, 48/17, 96/2026, 128/7,
-256/42 and 512/12345). This is evidence for those fixtures only, not a
-guarantee of identical connectivity for every input. No whole-engine or
-whole-history parity is claimed.
+Production triangulation now uses `shull` 0.4.0 or later. The earlier seven-fixture
+SciPy/Qhull comparison is historical evidence for the former backend and must
+not be interpreted as a shull-vs-Delaunator result. The shull migration adds
+mesh-invariant checks across small and medium sizes; CI must establish the
+current branch's differential and regression status. No universal connectivity
+or whole-engine parity is claimed.

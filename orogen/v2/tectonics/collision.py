@@ -951,232 +951,229 @@ def _process_collision_overlap(
     underthrust_total = 0
     changed = False
 
-    def both_alive(id_a: int, id_b: int) -> bool:
-        return _plates_alive(plates, id_a, id_b)
+    id_a, id_b = map(int, key.split(":"))
+    if not _plates_alive(plates, id_a, id_b):
+        return (started, tracked, underthrust_total, changed)
 
-        id_a, id_b = map(int, key.split(":"))
-        if not _plates_alive(plates, id_a, id_b):
+    # Arcs are transferred before continent-on-continent overlap is
+    # counted. Keep this operation gated until its full config is present.
+    if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(
+        config
+    ):
+        arc_result = accrete_arcs(world, plates[id_a], plates[id_b], overlap_values)
+        core = arc_result["core"]
+        changed = changed or bool(arc_result["accreted"])
+    else:
+        core = [int(cell) for cell in overlap_values]
+
+    if not core or not _plates_alive(plates, id_a, id_b):
         return (started, tracked, underthrust_total, changed)
-    
-        # Arcs are transferred before continent-on-continent overlap is
-        # counted. Keep this operation gated until its full config is present.
-        if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(
-            config
+
+    record = world.collisions.get(key)
+    if record is None:
+        if "riftJitterFrontKm" in config and is_rift_jitter(
+            world, plates[id_a], plates[id_b], core
         ):
-            arc_result = accrete_arcs(world, plates[id_a], plates[id_b], overlap_values)
-            core = arc_result["core"]
-            changed = changed or bool(arc_result["accreted"])
-        else:
-            core = [int(cell) for cell in overlap_values]
-    
-        if not core or not both_alive(id_a, id_b):
-        return (started, tracked, underthrust_total, changed)
-    
-        record = world.collisions.get(key)
-        if record is None:
-            if "riftJitterFrontKm" in config and is_rift_jitter(
-                world, plates[id_a], plates[id_b], core
-            ):
-        return (started, tracked, underthrust_total, changed)
-            if (
-                "riftPushMyr" in config
-                and "riftJitterFrontKm" in config
-                and are_young_rift_partners(
-                    plates[id_a], plates[id_b], float(world.time), config
-                )
-                and len(core) * cell_area / max(edge_km, 1e-12)
-                <= float(config["riftJitterFrontKm"])
-            ):
-        return (started, tracked, underthrust_total, changed)
-    
-            sides = choose_sides(world, plates[id_a], plates[id_b], core)
-            record = {
-                "upper": sides["upper"].id,
-                "lower": sides["lower"].id,
-                "startedAt": float(world.time),
-                "lastActive": float(world.time),
-                "shorteningKm": 0.0,
-                "frontKm": 0.0,
-                "closingCmYr": 0.0,
-                "meanRateCmYr": 0.0,
-                "stalledMyr": 0.0,
-                "contactMyr": 0.0,
-                "cells": 0,
-                "sutured": False,
-                "announce": True,
-                "underthrustDue": 0.0,
-                "underthrustCells": 0,
-                "frontMaxKm": 0.0,
-                "sutureCandidate": False,
-            }
-            world.collisions[key] = record
-            started += 1
-    
-            if "terraneMaxAreaKm2" in config and dock_if_terrane(
-                world, sides["upper"], sides["lower"], core
-            ):
-                del world.collisions[key]
-                changed = True
-        return (started, tracked, underthrust_total, changed)
-    
-        if record.get("sutured", False):
-        return (started, tracked, underthrust_total, changed)
-    
-        upper = plates[int(record["upper"])]
-        lower = plates[int(record["lower"])]
-        if not upper.alive or not lower.alive:
-        return (started, tracked, underthrust_total, changed)
-    
-        cells = [int(cell) for cell in core]
-        record["cells"] = len(cells)
-        record["lastActive"] = float(world.time)
-        record["contactMyr"] = float(record.get("contactMyr", 0.0)) + step_dt
-    
-        centre = centroid_of_cells(xyz, cells)
-        upper_centre = upper.to_world(*map(float, upper.capCenter))
-        lower_centre = lower.to_world(*map(float, lower.capCenter))
-        normal = tangent_toward(centre, lower_centre, upper_centre)
-        relative_omega = [
-            float(lower.omega[axis]) - float(upper.omega[axis]) for axis in range(3)
-        ]
-        closing = dot(cross(relative_omega, centre), normal)
-        closing_cm_yr = closing / CM_PER_YR_TO_RAD_PER_MYR
-        record["closingCmYr"] = closing_cm_yr
-    
-        # A newly detected one-cell sliver between plates that are parting is
-        # a raster timing artefact, not a persistent collision.
-        front_limit = float(config.get("collisionJitterFrontKm", 0.0))
+            return (started, tracked, underthrust_total, changed)
         if (
-            record.get("announce", False)
-            and closing_cm_yr < 0.0
-            and len(cells) * cell_area / max(edge_km, 1e-12) <= front_limit
+            "riftPushMyr" in config
+            and "riftJitterFrontKm" in config
+            and are_young_rift_partners(
+                plates[id_a], plates[id_b], float(world.time), config
+            )
+            and len(core) * cell_area / max(edge_km, 1e-12)
+            <= float(config["riftJitterFrontKm"])
         ):
-            world.collisions.pop(key, None)
+            return (started, tracked, underthrust_total, changed)
+
+        sides = choose_sides(world, plates[id_a], plates[id_b], core)
+        record = {
+            "upper": sides["upper"].id,
+            "lower": sides["lower"].id,
+            "startedAt": float(world.time),
+            "lastActive": float(world.time),
+            "shorteningKm": 0.0,
+            "frontKm": 0.0,
+            "closingCmYr": 0.0,
+            "meanRateCmYr": 0.0,
+            "stalledMyr": 0.0,
+            "contactMyr": 0.0,
+            "cells": 0,
+            "sutured": False,
+            "announce": True,
+            "underthrustDue": 0.0,
+            "underthrustCells": 0,
+            "frontMaxKm": 0.0,
+            "sutureCandidate": False,
+        }
+        world.collisions[key] = record
+        started += 1
+
+        if "terraneMaxAreaKm2" in config and dock_if_terrane(
+            world, sides["upper"], sides["lower"], core
+        ):
+            del world.collisions[key]
+            changed = True
+            return (started, tracked, underthrust_total, changed)
+
+    if record.get("sutured", False):
         return (started, tracked, underthrust_total, changed)
-    
-        if record.get("announce", False):
-            record["announce"] = False
-            world.log(
-                EventKind["COLLISION"],
-                f"{lower.name} meets {upper.name}",
-                {"upper": upper.id, "lower": lower.id},
-            )
-    
-        shortening_km = max(0.0, closing) * step_dt * PLANET_RADIUS_KM
-        record["shorteningKm"] = float(record["shorteningKm"]) + shortening_km
-        stall_rate = float(config.get("sutureStallCmYr", 0.4))
-        record["stalledMyr"] = (
-            float(record.get("stalledMyr", 0.0)) + step_dt
-            if closing_cm_yr < stall_rate
-            else 0.0
+
+    upper = plates[int(record["upper"])]
+    lower = plates[int(record["lower"])]
+    if not upper.alive or not lower.alive:
+        return (started, tracked, underthrust_total, changed)
+
+    cells = [int(cell) for cell in core]
+    record["cells"] = len(cells)
+    record["lastActive"] = float(world.time)
+    record["contactMyr"] = float(record.get("contactMyr", 0.0)) + step_dt
+
+    centre = centroid_of_cells(xyz, cells)
+    upper_centre = upper.to_world(*map(float, upper.capCenter))
+    lower_centre = lower.to_world(*map(float, lower.capCenter))
+    normal = tangent_toward(centre, lower_centre, upper_centre)
+    relative_omega = [
+        float(lower.omega[axis]) - float(upper.omega[axis]) for axis in range(3)
+    ]
+    closing = dot(cross(relative_omega, centre), normal)
+    closing_cm_yr = closing / CM_PER_YR_TO_RAD_PER_MYR
+    record["closingCmYr"] = closing_cm_yr
+
+    # A newly detected one-cell sliver between plates that are parting is
+    # a raster timing artefact, not a persistent collision.
+    front_limit = float(config.get("collisionJitterFrontKm", 0.0))
+    if (
+        record.get("announce", False)
+        and closing_cm_yr < 0.0
+        and len(cells) * cell_area / max(edge_km, 1e-12) <= front_limit
+    ):
+        world.collisions.pop(key, None)
+        return (started, tracked, underthrust_total, changed)
+
+    if record.get("announce", False):
+        record["announce"] = False
+        world.log(
+            EventKind["COLLISION"],
+            f"{lower.name} meets {upper.name}",
+            {"upper": upper.id, "lower": lower.id},
         )
-        elapsed = max(
-            step_dt,
-            float(world.time) - float(record["startedAt"]),
-        )
-        record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
-    
-        upper_front, lower_front = _collision_front_cells(world, upper, lower, cells)
-        record["frontKm"] = (
-            max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
-        )
-        record["frontMaxKm"] = max(
-            float(record.get("frontMaxKm", 0.0)),
+
+    shortening_km = max(0.0, closing) * step_dt * PLANET_RADIUS_KM
+    record["shorteningKm"] = float(record["shorteningKm"]) + shortening_km
+    stall_rate = float(config.get("sutureStallCmYr", 0.4))
+    record["stalledMyr"] = (
+        float(record.get("stalledMyr", 0.0)) + step_dt
+        if closing_cm_yr < stall_rate
+        else 0.0
+    )
+    elapsed = max(
+        step_dt,
+        float(world.time) - float(record["startedAt"]),
+    )
+    record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
+
+    upper_front, lower_front = _collision_front_cells(world, upper, lower, cells)
+    record["frontKm"] = (
+        max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
+    )
+    record["frontMaxKm"] = max(
+        float(record.get("frontMaxKm", 0.0)),
+        float(record["frontKm"]),
+    )
+
+    far_share = float(config.get("farCollisionShare", 0.0))
+    if shortening_km > 0.0 and far_share > 0.0:
+        feed_far_field(
+            world,
+            upper,
+            f"c{key}:u",
+            list(dict.fromkeys(upper_front)),
+            shortening_km,
             float(record["frontKm"]),
+            far_share,
         )
-    
-        far_share = float(config.get("farCollisionShare", 0.0))
-        if shortening_km > 0.0 and far_share > 0.0:
-            feed_far_field(
-                world,
+        feed_far_field(
+            world,
+            lower,
+            f"c{key}:l",
+            list(dict.fromkeys(lower_front)),
+            shortening_km,
+            float(record["frontKm"]),
+            far_share,
+        )
+
+    # The accumulated shortening also builds a plateau-side and a
+    # foreland-side belt. Keep this gated on the complete belt config so
+    # smaller unit worlds can exercise collision tracking independently.
+    if shortening_km > 0.0 and _BELT_CONFIG_KEYS.issubset(config):
+        major = float(record["frontKm"]) >= float(config["sutureMinContactKm"])
+        kind = OrogenyType["HIMALAYAN"] if major else OrogenyType["URAL"]
+        upper_kind = "himalayan" if major else "ural"
+        lower_kind = "foreland" if major else "ural"
+        velocity = cross(relative_omega, centre)
+        relative_speed = math.hypot(*velocity)
+        shape = belt_shape(closing / max(1e-12, relative_speed), None, config)
+        accumulated = float(record["shorteningKm"])
+        mean_rate = float(record["meanRateCmYr"])
+        upper_width = (
+            belt_width_km(upper_kind, accumulated, mean_rate, config) * shape
+        )
+        lower_width = (
+            belt_width_km(lower_kind, accumulated, mean_rate, config) * shape
+        )
+        shear = obliquity_deg(velocity, normal, centre, closing)
+        if upper_front:
+            spread_belt(
                 upper,
-                f"c{key}:u",
+                mesh,
                 list(dict.fromkeys(upper_front)),
-                shortening_km,
-                float(record["frontKm"]),
-                far_share,
-            )
-            feed_far_field(
-                world,
-                lower,
-                f"c{key}:l",
-                list(dict.fromkeys(lower_front)),
-                shortening_km,
-                float(record["frontKm"]),
-                far_share,
-            )
-    
-        # The accumulated shortening also builds a plateau-side and a
-        # foreland-side belt. Keep this gated on the complete belt config so
-        # smaller unit worlds can exercise collision tracking independently.
-        if shortening_km > 0.0 and _BELT_CONFIG_KEYS.issubset(config):
-            major = float(record["frontKm"]) >= float(config["sutureMinContactKm"])
-            kind = OrogenyType["HIMALAYAN"] if major else OrogenyType["URAL"]
-            upper_kind = "himalayan" if major else "ural"
-            lower_kind = "foreland" if major else "ural"
-            velocity = cross(relative_omega, centre)
-            relative_speed = math.hypot(*velocity)
-            shape = belt_shape(closing / max(1e-12, relative_speed), None, config)
-            accumulated = float(record["shorteningKm"])
-            mean_rate = float(record["meanRateCmYr"])
-            upper_width = (
-                belt_width_km(upper_kind, accumulated, mean_rate, config) * shape
-            )
-            lower_width = (
-                belt_width_km(lower_kind, accumulated, mean_rate, config) * shape
-            )
-            shear = obliquity_deg(velocity, normal, centre, closing)
-            if upper_front:
-                spread_belt(
-                    upper,
-                    mesh,
-                    list(dict.fromkeys(upper_front)),
-                    {
-                        "type": kind,
-                        "widthKm": upper_width,
-                        "workKm": shortening_km,
-                        "time": float(world.time),
-                        "side": BeltSide["UPPER"],
-                        "shear": shear,
-                    },
-                    config,
-                )
-            if lower_front:
-                spread_belt(
-                    lower,
-                    mesh,
-                    list(dict.fromkeys(lower_front)),
-                    {
-                        "type": kind,
-                        "widthKm": lower_width,
-                        "workKm": shortening_km,
-                        "time": float(world.time),
-                        "side": BeltSide["LOWER"],
-                        "shear": shear,
-                    },
-                    config,
-                )
-    
-        under_now = underthrust(world, upper, lower, cells, record, shortening_km)
-        underthrust_total += under_now
-        changed = changed or under_now > 0
-    
-        changed = (
-            _update_suture_state(
-                world,
-                upper,
-                lower,
-                cells,
-                record,
-                under_now,
-                edge_km,
-                cell_area,
+                {
+                    "type": kind,
+                    "widthKm": upper_width,
+                    "workKm": shortening_km,
+                    "time": float(world.time),
+                    "side": BeltSide["UPPER"],
+                    "shear": shear,
+                },
                 config,
             )
-            or changed
+        if lower_front:
+            spread_belt(
+                lower,
+                mesh,
+                list(dict.fromkeys(lower_front)),
+                {
+                    "type": kind,
+                    "widthKm": lower_width,
+                    "workKm": shortening_km,
+                    "time": float(world.time),
+                    "side": BeltSide["LOWER"],
+                    "shear": shear,
+                },
+                config,
+            )
+
+    under_now = underthrust(world, upper, lower, cells, record, shortening_km)
+    underthrust_total += under_now
+    changed = changed or under_now > 0
+
+    changed = (
+        _update_suture_state(
+            world,
+            upper,
+            lower,
+            cells,
+            record,
+            under_now,
+            edge_km,
+            cell_area,
+            config,
         )
-    
-        tracked += 1
+        or changed
+    )
+
+    tracked += 1
 
     return started, tracked, underthrust_total, changed
 
@@ -1212,7 +1209,7 @@ def track_collisions(world, dt: float) -> dict:
             if key in overlaps or key in world.collisions:
                 continue
             id_a, id_b = map(int, key.split(":"))
-            if both_alive(id_a, id_b) and dock_if_terrane(
+            if _plates_alive(plates, id_a, id_b) and dock_if_terrane(
                 world, plates[id_a], plates[id_b], cells
             ):
                 changed = True

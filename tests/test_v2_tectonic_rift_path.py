@@ -306,3 +306,52 @@ def test_find_rift_without_optional_failed_arm():
     assert result is not None
     assert result["failed_arm"] == []
     assert result["arms"][2] == []
+
+def test_coast_distance_satisfies_breadth_first_distance_invariants():
+    from orogen.v2.tectonics.ops.rift_path import coast_distance
+
+    for seed in (3, 7, 19):
+        world, plate = square_world()
+        rng = np.random.default_rng(seed)
+        plate.crust = CrustRaster(49)
+        for row in range(1, 6):
+            for col in range(1, 6):
+                cell = row * 7 + col
+                if rng.random() < 0.72:
+                    plate.crust.create(cell, CrustType["CONTINENT"], 0.0, cell)
+
+        context = rift_context(world, plate)
+        distance = coast_distance(world.mesh, plate.crust, context["exterior"])
+        offsets, adjacency = world.mesh.adj_offset, world.mesh.adj_list
+
+        for cell in range(world.mesh.num_cells):
+            neighbours = [
+                int(adjacency[edge])
+                for edge in range(int(offsets[cell]), int(offsets[cell + 1]))
+            ]
+            is_land = bool(
+                plate.crust.mask[cell]
+                and plate.crust.type[cell] != CrustType["OCEAN"]
+            )
+            if not is_land or distance[cell] < 0:
+                continue
+
+            reachable_land = [
+                neighbour
+                for neighbour in neighbours
+                if plate.crust.mask[neighbour]
+                and plate.crust.type[neighbour] != CrustType["OCEAN"]
+                and distance[neighbour] >= 0
+            ]
+            if distance[cell] == 0:
+                assert any(context["exterior"][neighbour] for neighbour in neighbours)
+            else:
+                assert any(
+                    distance[neighbour] == distance[cell] - 1
+                    for neighbour in reachable_land
+                )
+
+            assert all(
+                abs(int(distance[cell]) - int(distance[neighbour])) <= 1
+                for neighbour in reachable_land
+            )

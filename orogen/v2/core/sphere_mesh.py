@@ -77,16 +77,20 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
 
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
     """Triangulate with SciPy/Qhull, then close the planar hull at the pole."""
-    try:
-        simplices = Delaunay(
-            np.ascontiguousarray(points_2d, dtype=np.float64)
-        ).simplices
-    except Exception as exc:
-        # Qhull exposes backend-specific errors; normalize them here so the
-        # public mesh API remains independent of SciPy's exception hierarchy.
-        raise ValueError(
-            "Delaunay triangulation failed for the projected sphere"
-        ) from exc
+    points = np.ascontiguousarray(points_2d, dtype=np.float64)
+    # Qhull's 2-D initialization needs four points; the three-point minimum
+    # has exactly one valid simplex and is handled directly.
+    if len(points) == 3:
+        simplices = np.asarray([[0, 1, 2]], dtype=np.int32)
+    else:
+        try:
+            simplices = Delaunay(points).simplices
+        except Exception as exc:
+            # Qhull exposes backend-specific errors; normalize them here so the
+            # public mesh API remains independent of SciPy's exception hierarchy.
+            raise ValueError(
+                "Delaunay triangulation failed for the projected sphere"
+            ) from exc
     return _close_simplices(points_2d, simplices, pole_id)
 
 

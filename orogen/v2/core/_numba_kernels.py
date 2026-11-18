@@ -14,7 +14,8 @@ import numpy as np
 njit: Any
 literal_unroll: Any
 try:
-    from numba import literal_unroll as _literal_unroll, njit as _njit
+    from numba import literal_unroll as _literal_unroll
+    from numba import njit as _njit
     njit = _njit
     literal_unroll = _literal_unroll
 except ImportError:  # Numba is an optional acceleration extra.

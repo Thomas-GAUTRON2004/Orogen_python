@@ -1372,6 +1372,25 @@ def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeyp
             "boundaryActiveCmYr": 0.3,
             "obliqueLimit": 0.35,
             "segmentPolarity": False,
+            "sutureMinContactKm": 0.0,
+            "belts": {
+                "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+                "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+                "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+            },
+            "beltSpeedFactorMin": 0.6,
+            "beltSpeedFactorMax": 1.6,
+            "beltSpeedRefCmYr": 5.0,
+            "beltSpeedExponent": 0.5,
+            "beltObliqueMin": 0.35,
+            "apronKm": 100.0,
+            "orogenyQuietMyr": 10.0,
+            "beltWorkShare": 0.5,
+            "thickeningPerWorkKm": 0.1,
+            "weakCellCost": 0.5,
+            "cratonRimKm": 200.0,
+            "cratonRimCost": 2.0,
+            "cratonRimShare": 0.25,
         }
     )
 
@@ -1409,4 +1428,9 @@ def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeyp
     assert record["upper"] == upper.id
     assert record["lower"] == lower.id
     assert record["shorteningKm"] == pytest.approx(63.71)
+    # The real collision stage must propagate shortening into both margins.
+    assert upper.crust.oroType[2] != 0
+    assert lower.crust.oroType[2] != 0
+    assert upper.crust.thickKm[2] > 0.0
+    assert lower.crust.thickKm[2] > 0.0
     assert [event["kind"] for event in world.events] == ["collision"]

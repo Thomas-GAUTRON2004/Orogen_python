@@ -114,10 +114,10 @@ The port aims to preserve upstream semantics where they are implemented:
   operations.
 
 There are also explicit implementation differences:
-- SciPy/Qhull builds the production Delaunay triangulation; upstream uses
-  Delaunator.
-- NumPy and SciPy may have different low-level numerical behaviour from
-  JavaScript typed arrays and math functions.
+- `shull` (Rust-backed S-hull) builds the production planar Delaunay
+  triangulation; upstream uses Delaunator.
+- NumPy and Rust-backed `shull` may have different low-level numerical
+  behaviour from JavaScript typed arrays and math functions.
 - Differential agreement for selected fixtures is evidence for those
   fixtures only, not a universal equivalence proof.
 

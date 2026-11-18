@@ -161,6 +161,14 @@ def test_shull_rejects_invalid_simplex_shape_and_indices(monkeypatch):
     with pytest.raises(ValueError, match="out-of-range vertex index"):
         sphere_mesh._closed_triangles(np.array([[0., 0.], [0., 1.], [1., 0.]]), 3)
 
+    class NoHullDelaunay:
+        def __init__(self, points):
+            # Duplicate simplices leave no boundary edges in the edge counter.
+            self.simplices = np.array([[0, 1, 2], [0, 1, 2]], dtype=np.int32)
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", NoHullDelaunay)
+    with pytest.raises(ValueError, match="no closed convex hull"):
+        sphere_mesh._closed_triangles(np.array([[0., 0.], [0., 1.], [1., 0.]]), 3)
+
 
 def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():
     points = np.array([[0., 0.], [0., 1.], [1., 0.]])

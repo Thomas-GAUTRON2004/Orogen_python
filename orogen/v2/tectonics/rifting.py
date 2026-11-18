@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
+import math
 
 from .ops.rift import (
     choose_junction,
@@ -166,17 +166,22 @@ def _process_pending_plume_rifts(
             world, plate, request["junctions"], cause, False
         )
         if not success and schedule.time > since:
-            success = _with_loose_shape(
-                config,
-                lambda: try_rift(
-                    world, plate, request["junctions"], cause, False
-                ),
+            success = _retry_plume_rift(
+                world, plate, request["junctions"], cause, config
             )
         if success:
             splits += 1
 
     world.pendingPlumeRifts = waiting
     return splits
+
+
+def _retry_plume_rift(world, plate, junctions, cause, config) -> bool:
+    """Retry one plume request with relaxed shape constraints."""
+    return _with_loose_shape(
+        config,
+        lambda: try_rift(world, plate, junctions, cause, False),
+    )
 
 
 def _try_overdue_rifts(world, plates, schedule: _RiftSchedule) -> bool:
@@ -192,10 +197,9 @@ def _try_overdue_rifts(world, plates, schedule: _RiftSchedule) -> bool:
         )
     ]
     due.sort(key=schedule.big_age, reverse=True)
-    for plate in due:
-        if _force_rift(world, plate, schedule.age_of(plate)):
-            return True
-    return False
+    return any(
+        _force_rift(world, plate, schedule.age_of(plate)) for plate in due
+    )
 
 
 def _spontaneous_rift_parameters(

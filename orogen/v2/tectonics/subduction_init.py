@@ -344,7 +344,7 @@ def _plate_can_founder_margin(
     num_cells: int,
     minimum_share: float,
 ) -> bool:
-    """Whether a living, non-background plate meets intraplate founder limits."""
+    """Determine whether a living, non-background plate meets intraplate founder limits."""
     if (
         not plate.alive
         or plate.isBackground

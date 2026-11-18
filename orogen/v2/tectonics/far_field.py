@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import numpy as np
 
@@ -46,10 +47,13 @@ def feed_far_field(
         pending[key] = group
     group["frontKm"] = max(float(group["frontKm"]), float(front_km))
 
-    scalar = np.isscalar(works)
     for index, cell_value in enumerate(cells):
         cell = int(cell_value)
-        work = float(works) if scalar else float(works[index])
+        work = (
+            float(works)
+            if isinstance(works, (int, float, np.integer, np.floating))
+            else float(works[index])
+        )
         pushed = work * float(share)
         if pushed > 0.0:
             group["cells"][cell] = group["cells"].get(cell, 0.0) + pushed
@@ -536,7 +540,9 @@ def _rejuvenate(
             queue.append(neighbour)
 
     reached = list(dict.fromkeys(queue))
-    heights = world.config.get("heights") or DEFAULT_HEIGHTS
+    heights = cast(
+        Mapping[str, Any], world.config.get("heights") or DEFAULT_HEIGHTS
+    )
     intraplate_build = float(heights["upliftBuildKm"][OrogenyType["INTRAPLATE"]])
     if intraplate_build <= 0.0:
         raise ValueError("INTRAPLATE upliftBuildKm must be positive")

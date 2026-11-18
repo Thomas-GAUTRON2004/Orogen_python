@@ -7,12 +7,23 @@ from orogen.v2.core.mesh_locate import locate
 
 def test_locate_returns_spherical_triangle_barycentric_weights():
     mesh = SimpleNamespace(
-        xyz=np.array([
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-            -1.0, 0.0, 0.0,
-        ], dtype=np.float32),
+        xyz=np.array(
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                0.0,
+                0.0,
+            ],
+            dtype=np.float32,
+        ),
         adj_offset=np.array([0, 3, 3, 3, 3], dtype=np.int32),
         adj_list=np.array([1, 2, 3], dtype=np.int32),
         index=SimpleNamespace(nearest=lambda x, y, z: 0),

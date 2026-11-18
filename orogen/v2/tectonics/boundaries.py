@@ -4,6 +4,7 @@ This module currently ports the deterministic classification and trench bookkeep
 helpers. The full world pass also depends on orogeny and far-field deformation and
 is intentionally kept separate until those systems are ported.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -23,7 +24,9 @@ class Motion:
     SLIDING = 3
 
 
-def classify_motion(closing: float, shear: float, active_speed: float, oblique_limit: float) -> int:
+def classify_motion(
+    closing: float, shear: float, active_speed: float, oblique_limit: float
+) -> int:
     """Classify relative contact motion from normal closing rate and shear."""
     normal_dominates = abs(closing) > oblique_limit * shear
     if closing < -active_speed and normal_dominates:
@@ -55,14 +58,18 @@ def vote_segments(world, contacts: list[dict]) -> None:
             while index < len(run):
                 current = run[index]
                 index += 1
-                for k in range(int(offsets[current["w"]]), int(offsets[current["w"] + 1])):
+                for k in range(
+                    int(offsets[current["w"]]), int(offsets[current["w"] + 1])
+                ):
                     neighbour = at.get(int(adjacency[k]))
                     if neighbour is not None and neighbour["w"] not in seen:
                         seen.add(neighbour["w"])
                         run.append(neighbour)
             score = sum(c["weight"] if c["prefersLower"] else -c["weight"] for c in run)
             if score == 0:
-                winner = run[0]["lowerId"] if run[0]["prefersLower"] else run[0]["upperId"]
+                winner = (
+                    run[0]["lowerId"] if run[0]["prefersLower"] else run[0]["upperId"]
+                )
             else:
                 winner = run[0]["lowerId"] if score > 0 else run[0]["upperId"]
             for contact in run:
@@ -74,7 +81,9 @@ def near_land(plate, mesh, cell: int, config: dict) -> bool:
     hops = round((config["apronKm"] + 2 * mesh.edge_km) / mesh.edge_km)
     crust = plate.crust
     return reaches_within(
-        mesh, cell, hops,
+        mesh,
+        cell,
+        hops,
         lambda c: bool(crust.mask[c]),
         lambda c: int(crust.type[c]) != CrustType["OCEAN"],
     )
@@ -141,9 +150,14 @@ def classify_contact_boundaries(world, dt: float) -> int:
         oz = float(plate_a.omega[2]) - float(plate_b.omega[2])
         vx, vy, vz = oy * pz - oz * py, oz * px - ox * pz, ox * py - oy * px
         closing = vx * normal[0] + vy * normal[1] + vz * normal[2]
-        shear = float((vx - closing * normal[0]) ** 2 +
-                      (vy - closing * normal[1]) ** 2 +
-                      (vz - closing * normal[2]) ** 2) ** 0.5
+        shear = (
+            float(
+                (vx - closing * normal[0]) ** 2
+                + (vy - closing * normal[1]) ** 2
+                + (vz - closing * normal[2]) ** 2
+            )
+            ** 0.5
+        )
         convergence[w] = closing / CM_PER_YR_TO_RAD_PER_MYR
         motion = classify_motion(closing, shear, active, oblique)
         if motion == Motion.OPENING:
@@ -151,18 +165,37 @@ def classify_contact_boundaries(world, dt: float) -> int:
         elif motion == Motion.SLIDING:
             boundary[w] = BoundaryKind["TRANSFORM"]
         elif motion == Motion.CLOSING:
-            a_overrides = overrides(plate_a, cell_a, plate_b, cell_b, int(world.oceanOverrider[w]))
-            if (int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
-                    and int(plate_b.crust.type[cell_b]) == CrustType["OCEAN"]):
+            a_overrides = overrides(
+                plate_a, cell_a, plate_b, cell_b, int(world.oceanOverrider[w])
+            )
+            if (
+                int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
+                and int(plate_b.crust.type[cell_b]) == CrustType["OCEAN"]
+            ):
                 lower, upper = (plate_a, plate_b) if a_id < b_id else (plate_b, plate_a)
-                lower_cell, upper_cell = (cell_a, cell_b) if a_id < b_id else (cell_b, cell_a)
-                trench = bool((int(plate_a.crust.flags[cell_a]) | int(plate_b.crust.flags[cell_b])) & CrustFlag["TRENCH"])
-                contacts.append({
-                    "w": w, "key": f"{lower.id}:{upper.id}",
-                    "lowerId": lower.id, "upperId": upper.id,
-                    "prefersLower": overrides(lower, lower_cell, upper, upper_cell) is True,
-                    "weight": float(world.config.get("segmentTrenchWeight", 1.0)) if trench else 1.0,
-                })
+                lower_cell, upper_cell = (
+                    (cell_a, cell_b) if a_id < b_id else (cell_b, cell_a)
+                )
+                trench = bool(
+                    (
+                        int(plate_a.crust.flags[cell_a])
+                        | int(plate_b.crust.flags[cell_b])
+                    )
+                    & CrustFlag["TRENCH"]
+                )
+                contacts.append(
+                    {
+                        "w": w,
+                        "key": f"{lower.id}:{upper.id}",
+                        "lowerId": lower.id,
+                        "upperId": upper.id,
+                        "prefersLower": overrides(lower, lower_cell, upper, upper_cell)
+                        is True,
+                        "weight": float(world.config.get("segmentTrenchWeight", 1.0))
+                        if trench
+                        else 1.0,
+                    }
+                )
             if a_overrides is None:
                 boundary[w] = BoundaryKind["COLLISION"]
             elif a_overrides:
@@ -171,8 +204,11 @@ def classify_contact_boundaries(world, dt: float) -> int:
                     feed_trench(world, w, plate_a.crust, cell_a, closing * dt * 6371.0)
             else:
                 boundary[w] = BoundaryKind["SUBDUCTING"]
-                if (real and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
-                        and int(plate_b.crust.type[cell_b]) != CrustType["OCEAN"]):
+                if (
+                    real
+                    and int(plate_a.crust.type[cell_a]) == CrustType["OCEAN"]
+                    and int(plate_b.crust.type[cell_b]) != CrustType["OCEAN"]
+                ):
                     plate_a.crust.flags[cell_a] &= np.uint8(0xFF ^ CrustFlag["TRENCH"])
         if boundary[w] != BoundaryKind["NONE"]:
             classified += 1

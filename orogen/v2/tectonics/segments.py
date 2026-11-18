@@ -1,4 +1,5 @@
 """Mid-ocean-ridge segment and fracture-zone coordinates (V2 model/segments.js)."""
+
 from __future__ import annotations
 
 import math

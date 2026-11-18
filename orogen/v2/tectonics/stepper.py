@@ -6,6 +6,7 @@ orogeny history events, ocean-plate evolution, arc maturation, and slow
 terrain/geology stages are not fully orchestrated here. Continental rifting
 is included when its configuration is present.
 """
+
 from __future__ import annotations
 
 import math
@@ -49,7 +50,8 @@ def step_world(
 
     cells_moved = (
         closing_rate(world) * step_dt / float(world.mesh.edge_rad)
-        if float(world.mesh.edge_rad) > 0 else 0.0
+        if float(world.mesh.edge_rad) > 0
+        else 0.0
     )
     advance_plates(world, step_dt)
     world.lastDt = step_dt
@@ -58,10 +60,7 @@ def step_world(
     plume_state = update_plumes(world, step_dt)
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
     rifts = 0
-    if (
-        "riftRatePerMyr" in world.config
-        or getattr(world, "pendingPlumeRifts", None)
-    ):
+    if "riftRatePerMyr" in world.config or getattr(world, "pendingPlumeRifts", None):
         rifts = rift_continents(world, step_dt)
 
     subductions = 0
@@ -74,7 +73,12 @@ def step_world(
         tally = resolve(world)
         classified = classify_contact_boundaries(world, 0.0)
 
-    collision_state = {"tracked": 0, "started": 0, "underthrustCells": 0, "changed": False}
+    collision_state = {
+        "tracked": 0,
+        "started": 0,
+        "underthrustCells": 0,
+        "changed": False,
+    }
     if "collisionForgetMyr" in world.config:
         collision_state = track_collisions(world, step_dt)
         if collision_state["changed"]:

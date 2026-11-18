@@ -5,6 +5,7 @@ records how much shortening reaches each land cell, its weighted path distance,
 its decaying recent component, and the direction away from the source front.
 Old weak-line reactivation and rejuvenation are integrated when configured.
 """
+
 from __future__ import annotations
 
 import math
@@ -19,11 +20,7 @@ from .crust import CrustFlag, CrustType, OrogenyType
 from .heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
 from .spread_belt import spread_belt
 
-_WEAK = (
-    CrustFlag["SUTURE"]
-    | CrustFlag["FAILED_RIFT"]
-    | CrustFlag["RIFT_MARGIN"]
-)
+_WEAK = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
 
 
 def feed_far_field(
@@ -135,7 +132,8 @@ def spread_push(
     ]
     if not active_sources:
         return {
-            "cells": [], "inc": np.zeros(0, dtype=np.float32),
+            "cells": [],
+            "inc": np.zeros(0, dtype=np.float32),
             "from": np.zeros(0, dtype=np.int32),
             "dist": np.zeros(0, dtype=np.float64),
         }
@@ -257,13 +255,12 @@ def record_push(
     total_work = old_work + float(felt)
     crust.farWork[cell] = total_work
     crust.farDist[cell] = (
-        float(crust.farDist[cell]) * old_work
-        + float(distance_km) * float(felt)
+        float(crust.farDist[cell]) * old_work + float(distance_km) * float(felt)
     ) / total_work
     elapsed = max(0.0, float(time) - float(crust.farAt[cell]))
     previous_fold = float(crust.farFold[cell])
-    crust.farFold[cell] = (
-        previous_fold * math.exp(-elapsed / float(fold_myr)) + float(felt)
+    crust.farFold[cell] = previous_fold * math.exp(-elapsed / float(fold_myr)) + float(
+        felt
     )
     crust.farAt[cell] = float(time)
 
@@ -271,8 +268,8 @@ def record_push(
         return
     offset = 3 * cell
     source_offset = 3 * source
-    px, py, pz = (float(v) for v in xyz[offset:offset + 3])
-    qx, qy, qz = (float(v) for v in xyz[source_offset:source_offset + 3])
+    px, py, pz = (float(v) for v in xyz[offset : offset + 3])
+    qx, qy, qz = (float(v) for v in xyz[source_offset : source_offset + 3])
     cosine = px * qx + py * qy + pz * qz
     ax, ay, az = cosine * px - qx, cosine * py - qy, cosine * pz - qz
     length = math.hypot(ax, ay, az)
@@ -311,6 +308,7 @@ def recent_push(far_fold: float, far_at: float, time: float, fold_myr: float) ->
         -max(0.0, float(time) - float(far_at)) / float(fold_myr)
     )
 
+
 def _smoothstep(value: float) -> float:
     """Cubic smooth transition clamped to the unit interval."""
     x = float(value)
@@ -347,7 +345,7 @@ def line_strike(crust, mesh, cell: int) -> list[float] | None:
     if len(near) < 4:
         return None
 
-    position = np.asarray(xyz[3 * int(cell):3 * int(cell) + 3], dtype=np.float64)
+    position = np.asarray(xyz[3 * int(cell) : 3 * int(cell) + 3], dtype=np.float64)
     up = (
         np.asarray([1.0, 0.0, 0.0])
         if abs(float(position[2])) > 0.9
@@ -361,7 +359,7 @@ def line_strike(crust, mesh, cell: int) -> list[float] | None:
     north = np.cross(position, east)
 
     points = np.asarray(
-        [xyz[3 * index:3 * index + 3] for index in near],
+        [xyz[3 * index : 3 * index + 3] for index in near],
         dtype=np.float64,
     )
     u = points @ east
@@ -440,8 +438,8 @@ def reactivate(world, plate, push: Mapping, window: float) -> None:
             continue
 
         offset, source_offset = 3 * cell, 3 * source
-        px, py, pz = (float(value) for value in xyz[offset:offset + 3])
-        qx, qy, qz = (float(value) for value in xyz[source_offset:source_offset + 3])
+        px, py, pz = (float(value) for value in xyz[offset : offset + 3])
+        qx, qy, qz = (float(value) for value in xyz[source_offset : source_offset + 3])
         cosine = px * qx + py * qy + pz * qz
         ax, ay, az = cosine * px - qx, cosine * py - qy, cosine * pz - qz
         length = math.hypot(ax, ay, az)
@@ -450,14 +448,15 @@ def reactivate(world, plate, push: Mapping, window: float) -> None:
         ax, ay, az = ax / length, ay / length, az / length
 
         strike = line_strike(crust, mesh, cell)
-        along = 0.0 if strike is None else (
-            ax * float(strike[0]) + ay * float(strike[1]) + az * float(strike[2])
+        along = (
+            0.0
+            if strike is None
+            else (ax * float(strike[0]) + ay * float(strike[1]) + az * float(strike[2]))
         )
         square = max(0.0, 1.0 - along * along)
-        work = (
-            float(increments[index]) * square * far * float(config["farReactivate"])
-            - float(config["farReactMinKmPerMyr"]) * float(window)
-        )
+        work = float(increments[index]) * square * far * float(
+            config["farReactivate"]
+        ) - float(config["farReactMinKmPerMyr"]) * float(window)
         if work <= 0.0:
             continue
 
@@ -538,9 +537,7 @@ def _rejuvenate(
 
     reached = list(dict.fromkeys(queue))
     heights = world.config.get("heights") or DEFAULT_HEIGHTS
-    intraplate_build = float(
-        heights["upliftBuildKm"][OrogenyType["INTRAPLATE"]]
-    )
+    intraplate_build = float(heights["upliftBuildKm"][OrogenyType["INTRAPLATE"]])
     if intraplate_build <= 0.0:
         raise ValueError("INTRAPLATE upliftBuildKm must be positive")
     crest_share = float(world.config.get("farRejuvenateCrests", 0.0))
@@ -557,7 +554,8 @@ def _rejuvenate(
         share = 1.0 - math.exp(-work / intraplate_build)
         target_crests = crest_share * amplitude
         target_uplift = (
-            uplift_share * amplitude
+            uplift_share
+            * amplitude
             * broad_profile(
                 oro_type,
                 int(crust.beltSide[cell]),

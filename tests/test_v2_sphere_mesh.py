@@ -32,11 +32,11 @@ def test_closed_sphere_mesh_has_spherical_euler_topology():
     assert mesh.adj_offset[-1] == len(mesh.adj_list)
 
     for cell in range(vertices):
-        neighbours = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+        neighbours = mesh.adj_list[mesh.adj_offset[cell] : mesh.adj_offset[cell + 1]]
         assert len(neighbours) >= 3
         for neighbour in neighbours:
             reverse = mesh.adj_list[
-                mesh.adj_offset[neighbour]:mesh.adj_offset[neighbour + 1]
+                mesh.adj_offset[neighbour] : mesh.adj_offset[neighbour + 1]
             ]
             assert cell in reverse
 
@@ -52,14 +52,15 @@ def test_build_sim_mesh_is_seeded_and_includes_north_pole_region():
     assert np.array_equal(first.xyz[-3:], np.array([0.0, 0.0, 1.0], dtype=np.float32))
     assert first.index.nearest(0.0, 0.0, 1.0) == 48
 
+
 def test_region_neighbour_rings_match_all_closed_triangles():
     mesh, _ = build_sphere(40, 0.35, make_rng(991))
     triangles = {
-        frozenset(map(int, mesh.triangles[i:i + 3]))
+        frozenset(map(int, mesh.triangles[i : i + 3]))
         for i in range(0, len(mesh.triangles), 3)
     }
     for cell in range(mesh.num_regions):
-        ring = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+        ring = mesh.adj_list[mesh.adj_offset[cell] : mesh.adj_offset[cell + 1]]
         for i, first in enumerate(ring):
             second = ring[(i + 1) % len(ring)]
             assert frozenset((cell, int(first), int(second))) in triangles
@@ -69,7 +70,10 @@ def test_point_location_on_generated_mesh_recovers_containing_triangle():
     from orogen.v2.core.mesh_locate import locate
 
     mesh = build_sim_mesh(40, 771)
-    tri = np.asarray(mesh.adj_list[mesh.adj_offset[0]:mesh.adj_offset[0] + 2].tolist() + [0], dtype=np.int32)
+    tri = np.asarray(
+        mesh.adj_list[mesh.adj_offset[0] : mesh.adj_offset[0] + 2].tolist() + [0],
+        dtype=np.int32,
+    )
     xyz = mesh.xyz.reshape(-1, 3)
     point = xyz[tri].mean(axis=0)
     point /= np.linalg.norm(point)
@@ -77,6 +81,7 @@ def test_point_location_on_generated_mesh_recovers_containing_triangle():
     assert np.all(weights >= 0)
     assert np.isclose(weights.sum(), 1.0)
     assert len(set(map(int, cells))) == 3
+
 
 def test_shull_spherical_mesh_topology_across_small_and_medium_sizes():
     for num_points, seed in ((3, 1), (4, 2), (10, 3), (48, 4242), (257, 991)):
@@ -93,7 +98,7 @@ def test_shull_spherical_mesh_topology_across_small_and_medium_sizes():
         assert mesh.adj_offset[0] == 0
         assert mesh.adj_offset[-1] == len(mesh.adj_list)
         for cell in range(vertices):
-            ring = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+            ring = mesh.adj_list[mesh.adj_offset[cell] : mesh.adj_offset[cell + 1]]
             assert len(ring) >= 3
             assert len(np.unique(ring)) == len(ring)
             assert cell not in ring

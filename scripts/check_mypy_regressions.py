@@ -5,6 +5,7 @@ The comparison intentionally ignores line and column numbers so that moving
 existing code does not turn unchanged diagnostics into regressions. It keeps
 path, error code, and message, including duplicate counts.
 """
+
 from __future__ import annotations
 
 import re

@@ -5,7 +5,13 @@ from __future__ import annotations
 import math
 
 from ..core.mesh_bfs import hops_from
-from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
+from ..core.sphere_geometry import (
+    PLANET_RADIUS_KM,
+    centroid_of_cells,
+    cross,
+    dot,
+    tangent_toward,
+)
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .crust import BeltSide, CrustFlag, CrustType, OrogenyType
 from .far_field import feed_far_field
@@ -129,14 +135,11 @@ def choose_sides(world, plate_a, plate_b, cells) -> dict:
 
     flag_a, flag_b = flagged(plate_a), flagged(plate_b)
     if flag_a != flag_b:
-        upper, lower = (
-            (plate_a, plate_b) if flag_a > flag_b else (plate_b, plate_a)
-        )
+        upper, lower = (plate_a, plate_b) if flag_a > flag_b else (plate_b, plate_a)
     else:
         upper, lower = (
             (plate_a, plate_b)
-            if plate_a.stats["continentalCells"]
-            >= plate_b.stats["continentalCells"]
+            if plate_a.stats["continentalCells"] >= plate_b.stats["continentalCells"]
             else (plate_b, plate_a)
         )
     return {"upper": upper, "lower": lower}
@@ -158,14 +161,11 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
 
     xyz, index = mesh.xyz, mesh.index
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
-    owner, owner_cell, land_claims = (
-        world.owner, world.ownerCell, world.landClaims
-    )
+    owner, owner_cell, land_claims = (world.owner, world.ownerCell, world.landClaims)
     cell_area = float(mesh.cell_area_km2)
     front_km = float(record["frontKm"])
     record["underthrustDue"] = (
-        float(record.get("underthrustDue", 0.0))
-        + share * km * front_km / cell_area
+        float(record.get("underthrustDue", 0.0)) + share * km * front_km / cell_area
     )
 
     in_overlap = {int(cell) for cell in cells}
@@ -177,8 +177,7 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
                 neighbour not in in_overlap
                 and int(land_claims[neighbour]) <= 1
                 and int(owner[neighbour]) == lower.id
-                and lower.crust.type[int(owner_cell[neighbour])]
-                != CrustType["OCEAN"]
+                and lower.crust.type[int(owner_cell[neighbour])] != CrustType["OCEAN"]
             ):
                 lower_side.append(cell)
                 break
@@ -186,21 +185,13 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
     if not lower_side:
         return 0
 
-    depths, _sources = hops_from(
-        mesh, lower_side, lambda cell: cell in in_overlap
-    )
-    candidates = [
-        int(cell)
-        for cell in cells
-        if int(depths[int(cell)]) > 0
-    ]
+    depths, _sources = hops_from(mesh, lower_side, lambda cell: cell in in_overlap)
+    candidates = [int(cell) for cell in cells if int(depths[int(cell)]) > 0]
     candidates.sort(key=lambda cell: (-int(depths[cell]), cell))
 
     overlap_cap = max(
         1,
-        math.floor(
-            front_km * float(config["overlapCapKm"]) / cell_area
-        ),
+        math.floor(front_km * float(config["overlapCapKm"]) / cell_area),
     )
     excess = max(0, len(cells) - overlap_cap)
     target = max(
@@ -219,11 +210,9 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
             float(xyz[offset + 2]),
         )
         lower_cell = lower.cell_at(index, x, y, z)
-        if (
-            not lower.crust.mask[lower_cell]
-            or lower.crust.type[lower_cell] in (
-                CrustType["OCEAN"], CrustType["CRATON"]
-            )
+        if not lower.crust.mask[lower_cell] or lower.crust.type[lower_cell] in (
+            CrustType["OCEAN"],
+            CrustType["CRATON"],
         ):
             continue
         lower.crust.remove(lower_cell)
@@ -249,9 +238,7 @@ def underthrust(world, upper, lower, cells, record: dict, shortening_km: float) 
         max(0.0, float(record["underthrustDue"]) - consumed),
         1.0,
     )
-    record["underthrustCells"] = (
-        int(record.get("underthrustCells", 0)) + consumed
-    )
+    record["underthrustCells"] = int(record.get("underthrustCells", 0)) + consumed
     world.budget["underthrustCells"] += consumed
     if consumed:
         lower.mark_reshaped()
@@ -384,12 +371,8 @@ def open_sea_between(world, upper, lower) -> dict[str, float]:
         1,
         math.floor(float(config["sutureGapKm"]) / edge_km + 0.5),
     )
-    dist_upper, source_upper = hops_from(
-        mesh, coast_upper, is_sea, hops
-    )
-    dist_lower, source_lower = hops_from(
-        mesh, coast_lower, is_sea, hops
-    )
+    dist_upper, source_upper = hops_from(mesh, coast_upper, is_sea, hops)
+    dist_lower, source_lower = hops_from(mesh, coast_lower, is_sea, hops)
 
     def direction_to(cell: int, source: int) -> list[float]:
         return tangent_toward(
@@ -422,9 +405,8 @@ def open_sea_between(world, upper, lower) -> dict[str, float]:
 def is_rift_jitter(world, plate_a, plate_b, cells) -> bool:
     """Detect a one-cell sliver where conjugate, young rift margins jitter."""
     mesh = world.mesh
-    if (
-        len(cells) * float(mesh.cell_area_km2) / float(mesh.edge_km)
-        > float(world.config["riftJitterFrontKm"])
+    if len(cells) * float(mesh.cell_area_km2) / float(mesh.edge_km) > float(
+        world.config["riftJitterFrontKm"]
     ):
         return False
 
@@ -474,15 +456,11 @@ def recycle_small_arc(world, donor, cell: int) -> bool:
     """Recycle a connected arc fragment below the configured accretion area."""
     mesh = world.mesh
     crust = donor.crust
-    if (
-        not crust.mask[cell]
-        or crust.type[cell] != CrustType["ARC"]
-    ):
+    if not crust.mask[cell] or crust.type[cell] != CrustType["ARC"]:
         return False
 
     limit = math.ceil(
-        float(world.config["arcAccreteMinKm2"])
-        / float(mesh.cell_area_km2)
+        float(world.config["arcAccreteMinKm2"]) / float(mesh.cell_area_km2)
     )
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
     component = [int(cell)]
@@ -524,20 +502,17 @@ def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
 
     def is_arc(plate, cell: int) -> bool:
         return bool(
-            plate.crust.mask[cell]
-            and plate.crust.type[cell] == CrustType["ARC"]
+            plate.crust.mask[cell] and plate.crust.type[cell] == CrustType["ARC"]
         )
 
     core = []
     from_a = []
     from_b = []
-    arc_a_loses = (
-        plate_a.stats["continentalCells"] < plate_b.stats["continentalCells"]
-        or (
-            plate_a.stats["continentalCells"]
-            == plate_b.stats["continentalCells"]
-            and plate_a.id > plate_b.id
-        )
+    arc_a_loses = plate_a.stats["continentalCells"] < plate_b.stats[
+        "continentalCells"
+    ] or (
+        plate_a.stats["continentalCells"] == plate_b.stats["continentalCells"]
+        and plate_a.id > plate_b.id
     )
     for world_cell in overlap:
         cell_a = cell_of(plate_a, world_cell)
@@ -547,7 +522,9 @@ def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
         if not arc_a and not arc_b:
             core.append(int(world_cell))
         elif arc_a and arc_b:
-            (from_a if arc_a_loses else from_b).append(cell_a if arc_a_loses else cell_b)
+            (from_a if arc_a_loses else from_b).append(
+                cell_a if arc_a_loses else cell_b
+            )
         elif arc_a:
             from_a.append(cell_a)
         else:
@@ -581,15 +558,11 @@ def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
             world.arcScrapes[key] = record
         record["cells"] += moved
         record["last"] = float(world.time)
-        if (
-            not record.get("logged", False)
-            and record["cells"] * float(mesh.cell_area_km2)
-            >= float(world.config["arcScrapeLogKm2"])
-        ):
+        if not record.get("logged", False) and record["cells"] * float(
+            mesh.cell_area_km2
+        ) >= float(world.config["arcScrapeLogKm2"]):
             record["logged"] = True
-            area_mkm2 = (
-                record["cells"] * float(mesh.cell_area_km2) / 1e6
-            )
+            area_mkm2 = record["cells"] * float(mesh.cell_area_km2) / 1e6
             world.log(
                 EventKind["ARC_SCRAPE"],
                 (
@@ -638,25 +611,17 @@ def dock_if_terrane(world, plate_a, plate_b, cells) -> bool:
     def mostly_arc(plate, mass) -> bool:
         return bool(
             mass
-            and sum(
-                plate.crust.type[cell] == CrustType["ARC"]
-                for cell in mass
-            ) * 2 > len(mass)
+            and sum(plate.crust.type[cell] == CrustType["ARC"] for cell in mass) * 2
+            > len(mass)
         )
 
     terrane_a = bool(
         area_a > 0
-        and (
-            area_a < float(config["terraneMaxAreaKm2"])
-            or mostly_arc(plate_a, mass_a)
-        )
+        and (area_a < float(config["terraneMaxAreaKm2"]) or mostly_arc(plate_a, mass_a))
     )
     terrane_b = bool(
         area_b > 0
-        and (
-            area_b < float(config["terraneMaxAreaKm2"])
-            or mostly_arc(plate_b, mass_b)
-        )
+        and (area_b < float(config["terraneMaxAreaKm2"]) or mostly_arc(plate_b, mass_b))
     )
     if not terrane_a and not terrane_b:
         return False
@@ -665,28 +630,18 @@ def dock_if_terrane(world, plate_a, plate_b, cells) -> bool:
 
     a_hosts = not terrane_a or (
         terrane_b
-        and plate_a.stats["continentalCells"]
-        >= plate_b.stats["continentalCells"]
+        and plate_a.stats["continentalCells"] >= plate_b.stats["continentalCells"]
     )
     host, donor, mass = (
-        (plate_a, plate_b, mass_b)
-        if a_hosts
-        else (plate_b, plate_a, mass_a)
+        (plate_a, plate_b, mass_b) if a_hosts else (plate_b, plate_a, mass_a)
     )
-    relative_omega = [
-        float(donor.omega[i]) - float(host.omega[i])
-        for i in range(3)
-    ]
+    relative_omega = [float(donor.omega[i]) - float(host.omega[i]) for i in range(3)]
     centre = centroid_of_cells(xyz, cells)
     velocity = cross(relative_omega, centre)
     rate = math.hypot(*velocity) / CM_PER_YR_TO_RAD_PER_MYR
     arc_piece = mostly_arc(donor, mass)
 
-    if (
-        arc_piece
-        and len(mass) * cell_area
-        < float(config["arcAccreteMinKm2"])
-    ):
+    if arc_piece and len(mass) * cell_area < float(config["arcAccreteMinKm2"]):
         recycle(world, donor, mass)
         return True
 
@@ -732,7 +687,6 @@ def _position(xyz, cell: int):
     )
 
 
-
 def _update_suture_state(
     world,
     upper,
@@ -754,15 +708,13 @@ def _update_suture_state(
         float(record["shorteningKm"])
         >= float(config.get("sutureShorteningKm", math.inf))
         or (
-            float(record["stalledMyr"])
-            >= float(config.get("sutureStallMyr", math.inf))
+            float(record["stalledMyr"]) >= float(config.get("sutureStallMyr", math.inf))
             and float(record["shorteningKm"])
             >= float(config.get("sutureStallMinKm", math.inf))
         )
         or float(record["contactMyr"])
         >= float(config.get("sutureContactMyr", math.inf))
-        or len(cells) * cell_area
-        >= float(config.get("sutureOverlapKm2", math.inf))
+        or len(cells) * cell_area >= float(config.get("sutureOverlapKm2", math.inf))
     )
     record["sutureCandidate"] = bool(
         ready
@@ -802,53 +754,30 @@ def _update_suture_state(
         closed = (
             float(record.get("gapWidestKm", math.inf))
             <= float(config["sutureGapWidthKm"])
-            or float(record["stalledMyr"])
-            >= float(config["sutureStallGiveUpMyr"])
+            or float(record["stalledMyr"]) >= float(config["sutureStallGiveUpMyr"])
             or time - float(record.get("gapShrankAt", time))
             >= float(config["sutureGapStallMyr"])
         )
-        overdue = (
-            float(record["contactMyr"])
-            >= float(config["sutureLockMaxMyr"])
-        )
-        stacked = (
-            (len(cells) - under_now) * cell_area
-            / max(float(record["frontKm"]), edge_km)
-            >= float(config["sutureStackKm"])
-        )
+        overdue = float(record["contactMyr"]) >= float(config["sutureLockMaxMyr"])
+        stacked = (len(cells) - under_now) * cell_area / max(
+            float(record["frontKm"]), edge_km
+        ) >= float(config["sutureStackKm"])
         would_weld = bool(
-            (
-                ready and (closed or stacked)
-                or overdue
-            )
-            and float(record["frontMaxKm"])
-            >= float(config["sutureMinContactKm"])
+            (ready and (closed or stacked) or overdue)
+            and float(record["frontMaxKm"]) >= float(config["sutureMinContactKm"])
         )
-        if would_weld and (
-            due or "ringKm2" not in record
-        ):
-            record["ringKm2"] = enclosed_sea_between_km2(
-                world, upper, lower
-            )
+        if would_weld and (due or "ringKm2" not in record):
+            record["ringKm2"] = enclosed_sea_between_km2(world, upper, lower)
         if due:
             record["checkedAt"] = time
 
         ring_area = float(record.get("ringKm2", math.inf))
-        ring_too_large = bool(
-            would_weld and ring_area > float(config["ringSeaKm2"])
-        )
-        ring_blocked = bool(
-            ring_too_large and not stacked and not overdue
-        )
+        ring_too_large = bool(would_weld and ring_area > float(config["ringSeaKm2"]))
+        ring_blocked = bool(ring_too_large and not stacked and not overdue)
         record["weldCandidate"] = would_weld
         record["weldBlockedByRing"] = ring_blocked
-        record["mergeEligible"] = bool(
-            would_weld and not ring_blocked
-        )
-        if (
-            ring_too_large
-            and not record.get("ringLogged", False)
-        ):
+        record["mergeEligible"] = bool(would_weld and not ring_blocked)
+        if ring_too_large and not record.get("ringLogged", False):
             record["ringLogged"] = True
             world.log(
                 EventKind["COLLISION"],
@@ -873,8 +802,10 @@ def _update_suture_state(
         }
         if record["mergeEligible"] and merge_keys.issubset(config):
             why = (
-                "stacked" if stacked and not closed
-                else "overdue" if not closed
+                "stacked"
+                if stacked and not closed
+                else "overdue"
+                if not closed
                 else "stalled"
                 if float(record["stalledMyr"])
                 >= float(config.get("sutureStallMyr", math.inf))
@@ -899,9 +830,9 @@ def _update_suture_state(
                     f"{result['landLostCells']} cells of land absorbed "
                     f"into the belt"
                     + (
-                        f", {result['sealedCells']} cells of sea "
-                        "between them closed"
-                        if result["sealedCells"] else ""
+                        f", {result['sealedCells']} cells of sea between them closed"
+                        if result["sealedCells"]
+                        else ""
                     )
                     + ")"
                 ),
@@ -939,6 +870,7 @@ _BELT_CONFIG_KEYS = {
     "cratonRimShare",
     "sutureMinContactKm",
 }
+
 
 def track_collisions(world, dt: float) -> dict:
     """Track continent-on-continent contacts, shortening and underthrusting.
@@ -998,12 +930,10 @@ def track_collisions(world, dt: float) -> dict:
 
         # Arcs are transferred before continent-on-continent overlap is
         # counted. Keep this operation gated until its full config is present.
-        if {
-            "arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"
-        }.issubset(config):
-            arc_result = accrete_arcs(
-                world, plates[id_a], plates[id_b], overlap_values
-            )
+        if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(
+            config
+        ):
+            arc_result = accrete_arcs(world, plates[id_a], plates[id_b], overlap_values)
             core = arc_result["core"]
             changed = changed or bool(arc_result["accreted"])
         else:
@@ -1029,9 +959,7 @@ def track_collisions(world, dt: float) -> dict:
             ):
                 continue
 
-            sides = choose_sides(
-                world, plates[id_a], plates[id_b], core
-            )
+            sides = choose_sides(world, plates[id_a], plates[id_b], core)
             record = {
                 "upper": sides["upper"].id,
                 "lower": sides["lower"].id,
@@ -1054,11 +982,8 @@ def track_collisions(world, dt: float) -> dict:
             world.collisions[key] = record
             started += 1
 
-            if (
-                "terraneMaxAreaKm2" in config
-                and dock_if_terrane(
-                    world, sides["upper"], sides["lower"], core
-                )
+            if "terraneMaxAreaKm2" in config and dock_if_terrane(
+                world, sides["upper"], sides["lower"], core
             ):
                 del world.collisions[key]
                 changed = True
@@ -1075,17 +1000,14 @@ def track_collisions(world, dt: float) -> dict:
         cells = [int(cell) for cell in core]
         record["cells"] = len(cells)
         record["lastActive"] = float(world.time)
-        record["contactMyr"] = (
-            float(record.get("contactMyr", 0.0)) + step_dt
-        )
+        record["contactMyr"] = float(record.get("contactMyr", 0.0)) + step_dt
 
         centre = centroid_of_cells(xyz, cells)
         upper_centre = upper.to_world(*map(float, upper.capCenter))
         lower_centre = lower.to_world(*map(float, lower.capCenter))
         normal = tangent_toward(centre, lower_centre, upper_centre)
         relative_omega = [
-            float(lower.omega[axis]) - float(upper.omega[axis])
-            for axis in range(3)
+            float(lower.omega[axis]) - float(upper.omega[axis]) for axis in range(3)
         ]
         closing = dot(cross(relative_omega, centre), normal)
         closing_cm_yr = closing / CM_PER_YR_TO_RAD_PER_MYR
@@ -1111,35 +1033,27 @@ def track_collisions(world, dt: float) -> dict:
             )
 
         shortening_km = max(0.0, closing) * step_dt * PLANET_RADIUS_KM
-        record["shorteningKm"] = (
-            float(record["shorteningKm"]) + shortening_km
-        )
+        record["shorteningKm"] = float(record["shorteningKm"]) + shortening_km
         stall_rate = float(config.get("sutureStallCmYr", 0.4))
         record["stalledMyr"] = (
             float(record.get("stalledMyr", 0.0)) + step_dt
-            if closing_cm_yr < stall_rate else 0.0
+            if closing_cm_yr < stall_rate
+            else 0.0
         )
         elapsed = max(
             step_dt,
             float(world.time) - float(record["startedAt"]),
         )
-        record["meanRateCmYr"] = (
-            float(record["shorteningKm"]) / elapsed / 10.0
-        )
+        record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
 
         upper_front = []
         lower_front = []
         for world_cell in cells:
             touches_upper = False
             touches_lower = False
-            for edge in range(
-                int(offsets[world_cell]), int(offsets[world_cell + 1])
-            ):
+            for edge in range(int(offsets[world_cell]), int(offsets[world_cell + 1])):
                 neighbour = int(adjacency[edge])
-                if (
-                    int(land_claims[neighbour]) > 1
-                    or int(owner[neighbour]) < 0
-                ):
+                if int(land_claims[neighbour]) > 1 or int(owner[neighbour]) < 0:
                     continue
                 neighbour_plate = int(owner[neighbour])
                 local_cell = int(owner_cell[neighbour])
@@ -1168,8 +1082,7 @@ def track_collisions(world, dt: float) -> dict:
         upper_front = list(dict.fromkeys(upper_front))
         lower_front = list(dict.fromkeys(lower_front))
         record["frontKm"] = (
-            max(len(upper_front), len(lower_front))
-            * edge_km * math.sqrt(3.0) / 2.0
+            max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
         )
         record["frontMaxKm"] = max(
             float(record.get("frontMaxKm", 0.0)),
@@ -1201,31 +1114,20 @@ def track_collisions(world, dt: float) -> dict:
         # foreland-side belt. Keep this gated on the complete belt config so
         # smaller unit worlds can exercise collision tracking independently.
         if shortening_km > 0.0 and _BELT_CONFIG_KEYS.issubset(config):
-            major = (
-                float(record["frontKm"])
-                >= float(config["sutureMinContactKm"])
-            )
-            kind = (
-                OrogenyType["HIMALAYAN"]
-                if major
-                else OrogenyType["URAL"]
-            )
+            major = float(record["frontKm"]) >= float(config["sutureMinContactKm"])
+            kind = OrogenyType["HIMALAYAN"] if major else OrogenyType["URAL"]
             upper_kind = "himalayan" if major else "ural"
             lower_kind = "foreland" if major else "ural"
             velocity = cross(relative_omega, centre)
             relative_speed = math.hypot(*velocity)
-            shape = belt_shape(
-                closing / max(1e-12, relative_speed), None, config
-            )
+            shape = belt_shape(closing / max(1e-12, relative_speed), None, config)
             accumulated = float(record["shorteningKm"])
             mean_rate = float(record["meanRateCmYr"])
             upper_width = (
-                belt_width_km(upper_kind, accumulated, mean_rate, config)
-                * shape
+                belt_width_km(upper_kind, accumulated, mean_rate, config) * shape
             )
             lower_width = (
-                belt_width_km(lower_kind, accumulated, mean_rate, config)
-                * shape
+                belt_width_km(lower_kind, accumulated, mean_rate, config) * shape
             )
             shear = obliquity_deg(velocity, normal, centre, closing)
             if upper_front:
@@ -1259,23 +1161,24 @@ def track_collisions(world, dt: float) -> dict:
                     config,
                 )
 
-        under_now = underthrust(
-            world, upper, lower, cells, record, shortening_km
-        )
+        under_now = underthrust(world, upper, lower, cells, record, shortening_km)
         underthrust_total += under_now
         changed = changed or under_now > 0
 
-        changed = _update_suture_state(
-            world,
-            upper,
-            lower,
-            cells,
-            record,
-            under_now,
-            edge_km,
-            cell_area,
-            config,
-        ) or changed
+        changed = (
+            _update_suture_state(
+                world,
+                upper,
+                lower,
+                cells,
+                record,
+                under_now,
+                edge_km,
+                cell_area,
+                config,
+            )
+            or changed
+        )
 
         tracked += 1
 

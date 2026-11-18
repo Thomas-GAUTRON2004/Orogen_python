@@ -1,4 +1,5 @@
 """Regression tests for the first Orogen V2 core primitives."""
+
 import math
 
 from orogen.v2.core import (
@@ -57,8 +58,11 @@ def test_spherical_geometry_distance_and_destination():
     north_pole = [0.0, 0.0, 1.0]
     equator_x = [1.0, 0.0, 0.0]
     assert math.isclose(angle_between(north_pole, equator_x), math.pi / 2)
-    assert math.isclose(cell_distance_km([*north_pole, *equator_x], 0, 1),
-                        math.pi * 6371.0 / 2, rel_tol=1e-12)
+    assert math.isclose(
+        cell_distance_km([*north_pole, *equator_x], 0, 1),
+        math.pi * 6371.0 / 2,
+        rel_tol=1e-12,
+    )
 
     point = normalize([1.0, 0.0, 0.0])
     moved = destination(point, 0.0, math.pi / 6)

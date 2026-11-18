@@ -31,8 +31,7 @@ def initiate_subduction(world, dt: float) -> int:
 
     def stale(plate, cell: int) -> bool:
         return bool(
-            (plate.reshaped and not plate.isBackground)
-            or not plate.crust.mask[cell]
+            (plate.reshaped and not plate.isBackground) or not plate.crust.mask[cell]
         )
 
     by_pair: dict[tuple[int, int], dict] = {}
@@ -67,9 +66,8 @@ def initiate_subduction(world, dt: float) -> int:
                 or int(crust_b.flags[cell_b]) & CrustFlag["TRENCH"]
             ):
                 continue
-            if (
-                float(convergence[world_cell])
-                < -float(config["subductionInitMaxOpeningCmYr"])
+            if float(convergence[world_cell]) < -float(
+                config["subductionInitMaxOpeningCmYr"]
             ):
                 continue
 
@@ -136,9 +134,7 @@ def initiate_subduction(world, dt: float) -> int:
             else:
                 plate_b = born
 
-        upper, lower = choose_foundering(
-            world, plate_a, plate_b, segment
-        )
+        upper, lower = choose_foundering(world, plate_a, plate_b, segment)
         arm_margin(world, upper, lower, segment)
         started += 1
 
@@ -187,16 +183,8 @@ def choose_foundering(world, plate_a, plate_b, segment):
                 land_b += 1
 
     if land_a != land_b:
-        return (
-            (plate_a, plate_b)
-            if land_a > land_b
-            else (plate_b, plate_a)
-        )
-    return (
-        (plate_a, plate_b)
-        if age_a <= age_b
-        else (plate_b, plate_a)
-    )
+        return (plate_a, plate_b) if land_a > land_b else (plate_b, plate_a)
+    return (plate_a, plate_b) if age_a <= age_b else (plate_b, plate_a)
 
 
 def arm_margin(world, upper, lower, segment) -> None:
@@ -285,9 +273,7 @@ def founder_within_plates(world, dt: float) -> int:
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
     edge_km = float(mesh.edge_km)
     cell_area = float(mesh.cell_area_km2)
-    minimum_cells = (
-        float(config["oceanPlateMinAreaKm2"]) / cell_area
-    )
+    minimum_cells = float(config["oceanPlateMinAreaKm2"]) / cell_area
     reach_hops = max(
         1,
         math.floor(float(config["oceanPlateReachKm"]) / edge_km + 0.5),
@@ -303,10 +289,8 @@ def founder_within_plates(world, dt: float) -> int:
             or plate.isBackground
             or plate.crust.count == 0
             or int(plate.stats["continentalCells"]) <= 0
-            or (
-                int(plate.stats["cells"])
-                - int(plate.stats["continentalCells"])
-            ) < minimum_cells
+            or (int(plate.stats["cells"]) - int(plate.stats["continentalCells"]))
+            < minimum_cells
         ):
             continue
         if (
@@ -322,7 +306,8 @@ def founder_within_plates(world, dt: float) -> int:
         def land(cell: int) -> bool:
             return bool(
                 mask[cell]
-                and kinds[cell] in (
+                and kinds[cell]
+                in (
                     CrustType["CONTINENT"],
                     CrustType["CRATON"],
                 )
@@ -360,9 +345,7 @@ def founder_within_plates(world, dt: float) -> int:
             while cursor < len(run):
                 cell = run[cursor]
                 cursor += 1
-                for edge in range(
-                    int(offsets[cell]), int(offsets[cell + 1])
-                ):
+                for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                     neighbour = int(adjacency[edge])
                     if in_old[neighbour] and run_of[neighbour] < 0:
                         run_of[neighbour] = len(runs)
@@ -373,9 +356,7 @@ def founder_within_plates(world, dt: float) -> int:
             length_km = len(run) * edge_km
             if length_km < minimum_length:
                 continue
-            age_myr = sum(
-                time - float(formed_at[cell]) for cell in run
-            ) / len(run)
+            age_myr = sum(time - float(formed_at[cell]) for cell in run) / len(run)
             chance = (
                 float(config["marginFounderRatePerMyr"])
                 * float(dt)
@@ -401,9 +382,7 @@ def founder_within_plates(world, dt: float) -> int:
             frontier = []
             for cell in range(num_cells):
                 if coast[cell]:
-                    labels[cell] = (
-                        1 if int(run_of[cell]) == mine else 2
-                    )
+                    labels[cell] = 1 if int(run_of[cell]) == mine else 2
                     frontier.append(cell)
 
             take = []
@@ -413,9 +392,7 @@ def founder_within_plates(world, dt: float) -> int:
                 following = []
                 for cell in frontier:
                     label = labels[cell]
-                    for edge in range(
-                        int(offsets[cell]), int(offsets[cell + 1])
-                    ):
+                    for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                         neighbour = int(adjacency[edge])
                         if (
                             labels[neighbour]
@@ -449,9 +426,7 @@ def founder_within_plates(world, dt: float) -> int:
 
             fresh.born = time
             for cell in run:
-                plate.crust.arm_trench(
-                    cell, float(config["subductionInitSlabKm"])
-                )
+                plate.crust.arm_trench(cell, float(config["subductionInitSlabKm"]))
             plate.dirty = True
             started += 1
 

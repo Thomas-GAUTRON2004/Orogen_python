@@ -206,9 +206,7 @@ def test_initiate_subduction_skips_when_passive_ocean_cannot_be_carved():
 def test_choose_foundering_prefers_land_as_upper_plate():
     world = make_boundary_world()
     ocean, continent = world.plates
-    assert choose_foundering(world, ocean, continent, [0]) == (
-        continent, ocean
-    )
+    assert choose_foundering(world, ocean, continent, [0]) == (continent, ocean)
 
 
 def test_choose_foundering_breaks_ocean_ocean_ties_by_formation_age():
@@ -217,15 +215,11 @@ def test_choose_foundering_breaks_ocean_ocean_ties_by_formation_age():
     plate_b.crust.type[0] = CrustType["OCEAN"]
     plate_a.crust.formedAt[0] = -120.0
     plate_b.crust.formedAt[0] = -80.0
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_a, plate_b
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_a, plate_b)
 
     plate_a.crust.formedAt[0] = -80.0
     plate_b.crust.formedAt[0] = -120.0
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_b, plate_a
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_b, plate_a)
 
 
 def test_is_on_segment_checks_direct_lower_cell_then_neighbours():
@@ -300,9 +294,7 @@ def test_founder_within_plates_rejects_weak_chance_and_small_ocean_take():
 
 def test_founder_within_plates_restores_plate_after_failed_transfer(monkeypatch):
     world, plate = make_intraplate_world()
-    monkeypatch.setattr(
-        subduction_init, "transfer_cells", lambda *_args: 0
-    )
+    monkeypatch.setattr(subduction_init, "transfer_cells", lambda *_args: 0)
     assert founder_within_plates(world, 1.0) == 0
     assert world.plates[-1].alive is False
     assert world.events == []
@@ -368,9 +360,7 @@ def test_choose_foundering_allows_left_plate_to_be_the_continental_upper():
     plate_a, plate_b = world.plates
     plate_a.crust.type[0] = CrustType["CONTINENT"]
     plate_b.crust.type[0] = CrustType["OCEAN"]
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_a, plate_b
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_a, plate_b)
 
 
 def test_founder_within_plates_skips_dead_and_empty_land_plates():

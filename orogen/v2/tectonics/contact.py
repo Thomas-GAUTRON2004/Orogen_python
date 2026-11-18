@@ -1,4 +1,5 @@
 """Cached world-frame plate-contact geometry, ported from Orogen V2 contact.js."""
+
 from __future__ import annotations
 
 from weakref import WeakKeyDictionary
@@ -15,12 +16,20 @@ def _unit_directions(mesh) -> np.ndarray:
     xyz, offsets, neighbours = mesh.xyz, mesh.adj_offset, mesh.adj_list
     directions = np.zeros(3 * len(neighbours), dtype=np.float64)
     for cell in range(mesh.num_cells):
-        x, y, z = xyz[3 * cell:3 * cell + 3]
+        x, y, z = xyz[3 * cell : 3 * cell + 3]
         for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             other = int(neighbours[edge])
-            dx, dy, dz = float(xyz[3 * other] - x), float(xyz[3 * other + 1] - y), float(xyz[3 * other + 2] - z)
+            dx, dy, dz = (
+                float(xyz[3 * other] - x),
+                float(xyz[3 * other + 1] - y),
+                float(xyz[3 * other + 2] - z),
+            )
             length = float(np.hypot(np.hypot(dx, dy), dz)) or 1.0
-            directions[3 * edge:3 * edge + 3] = (dx / length, dy / length, dz / length)
+            directions[3 * edge : 3 * edge + 3] = (
+                dx / length,
+                dy / length,
+                dz / length,
+            )
     _UNIT_DIRECTIONS[mesh] = directions
     return directions
 
@@ -31,7 +40,7 @@ def _contact_uncached(world, cell: int, out) -> int:
     xyz, offsets, neighbours = mesh.xyz, mesh.adj_offset, mesh.adj_list
     unit = _unit_directions(mesh)
     plate_id = int(owner[cell])
-    x, y, z = (float(v) for v in xyz[3 * cell:3 * cell + 3])
+    x, y, z = (float(v) for v in xyz[3 * cell : 3 * cell + 3])
     nx = ny = nz = 0.0
     shared = 0
     for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
@@ -62,9 +71,11 @@ def _contact_uncached(world, cell: int, out) -> int:
         other_owner = int(owner[other])
         if other_owner < 0 or other_owner == plate_id:
             continue
-        alignment = ((float(xyz[3 * other]) - x) * nx
-                     + (float(xyz[3 * other + 1]) - y) * ny
-                     + (float(xyz[3 * other + 2]) - z) * nz)
+        alignment = (
+            (float(xyz[3 * other]) - x) * nx
+            + (float(xyz[3 * other + 1]) - y) * ny
+            + (float(xyz[3 * other + 2]) - z) * nz
+        )
         if alignment > best_alignment:
             best_alignment, across = alignment, other
     out[0], out[1], out[2], out[3] = nx, ny, nz, shared
@@ -85,9 +96,11 @@ def contact_at(world, cell: int, out) -> int:
         raise IndexError("cell index out of range")
     cache = getattr(world, "_contact", None)
     if cache is None or len(cache["across"]) != n:
-        cache = {"done": np.zeros(n, dtype=np.uint32),
-                 "across": np.full(n, -1, dtype=np.int32),
-                 "normal": np.zeros(4 * n, dtype=np.float64)}
+        cache = {
+            "done": np.zeros(n, dtype=np.uint32),
+            "across": np.full(n, -1, dtype=np.int32),
+            "normal": np.zeros(4 * n, dtype=np.float64),
+        }
         world._contact = cache
     version = (int(world.occupancyStamp) + 1) & 0xFFFFFFFF
     if version == 0:
@@ -95,11 +108,11 @@ def contact_at(world, cell: int, out) -> int:
     if int(cache["done"][cell]) == version:
         across = int(cache["across"][cell])
         if across >= 0:
-            out[0:4] = cache["normal"][4 * cell:4 * cell + 4]
+            out[0:4] = cache["normal"][4 * cell : 4 * cell + 4]
         return across
     cache["done"][cell] = version
     across = _contact_uncached(world, cell, out)
     cache["across"][cell] = across
     if across >= 0:
-        cache["normal"][4 * cell:4 * cell + 4] = out[0:4]
+        cache["normal"][4 * cell : 4 * cell + 4] = out[0:4]
     return across

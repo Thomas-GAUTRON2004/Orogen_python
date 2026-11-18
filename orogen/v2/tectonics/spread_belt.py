@@ -4,6 +4,7 @@ This ports the record/geometry part of V2 step/orogeny.js. Height synthesis
 (buildHeights) and sediment-cover synthesis (thickenCover) remain separate
 systems and are intentionally not approximated here.
 """
+
 from __future__ import annotations
 
 import heapq
@@ -97,9 +98,7 @@ def _visit_front_neighbours(
 
         hop = distance
         weak_flags = (
-            CrustFlag["SUTURE"]
-            | CrustFlag["FAILED_RIFT"]
-            | CrustFlag["RIFT_MARGIN"]
+            CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
         )
         if int(crust.flags[neighbour]) & weak_flags:
             hop *= float(config["weakCellCost"])
@@ -243,11 +242,7 @@ def _record_belt_cell(
     work = _source_work(belt, source_index)
     if rim_cell:
         work *= float(config["cratonRimShare"])
-    record_work = (
-        work
-        if u == 0
-        else work * float(config["beltWorkShare"]) * (1.0 - u)
-    )
+    record_work = work if u == 0 else work * float(config["beltWorkShare"]) * (1.0 - u)
     was_type = int(crust.oroType[cell])
     was_start = float(crust.oroStart[cell])
     was_last = float(crust.oroLast[cell])
@@ -255,9 +250,7 @@ def _record_belt_cell(
     _preserve_previous_belt(crust, cell, was_type, was_start, was_last)
 
     reach = _source_width(belt, source_index)
-    _update_belt_front(
-        crust, cell, belt, source_index, oro_type, side, u, reach, time
-    )
+    _update_belt_front(crust, cell, belt, source_index, oro_type, side, u, reach, time)
     thickened = 0.0
     if not rim_cell and not belt.get("noRoot", False):
         thickened = (
@@ -355,6 +348,4 @@ def spread_belt(
         rim_max,
         sea_limit,
     )
-    return _record_reached_cells(
-        plate, belt, config, best_u, best_src, rim_max
-    )
+    return _record_reached_cells(plate, belt, config, best_u, best_src, rim_max)

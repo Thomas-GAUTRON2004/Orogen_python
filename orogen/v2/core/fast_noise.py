@@ -3,6 +3,7 @@
 The permutation is derived from the shared Orogen Park–Miller RNG. Arithmetic
 order follows the JavaScript implementation to preserve seeded output.
 """
+
 from __future__ import annotations
 
 import math
@@ -13,9 +14,42 @@ from .seed import make_rng
 from ._numba_kernels import NUMBA_AVAILABLE, noise3d_numba, fbm_numba, fbm_many_numba
 
 _GRAD = (
-    1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0,
-    1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1,
-    0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1,
+    1,
+    1,
+    0,
+    -1,
+    1,
+    0,
+    1,
+    -1,
+    0,
+    -1,
+    -1,
+    0,
+    1,
+    0,
+    1,
+    -1,
+    0,
+    1,
+    1,
+    0,
+    -1,
+    -1,
+    0,
+    -1,
+    0,
+    1,
+    1,
+    0,
+    -1,
+    1,
+    0,
+    1,
+    -1,
+    0,
+    -1,
+    -1,
 )
 
 
@@ -38,9 +72,7 @@ class FastNoise:
 
     def noise3d(self, x: float, y: float, z: float) -> float:
         if NUMBA_AVAILABLE:
-            return float(noise3d_numba(
-                x, y, z, self.perm, self.pm3, self._grad
-            ))
+            return float(noise3d_numba(x, y, z, self.perm, self.pm3, self._grad))
         return self._noise3d_python(x, y, z)
 
     def _noise3d_python(self, x: float, y: float, z: float) -> float:
@@ -107,10 +139,18 @@ class FastNoise:
         persistence: float = 2 / 3,
     ) -> float:
         if NUMBA_AVAILABLE:
-            return float(fbm_numba(
-                x, y, z, octaves, persistence, self.perm, self.pm3,
-                self._grad,
-            ))
+            return float(
+                fbm_numba(
+                    x,
+                    y,
+                    z,
+                    octaves,
+                    persistence,
+                    self.perm,
+                    self.pm3,
+                    self._grad,
+                )
+            )
         return self._fbm_python(x, y, z, octaves, persistence)
 
     def fbm_many(
@@ -122,12 +162,17 @@ class FastNoise:
             raise ValueError("points must have shape (N, 3)")
         if NUMBA_AVAILABLE:
             return fbm_many_numba(
-                values, octaves, persistence, self.perm, self.pm3,
+                values,
+                octaves,
+                persistence,
+                self.perm,
+                self.pm3,
                 np.asarray(_GRAD, dtype=np.float64),
             )
-        return np.asarray([
-            self._fbm_python(x, y, z, octaves, persistence) for x, y, z in values
-        ], dtype=np.float64)
+        return np.asarray(
+            [self._fbm_python(x, y, z, octaves, persistence) for x, y, z in values],
+            dtype=np.float64,
+        )
 
     def _fbm_python(
         self,
@@ -141,7 +186,9 @@ class FastNoise:
         amplitude = 1.0
         for octave in range(octaves):
             frequency = 1 << octave
-            total += amplitude * self.noise3d(x * frequency, y * frequency, z * frequency)
+            total += amplitude * self.noise3d(
+                x * frequency, y * frequency, z * frequency
+            )
             maximum += amplitude
             amplitude *= persistence
         return total / maximum

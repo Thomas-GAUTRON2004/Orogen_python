@@ -1,4 +1,5 @@
 """Orogenic belt geometry helpers ported from Orogen V2 step/orogeny.js."""
+
 from __future__ import annotations
 
 import math
@@ -15,16 +16,22 @@ def belt_width_km(kind: str, work_km: float, rate_cm_yr: float, config: dict) ->
             ** float(config["beltSpeedExponent"]),
         ),
     )
-    return min(
-        float(belt["maxKm"]),
-        float(belt["baseKm"]) + float(belt["perKm"]) * float(work_km),
-    ) * speed
+    return (
+        min(
+            float(belt["maxKm"]),
+            float(belt["baseKm"]) + float(belt["perKm"]) * float(work_km),
+        )
+        * speed
+    )
 
 
 def belt_shape(head_on: float, slab_age_myr: float | None, config: dict) -> float:
     """Scale belt reach by obliquity and, for subduction, slab youth."""
     h = min(1.0, max(0.0, float(head_on)))
-    shape = float(config["beltObliqueMin"]) + (1.0 - float(config["beltObliqueMin"])) * h * h
+    shape = (
+        float(config["beltObliqueMin"])
+        + (1.0 - float(config["beltObliqueMin"])) * h * h
+    )
     if slab_age_myr is not None:
         youth = 1.0 + float(config["beltYoungSlabBoost"]) * (
             1.0 - float(slab_age_myr) / float(config["beltYoungSlabRefMyr"])
@@ -42,8 +49,6 @@ def obliquity_deg(velocity, normal, position, closing: float) -> float:
     nx, ny, nz = map(float, normal)
     vx, vy, vz = map(float, velocity)
     along = (
-        vx * (py * nz - pz * ny)
-        + vy * (pz * nx - px * nz)
-        + vz * (px * ny - py * nx)
+        vx * (py * nz - pz * ny) + vy * (pz * nx - px * nz) + vz * (px * ny - py * nx)
     )
     return math.atan2(along, max(1e-12, float(closing))) * 180.0 / math.pi

@@ -31,14 +31,14 @@ class Mesh:
 def make_rift_fixture():
     c, s = math.cos, math.sin
     points = [
-        [c(0.05), s(0.05), 0.0],       # left land component
-        [1.0, 0.0, 0.0],               # first rift cell
-        [c(0.1), 0.0, s(0.1)],         # second rift cell
-        [c(0.05), -s(0.05), 0.0],      # right land component
-        [c(0.1), s(0.05), s(0.1)],     # left land component
-        [c(0.1), -s(0.05), s(0.1)],    # right land component
-        [c(0.08), s(0.08), 0.0],       # left-side ocean
-        [c(0.08), -s(0.08), 0.0],      # right-side ocean
+        [c(0.05), s(0.05), 0.0],  # left land component
+        [1.0, 0.0, 0.0],  # first rift cell
+        [c(0.1), 0.0, s(0.1)],  # second rift cell
+        [c(0.05), -s(0.05), 0.0],  # right land component
+        [c(0.1), s(0.05), s(0.1)],  # left land component
+        [c(0.1), -s(0.05), s(0.1)],  # right land component
+        [c(0.08), s(0.08), 0.0],  # left-side ocean
+        [c(0.08), -s(0.08), 0.0],  # right-side ocean
     ]
     neighbours = [
         [1, 4, 6],
@@ -96,7 +96,9 @@ def test_empty_land_and_single_cell_path_are_handled():
     assert cratons == [0, 0, 0]
     assert np.all(side == 1)
     assert sides_of(mesh, crust, [1]) == {
-        "share": 0.0, "elongation": 1.0, "cratonsBothSides": False
+        "share": 0.0,
+        "elongation": 1.0,
+        "cratonsBothSides": False,
     }
 
 
@@ -125,17 +127,19 @@ def test_through_ocean_uses_javascript_half_up_rounding():
         for cell in range(8)
     ]
     neighbours = [
-        [1], [0, 2], [1, 3], [2, 4],
-        [3, 5], [4, 6], [5, 7], [6],
+        [1],
+        [0, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 7],
+        [6],
     ]
     mesh = Mesh(points, neighbours, edge_km=2920.0)  # 7300 / 2920 = 2.5
     crust = CrustRaster(8)
     for cell in range(8):
-        kind = (
-            CrustType["CONTINENT"]
-            if cell in (3, 4)
-            else CrustType["OCEAN"]
-        )
+        kind = CrustType["CONTINENT"] if cell in (3, 4) else CrustType["OCEAN"]
         crust.create(cell, kind, 0.0)
 
     # JavaScript Math.round(2.5) is 3, whereas Python round(2.5) is 2.
@@ -171,8 +175,12 @@ def test_exterior_sea_uses_largest_ocean_when_plate_covers_mesh():
 
 def test_elongation_handles_small_degenerate_and_rank_one_blocks():
     points = [
-        [1, 0, 0], [-1, 0, 0], [1, 0, 0],
-        [-1, 0, 0], [0, 1, 0], [0, -1, 0],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, -1, 0],
         [0, 0, 1],
     ]
     mesh = Mesh(points, [[] for _ in points])

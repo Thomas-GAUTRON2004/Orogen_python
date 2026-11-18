@@ -3,6 +3,7 @@
 Port of v2/js/core/sphere-index.js. The index operates on unit-vector cell
 centres and CSR neighbour adjacency.
 """
+
 from __future__ import annotations
 
 import math
@@ -52,11 +53,15 @@ class SphereIndex:
                     improved = True
                     while improved:
                         improved = False
-                        for k in range(int(offsets[current]), int(offsets[current + 1])):
+                        for k in range(
+                            int(offsets[current]), int(offsets[current + 1])
+                        ):
                             neighbour = int(adjacency[k])
                             offset = 3 * neighbour
                             candidate = (
-                                x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
+                                x * xyz[offset]
+                                + y * xyz[offset + 1]
+                                + z * xyz[offset + 2]
                             )
                             if candidate > best:
                                 best = candidate

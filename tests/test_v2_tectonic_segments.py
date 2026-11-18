@@ -1,4 +1,5 @@
 """Tests for ridge-segment fracture coordinates and physical conversions."""
+
 import math
 
 import pytest

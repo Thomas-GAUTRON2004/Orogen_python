@@ -4,9 +4,7 @@ import numpy as np
 
 from orogen.v2.tectonics.ops import birth_ocean_plate, ocean_plate_name
 
-birth_module = importlib.import_module(
-    "orogen.v2.tectonics.ops.birth_ocean_plate"
-)
+birth_module = importlib.import_module("orogen.v2.tectonics.ops.birth_ocean_plate")
 from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.world import TectonicWorld
@@ -126,6 +124,7 @@ def test_ocean_plate_names_increment_by_existing_ocean_born_plates():
     b.isOceanBorn = True
     assert ocean_plate_name(world) == "Thalassa 3"
 
+
 def test_birth_ocean_plate_deduplicates_raster_cells_and_skips_empty_rasters():
     world, background = make_world(minimum_area=0.0)
     # World cells 1 and 2 map to the same raster cell; cell 3 maps to an
@@ -139,4 +138,3 @@ def test_birth_ocean_plate_deduplicates_raster_cells_and_skips_empty_rasters():
     assert fresh.crust.count == 1
     assert fresh.crust.mask[1]
     assert not fresh.crust.mask[0]
-

@@ -37,11 +37,13 @@ def square_world():
         latitude = (row - 3) * 0.01
         for col in range(7):
             longitude = (col - 3) * 0.01
-            points.append([
-                math.cos(latitude) * math.cos(longitude),
-                math.cos(latitude) * math.sin(longitude),
-                math.sin(latitude),
-            ])
+            points.append(
+                [
+                    math.cos(latitude) * math.cos(longitude),
+                    math.cos(latitude) * math.sin(longitude),
+                    math.sin(latitude),
+                ]
+            )
             cell = row * 7 + col
             adjacent = []
             if row:
@@ -130,10 +132,7 @@ def test_coast_distance_seeds_outer_land_and_floods_inward():
 
 
 def test_cheapest_paths_respect_ocean_and_craton_barriers():
-    points = [
-        [math.cos(i * 0.01), 0.0, math.sin(i * 0.01)]
-        for i in range(5)
-    ]
+    points = [[math.cos(i * 0.01), 0.0, math.sin(i * 0.01)] for i in range(5)]
     mesh = Mesh(points, [[1], [0, 2], [1, 3], [2, 4], [3]])
     crust = CrustRaster(5)
     crust.create(0, CrustType["CONTINENT"], 0.0)
@@ -155,14 +154,10 @@ def test_crosses_rather_than_hugs_rejects_long_coastal_runs():
     path = [0, 1, 2, 3, 4, 5]
     coast_distance_values = np.asarray([0, 2, 1, 1, 2, 0], dtype=np.int16)
     config = {"riftCoastClearanceKm": 100.0, "riftCoastHugKm": 50.0}
-    assert not _crosses_rather_than_hugs(
-        mesh, path, coast_distance_values, config
-    )
+    assert not _crosses_rather_than_hugs(mesh, path, coast_distance_values, config)
 
     config["riftCoastHugKm"] = 100.0
-    assert _crosses_rather_than_hugs(
-        mesh, path, coast_distance_values, config
-    )
+    assert _crosses_rather_than_hugs(mesh, path, coast_distance_values, config)
 
 
 def test_is_monotone_accepts_forward_path_and_rejects_backstep():
@@ -225,31 +220,22 @@ def test_find_rift_rejects_ocean_craton_and_single_coast_junctions():
     assert find_rift(tiny_world, tiny_plate, junction=0) is None
 
 
-
 def test_find_rift_rejects_short_chords():
     world, plate = square_world()
     world.config["riftMinChordKm"] = 100_000.0
-    assert find_rift(
-        world, plate, junction=24, need_cratons_both_sides=False
-    ) is None
+    assert find_rift(world, plate, junction=24, need_cratons_both_sides=False) is None
 
 
 def test_find_rift_continues_after_non_monotone_candidates(monkeypatch):
     world, plate = square_world()
     monkeypatch.setattr(rift_path, "_is_monotone", lambda *_args: False)
-    assert find_rift(
-        world, plate, junction=24, need_cratons_both_sides=False
-    ) is None
+    assert find_rift(world, plate, junction=24, need_cratons_both_sides=False) is None
 
 
 def test_find_rift_continues_after_coast_hugging_candidates(monkeypatch):
     world, plate = square_world()
-    monkeypatch.setattr(
-        rift_path, "_crosses_rather_than_hugs", lambda *_args: False
-    )
-    assert find_rift(
-        world, plate, junction=24, need_cratons_both_sides=False
-    ) is None
+    monkeypatch.setattr(rift_path, "_crosses_rather_than_hugs", lambda *_args: False)
+    assert find_rift(world, plate, junction=24, need_cratons_both_sides=False) is None
 
 
 def test_find_rift_rejects_poorly_balanced_land_blocks(monkeypatch):
@@ -263,9 +249,7 @@ def test_find_rift_rejects_poorly_balanced_land_blocks(monkeypatch):
             "cratonsBothSides": False,
         },
     )
-    assert find_rift(
-        world, plate, junction=24, need_cratons_both_sides=False
-    ) is None
+    assert find_rift(world, plate, junction=24, need_cratons_both_sides=False) is None
 
 
 def test_find_rift_stops_when_pair_cost_exceeds_slack(monkeypatch):
@@ -280,9 +264,8 @@ def test_find_rift_stops_when_pair_cost_exceeds_slack(monkeypatch):
             "cratonsBothSides": False,
         },
     )
-    assert find_rift(
-        world, plate, junction=24, need_cratons_both_sides=False
-    ) is None
+    assert find_rift(world, plate, junction=24, need_cratons_both_sides=False) is None
+
 
 def test_grain_of_single_noise_component_and_precomputed_context(monkeypatch):
     world, plate = square_world()
@@ -292,6 +275,7 @@ def test_grain_of_single_noise_component_and_precomputed_context(monkeypatch):
     class ConstantNoise:
         def __init__(self, _seed):
             pass
+
         def noise3d(self, *_coords):
             return 0.5
 
@@ -300,19 +284,27 @@ def test_grain_of_single_noise_component_and_precomputed_context(monkeypatch):
     assert grain(10) == pytest.approx(1.125)
     assert grain(10) == pytest.approx(1.125)
     ctx = rift_context(world, plate)
-    assert find_rift(
-        world, plate, 24, need_cratons_both_sides=False,
-        ctx=ctx,
-    ) is not None
+    assert (
+        find_rift(
+            world,
+            plate,
+            24,
+            need_cratons_both_sides=False,
+            ctx=ctx,
+        )
+        is not None
+    )
 
 
 def test_find_rift_without_optional_failed_arm():
     world, plate = square_world()
     world.config["riftFailedArms"] = 0
     result = find_rift(
-        world, plate, 24, need_cratons_both_sides=False,
+        world,
+        plate,
+        24,
+        need_cratons_both_sides=False,
     )
     assert result is not None
     assert result["failed_arm"] == []
     assert result["arms"][2] == []
-

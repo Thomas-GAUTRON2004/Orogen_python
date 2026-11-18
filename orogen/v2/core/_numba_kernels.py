@@ -3,6 +3,7 @@
 All kernels use float64 arithmetic, preserve the upstream operation order, and
 disable fast-math. The pure-Python implementation remains the reference path.
 """
+
 from __future__ import annotations
 
 import math
@@ -40,35 +41,35 @@ def _noise3d_kernel(x, y, z, perm, pm3, grad):
             i1, j1, k1, i2, j2, k2 = 0, 1, 0, 1, 1, 0
 
     x1, y1, z1 = x0 - i1 + h, y0 - j1 + h, z0 - k1 + h
-    x2, y2, z2 = x0 - i2 + 2.0*h, y0 - j2 + 2.0*h, z0 - k2 + 2.0*h
-    x3, y3, z3 = x0 - 1.0 + 3.0*h, y0 - 1.0 + 3.0*h, z0 - 1.0 + 3.0*h
+    x2, y2, z2 = x0 - i2 + 2.0 * h, y0 - j2 + 2.0 * h, z0 - k2 + 2.0 * h
+    x3, y3, z3 = x0 - 1.0 + 3.0 * h, y0 - 1.0 + 3.0 * h, z0 - 1.0 + 3.0 * h
     ii, jj, kk = i & 255, j & 255, k & 255
     n0 = n1 = n2 = n3 = 0.0
 
-    a = 0.6 - x0*x0 - y0*y0 - z0*z0
+    a = 0.6 - x0 * x0 - y0 * y0 - z0 * z0
     if a > 0.0:
         a *= a
         g = int(pm3[ii + int(perm[jj + int(perm[kk])])])
-        n0 = a*a*(grad[g]*x0 + grad[g+1]*y0 + grad[g+2]*z0)
+        n0 = a * a * (grad[g] * x0 + grad[g + 1] * y0 + grad[g + 2] * z0)
 
-    b = 0.6 - x1*x1 - y1*y1 - z1*z1
+    b = 0.6 - x1 * x1 - y1 * y1 - z1 * z1
     if b > 0.0:
         b *= b
-        g = int(pm3[ii+i1 + int(perm[jj+j1 + int(perm[kk+k1])])])
-        n1 = b*b*(grad[g]*x1 + grad[g+1]*y1 + grad[g+2]*z1)
+        g = int(pm3[ii + i1 + int(perm[jj + j1 + int(perm[kk + k1])])])
+        n1 = b * b * (grad[g] * x1 + grad[g + 1] * y1 + grad[g + 2] * z1)
 
-    c = 0.6 - x2*x2 - y2*y2 - z2*z2
+    c = 0.6 - x2 * x2 - y2 * y2 - z2 * z2
     if c > 0.0:
         c *= c
-        g = int(pm3[ii+i2 + int(perm[jj+j2 + int(perm[kk+k2])])])
-        n2 = c*c*(grad[g]*x2 + grad[g+1]*y2 + grad[g+2]*z2)
+        g = int(pm3[ii + i2 + int(perm[jj + j2 + int(perm[kk + k2])])])
+        n2 = c * c * (grad[g] * x2 + grad[g + 1] * y2 + grad[g + 2] * z2)
 
-    d = 0.6 - x3*x3 - y3*y3 - z3*z3
+    d = 0.6 - x3 * x3 - y3 * y3 - z3 * z3
     if d > 0.0:
         d *= d
-        g = int(pm3[ii+1 + int(perm[jj+1 + int(perm[kk+1])])])
-        n3 = d*d*(grad[g]*x3 + grad[g+1]*y3 + grad[g+2]*z3)
-    return 32.0*(n0+n1+n2+n3)
+        g = int(pm3[ii + 1 + int(perm[jj + 1 + int(perm[kk + 1])])])
+        n3 = d * d * (grad[g] * x3 + grad[g + 1] * y3 + grad[g + 2] * z3)
+    return 32.0 * (n0 + n1 + n2 + n3)
 
 
 def _fbm_kernel(x, y, z, octaves, persistence, perm, pm3, grad):
@@ -78,7 +79,7 @@ def _fbm_kernel(x, y, z, octaves, persistence, perm, pm3, grad):
     for octave in range(octaves):
         frequency = 1 << octave
         total += amplitude * _noise3d_kernel(
-            x*frequency, y*frequency, z*frequency, perm, pm3, grad
+            x * frequency, y * frequency, z * frequency, perm, pm3, grad
         )
         maximum += amplitude
         amplitude *= persistence
@@ -89,8 +90,14 @@ def _fbm_many_kernel(points, octaves, persistence, perm, pm3, grad):
     out = np.empty(points.shape[0], dtype=np.float64)
     for i in range(points.shape[0]):
         out[i] = _fbm_kernel(
-            points[i, 0], points[i, 1], points[i, 2],
-            octaves, persistence, perm, pm3, grad,
+            points[i, 0],
+            points[i, 1],
+            points[i, 2],
+            octaves,
+            persistence,
+            perm,
+            pm3,
+            grad,
         )
     return out
 
@@ -123,11 +130,22 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     return distance
 
 
-
 def _far_field_distance_kernel(
-    offsets, adjacency, xyz, mask, crust_type, flags,
-    source_cells, source_works, strongest, reach_length, max_cost,
-    craton_type, weak_mask, craton_factor, weak_factor,
+    offsets,
+    adjacency,
+    xyz,
+    mask,
+    crust_type,
+    flags,
+    source_cells,
+    source_works,
+    strongest,
+    reach_length,
+    max_cost,
+    craton_type,
+    weak_mask,
+    craton_factor,
+    weak_factor,
 ):
     """Weighted far-field Dijkstra; side effects remain in the Python caller."""
     n = mask.size
@@ -174,7 +192,11 @@ def _far_field_distance_kernel(
                 if left >= count:
                     break
                 right = left + 1
-                child = right if right < count and heap_keys[right] < heap_keys[left] else left
+                child = (
+                    right
+                    if right < count and heap_keys[right] < heap_keys[left]
+                    else left
+                )
                 if heap_keys[child] >= key:
                     break
                 heap_keys[index] = heap_keys[child]
@@ -268,7 +290,11 @@ def _spread_km_kernel(offsets, adjacency, edge_km, distance, max_km):
                 if left >= count:
                     break
                 right = left + 1
-                child = right if right < count and heap_keys[right] < heap_keys[left] else left
+                child = (
+                    right
+                    if right < count and heap_keys[right] < heap_keys[left]
+                    else left
+                )
                 if heap_keys[child] >= key:
                     break
                 heap_keys[index] = heap_keys[child]
@@ -303,7 +329,6 @@ def _spread_km_kernel(offsets, adjacency, edge_km, distance, max_km):
             heap_ids[index] = neighbour
 
     return distance
-
 
 
 def _pieces_of_kernel(offsets, adjacency, ordered_cells):
@@ -346,7 +371,7 @@ def _pieces_of_kernel(offsets, adjacency, ordered_cells):
                     tail += 1
 
     starts[piece_count] = output_count
-    return flat[:output_count], starts[:piece_count + 1]
+    return flat[:output_count], starts[: piece_count + 1]
 
 
 def _largest_piece_kernel(offsets, adjacency, ordered_cells):
@@ -360,7 +385,7 @@ def _largest_piece_kernel(offsets, adjacency, ordered_cells):
         if size > best_size:
             best_start = start
             best_size = size
-    return flat[best_start:best_start + best_size].copy()
+    return flat[best_start : best_start + best_size].copy()
 
 
 def _tangent_basis_components(x, y, z):
@@ -413,9 +438,9 @@ def _bearing_to_many_kernel(points, targets):
     return out
 
 
-
-
-def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotation, rotate, same_raster):
+def _copy_cells_kernel(
+    out_fields, in_fields, mask, destinations, sources, rotation, rotate, same_raster
+):
     """Copy a batch, retaining alias semantics and rotating far-field axes."""
     added = 0
     for row in range(destinations.size):
@@ -429,7 +454,65 @@ def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotat
         for row in range(destinations.size):
             target = int(destinations[row])
             source = int(sources[row])
-            for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+            for column in literal_unroll(
+                (
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                    32,
+                    33,
+                    34,
+                    35,
+                    36,
+                    37,
+                    38,
+                    39,
+                    40,
+                    41,
+                    42,
+                    43,
+                    44,
+                    45,
+                    46,
+                    47,
+                    48,
+                    49,
+                    50,
+                    51,
+                    52,
+                    53,
+                    54,
+                )
+            ):
                 out_fields[column][target] = in_fields[column][source]
             if rotate:
                 x = int(out_fields[52][target])
@@ -445,11 +528,71 @@ def _copy_cells_kernel(out_fields, in_fields, mask, destinations, sources, rotat
                     out_fields[54][target] = math.floor(127.0 * w / length + 0.5)
     else:
         # For distinct rasters, traverse each typed array contiguously.
-        for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+        for column in literal_unroll(
+            (
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+                51,
+                52,
+                53,
+                54,
+            )
+        ):
             destination_field = out_fields[column]
             source_field = in_fields[column]
             for row in range(destinations.size):
-                destination_field[int(destinations[row])] = source_field[int(sources[row])]
+                destination_field[int(destinations[row])] = source_field[
+                    int(sources[row])
+                ]
         if rotate:
             # Only the last row for a repeated destination contains its final
             # copied axis; rotate each unique destination exactly once.
@@ -483,6 +626,7 @@ def _remove_cells_kernel(mask, cells):
             removed += 1
     return removed
 
+
 def _create_cells_kernel(fields, mask, cells, crust_types, formed_at, terranes):
     """Create several cells in input order, retaining repeated-cell semantics."""
     added = 0
@@ -504,9 +648,68 @@ def _snapshot_cells_kernel(fields, cells):
     out = np.empty((cells.size, len(fields)), dtype=np.float64)
     for row in range(cells.size):
         cell = int(cells[row])
-        for column in literal_unroll((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,)):
+        for column in literal_unroll(
+            (
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+                51,
+                52,
+                53,
+                54,
+            )
+        ):
             out[row, column] = fields[column][cell]
     return out
+
 
 def _zero_cell_fields_kernel(fields, cell):
     """Reset all heterogeneous structure-of-arrays fields at one cell."""
@@ -517,9 +720,68 @@ def _zero_cell_fields_kernel(fields, cell):
 def _snapshot_cell_fields_kernel(fields, cell):
     """Copy a cell snapshot in upstream field order into numeric storage."""
     values = np.empty(len(fields), dtype=np.float64)
-    for index in literal_unroll((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,)):
+    for index in literal_unroll(
+        (
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+        )
+    ):
         values[index] = fields[index][cell]
     return values
+
 
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
@@ -530,22 +792,30 @@ if NUMBA_AVAILABLE:
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
     spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
-    far_field_distance_numba = njit(cache=True, fastmath=False)(_far_field_distance_kernel)
+    far_field_distance_numba = njit(cache=True, fastmath=False)(
+        _far_field_distance_kernel
+    )
     pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
     _pieces_of_kernel = pieces_of_numba
     largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
     # Compile the helper first; Numba does not automatically infer undecorated globals.
-    _tangent_basis_components = njit(cache=True, fastmath=False)(_tangent_basis_components)
+    _tangent_basis_components = njit(cache=True, fastmath=False)(
+        _tangent_basis_components
+    )
     destination_many_numba = njit(cache=True, fastmath=False)(_destination_many_kernel)
     bearing_to_many_numba = njit(cache=True, fastmath=False)(_bearing_to_many_kernel)
     zero_cell_fields_numba = njit(cache=True, fastmath=False)(_zero_cell_fields_kernel)
-    snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(_snapshot_cell_fields_kernel)
+    snapshot_cell_fields_numba = njit(cache=True, fastmath=False)(
+        _snapshot_cell_fields_kernel
+    )
     create_cells_numba = njit(cache=True, fastmath=False)(_create_cells_kernel)
     snapshot_cells_numba = njit(cache=True, fastmath=False)(_snapshot_cells_kernel)
     copy_cells_numba = njit(cache=True, fastmath=False)(_copy_cells_kernel)
     remove_cells_numba = njit(cache=True, fastmath=False)(_remove_cells_kernel)
 else:
-    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = spread_km_numba = far_field_distance_numba = None
+    noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = (
+        spread_km_numba
+    ) = far_field_distance_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None

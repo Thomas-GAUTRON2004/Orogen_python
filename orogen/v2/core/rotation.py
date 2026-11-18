@@ -1,4 +1,5 @@
 """Quaternion rotations on the unit sphere, ported from V2 rotation.js."""
+
 from __future__ import annotations
 
 import math
@@ -37,9 +38,15 @@ def quat_to_mat3(q: Sequence[float], out: MutableSequence[float] | None = None):
     xy, xz, yz = x * y, x * z, y * z
     wx, wy, wz = w * x, w * y, w * z
     values = [
-        1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy),
-        2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx),
-        2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy),
+        1 - 2 * (yy + zz),
+        2 * (xy - wz),
+        2 * (xz + wy),
+        2 * (xy + wz),
+        1 - 2 * (xx + zz),
+        2 * (yz - wx),
+        2 * (xz - wy),
+        2 * (yz + wx),
+        1 - 2 * (xx + yy),
     ]
     if out is None:
         return values
@@ -48,7 +55,9 @@ def quat_to_mat3(q: Sequence[float], out: MutableSequence[float] | None = None):
     return out
 
 
-def quat_integrate(q: Sequence[float], omega: Sequence[float], dt: float) -> list[float]:
+def quat_integrate(
+    q: Sequence[float], omega: Sequence[float], dt: float
+) -> list[float]:
     """Advance orientation by a world-frame angular velocity over dt."""
     rate = math.hypot(omega[0], omega[1], omega[2])
     if rate < 1e-12:

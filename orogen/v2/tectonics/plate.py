@@ -1,4 +1,5 @@
 """Rigid tectonic plate model ported from Orogen V2 model/plate.js."""
+
 from __future__ import annotations
 
 import math

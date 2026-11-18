@@ -3,6 +3,7 @@
 Gathers slab pull, slab suction, young-ridge push and young-rift push from a
 resolved owner map. Collision-overlap contacts and mantle flow are excluded.
 """
+
 # ruff: noqa: I001 - preserve the module's established import grouping.
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ _PULL, _SUCTION, _RIDGE, _RIFT = range(4)
 def _new_load() -> dict:
     def zero() -> list[float]:
         return [0.0, 0.0, 0.0]
+
     return {
         "torque": zero(),
         "flowTorque": zero(),
@@ -36,16 +38,30 @@ def _new_load() -> dict:
     }
 
 
-def _rift_age(plate_a, crust_a, cell_a: int, plate_b, crust_b, cell_b: int, time: float) -> float:
+def _rift_age(
+    plate_a, crust_a, cell_a: int, plate_b, crust_b, cell_b: int, time: float
+) -> float:
     born = max(float(plate_a.born), float(plate_b.born))
     if plate_a.riftPartner != plate_b.id or plate_b.riftPartner != plate_a.id:
         return math.inf
-    split = plate_a.oceanSplitWith == plate_b.id and plate_b.oceanSplitWith == plate_a.id
+    split = (
+        plate_a.oceanSplitWith == plate_b.id and plate_b.oceanSplitWith == plate_a.id
+    )
     margin_a = split or bool(int(crust_a.flags[cell_a]) & CrustFlag["RIFT_MARGIN"])
     margin_b = split or bool(int(crust_b.flags[cell_b]) & CrustFlag["RIFT_MARGIN"])
-    young_a = int(crust_a.type[cell_a]) == CrustType["OCEAN"] and float(crust_a.formedAt[cell_a]) >= born
-    young_b = int(crust_b.type[cell_b]) == CrustType["OCEAN"] and float(crust_b.formedAt[cell_b]) >= born
-    return float(time) - born if (margin_a or young_a) and (margin_b or young_b) else math.inf
+    young_a = (
+        int(crust_a.type[cell_a]) == CrustType["OCEAN"]
+        and float(crust_a.formedAt[cell_a]) >= born
+    )
+    young_b = (
+        int(crust_b.type[cell_b]) == CrustType["OCEAN"]
+        and float(crust_b.formedAt[cell_b]) >= born
+    )
+    return (
+        float(time) - born
+        if (margin_a or young_a) and (margin_b or young_b)
+        else math.inf
+    )
 
 
 def _are_young_rift_partners(plate_a, plate_b, time: float, config: Mapping) -> bool:
@@ -57,7 +73,9 @@ def _are_young_rift_partners(plate_a, plate_b, time: float, config: Mapping) -> 
     )
 
 
-def _front_normal(world, cell: int, plate_a_id: int, plate_b_id: int, position, plates_by_id) -> list[float]:
+def _front_normal(
+    world, cell: int, plate_a_id: int, plate_b_id: int, position, plates_by_id
+) -> list[float]:
     """Estimate the collision-front normal from nearby uncontested land."""
     mesh = world.mesh
     ring_data = rings_of(mesh)
@@ -97,7 +115,6 @@ def _front_normal(world, cell: int, plate_a_id: int, plate_b_id: int, position, 
     if length < 1e-12:
         return [0.0, 0.0, 0.0]
     return (vector / length).tolist()
-
 
 
 def _slab_force(
@@ -155,9 +172,7 @@ def _rift_or_ridge_force(
     config: Mapping,
 ) -> tuple[int, float, np.ndarray]:
     """Classify a non-slab contact as young-rift or young-ridge push."""
-    rift_age = _rift_age(
-        plate, crust_a, cell_a, other, crust_b, cell_b, time
-    )
+    rift_age = _rift_age(plate, crust_a, cell_a, other, crust_b, cell_b, time)
     if rift_age < float(config["riftPushMyr"]):
         size = -float(config["riftPush"]) * (
             1.0 - rift_age / float(config["riftPushMyr"])
@@ -195,11 +210,10 @@ def _accumulate_boundary_force(
     torque = np.cross(position, force)
     load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
     load["byKind"][kind] = (np.asarray(load["byKind"][kind]) + torque).tolist()
-    load["forceByKind"][kind] = (
-        np.asarray(load["forceByKind"][kind]) + force
-    ).tolist()
+    load["forceByKind"][kind] = (np.asarray(load["forceByKind"][kind]) + force).tolist()
     load["torqueMagnitudeSum"] += float(np.linalg.norm(torque))
     load["cells"][kind] += 1
+
 
 def gather_boundary_loads(world) -> dict[int, dict]:
     """Gather four local boundary-force families for living non-background plates.
@@ -225,10 +239,13 @@ def gather_boundary_loads(world) -> dict[int, dict]:
     normal_out = np.zeros(4, dtype=np.float64)
     cycle = getattr(world, "cycle", None)
     flowing = bool(
-        cycle is not None and cycle.get("up") is not None
-        and (float(config.get("mantleOutflow", 0.0)) > 0
-             or float(config.get("mantleInflow", 0.0)) > 0
-             or float(config.get("dispersalRepulsion", 0.0)) > 0)
+        cycle is not None
+        and cycle.get("up") is not None
+        and (
+            float(config.get("mantleOutflow", 0.0)) > 0
+            or float(config.get("mantleInflow", 0.0)) > 0
+            or float(config.get("dispersalRepulsion", 0.0)) > 0
+        )
     )
     apart = dispersal_field(world) if flowing else None
     flow = np.zeros(3, dtype=np.float64)
@@ -244,7 +261,10 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         load = loads.get(owner_id)
         if flowing and load is not None:
             cell = int(world.ownerCell[world_cell])
-            if int(plate.crust.type[cell]) in (CrustType["CONTINENT"], CrustType["CRATON"]):
+            if int(plate.crust.type[cell]) in (
+                CrustType["CONTINENT"],
+                CrustType["CRATON"],
+            ):
                 position = xyz[world_cell]
                 mantle_flow_at(world, *map(float, position), flow)
                 if apart is not None:
@@ -254,9 +274,14 @@ def gather_boundary_loads(world) -> dict[int, dict]:
                 load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
                 load["flowTorque"] = (np.asarray(load["flowTorque"]) + torque).tolist()
                 load["byKind"][4] = (np.asarray(load["byKind"][4]) + torque).tolist()
-                load["forceByKind"][4] = (np.asarray(load["forceByKind"][4]) + force).tolist()
+                load["forceByKind"][4] = (
+                    np.asarray(load["forceByKind"][4]) + force
+                ).tolist()
                 load["cells"][4] += 1
-        if int(world.landClaims[world_cell]) > 1 and int(world.collider[world_cell]) >= 0:
+        if (
+            int(world.landClaims[world_cell]) > 1
+            and int(world.collider[world_cell]) >= 0
+        ):
             other_id = int(world.collider[world_cell])
             other = plates_by_id.get(other_id)
             if other is None:
@@ -289,18 +314,24 @@ def gather_boundary_loads(world) -> dict[int, dict]:
             )
             load = loads.get(owner_id)
             if load is not None:
-                load["contacts"].append({
-                    "r": position.tolist(), "n": normal, "other": other_id,
-                    "weight": weight,
-                })
+                load["contacts"].append(
+                    {
+                        "r": position.tolist(),
+                        "n": normal,
+                        "other": other_id,
+                        "weight": weight,
+                    }
+                )
             other_load = loads.get(other_id)
             if other_load is not None:
-                other_load["contacts"].append({
-                    "r": position.tolist(),
-                    "n": [-normal[0], -normal[1], -normal[2]],
-                    "other": owner_id,
-                    "weight": weight,
-                })
+                other_load["contacts"].append(
+                    {
+                        "r": position.tolist(),
+                        "n": [-normal[0], -normal[1], -normal[2]],
+                        "other": owner_id,
+                        "weight": weight,
+                    }
+                )
             continue
         load = loads.get(owner_id)
         if load is None:
@@ -339,12 +370,14 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         if slab_force is not None:
             kind, size = slab_force
             if kind == _PULL:
-                load["slabs"].append({
-                    "r": xyz[world_cell].tolist(),
-                    "n": direction.tolist(),
-                    "other": other_id,
-                    "length": length,
-                })
+                load["slabs"].append(
+                    {
+                        "r": xyz[world_cell].tolist(),
+                        "n": direction.tolist(),
+                        "other": other_id,
+                        "length": length,
+                    }
+                )
         else:
             kind, size, direction = _rift_or_ridge_force(
                 plate,
@@ -362,8 +395,6 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         if kind < 0 or size == 0:
             continue
 
-        _accumulate_boundary_force(
-            load, kind, size, length, direction, xyz[world_cell]
-        )
+        _accumulate_boundary_force(load, kind, size, length, direction, xyz[world_cell])
 
     return loads

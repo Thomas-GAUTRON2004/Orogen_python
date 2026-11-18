@@ -115,15 +115,18 @@ def test_heat_under_continents_averages_only_owned_continental_cells():
 
 def test_pending_plume_rift_executes_and_clears_request(monkeypatch):
     world = make_world(config=base_config(riftRatePerMyr=0.0), dynamics=None)
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 2,
-        "xyz": [1.0, 0.0, 0.0],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 3},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 2,
+            "xyz": [1.0, 0.0, 0.0],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 3},
+        }
+    ]
     calls = []
     monkeypatch.setattr(
-        rifting, "try_rift",
+        rifting,
+        "try_rift",
         lambda _w, _p, junctions, cause, need: (
             calls.append((list(junctions), cause, need)) or True
         ),
@@ -141,13 +144,15 @@ def test_pending_plume_rift_waits_while_piece_is_too_young():
         plumeRiftWaitMyr=30.0,
     )
     world = make_world(time=5.0, config=config)
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 2,
-        "since": 0.0,
-        "junctions": [2],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 2,
+            "since": 0.0,
+            "junctions": [2],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     assert rift_continents(world, 1.0) == 0
     assert len(world.pendingPlumeRifts) == 1
 
@@ -160,13 +165,15 @@ def test_pending_plume_rift_expires_after_wait_window():
         plumeRiftWaitMyr=20.0,
     )
     world = make_world(time=50.0, config=config)
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 2,
-        "since": 0.0,
-        "junctions": [2],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 2,
+            "since": 0.0,
+            "junctions": [2],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     assert rift_continents(world, 1.0) == 0
     assert world.pendingPlumeRifts == []
 
@@ -180,13 +187,15 @@ def test_pending_plume_rift_retries_with_loose_shape_and_restores_config(monkeyp
         riftCoastHugKm=300.0,
     )
     world = make_world(time=10.0, config=config)
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 2,
-        "since": 0.0,
-        "junctions": [2],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 2,
+            "since": 0.0,
+            "junctions": [2],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     outcomes = iter([False, True])
     calls = []
 
@@ -207,23 +216,28 @@ def test_world_global_gap_keeps_plume_request_waiting():
     config = base_config(riftGlobalGapMyr=30.0, plumeRiftWaitMyr=20.0)
     world = make_world(time=5.0, config=config)
     world.lastRiftAt = 0.0
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 2,
-        "since": 0.0,
-        "junctions": [2],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 2,
+            "since": 0.0,
+            "junctions": [2],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     assert rift_continents(world, 1.0) == 0
     assert len(world.pendingPlumeRifts) == 1
 
 
 def test_due_plate_gets_forced_rift_before_spontaneous_pass(monkeypatch):
-    world = make_world(time=200.0, config=base_config(riftMaxGapMyr=150.0), dynamics={"tension": 0.4})
+    world = make_world(
+        time=200.0, config=base_config(riftMaxGapMyr=150.0), dynamics={"tension": 0.4}
+    )
     world.plates[0].bigSince = 0.0
     calls = []
     monkeypatch.setattr(
-        rifting, "_force_rift",
+        rifting,
+        "_force_rift",
         lambda _world, plate, age: calls.append((plate.id, age)) or True,
     )
     assert rift_continents(world, 1.0) == 1
@@ -248,9 +262,7 @@ def test_spontaneous_rift_uses_tension_size_and_seeded_junctions(monkeypatch):
     monkeypatch.setattr(
         rifting,
         "try_rift",
-        lambda _w, _p, junctions, cause: (
-            selected.append((junctions, cause)) or True
-        ),
+        lambda _w, _p, junctions, cause: selected.append((junctions, cause)) or True,
     )
     assert rift_continents(world, 1.0) == 1
     assert selected[0][0] == [7] * 12
@@ -288,7 +300,8 @@ def test_spontaneous_rift_uses_mantle_heat_gather_and_dispersal(monkeypatch):
     monkeypatch.setattr(rifting, "choose_junction", lambda *_args: 3)
     seen = []
     monkeypatch.setattr(
-        rifting, "try_rift",
+        rifting,
+        "try_rift",
         lambda _w, _p, junctions, cause: seen.append(cause) or True,
     )
     assert rift_continents(world, 1.0) == 1
@@ -335,13 +348,15 @@ def test_rift_continents_short_circuits_when_disabled_and_no_pending():
 def test_dead_plate_is_skipped_for_lifecycle_and_pending_requests():
     world = make_world(config=base_config())
     world.plates[0].alive = False
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 1,
-        "since": 0.0,
-        "junctions": [1],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 1,
+            "since": 0.0,
+            "junctions": [1],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     assert rift_continents(world, 1.0) == 0
     assert world.pendingPlumeRifts == []
 
@@ -359,13 +374,15 @@ def test_assembled_supercontinent_holds_plume_rift_until_tenure_expires():
         "largestPlates": [0],
         "gather": 0.0,
     }
-    world.pendingPlumeRifts = [{
-        "plate": 0,
-        "cell": 1,
-        "since": 0.0,
-        "junctions": [1],
-        "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
-    }]
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 1,
+            "since": 0.0,
+            "junctions": [1],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 1},
+        }
+    ]
     assert rift_continents(world, 1.0) == 0
     assert len(world.pendingPlumeRifts) == 1
 
@@ -445,7 +462,6 @@ def test_spontaneous_rift_is_skipped_when_random_draw_exceeds_chance(monkeypatch
     world.rng = lambda: 0.99
     monkeypatch.setattr(rifting, "try_rift", lambda *_args: pytest.fail("must not try"))
     assert rift_continents(world, 1.0) == 0
-
 
 
 def test_disabled_rifting_keeps_updating_big_continent_clock():

@@ -24,9 +24,7 @@ _LOOSE_SHAPE = {
 
 def pace_of(age: float, config) -> float:
     """Return the upstream smooth breakup pace multiplier at a piece's age."""
-    x = (
-        float(age) - float(config["riftMinGapMyr"])
-    ) / max(
+    x = (float(age) - float(config["riftMinGapMyr"])) / max(
         1e-9,
         float(config["riftSpacingMyr"]) - float(config["riftMinGapMyr"]),
     )
@@ -78,9 +76,7 @@ class _RiftSchedule:
         return self.time - float(plate.born)
 
     def area_of(self, plate) -> float:
-        return (
-            float(plate.stats["continentalCells"]) * self.cell_area_km2
-        )
+        return float(plate.stats["continentalCells"]) * self.cell_area_km2
 
     def too_young(self, plate) -> bool:
         return self.paced and self.age_of(plate) < self.min_gap - 1e-9
@@ -154,16 +150,13 @@ def _process_pending_plume_rifts(
         ):
             if (
                 schedule.paced
-                and schedule.time - since
-                < float(config["plumeRiftWaitMyr"]) - 1e-9
+                and schedule.time - since < float(config["plumeRiftWaitMyr"]) - 1e-9
             ):
                 waiting.append(request)
             continue
 
         cause = request["cause"]
-        success = try_rift(
-            world, plate, request["junctions"], cause, False
-        )
+        success = try_rift(world, plate, request["junctions"], cause, False)
         if not success and schedule.time > since:
             success = _retry_plume_rift(
                 world, plate, request["junctions"], cause, config
@@ -196,9 +189,7 @@ def _try_overdue_rifts(world, plates, schedule: _RiftSchedule) -> bool:
         )
     ]
     due.sort(key=schedule.big_age, reverse=True)
-    return any(
-        _force_rift(world, plate, schedule.age_of(plate)) for plate in due
-    )
+    return any(_force_rift(world, plate, schedule.age_of(plate)) for plate in due)
 
 
 def _spontaneous_rift_parameters(
@@ -221,10 +212,8 @@ def _spontaneous_rift_parameters(
     elif heat is not None and plate.bornOfRift:
         tenure = (
             float(config["riftTenureMyr"])
-            + (
-                float(config["riftTenureHotMyr"])
-                - float(config["riftTenureMyr"])
-            ) * mantle_heat
+            + (float(config["riftTenureHotMyr"]) - float(config["riftTenureMyr"]))
+            * mantle_heat
         )
     else:
         tenure = float(config["riftTenureMyr"])
@@ -232,22 +221,16 @@ def _spontaneous_rift_parameters(
         return None
 
     if heat is not None:
-        heat_factor = (
-            float(config["riftHeatFloor"])
-            + float(config["riftHeatGain"])
-            * mantle_heat ** float(config["riftHeatPower"])
-        )
+        heat_factor = float(config["riftHeatFloor"]) + float(
+            config["riftHeatGain"]
+        ) * mantle_heat ** float(config["riftHeatPower"])
     else:
         heat_factor = 1.0
     if too_soon:
-        heat_factor = (
-            max(heat_factor, 1.0) * float(config["dispersalRiftBoost"])
-        )
+        heat_factor = max(heat_factor, 1.0) * float(config["dispersalRiftBoost"])
     if heat is not None and gather_into and plate.id in gather_into:
-        heat_factor *= (
-            1.0
-            - (1.0 - float(config["gatherRiftFactor"]))
-            * float(cycle["gather"])
+        heat_factor *= 1.0 - (1.0 - float(config["gatherRiftFactor"])) * float(
+            cycle["gather"]
         )
 
     tension = (
@@ -302,16 +285,11 @@ def _try_spontaneous_rifts(
             continue
 
         junctions = [
-            choose_junction(world, plate, world.rng)
-            for _ in range(_JUNCTION_TRIES)
+            choose_junction(world, plate, world.rng) for _ in range(_JUNCTION_TRIES)
         ]
         cause = {
             "text": f"tension {tension:.2f}"
-            + (
-                f", mantle heat {mantle_heat:.2f}"
-                if heat is not None
-                else ""
-            ),
+            + (f", mantle heat {mantle_heat:.2f}" if heat is not None else ""),
             "kind": "tension",
             "hotspot": -1,
         }
@@ -345,8 +323,7 @@ def rift_continents(world, dt: float) -> int:
     world_waits = (
         paced
         and last_rift is not None
-        and time - float(last_rift)
-        < float(config["riftGlobalGapMyr"]) - 1e-9
+        and time - float(last_rift) < float(config["riftGlobalGapMyr"]) - 1e-9
     )
     min_area = float(config.get("riftMinContinentKm2", math.inf))
     cycle = getattr(world, "cycle", None)
@@ -355,8 +332,7 @@ def rift_continents(world, dt: float) -> int:
         cycle is not None
         and cycle.get("phase") == "assembled"
         and float(cycle.get("formedAt", 0.0)) > 0.0
-        and time - float(cycle["formedAt"])
-        < float(config["superTenureMyr"])
+        and time - float(cycle["formedAt"]) < float(config["superTenureMyr"])
     ):
         super_held = set(cycle.get("largestPlates", []))
 
@@ -377,9 +353,7 @@ def rift_continents(world, dt: float) -> int:
         else None
     )
 
-    splits = _process_pending_plume_rifts(
-        world, pending, schedule, world_waits
-    )
+    splits = _process_pending_plume_rifts(world, pending, schedule, world_waits)
     if world_waits or (paced and splits):
         return splits
 
@@ -403,28 +377,20 @@ def _force_rift(world, plate, age: float) -> bool:
         "hotspot": -1,
     }
     junctions = [
-        choose_junction(world, plate, world.rng)
-        for _ in range(_FORCED_JUNCTION_TRIES)
+        choose_junction(world, plate, world.rng) for _ in range(_FORCED_JUNCTION_TRIES)
     ]
 
     def attempt() -> bool:
-        return try_rift(
-            world, plate, junctions, cause
-        ) or try_rift(
+        return try_rift(world, plate, junctions, cause) or try_rift(
             world, plate, junctions, cause, False
         )
 
-    return attempt() or _with_loose_shape(
-        world.config, attempt
-    )
+    return attempt() or _with_loose_shape(world.config, attempt)
 
 
 def _with_loose_shape(config, action):
     """Temporarily relax the geometric constraints, restoring them on failure too."""
-    saved = {
-        key: config[key]
-        for key in _LOOSE_SHAPE
-    }
+    saved = {key: config[key] for key in _LOOSE_SHAPE}
     config.update(_LOOSE_SHAPE)
     try:
         return action()

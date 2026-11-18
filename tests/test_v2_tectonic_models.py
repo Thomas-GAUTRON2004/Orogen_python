@@ -1,7 +1,11 @@
 import numpy as np
 
 from orogen.v2.tectonics.crust import (
-    CELL_FIELDS, CrustFlag, CrustRaster, CrustType, OrogenyType,
+    CELL_FIELDS,
+    CrustFlag,
+    CrustRaster,
+    CrustType,
+    OrogenyType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
 
@@ -46,12 +50,17 @@ def test_plate_frame_transforms_and_cap_extent():
     plate = Plate(4, 5)
     plate.crust.create(0, CrustType["CRATON"], 0)
     plate.crust.create(1, CrustType["OCEAN"], 0)
-    plate.refresh_extent(np.array([1,0,0, 0,1,0, -1,0,0, 0,-1,0, 0,0,1], dtype=np.float32))
+    plate.refresh_extent(
+        np.array([1, 0, 0, 0, 1, 0, -1, 0, 0, 0, -1, 0, 0, 0, 1], dtype=np.float32)
+    )
     assert plate.stats == {"cells": 2, "continentalCells": 1}
     world = plate.to_world(0, 0, 1)
     local = plate.to_plate_frame(*world)
     assert np.allclose(local, [0, 0, 1])
-    assert plate.cell_at(type("Index", (), {"nearest": lambda self, x, y, z: 2})(), *world) == 2
+    assert (
+        plate.cell_at(type("Index", (), {"nearest": lambda self, x, y, z: 2})(), *world)
+        == 2
+    )
     assert np.allclose(frame_rotation(plate, plate), np.eye(3))
     plate.mark_reshaped()
     assert plate.reshaped and plate.dirty

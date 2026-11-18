@@ -3,6 +3,7 @@
 shull supplies the planar Delaunay triangulation. The spherical closure and
 cyclic CSR region adjacency follow the upstream half-edge construction.
 """
+
 from __future__ import annotations
 
 import math
@@ -51,8 +52,8 @@ def generate_fibonacci_sphere(
             j_lat = rng() - rng()
             j_lon = rng() - rng()
             next_z = max(-1.0, z - dz * 2.0 * math.pi * radius / spacing)
-            latitude_deg += jitter * j_lat * (
-                latitude_deg - math.asin(next_z) * 180.0 / math.pi
+            latitude_deg += (
+                jitter * j_lat * (latitude_deg - math.asin(next_z) * 180.0 / math.pi)
             )
             longitude_deg += jitter * j_lon * (spacing / radius * 180.0 / math.pi)
 
@@ -74,13 +75,10 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
     return np.column_stack((points[:, 0] / denominator, points[:, 1] / denominator))
 
 
-
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
     """Triangulate with shull, then close the planar convex hull at the pole."""
     try:
-        delaunay = shull.Delaunay(
-            np.ascontiguousarray(points_2d, dtype=np.float64)
-        )
+        delaunay = shull.Delaunay(np.ascontiguousarray(points_2d, dtype=np.float64))
     except Exception as exc:
         # The native extension can surface backend-specific exception types;
         # normalize them at this boundary to keep the mesh API stable.
@@ -130,6 +128,7 @@ def _close_simplices(
     # A planar hull edge u→v is closed by the spherical triangle v→u→pole.
     pole_triangles = np.asarray([(v, u, pole_id) for u, v in hull], dtype=np.int32)
     return np.concatenate((triangles, pole_triangles), axis=0)
+
 
 def _cyclic_region_adjacency(
     triangles: np.ndarray,

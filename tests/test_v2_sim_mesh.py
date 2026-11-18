@@ -5,19 +5,41 @@ from orogen.v2.core.sim_mesh import km_to_hops, mesh_from_arrays
 
 def test_sim_mesh_rebuilds_index_from_arrays():
     # Four unit directions with a complete neighbour graph.
-    xyz = np.array([
-        1, 0, 0,
-        -1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-    ], dtype=np.float32)
+    xyz = np.array(
+        [
+            1,
+            0,
+            0,
+            -1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+        ],
+        dtype=np.float32,
+    )
     offsets = np.array([0, 3, 6, 9, 12], dtype=np.int32)
-    adjacency = np.array([
-        1, 2, 3,
-        0, 2, 3,
-        0, 1, 3,
-        0, 1, 2,
-    ], dtype=np.int32)
+    adjacency = np.array(
+        [
+            1,
+            2,
+            3,
+            0,
+            2,
+            3,
+            0,
+            1,
+            3,
+            0,
+            1,
+            2,
+        ],
+        dtype=np.int32,
+    )
     mesh = mesh_from_arrays(
         num_cells=4, xyz=xyz, adj_offset=offsets, adj_list=adjacency
     )

@@ -55,14 +55,18 @@ def sea_world():
     lower.crust.create(4, CrustType["CONTINENT"], -10.0, 2)
     upper.stats["continentalCells"] = 1
     lower.stats["continentalCells"] = 1
-    return SimpleNamespace(
-        mesh=mesh,
-        plates=[upper, lower],
-        owner=np.asarray([0, -1, -1, -1, 1], dtype=np.int16),
-        ownerCell=np.arange(5, dtype=np.int32),
-        landClaims=np.zeros(5, dtype=np.uint8),
-        config={"sutureGapKm": 400.0},
-    ), upper, lower
+    return (
+        SimpleNamespace(
+            mesh=mesh,
+            plates=[upper, lower],
+            owner=np.asarray([0, -1, -1, -1, 1], dtype=np.int16),
+            ownerCell=np.arange(5, dtype=np.int32),
+            landClaims=np.zeros(5, dtype=np.uint8),
+            config={"sutureGapKm": 400.0},
+        ),
+        upper,
+        lower,
+    )
 
 
 def contact_world():
@@ -75,11 +79,13 @@ def contact_world():
     events = []
 
     def log(kind, text, data=None):
-        events.append({
-            "kind": kind,
-            "text": text,
-            "data": {} if data is None else data,
-        })
+        events.append(
+            {
+                "kind": kind,
+                "text": text,
+                "data": {} if data is None else data,
+            }
+        )
 
     world = SimpleNamespace(
         mesh=mesh,
@@ -111,9 +117,7 @@ def test_open_sea_between_counts_facing_but_not_directly_opposed_cells(monkeypat
 
     def shallow_angle(*_args):
         calls["count"] += 1
-        return [1.0, 0.0, 0.0] if calls["count"] % 2 else [
-            -0.7, math.sqrt(0.51), 0.0
-        ]
+        return [1.0, 0.0, 0.0] if calls["count"] % 2 else [-0.7, math.sqrt(0.51), 0.0]
 
     monkeypatch.setattr(collision, "tangent_toward", shallow_angle)
     result = open_sea_between(world, upper, lower)
@@ -171,18 +175,14 @@ def test_accrete_arcs_skips_transfer_when_donor_is_dead():
     world.budget = {"recycledCells": 0}
     world.events = []
     world.config = {"arcAccreteMinKm2": 100.0, "terraneMinAreaKm2": 100.0}
-    assert accrete_arcs(world, donor, host, [0]) == {
-        "core": [], "accreted": False
-    }
+    assert accrete_arcs(world, donor, host, [0]) == {"core": [], "accreted": False}
     assert world.arcScrapes == {}
 
 
 def test_dock_if_terrane_docks_using_accretion_and_logs_event(monkeypatch):
     import importlib
 
-    collision_module = importlib.import_module(
-        "orogen.v2.tectonics.collision"
-    )
+    collision_module = importlib.import_module("orogen.v2.tectonics.collision")
     accretion_module = importlib.import_module(
         "orogen.v2.tectonics.ops.plate_accretion"
     )
@@ -216,9 +216,7 @@ def test_dock_if_terrane_docks_using_accretion_and_logs_event(monkeypatch):
 def test_dock_if_terrane_returns_after_scrap_without_dock_event(monkeypatch):
     import importlib
 
-    collision_module = importlib.import_module(
-        "orogen.v2.tectonics.collision"
-    )
+    collision_module = importlib.import_module("orogen.v2.tectonics.collision")
     accretion_module = importlib.import_module(
         "orogen.v2.tectonics.ops.plate_accretion"
     )
@@ -247,9 +245,7 @@ def test_dock_if_terrane_returns_after_scrap_without_dock_event(monkeypatch):
 def test_dock_if_terrane_recycles_tiny_arc_piece_instead_of_accreting(monkeypatch):
     import importlib
 
-    collision_module = importlib.import_module(
-        "orogen.v2.tectonics.collision"
-    )
+    collision_module = importlib.import_module("orogen.v2.tectonics.collision")
     accretion_module = importlib.import_module(
         "orogen.v2.tectonics.ops.plate_accretion"
     )
@@ -280,9 +276,7 @@ def test_dock_if_terrane_recycles_tiny_arc_piece_instead_of_accreting(monkeypatc
 def test_dock_if_terrane_returns_false_when_one_mass_is_missing(monkeypatch):
     import importlib
 
-    collision_module = importlib.import_module(
-        "orogen.v2.tectonics.collision"
-    )
+    collision_module = importlib.import_module("orogen.v2.tectonics.collision")
     accretion_module = importlib.import_module(
         "orogen.v2.tectonics.ops.plate_accretion"
     )
@@ -315,12 +309,14 @@ def collision_tracking_world():
     events = []
 
     def log(kind, text, data=None):
-        events.append({
-            "kind": kind,
-            "text": text,
-            "data": {} if data is None else data,
-            "time": 10.0,
-        })
+        events.append(
+            {
+                "kind": kind,
+                "text": text,
+                "data": {} if data is None else data,
+                "time": 10.0,
+            }
+        )
 
     world = SimpleNamespace(
         mesh=mesh,
@@ -351,15 +347,16 @@ def test_track_collisions_records_front_shortening_and_contact_age(monkeypatch):
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
 
     result = collision.track_collisions(world, 1.0)
 
     record = world.collisions["0:1"]
     assert result == {
-        "tracked": 1, "started": 1, "underthrustCells": 0, "changed": False
+        "tracked": 1,
+        "started": 1,
+        "underthrustCells": 0,
+        "changed": False,
     }
     assert record["upper"] == upper.id
     assert record["lower"] == lower.id
@@ -380,10 +377,16 @@ def test_track_collisions_forgets_stale_records_before_touching(monkeypatch):
     world.landClaims[:] = 0
     world.collider[:] = -1
     world.collisions["0:1"] = {
-        "sutured": False, "lastActive": 0.0, "upper": 0, "lower": 1
+        "sutured": False,
+        "lastActive": 0.0,
+        "upper": 0,
+        "lower": 1,
     }
     world.collisions["0:2"] = {
-        "sutured": True, "lastActive": 0.0, "upper": 0, "lower": 2
+        "sutured": True,
+        "lastActive": 0.0,
+        "upper": 0,
+        "lower": 2,
     }
 
     result = collision.track_collisions(world, 1.0)
@@ -401,8 +404,9 @@ def test_track_collisions_docks_touching_terrane(monkeypatch):
     world.collider[:] = -1
     world.config["terraneMaxAreaKm2"] = 1.0
     monkeypatch.setattr(
-        collision, "dock_if_terrane",
-        lambda w, a, b, cells: (a.id == upper.id and b.id == lower.id),
+        collision,
+        "dock_if_terrane",
+        lambda w, a, b, cells: a.id == upper.id and b.id == lower.id,
     )
 
     result = collision.track_collisions(world, 1.0)
@@ -437,7 +441,6 @@ def test_track_collisions_rejects_non_positive_or_non_finite_dt():
             assert "finite positive" in str(error)
         else:
             raise AssertionError("invalid dt should be rejected")
-
 
 
 def test_collect_contacts_detects_overlap_and_touching_pairs():
@@ -641,8 +644,7 @@ def test_open_sea_between_measures_directly_opposed_coasts(monkeypatch):
         collision,
         "tangent_toward",
         lambda _a, _b, source: (
-            [1.0, 0.0, 0.0] if float(source[1]) < 0.05
-            else [-1.0, 0.0, 0.0]
+            [1.0, 0.0, 0.0] if float(source[1]) < 0.05 else [-1.0, 0.0, 0.0]
         ),
     )
     result = open_sea_between(world, upper, lower)
@@ -655,9 +657,7 @@ def test_open_sea_between_returns_zero_without_coastal_land():
 
     world, upper, lower = sea_world()
     world.owner[:] = -1
-    assert open_sea_between(world, upper, lower) == {
-        "km2": 0.0, "widestKm": 0.0
-    }
+    assert open_sea_between(world, upper, lower) == {"km2": 0.0, "widestKm": 0.0}
 
 
 def test_is_rift_jitter_requires_small_front_and_both_margin_flags():
@@ -720,14 +720,13 @@ def test_accrete_arcs_returns_core_when_both_contacts_are_continent():
 
     world, a, b = contact_world()
     world.config = {}
-    assert accrete_arcs(world, a, b, [0]) == {
-        "core": [0], "accreted": False
-    }
+    assert accrete_arcs(world, a, b, [0]) == {"core": [0], "accreted": False}
 
 
 def test_accrete_arcs_prefers_smaller_arc_donor_and_logs_transfer(monkeypatch):
     from orogen.v2.tectonics import collision
     import importlib
+
     scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
 
     world, a, b = contact_world()
@@ -773,7 +772,8 @@ def test_dock_if_terrane_returns_false_for_two_large_continents(monkeypatch):
     world.mesh.cell_area_km2 = 100.0
     world.config = {"terraneMaxAreaKm2": 50.0}
     monkeypatch.setattr(
-        accretion_module, "landmass_of",
+        accretion_module,
+        "landmass_of",
         lambda plate, _mesh, _seeds: [0],
     )
     assert not collision_module.dock_if_terrane(world, a, b, [0])
@@ -784,24 +784,27 @@ def test_track_collisions_skips_sutured_records_and_marks_ready_sutures(monkeypa
 
     world, upper, lower = collision_tracking_world()
     world.collisions["0:1"] = {
-        "upper": 0, "lower": 1, "sutured": True,
-        "lastActive": 10.0, "startedAt": 0.0,
+        "upper": 0,
+        "lower": 1,
+        "sutured": True,
+        "lastActive": 10.0,
+        "startedAt": 0.0,
     }
     result = collision.track_collisions(world, 1.0)
     assert result["tracked"] == 0
     assert world.collisions["0:1"]["sutured"] is True
 
     world.collisions.clear()
-    world.config.update({
-        "sutureShorteningKm": 0.0,
-        "sutureMinContactKm": 0.0,
-    })
+    world.config.update(
+        {
+            "sutureShorteningKm": 0.0,
+            "sutureMinContactKm": 0.0,
+        }
+    )
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     result = collision.track_collisions(world, 1.0)
     assert result["tracked"] == 1
     assert world.collisions["0:1"]["sutureCandidate"] is True
@@ -816,9 +819,7 @@ def test_track_collisions_removes_a_newly_detected_parting_sliver(monkeypatch):
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
 
     result = collision.track_collisions(world, 1.0)
 
@@ -830,13 +831,16 @@ def test_track_collisions_uses_arc_result_before_creating_record(monkeypatch):
     from orogen.v2.tectonics import collision
 
     world, _upper, _lower = collision_tracking_world()
-    world.config.update({
-        "arcAccreteMinKm2": 100.0,
-        "terraneMinAreaKm2": 100.0,
-        "arcScrapeLogKm2": 100.0,
-    })
+    world.config.update(
+        {
+            "arcAccreteMinKm2": 100.0,
+            "terraneMinAreaKm2": 100.0,
+            "arcScrapeLogKm2": 100.0,
+        }
+    )
     monkeypatch.setattr(
-        collision, "accrete_arcs",
+        collision,
+        "accrete_arcs",
         lambda *_args: {"core": [], "accreted": True},
     )
 
@@ -845,7 +849,6 @@ def test_track_collisions_uses_arc_result_before_creating_record(monkeypatch):
     assert result["tracked"] == 0
     assert result["changed"] is True
     assert world.collisions == {}
-
 
 
 def test_underthrust_stops_after_reaching_the_due_target():
@@ -871,7 +874,8 @@ def test_accrete_arcs_recycles_tiny_fragment_without_attempting_scrape(monkeypat
         "arcScrapeLogKm2": 1000.0,
     }
     monkeypatch.setattr(
-        scrape_module, "scrape_arc",
+        scrape_module,
+        "scrape_arc",
         lambda *_args: (_ for _ in ()).throw(
             AssertionError("a tiny arc fragment should be recycled")
         ),
@@ -890,8 +894,11 @@ def test_track_collisions_skips_touching_pair_with_existing_record():
     world.owner[:] = [0, 0, 1, 1, -1]
     world.config["terraneMaxAreaKm2"] = 100.0
     world.collisions["0:1"] = {
-        "upper": 0, "lower": 1, "sutured": False,
-        "lastActive": world.time, "startedAt": world.time,
+        "upper": 0,
+        "lower": 1,
+        "sutured": False,
+        "lastActive": world.time,
+        "startedAt": world.time,
     }
     result = track_collisions(world, 1.0)
     assert result["tracked"] == 0
@@ -916,14 +923,14 @@ def test_track_collisions_skips_young_conjugate_rift_partner_sliver(monkeypatch)
     world, upper, lower = collision_tracking_world()
     upper.riftPartner, lower.riftPartner = lower.id, upper.id
     upper.born = lower.born = 0.0
-    world.config.update({
-        "riftJitterFrontKm": 100.0,
-        "riftPushMyr": 20.0,
-    })
-    monkeypatch.setattr(collision, "is_rift_jitter", lambda *_args: False)
-    assert collision.are_young_rift_partners(
-        upper, lower, world.time, world.config
+    world.config.update(
+        {
+            "riftJitterFrontKm": 100.0,
+            "riftPushMyr": 20.0,
+        }
     )
+    monkeypatch.setattr(collision, "is_rift_jitter", lambda *_args: False)
+    assert collision.are_young_rift_partners(upper, lower, world.time, world.config)
     result = collision.track_collisions(world, 1.0)
     assert result["started"] == 0
     assert result["tracked"] == 0
@@ -950,8 +957,11 @@ def test_track_collisions_skips_record_if_its_saved_upper_plate_died():
     dead.alive = False
     world.plates.append(dead)
     world.collisions["0:1"] = {
-        "upper": 2, "lower": 1, "sutured": False,
-        "lastActive": world.time, "startedAt": world.time,
+        "upper": 2,
+        "lower": 1,
+        "sutured": False,
+        "lastActive": world.time,
+        "startedAt": world.time,
     }
     result = track_collisions(world, 1.0)
     assert result["tracked"] == 0
@@ -966,9 +976,7 @@ def test_track_collisions_skips_ambiguous_neighbour_claims(monkeypatch):
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     result = collision.track_collisions(world, 1.0)
     assert result["tracked"] == 1
     assert world.collisions["0:1"]["frontKm"] >= 0.0
@@ -979,33 +987,33 @@ def test_track_collisions_spreads_plateau_and_foreland_belts(monkeypatch):
     from orogen.v2.tectonics.crust import BeltSide, OrogenyType
 
     world, upper, lower = collision_tracking_world()
-    world.config.update({
-        "sutureMinContactKm": 0.0,
-        "belts": {
-            "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
-            "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
-            "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
-        },
-        "beltSpeedFactorMin": 0.6,
-        "beltSpeedFactorMax": 1.6,
-        "beltSpeedRefCmYr": 5.0,
-        "beltSpeedExponent": 0.5,
-        "beltObliqueMin": 0.35,
-        "apronKm": 100.0,
-        "orogenyQuietMyr": 10.0,
-        "beltWorkShare": 0.5,
-        "thickeningPerWorkKm": 0.1,
-        "weakCellCost": 0.5,
-        "cratonRimKm": 200.0,
-        "cratonRimCost": 2.0,
-        "cratonRimShare": 0.25,
-    })
+    world.config.update(
+        {
+            "sutureMinContactKm": 0.0,
+            "belts": {
+                "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+                "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+                "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+            },
+            "beltSpeedFactorMin": 0.6,
+            "beltSpeedFactorMax": 1.6,
+            "beltSpeedRefCmYr": 5.0,
+            "beltSpeedExponent": 0.5,
+            "beltObliqueMin": 0.35,
+            "apronKm": 100.0,
+            "orogenyQuietMyr": 10.0,
+            "beltWorkShare": 0.5,
+            "thickeningPerWorkKm": 0.1,
+            "weakCellCost": 0.5,
+            "cratonRimKm": 200.0,
+            "cratonRimCost": 2.0,
+            "cratonRimShare": 0.25,
+        }
+    )
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
 
     result = collision.track_collisions(world, 1.0)
 
@@ -1033,7 +1041,9 @@ def suture_gap_config():
     }
 
 
-def test_track_collisions_checks_gap_and_blocks_weld_for_large_enclosed_sea(monkeypatch):
+def test_track_collisions_checks_gap_and_blocks_weld_for_large_enclosed_sea(
+    monkeypatch,
+):
     from orogen.v2.tectonics import collision
 
     world, _upper, _lower = collision_tracking_world()
@@ -1042,17 +1052,15 @@ def test_track_collisions_checks_gap_and_blocks_weld_for_large_enclosed_sea(monk
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+        collision,
+        "open_sea_between",
+        lambda *_args: calls.append("gap") or {"km2": 2000.0, "widestKm": 250.0},
     )
     monkeypatch.setattr(
-        collision, "open_sea_between",
-        lambda *_args: calls.append("gap") or {
-            "km2": 2000.0, "widestKm": 250.0
-        },
-    )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2",
+        collision,
+        "enclosed_sea_between_km2",
         lambda *_args: calls.append("ring") or 5000.0,
     )
     world.config["sutureStallGiveUpMyr"] = 0.0
@@ -1084,19 +1092,14 @@ def test_track_collisions_throttles_gap_checks_until_check_interval(monkeypatch)
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     calls = []
     monkeypatch.setattr(
-        collision, "open_sea_between",
-        lambda *_args: calls.append(world.time) or {
-            "km2": 1000.0, "widestKm": 700.0
-        },
+        collision,
+        "open_sea_between",
+        lambda *_args: calls.append(world.time) or {"km2": 1000.0, "widestKm": 700.0},
     )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
-    )
+    monkeypatch.setattr(collision, "enclosed_sea_between_km2", lambda *_args: 0.0)
 
     collision.track_collisions(world, 1.0)
     assert calls == [10.0]
@@ -1109,7 +1112,9 @@ def test_track_collisions_throttles_gap_checks_until_check_interval(monkeypatch)
     assert record["checkedAt"] == 10.0
 
 
-def test_track_collisions_records_improving_gap_only_after_ten_percent_shrink(monkeypatch):
+def test_track_collisions_records_improving_gap_only_after_ten_percent_shrink(
+    monkeypatch,
+):
     from orogen.v2.tectonics import collision
 
     world, _upper, _lower = collision_tracking_world()
@@ -1117,20 +1122,16 @@ def test_track_collisions_records_improving_gap_only_after_ten_percent_shrink(mo
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
+    gaps = iter(
+        [
+            {"km2": 1000.0, "widestKm": 700.0},
+            {"km2": 950.0, "widestKm": 650.0},
+            {"km2": 800.0, "widestKm": 600.0},
+        ]
     )
-    gaps = iter([
-        {"km2": 1000.0, "widestKm": 700.0},
-        {"km2": 950.0, "widestKm": 650.0},
-        {"km2": 800.0, "widestKm": 600.0},
-    ])
-    monkeypatch.setattr(
-        collision, "open_sea_between", lambda *_args: next(gaps)
-    )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
-    )
+    monkeypatch.setattr(collision, "open_sea_between", lambda *_args: next(gaps))
+    monkeypatch.setattr(collision, "enclosed_sea_between_km2", lambda *_args: 0.0)
 
     collision.track_collisions(world, 1.0)
     record = world.collisions["0:1"]
@@ -1148,7 +1149,9 @@ def test_track_collisions_records_improving_gap_only_after_ten_percent_shrink(mo
     assert record["gapShrankAt"] == 20.0
 
 
-def test_track_collisions_allows_overdue_merge_candidate_despite_large_ring(monkeypatch):
+def test_track_collisions_allows_overdue_merge_candidate_despite_large_ring(
+    monkeypatch,
+):
     from orogen.v2.tectonics import collision
 
     world, _upper, _lower = collision_tracking_world()
@@ -1158,16 +1161,13 @@ def test_track_collisions_allows_overdue_merge_candidate_despite_large_ring(monk
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
-    monkeypatch.setattr(
-        collision, "open_sea_between",
+        collision,
+        "open_sea_between",
         lambda *_args: {"km2": 1000.0, "widestKm": 900.0},
     )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2", lambda *_args: 5000.0
-    )
+    monkeypatch.setattr(collision, "enclosed_sea_between_km2", lambda *_args: 5000.0)
 
     collision.track_collisions(world, 1.0)
     record = world.collisions["0:1"]
@@ -1185,49 +1185,46 @@ def test_track_collisions_executes_merge_and_logs_suture(monkeypatch):
 
     world, upper, lower = collision_tracking_world()
     world.config.update(suture_gap_config())
-    world.config.update({
-        "sutureShorteningKm": 0.0,
-        "belts": {
-            "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
-            "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
-            "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
-        },
-        "beltSpeedFactorMin": 0.6,
-        "beltSpeedFactorMax": 1.6,
-        "beltSpeedRefCmYr": 5.0,
-        "beltSpeedExponent": 0.5,
-        "beltObliqueMin": 0.35,
-        "apronKm": 100.0,
-        "orogenyQuietMyr": 10.0,
-        "beltWorkShare": 0.5,
-        "thickeningPerWorkKm": 0.1,
-        "weakCellCost": 0.5,
-        "cratonRimKm": 200.0,
-        "cratonRimCost": 2.0,
-        "cratonRimShare": 0.25,
-        "indentFalloffKm": 1500.0,
-        "indentGain": 1.5,
-        "escapeShare": 0.75,
-        "sutureHalfWidthKm": 80.0,
-        "sealStraitKm": 260.0,
-        "inlandSeaMaxKm2": 500000.0,
-    })
+    world.config.update(
+        {
+            "sutureShorteningKm": 0.0,
+            "belts": {
+                "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+                "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+                "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+            },
+            "beltSpeedFactorMin": 0.6,
+            "beltSpeedFactorMax": 1.6,
+            "beltSpeedRefCmYr": 5.0,
+            "beltSpeedExponent": 0.5,
+            "beltObliqueMin": 0.35,
+            "apronKm": 100.0,
+            "orogenyQuietMyr": 10.0,
+            "beltWorkShare": 0.5,
+            "thickeningPerWorkKm": 0.1,
+            "weakCellCost": 0.5,
+            "cratonRimKm": 200.0,
+            "cratonRimCost": 2.0,
+            "cratonRimShare": 0.25,
+            "indentFalloffKm": 1500.0,
+            "indentGain": 1.5,
+            "escapeShare": 0.75,
+            "sutureHalfWidthKm": 80.0,
+            "sealStraitKm": 260.0,
+            "inlandSeaMaxKm2": 500000.0,
+        }
+    )
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
+    monkeypatch.setattr(collision, "spread_belt", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
-    monkeypatch.setattr(
-        collision, "spread_belt", lambda *_args, **_kwargs: []
-    )
-    monkeypatch.setattr(
-        collision, "open_sea_between",
+        collision,
+        "open_sea_between",
         lambda *_args: {"km2": 0.0, "widestKm": 0.0},
     )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
-    )
+    monkeypatch.setattr(collision, "enclosed_sea_between_km2", lambda *_args: 0.0)
     calls = []
 
     def fake_merge(w, a, b, cells, record):
@@ -1259,7 +1256,9 @@ def test_track_collisions_executes_merge_and_logs_suture(monkeypatch):
     assert world.events[-1]["data"]["sealedCells"] == 1
 
 
-def test_track_collisions_keeps_merge_candidate_pending_without_merge_config(monkeypatch):
+def test_track_collisions_keeps_merge_candidate_pending_without_merge_config(
+    monkeypatch,
+):
     from orogen.v2.tectonics import collision
 
     world, _upper, _lower = collision_tracking_world()
@@ -1268,20 +1267,15 @@ def test_track_collisions_keeps_merge_candidate_pending_without_merge_config(mon
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
-    monkeypatch.setattr(
-        collision, "open_sea_between",
+        collision,
+        "open_sea_between",
         lambda *_args: {"km2": 0.0, "widestKm": 0.0},
     )
-    monkeypatch.setattr(
-        collision, "enclosed_sea_between_km2", lambda *_args: 0.0
-    )
+    monkeypatch.setattr(collision, "enclosed_sea_between_km2", lambda *_args: 0.0)
     calls = []
-    monkeypatch.setattr(
-        collision, "merge_plates", lambda *_args: calls.append(True)
-    )
+    monkeypatch.setattr(collision, "merge_plates", lambda *_args: calls.append(True))
 
     collision.track_collisions(world, 1.0)
 
@@ -1299,15 +1293,14 @@ def test_track_collisions_feeds_far_field_from_both_collision_fronts(monkeypatch
     monkeypatch.setattr(
         collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
     calls = []
     monkeypatch.setattr(
         collision,
         "feed_far_field",
-        lambda w, plate, key, cells, works, front, share:
-            calls.append((w, plate, key, list(cells), works, front, share)),
+        lambda w, plate, key, cells, works, front, share: calls.append(
+            (w, plate, key, list(cells), works, front, share)
+        ),
     )
 
     result = collision.track_collisions(world, 1.0)
@@ -1322,15 +1315,15 @@ def test_track_collisions_feeds_far_field_from_both_collision_fronts(monkeypatch
     assert calls[0][5] == calls[1][5] == world.collisions["0:1"]["frontKm"]
     assert calls[0][6] == calls[1][6] == 0.5
 
+
 def test_underthrust_consumes_lower_cells_without_upper_land_to_thicken():
     from orogen.v2.tectonics.collision import underthrust
+
     world, upper, lower = underthrust_world()
     upper.crust.remove(1)
     upper.crust.type[2] = CrustType["OCEAN"]
     record = {"frontKm": 100.0, "underthrustDue": 2.0}
-    consumed = underthrust(
-        world, upper, lower, [1, 2, 3], record, 2.0
-    )
+    consumed = underthrust(world, upper, lower, [1, 2, 3], record, 2.0)
     assert consumed == 2
     assert lower.crust.mask[1] == 0
     assert lower.crust.mask[2] == 0
@@ -1338,4 +1331,3 @@ def test_underthrust_consumes_lower_cells_without_upper_land_to_thicken():
     # The oceanic upper cell is consumed below but must not be thickened.
     assert upper.crust.thickKm[2] == pytest.approx(0.0)
     assert upper.crust.rootKm[2] == pytest.approx(0.0)
-

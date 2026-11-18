@@ -1,4 +1,5 @@
 """Precomputed concentric mesh neighbourhoods from V2 mesh-rings.js."""
+
 from __future__ import annotations
 
 from typing import Any

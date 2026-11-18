@@ -20,41 +20,26 @@ def close_seas_between(out, origin, mesh, upper, config, time: float) -> int:
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
 
     def is_land(cell: int) -> bool:
-        return bool(
-            out.mask[cell]
-            and out.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(out.mask[cell] and out.type[cell] != CrustType["OCEAN"])
 
     def is_sea(cell: int) -> bool:
         return not is_land(cell)
 
     land_a = [
-        cell for cell in range(num_cells)
-        if is_land(cell) and int(origin[cell]) == 1
+        cell for cell in range(num_cells) if is_land(cell) and int(origin[cell]) == 1
     ]
     land_b = [
-        cell for cell in range(num_cells)
-        if is_land(cell) and int(origin[cell]) != 1
+        cell for cell in range(num_cells) if is_land(cell) and int(origin[cell]) != 1
     ]
     reach_hops = max(
         1,
-        math.floor(
-            float(config["sealStraitKm"]) / float(mesh.edge_km) + 0.5
-        ),
+        math.floor(float(config["sealStraitKm"]) / float(mesh.edge_km) + 0.5),
     )
-    from_a_dist, _from_a_source = hops_from(
-        mesh, land_a, is_sea, reach_hops
-    )
-    from_b_dist, _from_b_source = hops_from(
-        mesh, land_b, is_sea, reach_hops
-    )
+    from_a_dist, _from_a_source = hops_from(mesh, land_a, is_sea, reach_hops)
+    from_b_dist, _from_b_source = hops_from(mesh, land_b, is_sea, reach_hops)
     fill = np.zeros(num_cells, dtype=np.uint8)
     for cell in range(num_cells):
-        if (
-            is_sea(cell)
-            and from_a_dist[cell] > 0
-            and from_b_dist[cell] > 0
-        ):
+        if is_sea(cell) and from_a_dist[cell] > 0 and from_b_dist[cell] > 0:
             fill[cell] = 1
 
     # Sea connected to the far side of the planet stays open.
@@ -66,30 +51,16 @@ def close_seas_between(out, origin, mesh, upper, config, time: float) -> int:
         opened[far] = 1
     while stack:
         cell = stack.pop()
-        for edge in range(
-            int(offsets[cell]), int(offsets[cell + 1])
-        ):
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
-            if (
-                not opened[neighbour]
-                and is_sea(neighbour)
-                and not fill[neighbour]
-            ):
+            if not opened[neighbour] and is_sea(neighbour) and not fill[neighbour]:
                 opened[neighbour] = 1
                 stack.append(neighbour)
 
     seen = np.zeros(num_cells, dtype=np.uint8)
-    max_cells = (
-        float(config["inlandSeaMaxKm2"])
-        / float(mesh.cell_area_km2)
-    )
+    max_cells = float(config["inlandSeaMaxKm2"]) / float(mesh.cell_area_km2)
     for start in range(num_cells):
-        if (
-            seen[start]
-            or not is_sea(start)
-            or fill[start]
-            or opened[start]
-        ):
+        if seen[start] or not is_sea(start) or fill[start] or opened[start]:
             continue
         component = [start]
         seen[start] = 1
@@ -97,9 +68,7 @@ def close_seas_between(out, origin, mesh, upper, config, time: float) -> int:
         while cursor < len(component):
             cell = component[cursor]
             cursor += 1
-            for edge in range(
-                int(offsets[cell]), int(offsets[cell + 1])
-            ):
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                 neighbour = int(adjacency[edge])
                 if (
                     not seen[neighbour]
@@ -113,9 +82,7 @@ def close_seas_between(out, origin, mesh, upper, config, time: float) -> int:
             for cell in component:
                 fill[cell] = 1
 
-    to_fill = [
-        cell for cell in range(num_cells) if fill[cell]
-    ]
+    to_fill = [cell for cell in range(num_cells) if fill[cell]]
     if not to_fill:
         return 0
 
@@ -124,11 +91,7 @@ def close_seas_between(out, origin, mesh, upper, config, time: float) -> int:
     )
     fallback = land_a[0]
     for cell in to_fill:
-        source = (
-            int(nearest_source[cell])
-            if nearest_source[cell] >= 0
-            else fallback
-        )
+        source = int(nearest_source[cell]) if nearest_source[cell] >= 0 else fallback
         out.copy_from(cell, out, source)
         if out.type[cell] == CrustType["CRATON"]:
             out.type[cell] = CrustType["CONTINENT"]
@@ -147,10 +110,7 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
     host_crust, donor_crust = host.crust, donor.crust
     origin = np.zeros(num_cells, dtype=np.int8)
     for cell in range(num_cells):
-        if (
-            host_crust.mask[cell]
-            and host_crust.type[cell] != CrustType["OCEAN"]
-        ):
+        if host_crust.mask[cell] and host_crust.type[cell] != CrustType["OCEAN"]:
             origin[cell] = 1
 
     is_terrane = np.zeros(num_cells, dtype=np.uint8)
@@ -162,17 +122,12 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
     ring = [int(cell) for cell in terrane]
     fore_arc_hops = max(
         1,
-        math.floor(
-            float(config["terraneForeArcKm"]) / float(mesh.edge_km)
-            + 0.5
-        ),
+        math.floor(float(config["terraneForeArcKm"]) / float(mesh.edge_km) + 0.5),
     )
     for hop in range(fore_arc_hops):
         following = []
         for cell in ring:
-            for edge in range(
-                int(offsets[cell]), int(offsets[cell + 1])
-            ):
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                 neighbour = int(adjacency[edge])
                 if (
                     neighbour in seen
@@ -181,8 +136,7 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
                     or (
                         hop > 0
                         and not (
-                            int(donor_crust.flags[neighbour])
-                            & CrustFlag["TRENCH"]
+                            int(donor_crust.flags[neighbour]) & CrustFlag["TRENCH"]
                         )
                     )
                 ):
@@ -222,16 +176,13 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
                 donor_crust.remove(cell)
                 continue
 
-        if origin[target] != 1 and (
-            land or not host_crust.mask[target]
-        ):
+        if origin[target] != 1 and (land or not host_crust.mask[target]):
             if rotation is None:
                 rotation = frame_rotation(donor, host)
             host_crust.copy_from(target, donor_crust, cell, rotation)
             if land:
-                host_crust.flags[target] = (
-                    int(host_crust.flags[target])
-                    & (0xFF ^ CrustFlag["TRENCH"])
+                host_crust.flags[target] = int(host_crust.flags[target]) & (
+                    0xFF ^ CrustFlag["TRENCH"]
                 )
                 origin[target] = 2
                 moved += 1
@@ -244,10 +195,7 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
         donor.omega = [0.0, 0.0, 0.0]
         donor.dynamics = None
 
-    if (
-        len(terrane) * float(mesh.cell_area_km2)
-        < float(config["terraneMinAreaKm2"])
-    ):
+    if len(terrane) * float(mesh.cell_area_km2) < float(config["terraneMinAreaKm2"]):
         host.refresh_extent(xyz)
         donor.refresh_extent(xyz)
         return {
@@ -257,19 +205,12 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
             "scrap": True,
         }
 
-    sealed = close_seas_between(
-        host_crust, origin, mesh, host, config, time
-    )
+    sealed = close_seas_between(host_crust, origin, mesh, host, config, time)
     seam = []
     for cell in range(num_cells):
-        if (
-            not host_crust.mask[cell]
-            or host_crust.type[cell] == CrustType["OCEAN"]
-        ):
+        if not host_crust.mask[cell] or host_crust.type[cell] == CrustType["OCEAN"]:
             continue
-        for edge in range(
-            int(offsets[cell]), int(offsets[cell + 1])
-        ):
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
             if (
                 host_crust.mask[neighbour]
@@ -286,12 +227,8 @@ def accrete_terrane(world, host, donor, terrane, rate_cm_yr: float) -> dict:
 
     width = belt_width_km("ural", 0.0, rate_cm_yr, config)
     work = float(config["belts"]["ural"]["baseKm"]) * 0.5
-    upper_cells = [
-        cell for cell in seam if origin[cell] == 1
-    ]
-    lower_cells = [
-        cell for cell in seam if origin[cell] != 1
-    ]
+    upper_cells = [cell for cell in seam if origin[cell] == 1]
+    lower_cells = [cell for cell in seam if origin[cell] != 1]
     if upper_cells:
         spread_belt(
             host,
@@ -347,9 +284,7 @@ def landmass_of(plate, mesh, seeds) -> list[int]:
     while cursor < len(result):
         cell = result[cursor]
         cursor += 1
-        for edge in range(
-            int(offsets[cell]), int(offsets[cell + 1])
-        ):
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
             if (
                 not seen[neighbour]

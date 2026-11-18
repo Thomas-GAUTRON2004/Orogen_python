@@ -1,4 +1,5 @@
 """Deterministic adaptive tectonic time-step helpers from V2 simulate.js."""
+
 from __future__ import annotations
 
 import math
@@ -11,16 +12,30 @@ def fastest_speed(omega, plate, centre) -> float:
     rate = math.hypot(float(omega[0]), float(omega[1]), float(omega[2]))
     if rate < 1e-12:
         return 0.0
-    axis_angle = math.acos(max(-1.0, min(1.0, (
-        float(omega[0]) * float(centre[0]) +
-        float(omega[1]) * float(centre[1]) +
-        float(omega[2]) * float(centre[2])
-    ) / rate)))
+    axis_angle = math.acos(
+        max(
+            -1.0,
+            min(
+                1.0,
+                (
+                    float(omega[0]) * float(centre[0])
+                    + float(omega[1]) * float(centre[1])
+                    + float(omega[2]) * float(centre[2])
+                )
+                / rate,
+            ),
+        )
+    )
     cap_radius = math.acos(max(-1.0, min(1.0, float(plate.capCos))))
-    reaches_equator = axis_angle - cap_radius <= math.pi / 2 and axis_angle + cap_radius >= math.pi / 2
-    return rate * (1.0 if reaches_equator else max(
-        math.sin(axis_angle - cap_radius), math.sin(axis_angle + cap_radius)
-    ))
+    reaches_equator = (
+        axis_angle - cap_radius <= math.pi / 2
+        and axis_angle + cap_radius >= math.pi / 2
+    )
+    return rate * (
+        1.0
+        if reaches_equator
+        else max(math.sin(axis_angle - cap_radius), math.sin(axis_angle + cap_radius))
+    )
 
 
 def closing_rate(world) -> float:

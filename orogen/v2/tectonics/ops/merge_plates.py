@@ -5,6 +5,7 @@ The operation is a direct Python port of the geometry in upstream
 the upper plate survives, the lower plate is resampled into its frame, and
 the overlap lens drives an inverse warp of the upper crust.
 """
+
 from __future__ import annotations
 
 import math
@@ -35,9 +36,8 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
 
     upper_crust, lower_crust = upper.crust, lower.crust
     lower_to_upper = frame_rotation(lower, upper)
-    land_before = (
-        int(upper.stats["continentalCells"])
-        + int(lower.stats["continentalCells"])
+    land_before = int(upper.stats["continentalCells"]) + int(
+        lower.stats["continentalCells"]
     )
     hue = (
         lower.hue
@@ -59,16 +59,12 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
 
     def upper_land(cell: int) -> bool:
         return bool(
-            upper_crust.mask[cell]
-            and upper_crust.type[cell] != CrustType["OCEAN"]
+            upper_crust.mask[cell] and upper_crust.type[cell] != CrustType["OCEAN"]
         )
 
     def lower_land(cell: int) -> bool:
         source = int(from_lower[cell])
-        return bool(
-            source >= 0
-            and lower_crust.type[source] != CrustType["OCEAN"]
-        )
+        return bool(source >= 0 and lower_crust.type[source] != CrustType["OCEAN"])
 
     overlap = np.zeros(num_cells, dtype=np.uint8)
     overlap_count = 0
@@ -117,7 +113,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     end_b = _farthest(
         xyz,
         overlap_cells,
-        xyz[3 * end_a:3 * end_a + 3],
+        xyz[3 * end_a : 3 * end_a + 3],
     )
     end_a_dist, _ = hops_from(mesh, [end_a], within)
     end_b_dist, _ = hops_from(mesh, [end_b], within)
@@ -128,17 +124,11 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     max_indent = 0.0
     sum_indent = 0.0
     lower_world = lower.to_world(*map(float, lower.capCenter))
-    lower_centre_in_upper = upper.to_plate_frame(
-        *map(float, lower_world)
-    )
+    lower_centre_in_upper = upper.to_plate_frame(*map(float, lower_world))
     for cell in overlap_cells:
         rear_hops = max(0, int(rear_dist[cell]))
         nose_hops = max(0, int(nose_dist[cell]))
-        depth = (
-            (rear_hops + nose_hops + 1)
-            * edge_km
-            * math.sqrt(3.0) / 2.0
-        )
+        depth = (rear_hops + nose_hops + 1) * edge_km * math.sqrt(3.0) / 2.0
         depth_km[cell] = depth
         max_indent = max(max_indent, depth)
         sum_indent += depth
@@ -146,14 +136,8 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         b = max(0, int(end_b_dist[cell]))
         along[cell] = (b - a) / (a + b + 1e-9)
 
-        from_cell = (
-            int(nose_source[cell])
-            if nose_source[cell] >= 0 else cell
-        )
-        to_cell = (
-            int(rear_source[cell])
-            if rear_source[cell] >= 0 else cell
-        )
+        from_cell = int(nose_source[cell]) if nose_source[cell] >= 0 else cell
+        to_cell = int(rear_source[cell]) if rear_source[cell] >= 0 else cell
         here = _position(xyz, cell)
         if from_cell == to_cell:
             direction = tangent_toward(
@@ -183,18 +167,14 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         near = int(reach_source[cell])
         if near < 0:
             continue
-        distance_km = (
-            int(reach_dist[cell]) * edge_km * math.sqrt(3.0) / 2.0
-        )
+        distance_km = int(reach_dist[cell]) * edge_km * math.sqrt(3.0) / 2.0
         if distance_km >= falloff_km:
             continue
         taper = (1.0 - distance_km / falloff_km) ** 1.5
         magnitude = indent_gain * float(depth_km[near]) * taper
         if magnitude <= 0:
             continue
-        lateral_share = (
-            float(config["escapeShare"]) * abs(float(along[near]))
-        )
+        lateral_share = float(config["escapeShare"]) * abs(float(along[near]))
         here = _position(xyz, cell)
         end = position_a if along[near] > 0 else position_b
         lateral = tangent_toward(here, here, end)
@@ -215,7 +195,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         delta = displacement[cell]
         if float(np.dot(delta, delta)) > 0.0:
             moved[:] = (
-                np.asarray(xyz[3 * cell:3 * cell + 3], dtype=np.float64)
+                np.asarray(xyz[3 * cell : 3 * cell + 3], dtype=np.float64)
                 - delta / PLANET_RADIUS_KM
             )
             length = float(np.linalg.norm(moved))
@@ -230,9 +210,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         upper_sources_array = np.asarray(upper_sources, dtype=np.int32)
         output.copy_many(upper_targets_array, upper_crust, upper_sources_array)
         origin[upper_targets_array] = 1
-        upper_cratons = (
-            upper_crust.type[upper_sources_array] == CrustType["CRATON"]
-        )
+        upper_cratons = upper_crust.type[upper_sources_array] == CrustType["CRATON"]
         output.type[upper_targets_array[upper_cratons]] = CrustType["CONTINENT"]
 
     _stamp_cratons_rigidly(output, upper_crust, displacement, mesh)
@@ -242,15 +220,18 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         lower_sources = from_lower[lower_targets].astype(np.int32, copy=False)
         occupied = output.mask[lower_targets] != 0
         lower_land = lower_crust.type[lower_sources] != CrustType["OCEAN"]
-        keep_upper_craton = (
-            occupied & (output.type[lower_targets] == CrustType["CRATON"])
+        keep_upper_craton = occupied & (
+            output.type[lower_targets] == CrustType["CRATON"]
         )
         accept = (lower_land | ~occupied) & ~keep_upper_craton
         lower_targets = lower_targets[accept]
         lower_sources = lower_sources[accept]
         if lower_targets.size:
             output.copy_many(
-                lower_targets, lower_crust, lower_sources, lower_to_upper,
+                lower_targets,
+                lower_crust,
+                lower_sources,
+                lower_to_upper,
             )
             origin[lower_targets] = 2
 
@@ -264,9 +245,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             land_count = 0
             land_source = -1
             sea_source = -1
-            for edge in range(
-                int(offsets[cell]), int(offsets[cell + 1])
-            ):
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                 neighbour = int(adjacency[edge])
                 if not output.mask[neighbour]:
                     continue
@@ -300,21 +279,14 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         if not fills:
             break
 
-    sealed = close_seas_between(
-        output, origin, mesh, upper, config, time
-    )
+    sealed = close_seas_between(output, origin, mesh, upper, config, time)
 
     # The interface between the two origins becomes the suture zone.
     seam: list[int] = []
     for cell in range(num_cells):
-        if (
-            not output.mask[cell]
-            or output.type[cell] == CrustType["OCEAN"]
-        ):
+        if not output.mask[cell] or output.type[cell] == CrustType["OCEAN"]:
             continue
-        for edge in range(
-            int(offsets[cell]), int(offsets[cell + 1])
-        ):
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
             if (
                 output.mask[neighbour]
@@ -326,25 +298,18 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
 
     half_width = max(
         1,
-        math.floor(
-            float(config["sutureHalfWidthKm"])
-            / max(edge_km, 1e-12) + 0.5
-        ),
+        math.floor(float(config["sutureHalfWidthKm"]) / max(edge_km, 1e-12) + 0.5),
     )
     suture_dist, _ = hops_from(
         mesh,
         seam,
         lambda cell: bool(
-            output.mask[cell]
-            and output.type[cell] != CrustType["OCEAN"]
+            output.mask[cell] and output.type[cell] != CrustType["OCEAN"]
         ),
         half_width,
     )
     for cell in range(num_cells):
-        if (
-            suture_dist[cell] >= 0
-            and output.type[cell] != CrustType["CRATON"]
-        ):
+        if suture_dist[cell] >= 0 and output.type[cell] != CrustType["CRATON"]:
             output.flags[cell] |= CrustFlag["SUTURE"]
 
     # Redraw plateau and foreland records over their respective sides.
@@ -362,9 +327,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             rear_seam,
             {
                 "type": OrogenyType["HIMALAYAN"],
-                "widthKm": belt_width_km(
-                    "himalayan", total_work, rate, config
-                ),
+                "widthKm": belt_width_km("himalayan", total_work, rate, config),
                 "workKm": mean_indent,
                 "time": time,
                 "side": BeltSide["UPPER"],
@@ -380,9 +343,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             nose_seam,
             {
                 "type": OrogenyType["HIMALAYAN"],
-                "widthKm": belt_width_km(
-                    "foreland", total_work, rate, config
-                ),
+                "widthKm": belt_width_km("foreland", total_work, rate, config),
                 "workKm": mean_indent,
                 "time": time,
                 "side": BeltSide["LOWER"],
@@ -396,9 +357,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     upper.wings.clear()
     upper.mark_reshaped()
     upper.refresh_extent(xyz)
-    upper.name = world.name_by_cratons(
-        upper, f"{upper.name}+{lower.name}"
-    )
+    upper.name = world.name_by_cratons(upper, f"{upper.name}+{lower.name}")
     upper.born = time
     upper.bornOfRift = False
     lower.alive = False
@@ -409,9 +368,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     lower.refresh_extent(xyz)
 
     return {
-        "landLostCells": land_before - (
-            int(upper.stats["continentalCells"]) - sealed
-        ),
+        "landLostCells": land_before - (int(upper.stats["continentalCells"]) - sealed),
         "maxIndentKm": max_indent,
         "meanIndentKm": mean_indent,
         "overlapCells": overlap_count,
@@ -420,9 +377,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
 
 
 def _position(xyz, cell: int) -> np.ndarray:
-    return np.asarray(
-        xyz[3 * cell:3 * cell + 3], dtype=np.float64
-    )
+    return np.asarray(xyz[3 * cell : 3 * cell + 3], dtype=np.float64)
 
 
 def _farthest(xyz, cells, from_point) -> int:
@@ -446,28 +401,17 @@ def _stamp_cratons_rigidly(output, upper_crust, displacement, mesh) -> None:
     xyz, index, num_cells = mesh.xyz, mesh.index, int(mesh.num_cells)
     blocks: dict[int, dict] = {}
     for cell in range(num_cells):
-        if (
-            not upper_crust.mask[cell]
-            or upper_crust.type[cell] != CrustType["CRATON"]
-        ):
+        if not upper_crust.mask[cell] or upper_crust.type[cell] != CrustType["CRATON"]:
             continue
         terrane = int(upper_crust.terrane[cell])
-        block = blocks.setdefault(
-            terrane, {"cells": [], "displacement": np.zeros(3)}
-        )
+        block = blocks.setdefault(terrane, {"cells": [], "displacement": np.zeros(3)})
         block["cells"].append(cell)
         block["displacement"] += displacement[cell]
 
     for block in blocks.values():
-        delta = (
-            block["displacement"]
-            / max(1, len(block["cells"]))
-            / PLANET_RADIUS_KM
-        )
+        delta = block["displacement"] / max(1, len(block["cells"])) / PLANET_RADIUS_KM
         for cell in block["cells"]:
-            point = (
-                _position(xyz, cell) + delta
-            )
+            point = _position(xyz, cell) + delta
             length = float(np.linalg.norm(point))
             if length <= 0:
                 continue

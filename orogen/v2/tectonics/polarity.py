@@ -1,4 +1,5 @@
 """Convergence polarity rules from Orogen V2 step/polarity.js."""
+
 from __future__ import annotations
 
 from .crust import CrustFlag, CrustType
@@ -29,6 +30,8 @@ def overrides(plate_a, cell_a: int, plate_b, cell_b: int, decided: int = -1):
     if age_a != age_b:
         return age_a > age_b
 
-    return ((cell_a ^ cell_b) & 1) == 0 and plate_a.id < plate_b.id or (
-        ((cell_a ^ cell_b) & 1) != 0 and plate_a.id > plate_b.id
+    return (
+        ((cell_a ^ cell_b) & 1) == 0
+        and plate_a.id < plate_b.id
+        or (((cell_a ^ cell_b) & 1) != 0 and plate_a.id > plate_b.id)
     )

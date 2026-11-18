@@ -32,9 +32,7 @@ def mature_arcs(world, dt: float) -> int:
         if not plate.alive or plate.isBackground or crust.count == 0:
             continue
 
-        plate.arcMatureKm = (
-            float(getattr(plate, "arcMatureKm", 0.0)) + rate * step_dt
-        )
+        plate.arcMatureKm = float(getattr(plate, "arcMatureKm", 0.0)) + rate * step_dt
         if plate.arcMatureKm < spacing:
             continue
         plate.arcMatureKm -= spacing
@@ -52,9 +50,9 @@ def mature_arcs(world, dt: float) -> int:
                 continue
             for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                 neighbour = int(adjacency[edge])
-                if (
-                    mask[neighbour]
-                    and int(kinds[neighbour]) in (CrustType["CONTINENT"], CrustType["CRATON"])
+                if mask[neighbour] and int(kinds[neighbour]) in (
+                    CrustType["CONTINENT"],
+                    CrustType["CRATON"],
                 ):
                     ring.append(cell)
                     break
@@ -64,9 +62,9 @@ def mature_arcs(world, dt: float) -> int:
 
         for cell in ring:
             kinds[cell] = CrustType["CONTINENT"]
-        world.budget["arcMaturedCells"] = (
-            int(world.budget.get("arcMaturedCells", 0)) + len(ring)
-        )
+        world.budget["arcMaturedCells"] = int(
+            world.budget.get("arcMaturedCells", 0)
+        ) + len(ring)
         plate.dirty = True
         changed += 1
 

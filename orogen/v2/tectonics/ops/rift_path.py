@@ -29,10 +29,7 @@ _DISTINCT_CUT_KM = 500.0
 def grain_of(world):
     """Return the cached seeded multiplier describing the plate's rift fabric."""
     config = world.config
-    if not (
-        config["riftCurveAmp"] > 0.0
-        or config["riftJagAmp"] > 0.0
-    ):
+    if not (config["riftCurveAmp"] > 0.0 or config["riftJagAmp"] > 0.0):
         return lambda _cell: 1.0
 
     noise = getattr(world, "riftGrain", None)
@@ -61,8 +58,7 @@ def grain_of(world):
         value = max(
             0.2,
             1.0
-            + float(config["riftCurveAmp"])
-            * noise.noise3d(x * f1, y * f1, z * f1)
+            + float(config["riftCurveAmp"]) * noise.noise3d(x * f1, y * f1, z * f1)
             + float(config["riftJagAmp"])
             * noise.noise3d(
                 x * f2 + 31.7,
@@ -108,31 +104,27 @@ def find_rift(
     crust = plate.crust
 
     def land(cell: int) -> bool:
-        return bool(
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
     if not land(junction) or crust.type[junction] == CrustType["CRATON"]:
         return None
     if ctx is None:
         ctx = rift_context(world, plate)
 
-    weak = (
-        CrustFlag["SUTURE"]
-        | CrustFlag["FAILED_RIFT"]
-        | CrustFlag["RIFT_MARGIN"]
-    )
+    weak = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
     grain = ctx["grain"]
     costs = _cheapest_paths(
         mesh,
         crust,
         junction,
         lambda cell: (
-            float(config["riftWeaknessCost"])
-            if int(crust.flags[cell]) & weak
-            else 1.0
-        ) * grain(cell),
+            (
+                float(config["riftWeaknessCost"])
+                if int(crust.flags[cell]) & weak
+                else 1.0
+            )
+            * grain(cell)
+        ),
     )
 
     exterior = ctx["exterior"]
@@ -148,10 +140,8 @@ def find_rift(
             if exterior[int(adjacency[edge])]:
                 is_coast = True
                 break
-        if (
-            not is_coast
-            or cell_distance_km(xyz, junction, cell)
-            < float(config["riftMinArmKm"])
+        if not is_coast or cell_distance_km(xyz, junction, cell) < float(
+            config["riftMinArmKm"]
         ):
             continue
         direction = tangent_toward(
@@ -159,17 +149,15 @@ def find_rift(
             junction_position,
             _position(xyz, cell),
         )
-        along = (
-            abs(dot(direction, pull_axis))
-            if pull_axis is not None
-            else 0.0
+        along = abs(dot(direction, pull_axis)) if pull_axis is not None else 0.0
+        coast.append(
+            {
+                "cell": cell,
+                "direction": direction,
+                "score": float(costs["cost"][cell])
+                * (1.0 + float(config["riftAcrossPullBias"]) * along),
+            }
         )
-        coast.append({
-            "cell": cell,
-            "direction": direction,
-            "score": float(costs["cost"][cell])
-            * (1.0 + float(config["riftAcrossPullBias"]) * along),
-        })
 
     if len(coast) < 2:
         return None
@@ -193,9 +181,7 @@ def find_rift(
 
     top_count = max(
         8,
-        math.floor(
-            float(config["riftArmEndCoastKm"]) / edge_km + 0.5
-        ),
+        math.floor(float(config["riftArmEndCoastKm"]) / edge_km + 0.5),
     )
     top = coast[:top_count]
     for item in top:
@@ -206,20 +192,20 @@ def find_rift(
         for second in top:
             if first is second or apart(first, second) < _RIFT_ARMS_APART_DEG:
                 continue
-            chord = cell_distance_km(
-                xyz, first["cell"], second["cell"]
-            )
+            chord = cell_distance_km(xyz, first["cell"], second["cell"])
             if (
                 chord < float(config["riftMinChordKm"])
                 or first["length_km"] + second["length_km"]
                 > float(config["riftTortuosityMax"]) * chord
             ):
                 continue
-            pairs.append({
-                "a": first,
-                "b": second,
-                "per_km": (first["score"] + second["score"]) / chord,
-            })
+            pairs.append(
+                {
+                    "a": first,
+                    "b": second,
+                    "per_km": (first["score"] + second["score"]) / chord,
+                }
+            )
     pairs.sort(key=lambda item: item["per_km"])
 
     chosen = None
@@ -229,27 +215,18 @@ def find_rift(
     for pair in pairs:
         if len(tried) >= _PAIRS_TRIED or (
             tried
-            and pair["per_km"]
-            > float(config["riftCostSlack"]) * pairs[0]["per_km"]
+            and pair["per_km"] > float(config["riftCostSlack"]) * pairs[0]["per_km"]
         ):
             break
 
         def near(first: dict, second: dict) -> bool:
             return (
-                cell_distance_km(
-                    xyz, first["cell"], second["cell"]
-                ) < _DISTINCT_CUT_KM
+                cell_distance_km(xyz, first["cell"], second["cell"]) < _DISTINCT_CUT_KM
             )
 
         if any(
-            (
-                near(item["a"], pair["a"])
-                and near(item["b"], pair["b"])
-            )
-            or (
-                near(item["a"], pair["b"])
-                and near(item["b"], pair["a"])
-            )
+            (near(item["a"], pair["a"]) and near(item["b"], pair["b"]))
+            or (near(item["a"], pair["b"]) and near(item["b"], pair["a"]))
             for item in tried
         ):
             continue
@@ -266,18 +243,12 @@ def find_rift(
             continue
 
         sides = sides_of(mesh, crust, path, ctx["cells"])
-        if (
-            sides["share"] < float(config["riftMinPieceShare"])
-            or (
-                need_cratons_both_sides
-                and not sides["cratonsBothSides"]
-            )
+        if sides["share"] < float(config["riftMinPieceShare"]) or (
+            need_cratons_both_sides and not sides["cratonsBothSides"]
         ):
             continue
         value = pair["per_km"] * (
-            1.0
-            + float(config["riftElongationBias"])
-            * (sides["elongation"] - 1.0)
+            1.0 + float(config["riftElongationBias"]) * (sides["elongation"] - 1.0)
         )
         if value < best_value:
             best_value = value
@@ -297,12 +268,9 @@ def find_rift(
     failed_arm = []
     taken = [arm1, arm2]
     plain_coast = [
-        item for item in coast
-        if math.isfinite(float(plain["cost"][item["cell"]]))
+        item for item in coast if math.isfinite(float(plain["cost"][item["cell"]]))
     ]
-    plain_coast.sort(
-        key=lambda item: float(plain["cost"][item["cell"]])
-    )
+    plain_coast.sort(key=lambda item: float(plain["cost"][item["cell"]]))
     for item in plain_coast:
         if len(taken) >= 2 + int(config["riftFailedArms"]):
             break
@@ -315,15 +283,9 @@ def find_rift(
             if distance >= float(config["riftFailedArmKm"]):
                 break
             failed_arm.append(path[index])
-            distance += cell_distance_km(
-                xyz, path[index - 1], path[index]
-            )
+            distance += cell_distance_km(xyz, path[index - 1], path[index])
 
-    arm3_trace = (
-        trace(taken[2]["cell"], plain["from"])
-        if len(taken) > 2
-        else []
-    )
+    arm3_trace = trace(taken[2]["cell"], plain["from"]) if len(taken) > 2 else []
     ends = [chosen_path[0], chosen_path[-1]]
     across = normalize(
         cross(
@@ -347,10 +309,7 @@ def coast_distance(mesh, crust, exterior: np.ndarray) -> np.ndarray:
     distance = np.full(num_cells, -1, dtype=np.int16)
 
     def land(cell: int) -> bool:
-        return bool(
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
     ring = []
     for cell in range(num_cells):
@@ -378,9 +337,7 @@ def coast_distance(mesh, crust, exterior: np.ndarray) -> np.ndarray:
 
 def _crosses_rather_than_hugs(mesh, path, from_coast, config) -> bool:
     edge_km = float(mesh.edge_km)
-    clearance = math.floor(
-        float(config["riftCoastClearanceKm"]) / edge_km + 0.5
-    )
+    clearance = math.floor(float(config["riftCoastClearanceKm"]) / edge_km + 0.5)
     max_hug = float(config["riftCoastHugKm"]) / edge_km
     end_free = max(1, clearance)
     hug = 0
@@ -405,10 +362,7 @@ def _cheapest_paths(mesh, crust, junction: int, cost_of) -> dict:
     parent = np.full(num_cells, -1, dtype=np.int32)
 
     def land(cell: int) -> bool:
-        return bool(
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
     heap = MinHeap()
     cost[junction] = 0.0
@@ -417,10 +371,7 @@ def _cheapest_paths(mesh, crust, junction: int, cost_of) -> dict:
         cell = heap.pop()
         for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
-            if (
-                not land(neighbour)
-                or crust.type[neighbour] == CrustType["CRATON"]
-            ):
+            if not land(neighbour) or crust.type[neighbour] == CrustType["CRATON"]:
                 continue
             next_cost = (
                 float(cost[cell])
@@ -449,11 +400,13 @@ def _is_monotone(mesh, path, config) -> bool:
     for cell in path:
         point = _position(xyz, cell)
         projection = dot(point, normal)
-        projected = normalize([
-            point[0] - projection * normal[0],
-            point[1] - projection * normal[1],
-            point[2] - projection * normal[2],
-        ])
+        projected = normalize(
+            [
+                point[0] - projection * normal[0],
+                point[1] - projection * normal[1],
+                point[2] - projection * normal[2],
+            ]
+        )
         angle = math.atan2(
             dot(cross(first, projected), normal),
             dot(first, projected),

@@ -47,9 +47,7 @@ class Index:
 class Mesh:
     def __init__(self):
         angles = np.arange(7, dtype=float) * 0.02
-        points = np.column_stack((
-            np.cos(angles), np.sin(angles), np.zeros(7)
-        ))
+        points = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(7)))
         self.xyz = points.astype(np.float32).ravel()
         self.num_cells = 7
         self.edge_km = 100.0
@@ -57,14 +55,28 @@ class Mesh:
         self.cell_area_km2 = 100.0
         self.index = Index(points)
         self.adj_offset = np.asarray([0, 4, 8, 11, 14, 16, 17, 17], dtype=np.int32)
-        self.adj_list = np.asarray([
-            4, 1, 2, 3,
-            0, 2, 3, 5,
-            0, 1, 3,
-            0, 2, 4,
-            0, 3,
-            1,
-        ], dtype=np.int32)
+        self.adj_list = np.asarray(
+            [
+                4,
+                1,
+                2,
+                3,
+                0,
+                2,
+                3,
+                5,
+                0,
+                1,
+                3,
+                0,
+                2,
+                4,
+                0,
+                3,
+                1,
+            ],
+            dtype=np.int32,
+        )
 
 
 def merge_fixture(gain=0.01):

@@ -3,6 +3,7 @@
 Constants and arithmetic are compatible with the upstream JavaScript files.
 Changing them changes generated worlds.
 """
+
 from __future__ import annotations
 
 import math
@@ -13,9 +14,7 @@ from collections.abc import Callable
 SEEDS = 2_147_483_646
 _RNG_MODULUS = 2_147_483_647
 _RNG_MULTIPLIER = 16_807
-_DECIMAL_NUMBER = re.compile(
-    r"^[+-]?(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?$"
-)
+_DECIMAL_NUMBER = re.compile(r"^[+-]?(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?$")
 
 
 def _js_number(text: str) -> float | None:

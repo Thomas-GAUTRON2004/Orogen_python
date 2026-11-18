@@ -1,4 +1,5 @@
 """Fixed-resolution simulation mesh helpers from V2 sim-mesh.js."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

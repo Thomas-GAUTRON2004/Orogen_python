@@ -1,4 +1,5 @@
 """Tests for adaptive tectonic stepping."""
+
 import math
 import pytest
 

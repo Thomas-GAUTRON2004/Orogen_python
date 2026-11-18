@@ -2,6 +2,7 @@
 
 Execution of queued plume-triggered rifts remains a later tectonic stage.
 """
+
 from __future__ import annotations
 
 import math
@@ -11,17 +12,45 @@ from ..core.fast_noise import FastNoise
 from ..core.seed import make_rng
 from ..core.sphere_geometry import PLANET_RADIUS_KM, normalize, tangent_basis
 from .crust import CrustFlag, CrustType, VolcanicType
-from .thermal import insulate_at_start, pick_plume_site, plume_heat_factor, update_mantle_heat
+from .thermal import (
+    insulate_at_start,
+    pick_plume_site,
+    plume_heat_factor,
+    update_mantle_heat,
+)
 from .world import EventKind
 
 
-_ONSETS = ("K", "V", "T", "R", "M", "S", "L", "N", "D", "H", "Th", "Z", "B", "G", "Sh", "F", "P", "Kh")
+_ONSETS = (
+    "K",
+    "V",
+    "T",
+    "R",
+    "M",
+    "S",
+    "L",
+    "N",
+    "D",
+    "H",
+    "Th",
+    "Z",
+    "B",
+    "G",
+    "Sh",
+    "F",
+    "P",
+    "Kh",
+)
 _NUCLEI = ("a", "e", "i", "o", "u", "a", "o", "ai", "au", "ei")
 _CODAS = ("", "", "n", "r", "l", "s", "th", "k", "m", "rn")
 
 
 def _value(record, name: str, default=None):
-    return record.get(name, default) if isinstance(record, dict) else getattr(record, name, default)
+    return (
+        record.get(name, default)
+        if isinstance(record, dict)
+        else getattr(record, name, default)
+    )
 
 
 def _assign(record, name: str, value) -> None:
@@ -60,8 +89,7 @@ def _continental_area_km2(plate, mesh) -> float:
     crust = plate.crust
     mask = np.asarray(crust.mask, dtype=bool)
     continental = mask & (
-        (crust.type == CrustType["CONTINENT"])
-        | (crust.type == CrustType["CRATON"])
+        (crust.type == CrustType["CONTINENT"]) | (crust.type == CrustType["CRATON"])
     )
     return float(np.count_nonzero(continental)) * float(mesh.cell_area_km2)
 
@@ -126,7 +154,9 @@ def birth_plume(
     cell = _nearest_cell(world.mesh, position)
     host_id = int(world.owner[cell])
     host = world.plates[host_id] if 0 <= host_id < len(world.plates) else None
-    host_name = host.name if host is not None and not host.isBackground else "the open ocean"
+    host_name = (
+        host.name if host is not None and not host.isBackground else "the open ocean"
+    )
     world.log(
         EventKind["PLUME_RISE"],
         f"the {plume_name} plume {'rises' if head else 'is already rising'} beneath {host_name}",
@@ -146,25 +176,28 @@ def birth_plume(
         target = world.plates[target_id] if 0 <= target_id < len(world.plates) else None
         if target is not None:
             forced = rift is True
-            eligible = (
-                _continental_area_km2(target, world.mesh)
-                >= float(config.get("riftMinContinentKm2", math.inf))
+            eligible = _continental_area_km2(target, world.mesh) >= float(
+                config.get("riftMinContinentKm2", math.inf)
             )
             chance = (
-                float(config.get("plumeRiftChance", 0.0)) * plume_heat_factor(world, target)
-                if eligible and not forced else 0.0
+                float(config.get("plumeRiftChance", 0.0))
+                * plume_heat_factor(world, target)
+                if eligible and not forced
+                else 0.0
             )
             if forced or (rift == "chance" and eligible and float(rng()) < chance):
-                world.pendingPlumeRifts.append({
-                    "plate": target.id,
-                    "xyz": position.tolist(),
-                    "cell": int(rift_cell),
-                    "cause": {
-                        "text": f"the {plume_name} plume",
-                        "kind": "plume",
-                        "hotspot": hotspot_id,
-                    },
-                })
+                world.pendingPlumeRifts.append(
+                    {
+                        "plate": target.id,
+                        "xyz": position.tolist(),
+                        "cell": int(rift_cell),
+                        "cause": {
+                            "text": f"the {plume_name} plume",
+                            "kind": "plume",
+                            "hotspot": hotspot_id,
+                        },
+                    }
+                )
     return plume
 
 
@@ -190,7 +223,9 @@ def update_plumes(world, dt: float) -> dict:
                 break
             age = float(world.rngHotspot()) * float(config["plumeLifeMinMyr"]) * 0.6
             point = np.asarray(world.mesh.xyz, dtype=np.float64).reshape(-1, 3)[cell]
-            birth_plume(world, point, head=False, rift=False, born_at=float(world.time) - age)
+            birth_plume(
+                world, point, head=False, rift=False, born_at=float(world.time) - age
+            )
 
     update_mantle_heat(world, step)
 
@@ -224,8 +259,13 @@ def update_plumes(world, dt: float) -> dict:
         point = np.asarray(world.mesh.xyz, dtype=np.float64).reshape(-1, 3)[cell]
         mantle_position = plate.to_world(*map(float, point))
         birth_plume(
-            world, mantle_position, head=True, rift=True,
-            rift_plate=plate_id, rift_cell=cell, born_at=item_time,
+            world,
+            mantle_position,
+            head=True,
+            rift=True,
+            rift_plate=plate_id,
+            rift_cell=cell,
+            born_at=item_time,
         )
 
     rate = float(config.get("plumeRatePerMyr", 0.0))
@@ -258,8 +298,14 @@ def update_plumes(world, dt: float) -> dict:
             continue
         _stamp_track(world, plume, step)
 
-    alive = sum(1 for plume in getattr(world, "hotspots", ()) if _value(plume, "alive", True))
-    return {"born": len(getattr(world, "hotspots", ())), "expired": expired, "alive": alive}
+    alive = sum(
+        1 for plume in getattr(world, "hotspots", ()) if _value(plume, "alive", True)
+    )
+    return {
+        "born": len(getattr(world, "hotspots", ())),
+        "expired": expired,
+        "alive": alive,
+    }
 
 
 def _erupt_lip(world, plume: dict, anchor: int) -> None:
@@ -310,28 +356,32 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
         offset = 0.0 if i == 0 else radius * along
         direction = axis + (float(rs()) - 0.5) * 1.2
         cosine_offset, sine_offset = math.cos(offset), math.sin(offset)
-        flow_centre = normalize([
-            cosine_offset * centre[0] + sine_offset * (
-                math.cos(direction) * basis1[0] + math.sin(direction) * basis2[0]
-            ),
-            cosine_offset * centre[1] + sine_offset * (
-                math.cos(direction) * basis1[1] + math.sin(direction) * basis2[1]
-            ),
-            cosine_offset * centre[2] + sine_offset * (
-                math.cos(direction) * basis1[2] + math.sin(direction) * basis2[2]
-            ),
-        ])
+        flow_centre = normalize(
+            [
+                cosine_offset * centre[0]
+                + sine_offset
+                * (math.cos(direction) * basis1[0] + math.sin(direction) * basis2[0]),
+                cosine_offset * centre[1]
+                + sine_offset
+                * (math.cos(direction) * basis1[1] + math.sin(direction) * basis2[1]),
+                cosine_offset * centre[2]
+                + sine_offset
+                * (math.cos(direction) * basis1[2] + math.sin(direction) * basis2[2]),
+            ]
+        )
         aspect_a = 1.0 + 2.0 * float(rs()) * float(rs())
         turn = (axis if i == 0 else direction) + (float(rs()) - 0.5) * 0.8
         flow_basis1, flow_basis2 = tangent_basis(flow_centre)
-        flows.append({
-            "f1": flow_basis1,
-            "f2": flow_basis2,
-            "w": weight,
-            "aspect": aspect_a,
-            "cos": math.cos(turn),
-            "sin": math.sin(turn),
-        })
+        flows.append(
+            {
+                "f1": flow_basis1,
+                "f2": flow_basis2,
+                "w": weight,
+                "aspect": aspect_a,
+                "cos": math.cos(turn),
+                "sin": math.sin(turn),
+            }
+        )
         total_weight += weight
 
     for flow in flows:
@@ -345,14 +395,26 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
     def depth(cell: int) -> float:
         offset = 3 * cell
         x, y, z = float(xyz[offset]), float(xyz[offset + 1]), float(xyz[offset + 2])
-        wx = 0.35 * radius * noise.fbm(
-            x * warp_frequency + 3.1, y * warp_frequency, z * warp_frequency, 2
+        wx = (
+            0.35
+            * radius
+            * noise.fbm(
+                x * warp_frequency + 3.1, y * warp_frequency, z * warp_frequency, 2
+            )
         )
-        wy = 0.35 * radius * noise.fbm(
-            x * warp_frequency, y * warp_frequency + 5.3, z * warp_frequency, 2
+        wy = (
+            0.35
+            * radius
+            * noise.fbm(
+                x * warp_frequency, y * warp_frequency + 5.3, z * warp_frequency, 2
+            )
         )
-        wz = 0.35 * radius * noise.fbm(
-            x * warp_frequency, y * warp_frequency, z * warp_frequency + 7.7, 2
+        wz = (
+            0.35
+            * radius
+            * noise.fbm(
+                x * warp_frequency, y * warp_frequency, z * warp_frequency + 7.7, 2
+            )
         )
         x, y, z = x + wx, y + wy, z + wz
         best = -math.inf
@@ -369,11 +431,13 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
             x * basis1[0] + y * basis1[1] + z * basis1[2],
         )
         lobe = sum(
-            item["amp"] * math.cos(item["k"] * theta + item["phase"])
-            for item in lobes
+            item["amp"] * math.cos(item["k"] * theta + item["phase"]) for item in lobes
         )
-        return best + 0.5 * lobe + float(config["lipEdgeNoise"]) * noise.fbm(
-            x * edge_frequency, y * edge_frequency, z * edge_frequency, 3
+        return (
+            best
+            + 0.5 * lobe
+            + float(config["lipEdgeNoise"])
+            * noise.fbm(x * edge_frequency, y * edge_frequency, z * edge_frequency, 3)
         )
 
     depth_cache: dict[int, float] = {}
@@ -442,7 +506,9 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
             "name": lip_name,
             "onLand": on_land,
             "areaMkm2": lip_area,
-            "plate": host_id if host_plate is not None and not host_plate.isBackground else -1,
+            "plate": host_id
+            if host_plate is not None and not host_plate.isBackground
+            else -1,
         },
     )
 
@@ -472,7 +538,8 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
             plume["pulseUntil"] = (
                 pulse_end
                 + float(config["hotspotQuietMinMyr"])
-                + float(rng()) * (
+                + float(rng())
+                * (
                     float(config["hotspotQuietMaxMyr"])
                     - float(config["hotspotQuietMinMyr"])
                 )
@@ -483,7 +550,8 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
             plume["pulseUntil"] = (
                 pulse_end
                 + float(config["hotspotBurstMinMyr"])
-                + float(rng()) * (
+                + float(rng())
+                * (
                     float(config["hotspotBurstMaxMyr"])
                     - float(config["hotspotBurstMinMyr"])
                 )
@@ -542,9 +610,7 @@ def _stamp_track(world, plume: dict, dt: float) -> None:
             crust.volcType[cell] = VolcanicType["TRACK"]
         crust.volcAt[cell] = world.time
         crust.volcSource[cell] = int(plume["id"]) + 1
-        if build > 0.0 and (
-            cell == crust_anchor or closeness(cell) >= edifice
-        ):
+        if build > 0.0 and (cell == crust_anchor or closeness(cell) >= edifice):
             crust.volcKm[cell] = max(
                 float(crust.volcKm[cell]),
                 min(

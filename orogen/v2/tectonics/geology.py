@@ -1,10 +1,13 @@
 """Geological cover records ported from V2 step/geology.js."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
 
 
-def thicken_cover(crust, cell: int, thickened_km: float, time_myr: float, geology: Mapping) -> float:
+def thicken_cover(
+    crust, cell: int, thickened_km: float, time_myr: float, geology: Mapping
+) -> float:
     """Bury existing sediment in proportion to crustal thickening; return added cover."""
     cover = float(crust.coverKm[cell])
     if not cover > 0:

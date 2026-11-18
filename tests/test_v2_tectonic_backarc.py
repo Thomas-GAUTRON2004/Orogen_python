@@ -267,3 +267,213 @@ def test_steer_back_arc_strip_adds_parent_velocity_and_rollback():
 
     world.time = 30.0
     assert steer_back_arc_strips(world) == 0
+
+
+def test_rollback_fronts_skips_invalid_overriding_contacts(monkeypatch):
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, slab, other = make_margin_world()
+
+    def contact(_world, _cell, normal):
+        normal[:] = [0.0, 1.0, 0.0, 1.0]
+        return other
+
+    monkeypatch.setattr(backarc, "contact_at", contact)
+    world.boundaryKind.fill(BoundaryKind["NONE"])
+    assert backarc._rollback_fronts(world) == {}
+
+    world.boundaryKind[1] = BoundaryKind["OVERRIDING"]
+    world.owner[1] = -1
+    assert backarc._rollback_fronts(world) == {}
+    world.owner[1] = parent.id
+
+    for state in ("dead", "background", "reshaped"):
+        if state == "dead":
+            parent.alive = False
+        elif state == "background":
+            parent.isBackground = True
+        else:
+            parent.mark_reshaped()
+        assert backarc._rollback_fronts(world) == {}
+        parent.alive = True
+        parent.isBackground = False
+        parent.reshaped = False
+
+    monkeypatch.setattr(backarc, "contact_at", lambda *_args: -1)
+    assert backarc._rollback_fronts(world) == {}
+    monkeypatch.setattr(backarc, "contact_at", contact)
+    world.owner[other] = -1
+    assert backarc._rollback_fronts(world) == {}
+    world.owner[other] = slab.id
+
+
+@pytest.mark.parametrize("invalid_slab", ["dead", "background", "reshaped", "empty", "continental"])
+def test_rollback_fronts_skips_non_ocean_slab_cells(monkeypatch, invalid_slab):
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, _parent, slab, other = make_margin_world()
+
+    def contact(_world, _cell, normal):
+        normal[:] = [0.0, 1.0, 0.0, 1.0]
+        return other
+
+    monkeypatch.setattr(backarc, "contact_at", contact)
+    if invalid_slab == "dead":
+        slab.alive = False
+    elif invalid_slab == "background":
+        slab.isBackground = True
+    elif invalid_slab == "reshaped":
+        slab.mark_reshaped()
+    elif invalid_slab == "empty":
+        slab.crust.remove(other)
+    else:
+        slab.crust.type[other] = CrustType["CONTINENT"]
+
+    assert backarc._rollback_fronts(world) == {}
+
+
+def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contacts(monkeypatch):
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, slab, other = make_margin_world()
+    calls = 0
+
+    def contact(_world, _cell, normal):
+        nonlocal calls
+        calls += 1
+        normal[:] = [0.0, 1.0, 0.0, 1.0]
+        return other
+
+    monkeypatch.setattr(backarc, "contact_at", contact)
+    slab.crust.formedAt[other] = world.time - 69.0
+    assert backarc._rollback_fronts(world) == {}
+
+    slab.crust.formedAt[other] = world.time - 100.0
+    parent.omega = [0.0, 0.0, 2.0 * CM_PER_YR_TO_RAD_PER_MYR]
+    assert backarc._rollback_fronts(world) == {}
+
+    parent.omega = [0.0, 0.0, 0.0]
+    fronts = backarc._rollback_fronts(world)
+    assert len(fronts) == 1
+    front = fronts[(parent.id, slab.id)]
+    assert front["cells"]
+    assert front["ages"] == pytest.approx(100.0 * len(front["cells"]))
+    assert front["direction"][1] == pytest.approx(float(len(front["cells"])))
+
+
+def test_open_back_arcs_handles_missing_config_nonpositive_dt_and_disabled_rate():
+    mesh = make_line_mesh()
+    world = TectonicWorld(mesh, 21, {})
+    assert open_back_arcs(world, 1.0) == 0
+
+    world.config = {"backArcActiveMyr": 30.0, "backArcSeamKm": 400.0}
+    assert open_back_arcs(world, 0.0) == 0
+
+    world.config = backarc_config()
+    world.config["backArcRatePerMyr"] = 0.0
+    assert open_back_arcs(world, 1.0) == 0
+
+
+@pytest.mark.parametrize("reason", ["dead", "reshaped", "tenure", "short", "chance", "no_strip", "continental_chance"])
+def test_try_open_back_arc_rejects_ineligible_fronts(monkeypatch, reason):
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, _slab, _other = make_margin_world()
+    front = {
+        "plate": parent,
+        "cells": list(range(1, 12)),
+        "ages": 100.0 * 11,
+        "direction": [0.0, 1.0, 0.0],
+    }
+    if reason == "dead":
+        parent.alive = False
+    elif reason == "reshaped":
+        parent.mark_reshaped()
+    elif reason == "tenure":
+        parent.lastBackArcAt = world.time
+    elif reason == "short":
+        front["cells"] = [1]
+    elif reason == "chance":
+        world.rngBackArc = lambda: 1.0
+    elif reason == "no_strip":
+        monkeypatch.setattr(backarc, "_strip_behind", lambda *_args: None)
+    else:
+        monkeypatch.setattr(
+            backarc,
+            "_strip_behind",
+            lambda *_args: {"cells": [1], "continental": True},
+        )
+        world.config["backArcContinentalShare"] = 0.0
+        world.rngBackArc = lambda: 0.5
+
+    assert backarc._try_open_back_arc(world, front, 1.0) is False
+    assert len(world.plates) == 2
+
+
+def test_judge_strip_rejects_cratons_majority_slivers_and_disconnected_land():
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, _slab, _other = make_margin_world()
+    selected = np.zeros(world.mesh.num_cells, dtype=np.uint8)
+
+    selected[0] = 1
+    parent.crust.type[0] = CrustType["CRATON"]
+    assert backarc._judge_strip(world, parent, selected) is None
+    parent.crust.type[0] = CrustType["OCEAN"]
+
+    selected[:] = 0
+    selected[:140] = 1
+    assert backarc._judge_strip(world, parent, selected) is None
+
+    selected[:] = 0
+    selected[np.arange(16, 256, 8)[:30]] = 1
+    assert backarc._judge_strip(world, parent, selected) is None
+
+
+def test_judge_strip_rejects_a_disconnected_remainder_and_accepts_ocean_arc():
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, _slab, _other = make_margin_world()
+    selected = np.zeros(world.mesh.num_cells, dtype=np.uint8)
+    selected[np.arange(7, world.mesh.num_cells, 15)] = 1
+    world.config["backArcMinLandKm2"] = 0.0
+    assert backarc._judge_strip(world, parent, selected) is None
+
+    selected[:] = 0
+    selected[:14] = 1
+    result = backarc._judge_strip(world, parent, selected)
+    assert result == {"cells": list(range(14)), "continental": False}
+
+
+def test_strip_name_is_unique_and_strips_existing_suffixes():
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, _slab, _other = make_margin_world()
+    assert backarc._strip_name(world, parent, True) == "West Isles"
+    world.add_plate("West Isles")
+    assert backarc._strip_name(world, parent, True) == "West Isles 2"
+    world.add_plate("West Isles 2")
+    assert backarc._strip_name(world, parent, True) == "West Isles 3"
+    assert backarc._strip_name(world, parent, False) == "West Arc"
+
+
+def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
+    mesh = make_line_mesh()
+    world = TectonicWorld(mesh, 22, {})
+    assert steer_back_arc_strips(world) == 0
+
+    world.config = backarc_config()
+    parent = world.add_plate("Parent")
+    strips = [world.add_plate(f"Strip {index}") for index in range(5)]
+    strips[0].backArcOf = -1
+    strips[1].backArcOf = parent.id
+    strips[1].backArcPushDir = None
+    strips[2].backArcOf = 99
+    strips[2].backArcPushDir = [0.0, 1.0, 0.0]
+    strips[3].backArcOf = parent.id
+    strips[3].backArcPushDir = [0.0, 1.0, 0.0]
+    strips[3].born = -30.0
+    strips[4].backArcOf = parent.id
+    strips[4].backArcPushDir = [0.0, 1.0, 0.0]
+    parent.alive = False
+    assert steer_back_arc_strips(world) == 0

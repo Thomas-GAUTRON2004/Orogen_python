@@ -1,6 +1,7 @@
 """Tectonic history model components ported from Orogen V2."""
 
 from .arc_maturation import mature_arcs
+from .backarc import open_back_arcs, rollback_cm_yr, steer_back_arc_strips
 from .boundaries import (
     Motion,
     classify_contact_boundaries,
@@ -160,6 +161,9 @@ __all__ = [
     "rift_continents",
     "search_junctions",
     "mature_arcs",
+    "open_back_arcs",
+    "rollback_cm_yr",
+    "steer_back_arc_strips",
     "initiate_subduction",
     "founder_within_plates",
     "merge_plates",

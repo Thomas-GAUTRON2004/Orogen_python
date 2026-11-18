@@ -1,16 +1,17 @@
 """Single-step orchestration for the currently ported tectonic subsystems.
 
 This is intentionally not the full upstream simulation loop: collision
-tracking and configured suture welding are partial; far-field forcing,
-orogeny history events, ocean-plate evolution, arc maturation, and slow
-terrain/geology stages are not fully orchestrated here. Continental rifting
-is included when its configuration is present.
+tracking and configured suture welding are partial; ocean-plate evolution,
+arc maturation, and slow terrain/geology stages are not fully orchestrated.
+Continental rifting, rollback-driven back-arcs, and far-field diffusion are
+included when their configuration is present.
 """
 
 from __future__ import annotations
 
 import math
 
+from .backarc import open_back_arcs, steer_back_arc_strips
 from .boundaries import classify_contact_boundaries
 from .collision import track_collisions
 from .dynamics import update_plate_motion
@@ -63,13 +64,15 @@ def step_world(
     if "riftRatePerMyr" in world.config or getattr(world, "pendingPlumeRifts", None):
         rifts = rift_continents(world, step_dt)
 
+    back_arcs = open_back_arcs(world, step_dt)
+
     subductions = 0
     if float(world.config.get("subductionInitRatePerMyr", 0.0)) > 0.0:
         subductions = initiate_subduction(world, step_dt)
 
-    # Rifting and foundering can add, remove, or reassign crust. Rebuild the
-    # world ownership map and boundary state before the force solve reads it.
-    if rifts or subductions:
+    # Rifting, foundering, and back-arc opening/rejoining can add, remove, or
+    # reassign crust. Rebuild the world view before a later stage reads it.
+    if rifts or subductions or back_arcs:
         tally = resolve(world)
         classified = classify_contact_boundaries(world, 0.0)
 
@@ -91,6 +94,7 @@ def step_world(
 
     if update_motion:
         update_plate_motion(world)
+    steer_back_arc_strips(world)
 
     return {
         "time": float(world.time),
@@ -103,6 +107,7 @@ def step_world(
         "plumes": plume_state,
         "rifts": int(rifts),
         "subductions": int(subductions),
+        "backArcs": int(back_arcs),
         "collisions": collision_state,
         "farField": int(far_field_state),
         "motionUpdated": bool(update_motion),

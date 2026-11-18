@@ -43,7 +43,8 @@ def step_world(
     and boundaries are rebuilt before force balance.
 
     dt=None selects the adaptive step from choose_step. Pass
-    update_motion=False when an external driver will set plate velocities.
+    update_motion=False when an external driver will set plate velocities;
+    that driver should call steer_back_arc_strips after its own force solve.
     """
     step_dt = float(choose_step(world) if dt is None else dt)
     if not math.isfinite(step_dt) or step_dt <= 0:

@@ -1,50 +1,56 @@
 """Expanded differential suite against vendored Orogen V2 JavaScript modules."""
 
 from __future__ import annotations
-import json, math, shutil, subprocess
-from pathlib import Path
+
+import json
+import math
+import shutil
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
+
 import numpy as np
 import pytest
+
 from orogen.v2.core.fast_noise import FastNoise
 from orogen.v2.core.mesh_bfs import (
-    within_km,
-    hop_distance,
     flood_from,
-    touches,
+    hop_distance,
     hops_from,
-    reaches_within,
-    pieces_of,
     largest_piece_of,
+    pieces_of,
+    reaches_within,
+    touches,
+    within_km,
 )
+from orogen.v2.core.mesh_locate import locate
 from orogen.v2.core.mesh_rings import rings_of
 from orogen.v2.core.min_heap import MinHeap, spread_km
+from orogen.v2.core.seed import make_rng
+from orogen.v2.core.sim_mesh import mesh_from_arrays
 from orogen.v2.core.sphere_geometry import (
-    dot,
-    cross,
-    normalize,
     angle_between,
-    tangent_toward,
-    random_point,
-    tangent_basis,
-    destination,
     bearing_to,
     cap_fraction,
-    polar_frame,
     cell_distance_km,
     centroid_of_cells,
+    cross,
+    destination,
+    dot,
+    normalize,
+    polar_frame,
+    random_point,
+    tangent_basis,
+    tangent_toward,
 )
 from orogen.v2.core.sphere_index import SphereIndex
-from orogen.v2.core.mesh_locate import locate
-from orogen.v2.core.sim_mesh import mesh_from_arrays
-from orogen.v2.core.seed import make_rng
+from orogen.v2.tectonics.crust import CrustRaster, CrustType
 from orogen.v2.tectonics.world import (
-    TectonicWorld,
-    EventKind,
     BoundaryKind,
+    EventKind,
     Provisional,
+    TectonicWorld,
 )
-from orogen.v2.tectonics.crust import CrustType, CrustRaster
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/reference/v2/differential-extended.mjs"

@@ -6,6 +6,7 @@ Execution of queued plume-triggered rifts remains a later tectonic stage.
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 from ..core.fast_noise import FastNoise
@@ -19,7 +20,6 @@ from .thermal import (
     update_mantle_heat,
 )
 from .world import EventKind
-
 
 _ONSETS = (
     "K",

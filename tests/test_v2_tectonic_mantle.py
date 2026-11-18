@@ -4,14 +4,14 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from orogen.v2.tectonics.crust import CrustFlag, CrustType
+from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.forces import FORCE_KINDS, gather_boundary_loads
 from orogen.v2.tectonics.mantle import (
     dispersal_field,
     flow_of_cycle,
     mantle_flow_at,
     repel_at,
 )
-from orogen.v2.tectonics.forces import FORCE_KINDS, gather_boundary_loads
 from orogen.v2.tectonics.plate import Plate
 
 

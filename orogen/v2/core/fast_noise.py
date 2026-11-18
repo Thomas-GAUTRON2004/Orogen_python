@@ -10,8 +10,8 @@ import math
 
 import numpy as np
 
+from ._numba_kernels import NUMBA_AVAILABLE, fbm_many_numba, fbm_numba, noise3d_numba
 from .seed import make_rng
-from ._numba_kernels import NUMBA_AVAILABLE, noise3d_numba, fbm_numba, fbm_many_numba
 
 _GRAD = (
     1,

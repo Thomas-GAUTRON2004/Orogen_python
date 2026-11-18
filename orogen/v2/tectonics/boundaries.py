@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from .crust import CrustFlag, CrustType
+from ..core.mesh_bfs import reaches_within
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
+from .crust import CrustFlag, CrustType
 from .polarity import overrides
 from .world import BoundaryKind
-from ..core.mesh_bfs import reaches_within
 
 
 class Motion:

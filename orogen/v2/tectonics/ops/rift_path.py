@@ -19,7 +19,6 @@ from ...core.sphere_geometry import (
 from ..crust import CrustFlag, CrustType
 from .rift_partition import exterior_sea, masked_cells, sides_of
 
-
 _RIFT_ARMS_APART_DEG = 135.0
 _ARM_SEPARATION_DEG = 60.0
 _PAIRS_TRIED = 12

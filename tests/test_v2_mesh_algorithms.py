@@ -2,8 +2,8 @@ import math
 
 import numpy as np
 
-from orogen.v2.core.min_heap import MinHeap, spread_km
 from orogen.v2.core.mesh_rings import RING_COUNT, rings_of
+from orogen.v2.core.min_heap import MinHeap, spread_km
 
 
 class MeshFixture:

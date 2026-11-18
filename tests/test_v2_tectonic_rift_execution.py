@@ -1,8 +1,8 @@
-import math
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import (
@@ -12,8 +12,6 @@ from orogen.v2.tectonics.ops import (
     try_rift,
 )
 from orogen.v2.tectonics.ops import rift as rift_module
-
-from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
 
 def test_pull_axis_requires_enough_trench_and_finds_principal_axis():

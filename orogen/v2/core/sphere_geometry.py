@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import math
-import numpy as np
 from collections.abc import Callable, Iterable, Sequence
+
+import numpy as np
 
 from ._numba_kernels import (
     NUMBA_AVAILABLE,
-    destination_many_numba,
     bearing_to_many_numba,
+    destination_many_numba,
 )
 
 PLANET_RADIUS_KM = 6_371.0

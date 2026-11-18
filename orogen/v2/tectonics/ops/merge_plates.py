@@ -16,8 +16,8 @@ from ...core.mesh_bfs import hops_from
 from ...core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, tangent_toward
 from ..crust import BeltSide, CrustFlag, CrustRaster, CrustType, OrogenyType
 from ..orogeny import belt_width_km
-from ..spread_belt import spread_belt
 from ..plate import frame_rotation
+from ..spread_belt import spread_belt
 from .plate_accretion import close_seas_between
 
 

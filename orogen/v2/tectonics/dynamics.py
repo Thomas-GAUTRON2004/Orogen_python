@@ -9,8 +9,8 @@ import numpy as np
 
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .crust import CrustType
-from .simulation import fastest_speed
 from .forces import gather_boundary_loads
+from .simulation import fastest_speed
 
 
 def solve3(matrix: Sequence[float], vector: Sequence[float]) -> list[float]:

@@ -3,7 +3,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from orogen.v2.tectonics.crust import CrustRaster, CrustType
+from orogen.v2.tectonics import rifting
+from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.rifting import (
     _force_rift,
@@ -13,7 +14,6 @@ from orogen.v2.tectonics.rifting import (
     rift_continents,
     search_junctions,
 )
-from orogen.v2.tectonics import rifting
 
 
 def base_config(**overrides):

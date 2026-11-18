@@ -1,11 +1,9 @@
-import math
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
+from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
-from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.subduction_init import (
     arm_margin,
     choose_foundering,
@@ -13,7 +11,6 @@ from orogen.v2.tectonics.subduction_init import (
     initiate_subduction,
     is_on_segment,
 )
-from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.world import TectonicWorld
 
 

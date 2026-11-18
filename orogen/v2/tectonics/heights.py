@@ -11,7 +11,6 @@ from collections.abc import Mapping
 
 from .crust import BeltSide, CrustType, OrogenyType
 
-
 DEFAULT_HEIGHTS = {
     "reliefKm": {
         OrogenyType["ANDEAN"]: 3.4,

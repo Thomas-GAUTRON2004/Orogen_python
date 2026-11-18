@@ -7,10 +7,11 @@ disable fast-math. The pure-Python implementation remains the reference path.
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 try:
-    from numba import njit, literal_unroll
+    from numba import literal_unroll, njit
 except ImportError:  # Numba is an optional acceleration extra.
     njit = None
     literal_unroll = None

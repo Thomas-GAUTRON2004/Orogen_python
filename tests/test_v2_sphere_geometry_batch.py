@@ -128,7 +128,7 @@ def test_crust_python_fallback_keeps_create_and_snapshot(monkeypatch):
 
 
 def test_crust_batch_create_and_snapshot_match_scalar_order():
-    from orogen.v2.tectonics.crust import CrustRaster, CrustType
+    from orogen.v2.tectonics.crust import CrustRaster
 
     cells = np.asarray([1, 2, 1, 3, -1], dtype=np.int32)
     types = np.asarray([1, 2, 3, 1, 2], dtype=np.uint8)

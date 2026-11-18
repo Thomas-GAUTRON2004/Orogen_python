@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 
-from .plate_transfer import transfer_cells
 from ..world import EventKind
+from .plate_transfer import transfer_cells
 
 
 def birth_ocean_plate(world, background, seed_cells, reach_km: float, name: str):

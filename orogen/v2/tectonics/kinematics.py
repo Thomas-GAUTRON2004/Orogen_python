@@ -1,8 +1,10 @@
 """Plate kinematics and time integration ported from V2 step/kinematics.js."""
 
 from __future__ import annotations
+
 import math
 from collections.abc import Sequence
+
 from ..core.rotation import (
     quat_from_axis_angle,
     quat_integrate,

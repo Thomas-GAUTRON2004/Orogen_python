@@ -5,7 +5,6 @@ import pytest
 from orogen.v2.tectonics.ending import ENDINGS, frames_ending, history_ending, in_stage
 from orogen.v2.tectonics.world import EventKind
 
-
 CFG = {
     "superShare": 0.8,
     "endingQuietMyr": 20.0,

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 from ..core.rotation import quat_identity, quat_to_mat3
-from ..core.sphere_geometry import dot
 from .crust import CrustRaster, CrustType
 
 

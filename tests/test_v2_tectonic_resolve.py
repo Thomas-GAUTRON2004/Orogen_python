@@ -5,11 +5,11 @@ import numpy as np
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.resolve import (
-    resolve,
-    decide_birth,
-    _nearest_crust,
-    _is_behind,
     _is_advancing_on,
+    _is_behind,
+    _nearest_crust,
+    decide_birth,
+    resolve,
 )
 from orogen.v2.tectonics.world import TectonicWorld
 

@@ -1,7 +1,8 @@
 """Tests for the partial world contact-classification pass."""
 
-import numpy as np
 import importlib
+
+import numpy as np
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.boundaries import classify_contact_boundaries

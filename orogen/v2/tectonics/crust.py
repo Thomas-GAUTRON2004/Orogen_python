@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 from ..core._numba_kernels import (
     NUMBA_AVAILABLE,
-    zero_cell_fields_numba,
-    snapshot_cell_fields_numba,
-    create_cells_numba,
-    snapshot_cells_numba,
     copy_cells_numba,
+    create_cells_numba,
     remove_cells_numba,
+    snapshot_cell_fields_numba,
+    snapshot_cells_numba,
+    zero_cell_fields_numba,
 )
 
 CrustType = {"OCEAN": 0, "CONTINENT": 1, "CRATON": 2, "ARC": 3}
@@ -40,15 +41,7 @@ CrustFlag = {
     "EROSIVE": 128,
 }
 
-CELL_FIELDS = (
-    "type flags formedAt terrane slabKm wingKm oroType oroWork oroStart oroLast "
-    "thickKm beltU beltReach beltAt beltSide beltShear prevType prevLast prevU "
-    "prevReach prevSide prevShear rootKm upliftKm baseKm rugged prevRugged "
-    "volcWornKm riverIncKm volcType volcAt volcKm volcSource fzU geoFlags "
-    "coverKm coverMaxKm coverMaxAt coverCarb coverSalt coverCoal coverOrganic "
-    "exhumKm unroofKm floodMyr floodLast arcMyr riftAt farWork farDist farFold "
-    "farAt farDx farDy farDz"
-).split()
+CELL_FIELDS = ["type", "flags", "formedAt", "terrane", "slabKm", "wingKm", "oroType", "oroWork", "oroStart", "oroLast", "thickKm", "beltU", "beltReach", "beltAt", "beltSide", "beltShear", "prevType", "prevLast", "prevU", "prevReach", "prevSide", "prevShear", "rootKm", "upliftKm", "baseKm", "rugged", "prevRugged", "volcWornKm", "riverIncKm", "volcType", "volcAt", "volcKm", "volcSource", "fzU", "geoFlags", "coverKm", "coverMaxKm", "coverMaxAt", "coverCarb", "coverSalt", "coverCoal", "coverOrganic", "exhumKm", "unroofKm", "floodMyr", "floodLast", "arcMyr", "riftAt", "farWork", "farDist", "farFold", "farAt", "farDx", "farDy", "farDz"]
 
 _DTYPES = {
     "type": np.uint8,
@@ -205,7 +198,7 @@ class CrustRaster:
             dtype=np.float64,
         ).reshape((len(indices), len(self.fields)))
 
-    def copy_many(self, cells, other: "CrustRaster", sources=None, rot=None) -> None:
+    def copy_many(self, cells, other: CrustRaster, sources=None, rot=None) -> None:
         """Copy a sequence of source cells in one compiled call when available.
 
         Destination and source indices are processed in order, so repeated
@@ -268,7 +261,7 @@ class CrustRaster:
         self.formedAt[cell] = formed_at
         self.terrane[cell] = terrane
 
-    def copy_from(self, cell: int, other: "CrustRaster", source: int, rot=None) -> None:
+    def copy_from(self, cell: int, other: CrustRaster, source: int, rot=None) -> None:
         if not self.mask[cell]:
             self.count += 1
         self.mask[cell] = 1

@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.plumes import (
     _erupted_during,
     _stamp_track,
     birth_plume,
     update_plumes,
 )
-from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.world import EventKind
 
 

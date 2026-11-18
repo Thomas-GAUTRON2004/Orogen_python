@@ -9,8 +9,8 @@ from typing import Any
 
 import numpy as np
 
-from .sphere_geometry import PLANET_RADIUS_KM
 from ._numba_kernels import NUMBA_AVAILABLE, spread_km_numba
+from .sphere_geometry import PLANET_RADIUS_KM
 
 
 class MinHeap:

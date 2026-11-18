@@ -5,13 +5,11 @@ import numpy as np
 import pytest
 
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
-from orogen.v2.tectonics.ops import find_rift, grain_of, rift_context
-from orogen.v2.tectonics.ops import rift_path
+from orogen.v2.tectonics.ops import find_rift, grain_of, rift_context, rift_path
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
     _crosses_rather_than_hugs,
     _is_monotone,
-    coast_distance,
 )
 
 

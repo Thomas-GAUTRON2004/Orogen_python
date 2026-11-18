@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from orogen.v2.core import fast_noise, seed, sphere_mesh
-from orogen.v2.core.min_heap import MinHeap, _edge_km_of, forget_edge_km, spread_km
 from orogen.v2.core.mesh_bfs import (
     flood_from,
     hop_distance,
@@ -20,6 +19,7 @@ from orogen.v2.core.mesh_bfs import (
 )
 from orogen.v2.core.mesh_locate import locate
 from orogen.v2.core.mesh_rings import rings_of
+from orogen.v2.core.min_heap import MinHeap, _edge_km_of, forget_edge_km, spread_km
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,
     quat_integrate,

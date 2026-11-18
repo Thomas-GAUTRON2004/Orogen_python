@@ -14,7 +14,6 @@ import numpy as np
 from ...core.sphere_geometry import tangent_toward
 from ..crust import CrustType
 
-
 _RIFT_OCEAN_REACH_KM = 7300.0
 
 

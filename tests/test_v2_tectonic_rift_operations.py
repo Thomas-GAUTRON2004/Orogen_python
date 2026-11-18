@@ -1,12 +1,10 @@
 import math
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import choose_junction, split_plate
-from orogen.v2.tectonics import ops
 from orogen.v2.tectonics.world import TectonicWorld
 
 

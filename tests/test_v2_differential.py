@@ -8,27 +8,27 @@ from __future__ import annotations
 
 import json
 import math
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from orogen.v2.core.seed import seed_of, is_word_seed, make_rng
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,
+    quat_integrate,
     quat_mul,
     quat_normalize,
-    quat_integrate,
-    quat_to_mat3,
     quat_to_euler_pole,
+    quat_to_mat3,
 )
+from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.crust import (
     CELL_FIELDS,
+    CrustFlag,
     CrustRaster,
     CrustType,
-    CrustFlag,
     OrogenyType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
@@ -92,7 +92,7 @@ def test_crust_raster_state_and_snapshot_match_original(original):
     crust.record_orogeny(2, OrogenyType["ANDEAN"], 8.125, 20, 15)
     crust.record_orogeny(2, OrogenyType["HIMALAYAN"], 1.5, 25, 15)
     expected = original["crust"]
-    assert CELL_FIELDS == expected["fields"]
+    assert expected["fields"] == CELL_FIELDS
     assert crust.count == expected["count"]
     assert crust.mask.tolist() == expected["mask"]
     assert crust.flags[2] == expected["flags"] == CrustFlag["TRENCH"]
@@ -194,16 +194,16 @@ def test_plate_frame_transform_and_extent_match_original(original):
 
 
 def test_plate_kinematics_match_original(original):
-    from orogen.v2.tectonics.kinematics import (
-        lat_lon_to_xyz,
-        xyz_to_lat_lon,
-        omega_from_euler_pole,
-        surface_velocity,
-        speed_cm_yr_at,
-        pose_at_constant_omega,
-        advance_plates,
-    )
     from orogen.v2.core.rotation import quat_from_axis_angle
+    from orogen.v2.tectonics.kinematics import (
+        advance_plates,
+        lat_lon_to_xyz,
+        omega_from_euler_pole,
+        pose_at_constant_omega,
+        speed_cm_yr_at,
+        surface_velocity,
+        xyz_to_lat_lon,
+    )
 
     expected = original["kinematics"]
     xyz = lat_lon_to_xyz(35, -120)
@@ -242,6 +242,7 @@ def test_plate_kinematics_match_original(original):
 
 def test_tectonic_occupancy_bins_match_original(original):
     from types import SimpleNamespace
+
     from orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
 
     mesh = SimpleNamespace(

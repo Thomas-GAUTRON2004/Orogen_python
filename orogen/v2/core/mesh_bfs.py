@@ -12,14 +12,13 @@ from typing import Any
 
 import numpy as np
 
-from .sphere_geometry import PLANET_RADIUS_KM
-
 from ._numba_kernels import (
     NUMBA_AVAILABLE,
     hop_distance_numba,
-    pieces_of_numba,
     largest_piece_numba,
+    pieces_of_numba,
 )
+from .sphere_geometry import PLANET_RADIUS_KM
 
 Predicate = Callable[[int], bool]
 

@@ -1,7 +1,7 @@
 """Tests for continental collision geometry and terrane handling."""
 
-from types import SimpleNamespace
 import math
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -724,8 +724,9 @@ def test_accrete_arcs_returns_core_when_both_contacts_are_continent():
 
 
 def test_accrete_arcs_prefers_smaller_arc_donor_and_logs_transfer(monkeypatch):
-    from orogen.v2.tectonics import collision
     import importlib
+
+    from orogen.v2.tectonics import collision
 
     scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
 
@@ -862,8 +863,9 @@ def test_underthrust_stops_after_reaching_the_due_target():
 
 
 def test_accrete_arcs_recycles_tiny_fragment_without_attempting_scrape(monkeypatch):
-    from orogen.v2.tectonics import collision
     import importlib
+
+    from orogen.v2.tectonics import collision
 
     scrape_module = importlib.import_module("orogen.v2.tectonics.ops.scrape_arc")
     world, donor, host = contact_world()

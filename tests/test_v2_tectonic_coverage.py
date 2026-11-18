@@ -1,17 +1,14 @@
-import copy
 
 import numpy as np
 import pytest
 
-from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.rotation import quat_from_axis_angle
+from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import (
-    BeltSide,
     CrustFlag,
     CrustRaster,
     CrustType,
     OrogenyType,
-    VolcanicType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
 from orogen.v2.tectonics.world import EventKind, TectonicWorld

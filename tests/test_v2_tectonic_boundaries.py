@@ -5,14 +5,14 @@ import numpy as np
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.boundaries import (
     Motion,
-    classify_motion,
-    vote_segments,
-    near_land,
-    feed_trench,
     classify_contact_boundaries,
+    classify_motion,
+    feed_trench,
+    near_land,
+    vote_segments,
 )
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
-from orogen.v2.tectonics.world import TectonicWorld, BoundaryKind
+from orogen.v2.tectonics.world import BoundaryKind, TectonicWorld
 
 
 def _world():

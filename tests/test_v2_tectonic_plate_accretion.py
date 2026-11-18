@@ -4,14 +4,13 @@ from types import SimpleNamespace
 import numpy as np
 
 from orogen.v2.tectonics.crust import BeltSide, CrustFlag, CrustRaster, CrustType
+from orogen.v2.tectonics.ops import plate_accretion
 from orogen.v2.tectonics.ops.plate_accretion import (
     accrete_terrane,
     close_seas_between,
     landmass_of,
 )
 from orogen.v2.tectonics.plate import Plate
-from orogen.v2.tectonics import ops
-from orogen.v2.tectonics.ops import plate_accretion
 
 
 class Index:

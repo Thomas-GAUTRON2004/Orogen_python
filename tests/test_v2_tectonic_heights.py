@@ -3,13 +3,13 @@ import math
 import pytest
 
 from orogen.v2.tectonics.crust import BeltSide, CrustRaster, CrustType, OrogenyType
+from orogen.v2.tectonics.geology import thicken_cover
 from orogen.v2.tectonics.heights import (
     DEFAULT_HEIGHTS,
     belt_relief_km,
     broad_profile,
     build_heights,
 )
-from orogen.v2.tectonics.geology import thicken_cover
 
 
 def test_relief_maturity_and_profiles_cover_every_belt_kind():

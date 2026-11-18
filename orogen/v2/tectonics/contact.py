@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from weakref import WeakKeyDictionary
+
 import numpy as np
 
 _UNIT_DIRECTIONS: WeakKeyDictionary = WeakKeyDictionary()

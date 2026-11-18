@@ -1,7 +1,7 @@
 """Tests for far-field push accumulation and inland diffusion."""
 
-from types import SimpleNamespace
 import math
+from types import SimpleNamespace
 
 import numpy as np
 import pytest

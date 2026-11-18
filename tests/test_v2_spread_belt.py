@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import math
 import numpy as np
 import pytest
 

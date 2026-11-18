@@ -5,8 +5,11 @@ candidate plates, but must never exclude a plate within the configured reach.
 """
 
 from __future__ import annotations
+
 import math
+
 import numpy as np
+
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 
 BIN_DEG = 6

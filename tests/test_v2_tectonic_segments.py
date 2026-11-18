@@ -10,7 +10,7 @@ from orogen.v2.tectonics.segments import SEGMENT_KM, fracture_coordinate
 
 def test_physical_unit_conversions_match_upstream_constants():
     assert CM_PER_YR_TO_KM_PER_MYR == 10.0
-    assert CM_PER_YR_TO_RAD_PER_MYR == pytest.approx(10.0 / 6371.0)
+    assert pytest.approx(10.0 / 6371.0) == CM_PER_YR_TO_RAD_PER_MYR
 
 
 def test_fracture_coordinate_zero_and_tiny_relative_rotation():

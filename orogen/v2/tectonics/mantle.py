@@ -14,7 +14,6 @@ import numpy as np
 from ..core.sim_mesh import PLANET_RADIUS_KM
 from .crust import CrustType
 
-
 _PAIR = 65536
 
 

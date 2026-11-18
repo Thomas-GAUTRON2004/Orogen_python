@@ -12,16 +12,16 @@ from __future__ import annotations
 import math
 
 from .boundaries import classify_contact_boundaries
-from .dynamics import update_plate_motion
-from .kinematics import advance_plates
-from .resolve import resolve
-from .simulation import choose_step, closing_rate
-from .plumes import update_plumes
-from .supercontinent import track_cycle
-from .rifting import rift_continents
-from .subduction_init import initiate_subduction
 from .collision import track_collisions
+from .dynamics import update_plate_motion
 from .far_field import evolve_far_field
+from .kinematics import advance_plates
+from .plumes import update_plumes
+from .resolve import resolve
+from .rifting import rift_continents
+from .simulation import choose_step, closing_rate
+from .subduction_init import initiate_subduction
+from .supercontinent import track_cycle
 
 
 def step_world(

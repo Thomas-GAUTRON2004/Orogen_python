@@ -1,23 +1,29 @@
 """Differential mesh-generation tests against upstream sphere-mesh.js + Delaunator."""
 
 from __future__ import annotations
-import json, math, shutil, subprocess
+
+import json
+import math
+import shutil
+import subprocess
 from pathlib import Path
+
 import numpy as np
 import pytest
+
+from orogen.v2.core.mesh_bfs import flood_from, hop_distance, within_km
+from orogen.v2.core.mesh_rings import rings_of
+from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.seed import make_rng
+from orogen.v2.core.sim_mesh import build_sim_mesh, km_to_hops
+from orogen.v2.core.sphere_geometry import cell_distance_km, centroid_of_cells
 from orogen.v2.core.sphere_mesh import (
     build_sphere,
     generate_fibonacci_sphere,
     stereographic_projection,
 )
-from orogen.v2.core.sim_mesh import build_sim_mesh, km_to_hops
-from orogen.v2.core.mesh_bfs import within_km, hop_distance, flood_from
-from orogen.v2.core.mesh_rings import rings_of
-from orogen.v2.core.min_heap import spread_km
-from orogen.v2.core.sphere_geometry import cell_distance_km, centroid_of_cells
-from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.plate import Plate
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/reference/v2/sphere-mesh-runner.mjs"

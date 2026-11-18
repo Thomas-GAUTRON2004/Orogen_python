@@ -1,10 +1,9 @@
 """Tests for the pure orogenic belt geometry rules."""
 
-import math
 
 import pytest
 
-from orogen.v2.tectonics.orogeny import belt_width_km, belt_shape, obliquity_deg
+from orogen.v2.tectonics.orogeny import belt_shape, belt_width_km, obliquity_deg
 
 
 def _config():

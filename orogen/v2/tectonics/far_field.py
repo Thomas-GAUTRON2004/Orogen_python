@@ -13,9 +13,9 @@ from collections.abc import Mapping, Sequence
 
 import numpy as np
 
+from ..core._numba_kernels import NUMBA_AVAILABLE, far_field_distance_numba
 from ..core.min_heap import MinHeap
 from ..core.sphere_geometry import cell_distance_km
-from ..core._numba_kernels import NUMBA_AVAILABLE, far_field_distance_numba
 from .crust import CrustFlag, CrustType, OrogenyType
 from .heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
 from .spread_belt import spread_belt

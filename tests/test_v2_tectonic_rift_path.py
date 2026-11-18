@@ -359,6 +359,7 @@ def test_coast_distance_satisfies_breadth_first_distance_invariants():
                 for neighbour in reachable_land
             )
 
+
 def test_rift_path_geometry_helpers_preserve_parent_and_distance_rules():
     parent = np.asarray([-1, 0, 1, 1, 3], dtype=np.int32)
     assert _trace_parent_path(4, parent) == [0, 1, 3, 4]
@@ -372,9 +373,15 @@ def test_rift_path_geometry_helpers_preserve_parent_and_distance_rules():
 
     xyz = np.asarray(
         [
-            1.0, 0.0, 0.0,
-            math.cos(0.01), math.sin(0.01), 0.0,
-            -1.0, 0.0, 0.0,
+            1.0,
+            0.0,
+            0.0,
+            math.cos(0.01),
+            math.sin(0.01),
+            0.0,
+            -1.0,
+            0.0,
+            0.0,
         ],
         dtype=np.float32,
     )

@@ -49,7 +49,7 @@ The latest successful test run explicitly recorded in the benchmark documentatio
 
 This is a historical verified run, not a claim that the current branch head has been tested. The run is associated in the project history with commit `6ea20d647169979ccbdf107732ddb7f2535695b9`; rerun CI after subsequent code changes to establish the current status.
 
-The differential suite covers selected core, geometry, mesh and tectonic operations. Delaunay triangles/neighbourhoods matched for seven tested resolution/seed pairs: 12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, and 512/12345.
+The differential suite covers selected core, geometry, mesh and tectonic operations. The seven historical Delaunay fixture matches (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345) were measured with SciPy/Qhull and do not establish equivalent connectivity for the new shull backend. New shull-specific tests check spherical mesh invariants across multiple sizes.
 
 ## What the checks establish
 

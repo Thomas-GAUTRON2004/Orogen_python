@@ -71,5 +71,5 @@ The report is included with the proposed quality-refactor changes. The associate
 ## Discarded cKDTree experiment
 
 - The cKDTree candidate was not selected for production. Its dedicated workflow (`.github/workflows/ckdtree-sphere-index.yml`) and benchmark (`benchmarks/bench_ckdtree_production.py`) have been removed from this branch.
-- Removed SciPy from the optional `benchmark` dependency group and synchronized `uv.lock`. SciPy remains in the `test` extra; this cleanup does not change the test environment.
+- Kept SciPy in the optional `benchmark` dependency group because `benchmarks/bench_shull_pipeline.py` uses it for the reference comparison; cKDTree-specific workflow and script are removed.
 - The supported production path remains the existing `SphereIndex` backend.

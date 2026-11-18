@@ -7,11 +7,16 @@ disable fast-math. The pure-Python implementation remains the reference path.
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 
+njit: Any
+literal_unroll: Any
 try:
-    from numba import literal_unroll, njit
+    from numba import literal_unroll as _literal_unroll, njit as _njit
+    njit = _njit
+    literal_unroll = _literal_unroll
 except ImportError:  # Numba is an optional acceleration extra.
     njit = None
     literal_unroll = None
@@ -782,6 +787,25 @@ def _snapshot_cell_fields_kernel(fields, cell):
     ):
         values[index] = fields[index][cell]
     return values
+
+
+# Dispatcher globals are intentionally optional when Numba is not installed.
+noise3d_numba: Any
+fbm_numba: Any
+fbm_many_numba: Any
+hop_distance_numba: Any
+spread_km_numba: Any
+far_field_distance_numba: Any
+pieces_of_numba: Any
+largest_piece_numba: Any
+destination_many_numba: Any
+bearing_to_many_numba: Any
+zero_cell_fields_numba: Any
+snapshot_cell_fields_numba: Any
+create_cells_numba: Any
+snapshot_cells_numba: Any
+copy_cells_numba: Any
+remove_cells_numba: Any
 
 
 if NUMBA_AVAILABLE:

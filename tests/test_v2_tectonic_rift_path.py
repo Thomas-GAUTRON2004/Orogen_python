@@ -283,3 +283,36 @@ def test_find_rift_stops_when_pair_cost_exceeds_slack(monkeypatch):
     assert find_rift(
         world, plate, junction=24, need_cratons_both_sides=False
     ) is None
+
+def test_grain_of_single_noise_component_and_precomputed_context(monkeypatch):
+    world, plate = square_world()
+    world.config["riftCurveAmp"] = 0.25
+    world.config["riftJagAmp"] = 0.0
+
+    class ConstantNoise:
+        def __init__(self, _seed):
+            pass
+        def noise3d(self, *_coords):
+            return 0.5
+
+    monkeypatch.setattr(rift_path, "FastNoise", ConstantNoise)
+    grain = grain_of(world)
+    assert grain(10) == pytest.approx(1.125)
+    assert grain(10) == pytest.approx(1.125)
+    ctx = rift_context(world, plate)
+    assert find_rift(
+        world, plate, 24, need_cratons_both_sides=False,
+        ctx=ctx,
+    ) is not None
+
+
+def test_find_rift_without_optional_failed_arm():
+    world, plate = square_world()
+    world.config["riftFailedArms"] = 0
+    result = find_rift(
+        world, plate, 24, need_cratons_both_sides=False,
+    )
+    assert result is not None
+    assert result["failed_arm"] == []
+    assert result["arms"][2] == []
+

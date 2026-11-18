@@ -233,7 +233,9 @@ Module: `orogen.v2.tectonics.rifting`
 `step_world(world, dt=None, update_motion=True, update_cycle=True)`
 integrates this stage after plume and supercontinent updates when
 `riftRatePerMyr` exists in the world configuration or plume-rift requests are
-pending. It reports the number of plate splits in the `rifts` field.
+pending. It reports the number of plate splits in the `rifts` field. The same
+stepper can also run passive-margin subduction initiation, collision tracking
+and far-field evolution when their respective configuration keys are present.
 
 Example:
 
@@ -245,11 +247,13 @@ diagnostic = step_world(world, dt=1.0)
 print(diagnostic["rifts"])
 ```
 
-This is a tested rifting subsystem and partial stepper integration, not the
-entire `simulate.js` generator. Collision tracking and configured suture
-welding are integrated separately below; far-field collision forcing,
-complete subduction/slab evolution, arc maturation, ocean-plate evolution,
-terrain, geology, climate and snapshot stages remain outstanding.
+This is a tested rifting subsystem within a partial stepper, not the entire
+`simulate.js` generator. Collision tracking and configured suture welding are
+also integrated into the stepper; far-field propagation runs when
+`farFieldEveryMyr` is configured. Strongly coupled Andean/flat-slab far-field
+forcing, complete subduction/slab evolution, scheduled arc maturation,
+ocean-plate evolution, terrain, geology, climate and snapshot stages remain
+outstanding.
 
 
 ## Passive-margin subduction initiation
@@ -283,17 +287,19 @@ subduction/slab evolution model.
 
 ## Arc operations
 
-The following helpers are tested but are not yet scheduled by the stepper:
+Arc maturation and arc scraping have different integration status:
 
 
 - `orogen.v2.tectonics.arc_maturation.mature_arcs(world, dt)` advances a
   distance-based front and converts mature island-arc cells touching
   continental/cratonic crust into continental crust. Margin-island cells are
-  excluded, and other crust-history fields are retained.
+  excluded, and other crust-history fields are retained. This helper is tested
+  but its upstream slow-stage cadence is not yet scheduled by `step_world`.
 - `orogen.v2.tectonics.ops.scrape_arc.scrape_arc(world, host, donor, cells)`
   transfers arc raster cells into a host plate using the plate-frame rotation,
   absorbs cells where the host already has land, records a suture, and retires
-  an empty donor plate.
+  an empty donor plate. Collision tracking invokes this operation when the
+  configured collision conditions are met.
 
 ## Plate transfer and passive-ocean birth
 
@@ -311,7 +317,9 @@ Module: `orogen.v2.tectonics.ops`
 
 These are plate operations used by subduction initiation and intra-plate
 foundering. They do not yet replace the full upstream back-arc/ocean-plate
-lifecycle.
+lifecycle. `step_world` runs `evolve_far_field` when `farFieldEveryMyr` is
+present; this propagates recorded push and can reactivate old sutures/failed
+rifts, but strongly coupled Andean/flat-slab forcing is not yet ported.
 
 
 ## Terrane accretion and sea closure

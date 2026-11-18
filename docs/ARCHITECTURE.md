@@ -54,22 +54,30 @@ but not yet a complete simulation engine.
   spontaneous rifting.
 - `subduction_init` starts passive-margin trenches on old non-diverging contacts;
   it can carve a new mobile ocean plate from the passive background.
-- `arc_maturation` and `ops.scrape_arc` provide separately tested arc
-  maturation and host-plate transfer operations; their slow/collision cadence
-  is not yet orchestrated.
-- `ops.plate_accretion` transfers terranes and fore-arc crust onto a host,
-  seals narrow straits/small inland seas, and extracts connected landmasses.
-  It is a tested operation but is not yet called by a collision tracker.
-- `step_world` connects the currently ported movement, resolution,
-  classification, plume, cycle, rifting, subduction-initiation and motion stages.
-  It rebuilds ownership/boundaries after rifts or new subduction systems before
-  force balancing.
+- `arc_maturation.mature_arcs` is a tested operation whose upstream slow-stage
+  cadence is not yet scheduled by the stepper. `ops.scrape_arc` transfers arc
+  material and is called by collision handling when the relevant conditions
+  and configuration are present.
+- `ops.plate_accretion` transfers terranes and fore-arc crust, seals narrow
+  straits/small inland seas, and extracts connected landmasses. Collision
+  tracking invokes the applicable docking/accretion operations when configured.
+- `collision.track_collisions` tracks plate-pair convergence and shortening,
+  handles underthrusting and arc/terrane transfer, propagates collision belts,
+  and can weld eligible sutures when the complete redraw configuration exists.
+- `far_field.evolve_far_field` propagates recorded push and can reactivate old
+  sutures or failed rifts; the stepper calls it when `farFieldEveryMyr` is set.
+- `step_world` connects plate movement, resolution, boundary classification,
+  plume and cycle updates, configured rifting and passive-margin subduction
+  initiation, collision tracking, optional far-field evolution, and optional
+  force-balanced motion. It rebuilds ownership and boundaries after
+  topology-changing rifts, subduction initiation, or collision merges.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
-not yet ported. The collision detection/tracking and weld/merge pipeline, event-driven terrane
-accretion and arc-material transfer, slab/subduction propagation, arc maturation slow
+not yet ported. Also outstanding are the complete `simulate.js` stage cadence,
+strongly coupled Andean/flat-slab far-field forcing, complete collision and
+orogeny event-history parity, slab/subduction propagation, arc-maturation slow
 cadence, back-arcs, ocean-plate evolution, terrain/geology stages, snapshots
-and run/resume handling remain outstanding.
+and run/resume handling.
 
 ## Coordinate conventions
 
@@ -129,13 +137,14 @@ dependency versions is output-neutral.
 
 The current `step_world` function is a partial one-step orchestration. It
 advances plate poses, resolves world ownership, classifies contacts, updates
-plumes and mantle heat, advances the supercontinent cycle, processes
-continental rifting and passive-margin subduction initiation when their
-configuration is present, and optionally updates plate motion. After a rift or
-new subduction system it resolves ownership/boundaries again before the force
-solve. It does not run the complete upstream collision/orogeny, slab evolution,
-arc/back-arc, ocean-plate, slow terrain/geology or snapshot sequence. It should
-not be treated as a full `simulate` generator.
+plumes and mantle heat, advances the supercontinent cycle, and conditionally
+runs rifting, passive-margin subduction initiation, collision tracking and
+far-field evolution according to the supplied configuration. Collision
+tracking can perform configured arc/terrane transfer and suture welding. After
+any topology-changing stage it resolves ownership and boundaries again before
+force balancing. It does not run the complete upstream `simulate.js` stage
+sequence, slab evolution, arc/back-arc or ocean-plate lifecycle, slow
+terrain/geology stages, or snapshot pipeline. It is not a full world generator.
 
 ## Extension principles
 

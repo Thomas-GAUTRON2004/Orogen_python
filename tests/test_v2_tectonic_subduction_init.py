@@ -4,6 +4,11 @@ import pytest
 from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.subduction_init import (
+    _carve_intraplate_ocean_cells,
+    _founder_run_probability,
+    _old_ocean_margin_runs,
+    _plate_can_founder_margin,
+    _start_intraplate_ocean_founder,
     arm_margin,
     choose_foundering,
     founder_within_plates,
@@ -395,3 +400,83 @@ def test_founder_within_plates_rejects_runs_not_on_exterior_sea(monkeypatch):
     assert founder_within_plates(world, 1.0) == 0
     assert len(world.plates) == 1
     assert world.events == []
+
+def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
+    world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
+    num_cells = world.mesh.num_cells
+    minimum_cells = 100.0 / world.mesh.cell_area_km2
+    assert _plate_can_founder_margin(plate, minimum_cells, num_cells, 0.0)
+    assert not _plate_can_founder_margin(plate, minimum_cells, num_cells, 2.0)
+
+    run = [1, 2]
+    length_age_chance = _founder_run_probability(
+        world,
+        run,
+        plate.crust.formedAt,
+        float(world.time),
+        1.0,
+        float(world.mesh.edge_km),
+        100.0,
+        100.0,
+        2.0,
+        0.01,
+    )
+    assert length_age_chance == pytest.approx((200.0, 200.0, 0.02))
+    world.cycle = {"phase": "dispersing", "breakupAt": -200.0}
+    world.config["disperseFounderFactor"] = 0.25
+    dispersed = _founder_run_probability(
+        world,
+        run,
+        plate.crust.formedAt,
+        float(world.time),
+        1.0,
+        float(world.mesh.edge_km),
+        100.0,
+        100.0,
+        2.0,
+        0.01,
+    )
+    assert dispersed == pytest.approx((200.0, 200.0, 0.005))
+    assert _founder_run_probability(
+        world,
+        [1],
+        plate.crust.formedAt,
+        float(world.time),
+        1.0,
+        float(world.mesh.edge_km),
+        100.0,
+        101.0,
+        2.0,
+        0.01,
+    ) is None
+
+    coast, run_of, runs = _old_ocean_margin_runs(
+        world.mesh, plate.crust, float(world.time), 100.0
+    )
+    assert runs
+    selected = runs[0]
+    labels, take = _carve_intraplate_ocean_cells(
+        world.mesh, plate.crust, coast, run_of, selected, 5
+    )
+    assert take
+    assert all(labels[cell] == 1 for cell in take)
+    assert all(plate.crust.type[cell] == 0 for cell in take)
+
+    started = _start_intraplate_ocean_founder(
+        world,
+        plate,
+        selected,
+        take,
+        labels,
+        coast,
+        len(selected) * float(world.mesh.edge_km),
+        200.0,
+        float(world.time),
+        float(world.mesh.cell_area_km2),
+        world.config,
+    )
+    assert started is True
+    fresh = world.plates[-1]
+    assert fresh.isOceanBorn
+    assert fresh.crust.count == len(take)
+    assert all(plate.crust.flags[cell] & CrustFlag["TRENCH"] for cell in selected)

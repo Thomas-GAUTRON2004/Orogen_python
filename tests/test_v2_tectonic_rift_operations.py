@@ -1,12 +1,10 @@
 import math
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import choose_junction, split_plate
-from orogen.v2.tectonics import ops
 from orogen.v2.tectonics.world import TectonicWorld
 
 
@@ -93,11 +91,13 @@ def square_junction_fixture():
         latitude = (row - 3) * 0.01
         for col in range(7):
             longitude = (col - 3) * 0.01
-            points.append([
-                math.cos(latitude) * math.cos(longitude),
-                math.cos(latitude) * math.sin(longitude),
-                math.sin(latitude),
-            ])
+            points.append(
+                [
+                    math.cos(latitude) * math.cos(longitude),
+                    math.cos(latitude) * math.sin(longitude),
+                    math.sin(latitude),
+                ]
+            )
             cell = row * 7 + col
             adjacent = []
             if row:
@@ -123,7 +123,9 @@ def square_junction_fixture():
     return world, plate
 
 
-def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(monkeypatch):
+def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(
+    monkeypatch,
+):
     world, plate = make_world()
     plate.set_quat([math.cos(0.1), 0.0, 0.0, math.sin(0.1)])
     plate.omega = [0.01, 0.02, 0.03]
@@ -132,14 +134,16 @@ def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(m
     calls = []
 
     def fake_spread(target, mesh, sources, belt, config, allow):
-        calls.append({
-            "plate": target.id,
-            "sources": list(sources),
-            "belt": dict(belt),
-            "failed0": allow(0),
-            "failed3": allow(3),
-            "failed5": allow(5),
-        })
+        calls.append(
+            {
+                "plate": target.id,
+                "sources": list(sources),
+                "belt": dict(belt),
+                "failed0": allow(0),
+                "failed3": allow(3),
+                "failed5": allow(5),
+            }
+        )
 
     monkeypatch.setattr("orogen.v2.tectonics.ops.rift.spread_belt", fake_spread)
     fresh = split_plate(
@@ -245,9 +249,5 @@ def test_choose_junction_failed_rift_is_also_a_weak_seed():
 
 def test_choose_junction_falls_back_to_last_candidate_if_rng_overshoots():
     world, plate = square_junction_fixture()
-    candidates = [
-        row * 7 + col
-        for row in range(2, 5)
-        for col in range(2, 5)
-    ]
+    candidates = [row * 7 + col for row in range(2, 5) for col in range(2, 5)]
     assert choose_junction(world, plate, lambda: 1.1) == candidates[-1]

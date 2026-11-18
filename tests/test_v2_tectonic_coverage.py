@@ -1,12 +1,13 @@
-import copy
-
 import numpy as np
 import pytest
 
-from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.rotation import quat_from_axis_angle
+from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import (
-    BeltSide, CrustFlag, CrustRaster, CrustType, OrogenyType, VolcanicType,
+    CrustFlag,
+    CrustRaster,
+    CrustType,
+    OrogenyType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
 from orogen.v2.tectonics.world import EventKind, TectonicWorld
@@ -139,7 +140,10 @@ def test_world_config_copy_rng_terrane_naming_and_event_validation():
     assert world.name_by_cratons(plate, "fallback") == "fallback"
     world.log(EventKind["START"], "started", {"seed": 77})
     assert world.events[-1] == {
-        "time": 0.0, "kind": "start", "text": "started", "data": {"seed": 77}
+        "time": 0.0,
+        "kind": "start",
+        "text": "started",
+        "data": {"seed": 77},
     }
     world.log(EventKind["RIFT"], "rift")
     assert world.events[-1]["data"] == {}
@@ -176,6 +180,7 @@ def test_rotated_plate_gather_maps_world_cells_to_plate_frame():
     for_each_claim(world, lambda w, p, c: claims.append((w, p.id, c)))
     assert (world_cell, plate.id, raster_cell) in claims
 
+
 def test_crust_restore_over_existing_cell_does_not_increment_count():
     crust = CrustRaster(2)
     crust.create(0, CrustType["CONTINENT"], 0, 1)
@@ -183,4 +188,3 @@ def test_crust_restore_over_existing_cell_does_not_increment_count():
     crust.restore(0, values)
     assert crust.count == 1
     assert crust.mask.tolist() == [1, 0]
-

@@ -1,4 +1,5 @@
 """Read-only reconstruction of world-frame crust ownership (V2 reconstruct.js)."""
+
 from __future__ import annotations
 
 from .crust import CrustType

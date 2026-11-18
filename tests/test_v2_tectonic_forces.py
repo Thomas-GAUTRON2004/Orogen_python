@@ -34,13 +34,24 @@ def make_world(monkeypatch, kind):
         num_cells=2, xyz=xyz, edge_km=100.0 * np.sqrt(3.0), cell_area_km2=10000.0
     )
     world = SimpleNamespace(
-        mesh=mesh, owner=np.array([0, 1]), ownerCell=np.array([0, 0]),
-        landClaims=np.zeros(2, dtype=np.uint8), collider=np.full(2, -1),
-        plates=[a, b], config={
-            "slabPull": 1.0, "slabSuction": 0.25, "slabPullAgeRefMyr": 80.0,
-            "slabMatureKm": 600.0, "ridgeMaxAgeMyr": 40.0,
-            "riftPushMyr": 20.0, "riftPush": 0.5, "ridgePush": 0.05,
-        }, time=100.0, occupancyStamp=1,
+        mesh=mesh,
+        owner=np.array([0, 1]),
+        ownerCell=np.array([0, 0]),
+        landClaims=np.zeros(2, dtype=np.uint8),
+        collider=np.full(2, -1),
+        plates=[a, b],
+        config={
+            "slabPull": 1.0,
+            "slabSuction": 0.25,
+            "slabPullAgeRefMyr": 80.0,
+            "slabMatureKm": 600.0,
+            "ridgeMaxAgeMyr": 40.0,
+            "riftPushMyr": 20.0,
+            "riftPush": 0.5,
+            "ridgePush": 0.05,
+        },
+        time=100.0,
+        occupancyStamp=1,
     )
 
     def contact(_world, cell, out):
@@ -115,20 +126,33 @@ def test_gather_boundary_loads_validates_arrays_and_zero_edge_length(monkeypatch
     assert gather_boundary_loads(world)[0]["cells"] == [0, 0, 0, 0, 0]
 
 
-def test_gather_boundary_loads_ignores_missing_owner_contact_and_unknown_plate(monkeypatch):
+def test_gather_boundary_loads_ignores_missing_owner_contact_and_unknown_plate(
+    monkeypatch,
+):
     world = make_world(monkeypatch, "pull")
     world.owner[:] = [-1, -1]
-    assert gather_boundary_loads(world) == {0: {
-        "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
-        "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0, 0], "slabs": [], "contacts": [],
-    }, 1: {
-        "torque": [0.0, 0.0, 0.0], "flowTorque": [0.0, 0.0, 0.0],
-        "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
-        "torqueMagnitudeSum": 0.0, "cells": [0, 0, 0, 0, 0], "slabs": [], "contacts": [],
-    }}
+    assert gather_boundary_loads(world) == {
+        0: {
+            "torque": [0.0, 0.0, 0.0],
+            "flowTorque": [0.0, 0.0, 0.0],
+            "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+            "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+            "torqueMagnitudeSum": 0.0,
+            "cells": [0, 0, 0, 0, 0],
+            "slabs": [],
+            "contacts": [],
+        },
+        1: {
+            "torque": [0.0, 0.0, 0.0],
+            "flowTorque": [0.0, 0.0, 0.0],
+            "byKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+            "forceByKind": [[0.0, 0.0, 0.0] for _ in FORCE_KINDS],
+            "torqueMagnitudeSum": 0.0,
+            "cells": [0, 0, 0, 0, 0],
+            "slabs": [],
+            "contacts": [],
+        },
+    }
     world = make_world(monkeypatch, "pull")
 
     def no_contact(_world, cell, out):
@@ -180,7 +204,9 @@ def configure_collision_world(monkeypatch, owner_neighbour=True):
     return world
 
 
-def test_gather_boundary_loads_records_collision_contacts_with_opposite_normals(monkeypatch):
+def test_gather_boundary_loads_records_collision_contacts_with_opposite_normals(
+    monkeypatch,
+):
     world = configure_collision_world(monkeypatch)
     loads = gather_boundary_loads(world)
     a_contact = loads[0]["contacts"][0]
@@ -250,6 +276,7 @@ def test_front_normal_ignores_disputed_and_oceanic_neighbours(monkeypatch):
     loads = gather_boundary_loads(world)
     assert np.linalg.norm(loads[0]["contacts"][0]["n"]) == pytest.approx(1.0)
 
+
 def test_gather_boundary_loads_applies_mantle_flow_and_dispersal(monkeypatch):
     world = make_world(monkeypatch, "pull")
     world.plates[0].crust.type[0] = CrustType["CONTINENT"]
@@ -259,8 +286,10 @@ def test_gather_boundary_loads_applies_mantle_flow_and_dispersal(monkeypatch):
         "orogen.v2.tectonics.forces.dispersal_field",
         lambda _world: object(),
     )
+
     def flow(_world, _x, _y, _z, out):
         out[:] = [0.0, 0.0, 1.0]
+
     monkeypatch.setattr("orogen.v2.tectonics.forces.mantle_flow_at", flow)
     monkeypatch.setattr(
         "orogen.v2.tectonics.forces.repel_at",
@@ -269,6 +298,7 @@ def test_gather_boundary_loads_applies_mantle_flow_and_dispersal(monkeypatch):
     loads = gather_boundary_loads(world)
     assert loads[0]["cells"][4] == 1
     assert loads[0]["forceByKind"][4] == pytest.approx([0.0, 0.0, 1.0])
+
 
 def test_gather_boundary_loads_allows_flow_without_dispersal_field(monkeypatch):
     world = make_world(monkeypatch, "pull")
@@ -279,10 +309,11 @@ def test_gather_boundary_loads_allows_flow_without_dispersal_field(monkeypatch):
         "orogen.v2.tectonics.forces.dispersal_field",
         lambda _world: None,
     )
+
     def flow(_world, _x, _y, _z, out):
         out[:] = [0.0, 0.0, 1.0]
+
     monkeypatch.setattr("orogen.v2.tectonics.forces.mantle_flow_at", flow)
     loads = gather_boundary_loads(world)
     assert loads[0]["cells"][4] == 1
     assert loads[0]["forceByKind"][4] == pytest.approx([0.0, 0.0, 1.0])
-

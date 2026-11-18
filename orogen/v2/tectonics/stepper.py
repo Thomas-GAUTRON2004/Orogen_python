@@ -6,21 +6,22 @@ orogeny history events, ocean-plate evolution, arc maturation, and slow
 terrain/geology stages are not fully orchestrated here. Continental rifting
 is included when its configuration is present.
 """
+
 from __future__ import annotations
 
 import math
 
 from .boundaries import classify_contact_boundaries
-from .dynamics import update_plate_motion
-from .kinematics import advance_plates
-from .resolve import resolve
-from .simulation import choose_step, closing_rate
-from .plumes import update_plumes
-from .supercontinent import track_cycle
-from .rifting import rift_continents
-from .subduction_init import initiate_subduction
 from .collision import track_collisions
+from .dynamics import update_plate_motion
 from .far_field import evolve_far_field
+from .kinematics import advance_plates
+from .plumes import update_plumes
+from .resolve import resolve
+from .rifting import rift_continents
+from .simulation import choose_step, closing_rate
+from .subduction_init import initiate_subduction
+from .supercontinent import track_cycle
 
 
 def step_world(
@@ -49,7 +50,8 @@ def step_world(
 
     cells_moved = (
         closing_rate(world) * step_dt / float(world.mesh.edge_rad)
-        if float(world.mesh.edge_rad) > 0 else 0.0
+        if float(world.mesh.edge_rad) > 0
+        else 0.0
     )
     advance_plates(world, step_dt)
     world.lastDt = step_dt
@@ -58,10 +60,7 @@ def step_world(
     plume_state = update_plumes(world, step_dt)
     cycle = track_cycle(world) if update_cycle else getattr(world, "cycle", None)
     rifts = 0
-    if (
-        "riftRatePerMyr" in world.config
-        or getattr(world, "pendingPlumeRifts", None)
-    ):
+    if "riftRatePerMyr" in world.config or getattr(world, "pendingPlumeRifts", None):
         rifts = rift_continents(world, step_dt)
 
     subductions = 0
@@ -74,7 +73,12 @@ def step_world(
         tally = resolve(world)
         classified = classify_contact_boundaries(world, 0.0)
 
-    collision_state = {"tracked": 0, "started": 0, "underthrustCells": 0, "changed": False}
+    collision_state = {
+        "tracked": 0,
+        "started": 0,
+        "underthrustCells": 0,
+        "changed": False,
+    }
     if "collisionForgetMyr" in world.config:
         collision_state = track_collisions(world, step_dt)
         if collision_state["changed"]:

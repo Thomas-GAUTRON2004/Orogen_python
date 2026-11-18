@@ -1,9 +1,16 @@
 """Tests for the tectonic convergence/divergence resolver."""
+
 import numpy as np
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import CrustType
-from orogen.v2.tectonics.resolve import resolve, decide_birth, _nearest_crust, _is_behind, _is_advancing_on
+from orogen.v2.tectonics.resolve import (
+    _is_advancing_on,
+    _is_behind,
+    _nearest_crust,
+    decide_birth,
+    resolve,
+)
 from orogen.v2.tectonics.world import TectonicWorld
 
 
@@ -88,6 +95,7 @@ def test_nearest_crust_and_behind_helpers():
 
 def test_candidate_cells_empty_when_no_gap_bins_marked():
     from orogen.v2.tectonics.resolve import candidate_cells
+
     mesh, world = _world()
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -111,6 +119,7 @@ def test_resolve_incoming_older_ocean_is_subducted():
 
 def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     plate = world.add_plate("P")
@@ -130,8 +139,10 @@ def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
 
 def test_growth_creates_trench_apron(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     from orogen.v2.tectonics.crust import CrustFlag
+
     mesh, world = _world()
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -139,7 +150,11 @@ def test_growth_creates_trench_apron(monkeypatch):
     plate.crust.slabKm[0] = 80
     plate.refresh_extent(mesh.xyz)
     monkeypatch.setattr(module, "candidate_cells", lambda w, p, gaps: [1])
-    monkeypatch.setattr(module, "decide_birth", lambda w, p, c, everyone: {"born": True, "trenchParent": 0})
+    monkeypatch.setattr(
+        module,
+        "decide_birth",
+        lambda w, p, c, everyone: {"born": True, "trenchParent": 0},
+    )
     monkeypatch.setattr(module, "_fracture_at", lambda *args: 0.25)
     assert module._grow_crust_into_gaps(world, [1]) == 1
     assert plate.crust.mask[1]
@@ -150,9 +165,12 @@ def test_growth_creates_trench_apron(monkeypatch):
 
 def test_is_advancing_on_handles_coincident_and_forward_points():
     from types import SimpleNamespace
+
     mesh, world = _world()
     x = SimpleNamespace(omega=[0.0, 0.0, 1.0])
-    y = SimpleNamespace(omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([1.0, 0.0, 0.0]))
+    y = SimpleNamespace(
+        omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([1.0, 0.0, 0.0])
+    )
     point = np.array([1.0, 0.0, 0.0])
     assert _is_advancing_on(x, y, 0, mesh, point, 0.0) is True
     y.to_world = lambda a, b, c: np.array([0.0, 1.0, 0.0])
@@ -161,9 +179,12 @@ def test_is_advancing_on_handles_coincident_and_forward_points():
 
 def test_is_advancing_on_rejects_non_closing_and_slow_motion():
     from types import SimpleNamespace
+
     mesh, world = _world()
     point = np.array([1.0, 0.0, 0.0])
-    stationary = SimpleNamespace(omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([a, b, c]))
+    stationary = SimpleNamespace(
+        omega=[0.0, 0.0, 0.0], to_world=lambda a, b, c: np.array([a, b, c])
+    )
     moving = SimpleNamespace(omega=[0.0, 0.0, 1.0])
     assert _is_advancing_on(stationary, stationary, 0, mesh, point, 0.0) is False
     assert _is_advancing_on(moving, stationary, 0, mesh, point, 1000.0) is False
@@ -174,13 +195,14 @@ def test_is_behind_skips_crust_neighbours_and_handles_fully_occupied_edge():
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["OCEAN"], 0, 1)
     # Neighbours already occupied are skipped; the edge still has no open side.
-    for nb in mesh.adj_list[mesh.adj_offset[0]:mesh.adj_offset[1]]:
+    for nb in mesh.adj_list[mesh.adj_offset[0] : mesh.adj_offset[1]]:
         plate.crust.create(int(nb), CrustType["OCEAN"], 0, 1)
     assert _is_behind(plate, 0, 0, mesh) is False
 
 
 def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
@@ -189,7 +211,9 @@ def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
     grower.refresh_extent(mesh.xyz)
     rival.refresh_extent(mesh.xyz)
     rival.cell_at = lambda index, x, y, z: 0
-    monkeypatch.setattr(module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0})
+    monkeypatch.setattr(
+        module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0}
+    )
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     result = module.decide_birth(world, grower, 1, [(rival, rival.cap_in_world(mesh))])
     assert result["born"] is False
@@ -198,14 +222,20 @@ def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
 
 def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
     grower.crust.create(0, CrustType["OCEAN"], 0, 1)
     grower.refresh_extent(mesh.xyz)
     rival.refresh_extent(mesh.xyz)
-    monkeypatch.setattr(module, "_nearest_crust", lambda plate, mesh, point, under=-1:
-                        {"cell": 0, "dot": 1.0} if plate is grower else {"cell": -1, "dot": -2.0})
+    monkeypatch.setattr(
+        module,
+        "_nearest_crust",
+        lambda plate, mesh, point, under=-1: (
+            {"cell": 0, "dot": 1.0} if plate is grower else {"cell": -1, "dot": -2.0}
+        ),
+    )
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     result = module.decide_birth(world, grower, 1, [(rival, rival.cap_in_world(mesh))])
     assert result["born"] is True
@@ -213,6 +243,7 @@ def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
 
 def test_decide_birth_closing_boundary_rejected(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     mesh, world = _world()
     grower, rival = world.add_plate("grower"), world.add_plate("rival")
@@ -220,7 +251,13 @@ def test_decide_birth_closing_boundary_rejected(monkeypatch):
     rival.crust.create(1, CrustType["OCEAN"], 0, 2)
     grower.refresh_extent(mesh.xyz)
     rival.refresh_extent(mesh.xyz)
-    monkeypatch.setattr(module, "_nearest_crust", lambda plate, *args, **kwargs: {"cell": 0, "dot": 0.99} if plate is grower else {"cell": 1, "dot": 0.0})
+    monkeypatch.setattr(
+        module,
+        "_nearest_crust",
+        lambda plate, *args, **kwargs: (
+            {"cell": 0, "dot": 0.99} if plate is grower else {"cell": 1, "dot": 0.0}
+        ),
+    )
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     monkeypatch.setattr(module, "_is_advancing_on", lambda *args: True)
     result = module.decide_birth(world, grower, 2, [(rival, rival.cap_in_world(mesh))])
@@ -230,8 +267,10 @@ def test_decide_birth_closing_boundary_rejected(monkeypatch):
 
 def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
     import importlib
+
     module = importlib.import_module("orogen.v2.tectonics.resolve")
     from orogen.v2.tectonics.crust import CrustFlag
+
     mesh, world = _world()
     grower = world.add_plate("grower")
     grower.crust.create(0, CrustType["OCEAN"], 0, 1)
@@ -240,10 +279,17 @@ def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
     grower.refresh_extent(mesh.xyz)
     rival = world.add_plate("rival")
     rival.cap_in_world = lambda mesh: [0.0, 0.0, 1.0, -2.0]
-    monkeypatch.setattr(module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0})
+    monkeypatch.setattr(
+        module, "_nearest_crust", lambda *args, **kwargs: {"cell": 0, "dot": 1.0}
+    )
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: False)
     monkeypatch.setattr(module, "_is_behind", lambda *args: True)
-    result = module.decide_birth(world, grower, 1, [(grower, grower.cap_in_world(mesh)), (rival, rival.cap_in_world(mesh))])
+    result = module.decide_birth(
+        world,
+        grower,
+        1,
+        [(grower, grower.cap_in_world(mesh)), (rival, rival.cap_in_world(mesh))],
+    )
     assert result == {"born": True, "trenchParent": -1}
 
 

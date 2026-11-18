@@ -35,8 +35,7 @@ def split_plate(world, plate, path, failed_arm, name_for, across=None):
     fresh.omega = plate.omega.copy()
 
     moved_cells = [
-        cell for cell in range(num_cells)
-        if crust.mask[cell] and side[cell] == 2
+        cell for cell in range(num_cells) if crust.mask[cell] and side[cell] == 2
     ]
     fresh.crust.copy_many(moved_cells, crust, moved_cells)
     crust.remove_many(moved_cells)
@@ -93,13 +92,12 @@ def split_plate(world, plate, path, failed_arm, name_for, across=None):
     }
 
     def not_failed(raster):
-        return lambda cell: not (
-            int(raster.flags[cell]) & CrustFlag["FAILED_RIFT"]
-        )
+        return lambda cell: not (int(raster.flags[cell]) & CrustFlag["FAILED_RIFT"])
 
     lifted = [
         [
-            cell for cell in cells
+            cell
+            for cell in cells
             if not (int(raster.flags[cell]) & CrustFlag["FAILED_RIFT"])
         ]
         for cells, raster in (
@@ -109,12 +107,20 @@ def split_plate(world, plate, path, failed_arm, name_for, across=None):
     ]
     if lifted[0]:
         spread_belt(
-            plate, mesh, lifted[0], shoulder, world.config,
+            plate,
+            mesh,
+            lifted[0],
+            shoulder,
+            world.config,
             not_failed(crust),
         )
     if lifted[1]:
         spread_belt(
-            fresh, mesh, lifted[1], shoulder, world.config,
+            fresh,
+            mesh,
+            lifted[1],
+            shoulder,
+            world.config,
             not_failed(fresh.crust),
         )
 
@@ -131,22 +137,20 @@ def split_plate(world, plate, path, failed_arm, name_for, across=None):
     centroid_a = _continental_centroid(crust, xyz, num_cells)
     centroid_b = _continental_centroid(fresh.crust, xyz, num_cells)
     if across is not None:
-        midpoint = normalize([
-            centroid_a[0] + centroid_b[0],
-            centroid_a[1] + centroid_b[1],
-            centroid_a[2] + centroid_b[2],
-        ])
+        midpoint = normalize(
+            [
+                centroid_a[0] + centroid_b[0],
+                centroid_a[1] + centroid_b[1],
+                centroid_a[2] + centroid_b[2],
+            ]
+        )
         to_a = tangent_toward(midpoint, centroid_b, centroid_a)
         sign = 1.0 if dot(across, to_a) >= 0.0 else -1.0
         plate.riftPushDir = [sign * float(value) for value in across]
         fresh.riftPushDir = [-sign * float(value) for value in across]
     else:
-        plate.riftPushDir = tangent_toward(
-            centroid_a, centroid_b, centroid_a
-        )
-        fresh.riftPushDir = tangent_toward(
-            centroid_b, centroid_a, centroid_b
-        )
+        plate.riftPushDir = tangent_toward(centroid_a, centroid_b, centroid_a)
+        fresh.riftPushDir = tangent_toward(centroid_b, centroid_a, centroid_b)
 
     plate.mark_reshaped()
     fresh.mark_reshaped()
@@ -168,10 +172,7 @@ def choose_junction(world, plate, rng) -> int:
     crust = plate.crust
 
     def land(cell: int) -> bool:
-        return bool(
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
     distance = np.full(num_cells, -1, dtype=np.int16)
     frontier = []
@@ -208,13 +209,9 @@ def choose_junction(world, plate, rng) -> int:
             or crust.type[cell] == CrustType["CRATON"]
         ):
             continue
-        interior_factor = min(
-            1.0, float(distance[cell]) / (2.0 * min_hops)
-        )
+        interior_factor = min(1.0, float(distance[cell]) / (2.0 * min_hops))
         weight = (
-            1.0
-            if int(crust.flags[cell]) & weak
-            else float(config["riftWeaknessCost"])
+            1.0 if int(crust.flags[cell]) & weak else float(config["riftWeaknessCost"])
         ) * interior_factor
         candidates.append(cell)
         weights.append(weight)
@@ -224,7 +221,7 @@ def choose_junction(world, plate, rng) -> int:
         return -1
 
     pick = float(rng()) * total
-    for cell, weight in zip(candidates, weights):
+    for cell, weight in zip(candidates, weights, strict=False):
         pick -= weight
         if pick <= 0.0:
             return cell
@@ -234,10 +231,7 @@ def choose_junction(world, plate, rng) -> int:
 def _continental_centroid(crust, xyz, num_cells: int) -> list[float]:
     x = y = z = 0.0
     for cell in range(num_cells):
-        if (
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        ):
+        if crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"]:
             offset = 3 * cell
             x += float(xyz[offset])
             y += float(xyz[offset + 1])
@@ -309,11 +303,7 @@ def names_after_split(world, plate_a, plate_b, before: str) -> tuple[str, str]:
         return name_a, name_b
 
     base = re.sub(r"(·\d+)+$", "", before)
-    taken = {
-        str(plate.name)
-        for plate in world.plates
-        if plate.alive
-    }
+    taken = {str(plate.name) for plate in world.plates if plate.alive}
     names = []
     number = 1
     while len(names) < 2:
@@ -355,14 +345,9 @@ def try_rift(
     if best is None:
         return False
 
-    weak = (
-        CrustFlag["SUTURE"]
-        | CrustFlag["FAILED_RIFT"]
-        | CrustFlag["RIFT_MARGIN"]
-    )
+    weak = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
     weak_km = sum(
-        1 for cell in best["path"]
-        if int(plate.crust.flags[int(cell)]) & weak
+        1 for cell in best["path"] if int(plate.crust.flags[int(cell)]) & weak
     ) * float(mesh.edge_km)
 
     before = str(plate.name)
@@ -386,9 +371,7 @@ def try_rift(
         f"part along {fixed0(length_km)} km of rift"
     )
     if best["failed_arm"]:
-        message += (
-            f", a failed arm of {fixed0(failed_km)} km left behind"
-        )
+        message += f", a failed arm of {fixed0(failed_km)} km left behind"
     world.log(
         EventKind["RIFT"],
         message,
@@ -413,14 +396,10 @@ def plume_junctions(world, plate, xyz) -> list[int]:
     config = world.config
     offsets, adjacency, index = mesh.adj_offset, mesh.adj_list, mesh.index
     crust = plate.crust
-    centre_cell = plate.cell_at(
-        index, float(xyz[0]), float(xyz[1]), float(xyz[2])
-    )
+    centre_cell = plate.cell_at(index, float(xyz[0]), float(xyz[1]), float(xyz[2]))
     max_hops = max(
         1,
-        math.floor(
-            float(config["plumeJunctionKm"]) / float(mesh.edge_km) + 0.5
-        ),
+        math.floor(float(config["plumeJunctionKm"]) / float(mesh.edge_km) + 0.5),
     )
     try_hops = max(
         1,
@@ -442,9 +421,7 @@ def plume_junctions(world, plate, xyz) -> list[int]:
             break
         following = []
         for cell in ring:
-            for edge in range(
-                int(offsets[cell]), int(offsets[cell + 1])
-            ):
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
                 neighbour = int(adjacency[edge])
                 if neighbour in seen or not crust.mask[neighbour]:
                     continue
@@ -457,10 +434,6 @@ def plume_junctions(world, plate, xyz) -> list[int]:
     if len(candidates) <= 12:
         return candidates
     return [
-        candidates[
-            math.floor(
-                index * (len(candidates) - 1) / 11.0 + 0.5
-            )
-        ]
+        candidates[math.floor(index * (len(candidates) - 1) / 11.0 + 0.5)]
         for index in range(12)
     ]

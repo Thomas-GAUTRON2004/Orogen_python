@@ -1,19 +1,24 @@
-import math
-from types import SimpleNamespace
-
 import numpy as np
 import pytest
 
+from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
-from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.subduction_init import (
+    _carve_intraplate_ocean_cells,
+    _collect_subduction_contacts,
+    _found_subduction_pair,
+    _founder_run_probability,
+    _old_ocean_margin_runs,
+    _plate_can_founder_margin,
+    _start_intraplate_ocean_founder,
+    _subduction_cell_is_stale,
+    _subduction_founder_metrics,
     arm_margin,
     choose_foundering,
     founder_within_plates,
     initiate_subduction,
     is_on_segment,
 )
-from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.world import TectonicWorld
 
 
@@ -206,9 +211,7 @@ def test_initiate_subduction_skips_when_passive_ocean_cannot_be_carved():
 def test_choose_foundering_prefers_land_as_upper_plate():
     world = make_boundary_world()
     ocean, continent = world.plates
-    assert choose_foundering(world, ocean, continent, [0]) == (
-        continent, ocean
-    )
+    assert choose_foundering(world, ocean, continent, [0]) == (continent, ocean)
 
 
 def test_choose_foundering_breaks_ocean_ocean_ties_by_formation_age():
@@ -217,15 +220,11 @@ def test_choose_foundering_breaks_ocean_ocean_ties_by_formation_age():
     plate_b.crust.type[0] = CrustType["OCEAN"]
     plate_a.crust.formedAt[0] = -120.0
     plate_b.crust.formedAt[0] = -80.0
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_a, plate_b
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_a, plate_b)
 
     plate_a.crust.formedAt[0] = -80.0
     plate_b.crust.formedAt[0] = -120.0
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_b, plate_a
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_b, plate_a)
 
 
 def test_is_on_segment_checks_direct_lower_cell_then_neighbours():
@@ -300,9 +299,7 @@ def test_founder_within_plates_rejects_weak_chance_and_small_ocean_take():
 
 def test_founder_within_plates_restores_plate_after_failed_transfer(monkeypatch):
     world, plate = make_intraplate_world()
-    monkeypatch.setattr(
-        subduction_init, "transfer_cells", lambda *_args: 0
-    )
+    monkeypatch.setattr(subduction_init, "transfer_cells", lambda *_args: 0)
     assert founder_within_plates(world, 1.0) == 0
     assert world.plates[-1].alive is False
     assert world.events == []
@@ -368,9 +365,7 @@ def test_choose_foundering_allows_left_plate_to_be_the_continental_upper():
     plate_a, plate_b = world.plates
     plate_a.crust.type[0] = CrustType["CONTINENT"]
     plate_b.crust.type[0] = CrustType["OCEAN"]
-    assert choose_foundering(world, plate_a, plate_b, [0]) == (
-        plate_a, plate_b
-    )
+    assert choose_foundering(world, plate_a, plate_b, [0]) == (plate_a, plate_b)
 
 
 def test_founder_within_plates_skips_dead_and_empty_land_plates():
@@ -409,3 +404,125 @@ def test_founder_within_plates_rejects_runs_not_on_exterior_sea(monkeypatch):
     assert founder_within_plates(world, 1.0) == 0
     assert len(world.plates) == 1
     assert world.events == []
+
+
+def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
+    world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
+    num_cells = world.mesh.num_cells
+    minimum_cells = 100.0 / world.mesh.cell_area_km2
+    assert _plate_can_founder_margin(plate, minimum_cells, num_cells, 0.0)
+    assert not _plate_can_founder_margin(plate, minimum_cells, num_cells, 2.0)
+
+    run = [1, 2]
+    length_age_chance = _founder_run_probability(
+        world,
+        run,
+        plate.crust.formedAt,
+        float(world.time),
+        1.0,
+        float(world.mesh.edge_km),
+        100.0,
+        100.0,
+        2.0,
+        0.01,
+    )
+    assert length_age_chance == pytest.approx((200.0, 200.0, 0.02))
+    world.cycle = {"phase": "dispersing", "breakupAt": -200.0}
+    world.config["disperseFounderFactor"] = 0.25
+    dispersed = _founder_run_probability(
+        world,
+        run,
+        plate.crust.formedAt,
+        float(world.time),
+        1.0,
+        float(world.mesh.edge_km),
+        100.0,
+        100.0,
+        2.0,
+        0.01,
+    )
+    assert dispersed == pytest.approx((200.0, 200.0, 0.005))
+    assert (
+        _founder_run_probability(
+            world,
+            [1],
+            plate.crust.formedAt,
+            float(world.time),
+            1.0,
+            float(world.mesh.edge_km),
+            100.0,
+            101.0,
+            2.0,
+            0.01,
+        )
+        is None
+    )
+
+    coast, run_of, runs = _old_ocean_margin_runs(
+        world.mesh, plate.crust, float(world.time), 100.0
+    )
+    assert runs
+    selected = runs[0]
+    labels, take = _carve_intraplate_ocean_cells(
+        world.mesh, plate.crust, coast, run_of, selected, 5
+    )
+    assert take
+    assert all(labels[cell] == 1 for cell in take)
+    assert all(plate.crust.type[cell] == 0 for cell in take)
+
+    started = _start_intraplate_ocean_founder(
+        world,
+        plate,
+        selected,
+        take,
+        labels,
+        coast,
+        len(selected) * float(world.mesh.edge_km),
+        200.0,
+        float(world.time),
+        float(world.mesh.cell_area_km2),
+        world.config,
+    )
+    assert started is True
+    fresh = world.plates[-1]
+    assert fresh.isOceanBorn
+    assert fresh.crust.count == len(take)
+    assert all(plate.crust.flags[cell] & CrustFlag["TRENCH"] for cell in selected)
+
+
+def test_subduction_contact_helpers_group_and_measure_the_same_founder_pair():
+    world = make_boundary_world()
+    contacts = _collect_subduction_contacts(world)
+
+    assert list(contacts) == [(0, 1)]
+    entry = contacts[(0, 1)]
+    assert entry["cells"] == [0]
+    assert entry["ages"] == pytest.approx(100.0)
+    assert _subduction_cell_is_stale(world.plates[0], 0) is False
+
+    metrics = _subduction_founder_metrics(world, entry, 1.0, 100.0)
+    assert metrics is not None
+    length_km, age_myr, chance = metrics
+    assert length_km == pytest.approx(100.0)
+    assert age_myr == pytest.approx(100.0)
+    assert chance > 0.0
+
+    world.config["subductionInitMinLengthKm"] = 101.0
+    assert _subduction_founder_metrics(world, entry, 1.0, 100.0) is None
+
+
+def test_found_subduction_pair_helper_creates_the_same_trench_event():
+    world = make_boundary_world()
+    contacts = _collect_subduction_contacts(world)
+
+    assert _found_subduction_pair(
+        world,
+        (0, 1),
+        contacts[(0, 1)],
+        1.0,
+        float(world.mesh.edge_km),
+    )
+    assert world.plates[1].crust.flags[0] & CrustFlag["TRENCH"]
+    assert world.events[-1]["kind"] == "subduction-init"
+    assert world.events[-1]["data"]["upper"] == 1
+    assert world.events[-1]["data"]["lower"] == 0

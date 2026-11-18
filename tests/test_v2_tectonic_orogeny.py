@@ -1,18 +1,21 @@
 """Tests for the pure orogenic belt geometry rules."""
-import math
 
 import pytest
 
-from orogen.v2.tectonics.orogeny import belt_width_km, belt_shape, obliquity_deg
+from orogen.v2.tectonics.orogeny import belt_shape, belt_width_km, obliquity_deg
 
 
 def _config():
     return {
         "belts": {"andean": {"baseKm": 120, "perKm": 1.0, "maxKm": 400}},
-        "beltSpeedFactorMax": 1.6, "beltSpeedFactorMin": 0.6,
-        "beltSpeedRefCmYr": 5.0, "beltSpeedExponent": 0.5,
-        "beltObliqueMin": 0.35, "beltYoungSlabBoost": 0.5,
-        "beltYoungSlabRefMyr": 60.0, "beltOldSlabMin": 0.75,
+        "beltSpeedFactorMax": 1.6,
+        "beltSpeedFactorMin": 0.6,
+        "beltSpeedRefCmYr": 5.0,
+        "beltSpeedExponent": 0.5,
+        "beltObliqueMin": 0.35,
+        "beltYoungSlabBoost": 0.5,
+        "beltYoungSlabRefMyr": 60.0,
+        "beltOldSlabMin": 0.75,
     }
 
 
@@ -36,4 +39,6 @@ def test_belt_shape_obliquity_and_slab_age():
 def test_obliquity_signed_angle_and_zero_closing_guard():
     assert obliquity_deg([0, 1, 0], [1, 0, 0], [0, 0, 1], 1) == pytest.approx(45)
     assert obliquity_deg([0, -1, 0], [1, 0, 0], [0, 0, 1], 1) == pytest.approx(-45)
-    assert obliquity_deg([0, 1, 0], [1, 0, 0], [0, 0, 1], 0) == pytest.approx(90, abs=1e-8)
+    assert obliquity_deg([0, 1, 0], [1, 0, 0], [0, 0, 1], 0) == pytest.approx(
+        90, abs=1e-8
+    )

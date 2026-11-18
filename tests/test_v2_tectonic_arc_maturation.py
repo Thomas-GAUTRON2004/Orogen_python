@@ -140,8 +140,6 @@ def test_arc_maturation_consumes_a_front_step_even_when_no_cell_is_due():
     plate.crust.remove(5)
 
     assert mature_arcs(world, 10.0) == 0
-    assert plate.arcMatureKm == pytest.approx(
-        10.0 - 10.0 * np.sqrt(3.0) / 2.0
-    )
+    assert plate.arcMatureKm == pytest.approx(10.0 - 10.0 * np.sqrt(3.0) / 2.0)
     assert plate.dirty is False
     assert world.budget == {}

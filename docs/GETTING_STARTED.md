@@ -8,7 +8,7 @@ Orogen Python requires:
 |---|---:|---|
 | Python | 3.10 | Runtime |
 | NumPy | 1.24 | Typed arrays and vector operations |
-| shull | 0.4.0 | Rust-backed Delaunay triangulation |
+| SciPy | 1.10 | Qhull-backed Delaunay triangulation |
 | pytest | 8 | Test runner (optional extra) |
 | pytest-cov | 5 | Coverage reporting (optional extra) |
 

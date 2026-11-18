@@ -1,4 +1,5 @@
 """World-frame crust claims gathered from plate-frame rasters (V2 gather.js)."""
+
 from __future__ import annotations
 
 import numpy as np

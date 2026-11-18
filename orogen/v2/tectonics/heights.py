@@ -3,6 +3,7 @@
 This module implements the belt-building path only. Time-dependent erosion,
 isostatic rebound and terrain synthesis are separate simulation stages.
 """
+
 from __future__ import annotations
 
 import math
@@ -10,26 +11,37 @@ from collections.abc import Mapping
 
 from .crust import BeltSide, CrustType, OrogenyType
 
-
 DEFAULT_HEIGHTS = {
     "reliefKm": {
-        OrogenyType["ANDEAN"]: 3.4, OrogenyType["LARAMIDE"]: 1.5,
-        OrogenyType["URAL"]: 1.7, OrogenyType["HIMALAYAN"]: 3.2,
-        OrogenyType["ARC"]: 0.8, OrogenyType["RIFT"]: 1.4,
-        OrogenyType["TRANSPRESSION"]: 1.9, OrogenyType["INTRAPLATE"]: 3.0,
+        OrogenyType["ANDEAN"]: 3.4,
+        OrogenyType["LARAMIDE"]: 1.5,
+        OrogenyType["URAL"]: 1.7,
+        OrogenyType["HIMALAYAN"]: 3.2,
+        OrogenyType["ARC"]: 0.8,
+        OrogenyType["RIFT"]: 1.4,
+        OrogenyType["TRANSPRESSION"]: 1.9,
+        OrogenyType["INTRAPLATE"]: 3.0,
     },
     "fullReachKm": {
-        OrogenyType["ANDEAN"]: 450, OrogenyType["LARAMIDE"]: 900,
-        OrogenyType["URAL"]: 250, OrogenyType["HIMALAYAN"]: 900,
-        OrogenyType["ARC"]: 200, OrogenyType["RIFT"]: 220,
-        OrogenyType["TRANSPRESSION"]: 80, OrogenyType["INTRAPLATE"]: 300,
+        OrogenyType["ANDEAN"]: 450,
+        OrogenyType["LARAMIDE"]: 900,
+        OrogenyType["URAL"]: 250,
+        OrogenyType["HIMALAYAN"]: 900,
+        OrogenyType["ARC"]: 200,
+        OrogenyType["RIFT"]: 220,
+        OrogenyType["TRANSPRESSION"]: 80,
+        OrogenyType["INTRAPLATE"]: 300,
     },
     "youngShare": 0.55,
     "upliftBuildKm": {
-        OrogenyType["ANDEAN"]: 20, OrogenyType["LARAMIDE"]: 20,
-        OrogenyType["URAL"]: 30, OrogenyType["HIMALAYAN"]: 50,
-        OrogenyType["ARC"]: 20, OrogenyType["RIFT"]: 1,
-        OrogenyType["TRANSPRESSION"]: 30, OrogenyType["INTRAPLATE"]: 15,
+        OrogenyType["ANDEAN"]: 20,
+        OrogenyType["LARAMIDE"]: 20,
+        OrogenyType["URAL"]: 30,
+        OrogenyType["HIMALAYAN"]: 50,
+        OrogenyType["ARC"]: 20,
+        OrogenyType["RIFT"]: 1,
+        OrogenyType["TRANSPRESSION"]: 30,
+        OrogenyType["INTRAPLATE"]: 15,
     },
     "rootGain": {OrogenyType["ANDEAN"]: 1.25},
     "arcUpliftShare": 0.25,
@@ -51,9 +63,7 @@ def _bump(x: float, centre: float, sigma: float, g: float = 0.0) -> float:
 
 
 def _plateau(u: float, a: float, b: float, edge: float) -> float:
-    return _smooth(a - edge, a + edge, u) * (
-        1.0 - _smooth(b - edge, b + edge, u)
-    )
+    return _smooth(a - edge, a + edge, u) * (1.0 - _smooth(b - edge, b + edge, u))
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -83,9 +93,12 @@ def broad_profile(
     if oro_type == OrogenyType["ANDEAN"]:
         mature = _smooth(180, 450, width)
         return fade * (
-            0.575 * _bump(d, _clamp(0.3 * width, 70, 260), max(110, 0.2 * width), wear_g)
+            0.575
+            * _bump(d, _clamp(0.3 * width, 70, 260), max(110, 0.2 * width), wear_g)
             + 0.55 * mature * _plateau(u, 0.33, 0.72, 0.1)
-            + 0.3 * _smooth(200, 350, width) * _bump(d, 0.76 * width, max(100, 0.12 * width), wear_g)
+            + 0.3
+            * _smooth(200, 350, width)
+            * _bump(d, 0.76 * width, max(100, 0.12 * width), wear_g)
         )
     if oro_type == OrogenyType["LARAMIDE"]:
         return fade * (
@@ -103,11 +116,15 @@ def broad_profile(
     if oro_type == OrogenyType["HIMALAYAN"]:
         if side == BeltSide["LOWER"]:
             return fade * (
-                0.675 * _bump(d, _clamp(0.22 * width, 40, 130), max(110, 0.15 * width), wear_g)
+                0.675
+                * _bump(
+                    d, _clamp(0.22 * width, 40, 130), max(110, 0.15 * width), wear_g
+                )
                 - 0.3 * _bump(d, 0.86 * width, max(90, 0.12 * width), wear_g)
             )
         return fade * (
-            0.525 * _bump(d, _clamp(0.05 * width, 20, 80), max(110, 0.08 * width), wear_g)
+            0.525
+            * _bump(d, _clamp(0.05 * width, 20, 80), max(110, 0.08 * width), wear_g)
             + 0.8 * _smooth(300, 800, width) * _plateau(u, 0.1, 0.84, 0.1)
             + 0.525 * _bump(d, 0.88 * width, max(110, 0.08 * width), wear_g)
         )
@@ -167,8 +184,12 @@ def build_heights(
         and oro_type in (OrogenyType["ANDEAN"], OrogenyType["ARC"])
         else 1.0
     )
-    target = own * amplitude * broad_profile(
-        oro_type, int(side), float(u) * float(reach_km), float(reach_km)
+    target = (
+        own
+        * amplitude
+        * broad_profile(
+            oro_type, int(side), float(u) * float(reach_km), float(reach_km)
+        )
     )
     current = float(crust.upliftKm[cell])
     if (target >= 0 and target > current) or (target < 0 and target < current):

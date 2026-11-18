@@ -3,7 +3,10 @@ import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.world import (
-    BoundaryKind, EventKind, Provisional, TectonicWorld,
+    BoundaryKind,
+    EventKind,
+    Provisional,
+    TectonicWorld,
 )
 
 
@@ -36,7 +39,10 @@ def test_world_plate_ids_terrane_ids_names_and_events():
     assert world.name_by_cratons(a, "plate") == "L"
     world.log(EventKind["START"], "start", {"plate": 0})
     assert world.events[0] == {
-        "time": 0.0, "kind": "start", "text": "start", "data": {"plate": 0}
+        "time": 0.0,
+        "kind": "start",
+        "text": "start",
+        "data": {"plate": 0},
     }
     with pytest.raises(ValueError):
         world.log("not-an-event", "invalid")

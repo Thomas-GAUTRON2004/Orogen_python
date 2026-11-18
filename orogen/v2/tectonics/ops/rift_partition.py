@@ -14,7 +14,6 @@ import numpy as np
 from ...core.sphere_geometry import tangent_toward
 from ..crust import CrustType
 
-
 _RIFT_OCEAN_REACH_KM = 7300.0
 
 
@@ -72,10 +71,7 @@ def partition(mesh, crust, path: Iterable[int], cells=None):
         on_path[cell] = 1
 
     def is_land(cell: int) -> bool:
-        return bool(
-            crust.mask[cell]
-            and crust.type[cell] != CrustType["OCEAN"]
-        )
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
     # Accumulate the signed offset of each path-adjacent cell. Positive is
     # left of the directed path, negative is right.
@@ -168,10 +164,7 @@ def partition(mesh, crust, path: Iterable[int], cells=None):
         side_id = int(side[cell])
         land[side_id] += 1
         terrane = int(crust.terrane[cell])
-        if (
-            crust.type[cell] == CrustType["CRATON"]
-            and terrane not in seen_cratons
-        ):
+        if crust.type[cell] == CrustType["CRATON"] and terrane not in seen_cratons:
             seen_cratons.add(terrane)
             cratons[side_id] += 1
     return side, land, cratons
@@ -188,10 +181,7 @@ def exterior_sea(mesh, crust) -> np.ndarray:
     out = np.zeros(num_cells, dtype=np.uint8)
 
     def is_sea(cell: int) -> bool:
-        return bool(
-            not crust.mask[cell]
-            or crust.type[cell] == CrustType["OCEAN"]
-        )
+        return bool(not crust.mask[cell] or crust.type[cell] == CrustType["OCEAN"])
 
     frontier = []
     for cell in range(num_cells):
@@ -271,11 +261,7 @@ def elongation_of(mesh, side, which: int, cells=None) -> float:
             for j in range(3):
                 covariance[3 * i + j] += delta[i] * delta[j]
 
-    p1 = (
-        covariance[1] ** 2
-        + covariance[2] ** 2
-        + covariance[5] ** 2
-    )
+    p1 = covariance[1] ** 2 + covariance[2] ** 2 + covariance[5] ** 2
     q = (covariance[0] + covariance[4] + covariance[8]) / 3.0
     p2 = (
         (covariance[0] - q) ** 2
@@ -288,34 +274,18 @@ def elongation_of(mesh, side, which: int, cells=None) -> float:
         return 1.0
 
     matrix = [
-        [
-            (covariance[3 * i + j] - (q if i == j else 0.0)) / p
-            for j in range(3)
-        ]
+        [(covariance[3 * i + j] - (q if i == j else 0.0)) / p for j in range(3)]
         for i in range(3)
     ]
     determinant = (
-        matrix[0][0] * (
-            matrix[1][1] * matrix[2][2]
-            - matrix[1][2] * matrix[2][1]
-        )
-        - matrix[0][1] * (
-            matrix[1][0] * matrix[2][2]
-            - matrix[1][2] * matrix[2][0]
-        )
-        + matrix[0][2] * (
-            matrix[1][0] * matrix[2][1]
-            - matrix[1][1] * matrix[2][0]
-        )
+        matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
     )
     phi = math.acos(max(-1.0, min(1.0, determinant / 2.0))) / 3.0
     largest_eigenvalue = q + 2.0 * p * math.cos(phi)
-    smallest_eigenvalue = q + 2.0 * p * math.cos(
-        phi + 2.0 * math.pi / 3.0
-    )
-    middle_eigenvalue = (
-        3.0 * q - largest_eigenvalue - smallest_eigenvalue
-    )
+    smallest_eigenvalue = q + 2.0 * p * math.cos(phi + 2.0 * math.pi / 3.0)
+    middle_eigenvalue = 3.0 * q - largest_eigenvalue - smallest_eigenvalue
     eigenvalues = sorted(
         (
             largest_eigenvalue,
@@ -365,10 +335,7 @@ def _through_ocean(mesh, crust, path: list[int]) -> list[int]:
                     current_position,
                     _position(mesh.xyz, neighbour),
                 )
-                along = sum(
-                    neighbour_direction[i] * direction[i]
-                    for i in range(3)
-                )
+                along = sum(neighbour_direction[i] * direction[i] for i in range(3))
                 if along > best_dot:
                     best_dot = along
                     best = neighbour

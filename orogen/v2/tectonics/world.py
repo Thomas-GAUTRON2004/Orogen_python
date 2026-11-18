@@ -1,7 +1,9 @@
 """Mutable tectonic-world state container ported from Orogen V2 model/world.js."""
+
 from __future__ import annotations
 
 from copy import deepcopy
+
 import numpy as np
 
 from ..core.seed import make_rng
@@ -9,22 +11,39 @@ from .crust import CrustType
 from .plate import Plate
 
 EventKind = {
-    "START": "start", "PLATE_BORN": "plate-born", "COLLISION": "collision",
-    "SUTURE": "suture", "DOCK": "dock", "ARC_SCRAPE": "arc-scrape",
-    "ARC_COLLAPSE": "arc-collapse", "ISLE_MERGE": "isle-merge",
-    "ARC_RECYCLED": "arc-recycled", "FRAGMENT": "fragment", "RIFT": "rift",
-    "SUBDUCTION_INIT": "subduction-init", "OCEAN_SPLIT": "ocean-split",
-    "MICROPLATE": "microplate", "SLAB_FLAT": "slab-flat",
-    "SLAB_STEEP": "slab-steep", "BACKARC_OPEN": "backarc-open",
-    "BACKARC_CLOSE": "backarc-close", "PLUME_RISE": "plume-rise",
-    "PLUME_DEATH": "plume-death", "LIP": "lip",
-    "SUPERCONTINENT": "supercontinent", "DISPERSED": "dispersed",
+    "START": "start",
+    "PLATE_BORN": "plate-born",
+    "COLLISION": "collision",
+    "SUTURE": "suture",
+    "DOCK": "dock",
+    "ARC_SCRAPE": "arc-scrape",
+    "ARC_COLLAPSE": "arc-collapse",
+    "ISLE_MERGE": "isle-merge",
+    "ARC_RECYCLED": "arc-recycled",
+    "FRAGMENT": "fragment",
+    "RIFT": "rift",
+    "SUBDUCTION_INIT": "subduction-init",
+    "OCEAN_SPLIT": "ocean-split",
+    "MICROPLATE": "microplate",
+    "SLAB_FLAT": "slab-flat",
+    "SLAB_STEEP": "slab-steep",
+    "BACKARC_OPEN": "backarc-open",
+    "BACKARC_CLOSE": "backarc-close",
+    "PLUME_RISE": "plume-rise",
+    "PLUME_DEATH": "plume-death",
+    "LIP": "lip",
+    "SUPERCONTINENT": "supercontinent",
+    "DISPERSED": "dispersed",
 }
 _EVENT_KINDS = frozenset(EventKind.values())
 
 BoundaryKind = {
-    "NONE": 0, "RIDGE": 1, "TRANSFORM": 2, "SUBDUCTING": 3,
-    "OVERRIDING": 4, "COLLISION": 5,
+    "NONE": 0,
+    "RIDGE": 1,
+    "TRANSFORM": 2,
+    "SUBDUCTING": 3,
+    "OVERRIDING": 4,
+    "COLLISION": 5,
 }
 Provisional = {"NO": 0, "NEWBORN": 1, "LIKE_NEIGHBOUR": 2}
 
@@ -36,9 +55,13 @@ class TectonicWorld:
     full config module is ported, callers must pass the matching config mapping.
     """
 
-    def __init__(self, sim_mesh, seed: int, config: dict, overrides: dict | None = None):
+    def __init__(
+        self, sim_mesh, seed: int, config: dict, overrides: dict | None = None
+    ):
         if config is None:
-            raise ValueError("config must be supplied; upstream TECTONICS defaults are not yet ported")
+            raise ValueError(
+                "config must be supplied; upstream TECTONICS defaults are not yet ported"
+            )
         self.mesh = sim_mesh
         self.seed = int(seed)
         self.config = deepcopy(config)
@@ -86,8 +109,11 @@ class TectonicWorld:
         self.convergence = np.zeros(n, dtype=np.float32)
 
         self.budget = {
-            "created": 0, "consumed": 0, "erodedCells": 0,
-            "underthrustCells": 0, "recycledCells": 0,
+            "created": 0,
+            "consumed": 0,
+            "erodedCells": 0,
+            "underthrustCells": 0,
+            "recycledCells": 0,
         }
         self.events = []
         self.collisions = {}
@@ -131,7 +157,11 @@ class TectonicWorld:
     def log(self, kind: str, text: str, data: dict | None = None) -> None:
         if kind not in _EVENT_KINDS:
             raise ValueError(f"unknown event kind: {kind}")
-        self.events.append({
-            "time": self.time, "kind": kind, "text": text,
-            "data": {} if data is None else data,
-        })
+        self.events.append(
+            {
+                "time": self.time,
+                "kind": kind,
+                "text": text,
+                "data": {} if data is None else data,
+            }
+        )

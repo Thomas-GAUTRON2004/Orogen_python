@@ -1,11 +1,12 @@
 """Rigid tectonic plate model ported from Orogen V2 model/plate.js."""
+
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 from ..core.rotation import quat_identity, quat_to_mat3
-from ..core.sphere_geometry import dot
 from .crust import CrustRaster, CrustType
 
 
@@ -32,7 +33,7 @@ class Plate:
         self.bins = None
         self.dynamics = None
         self.wingBudgetKm = 0.0
-        self.wings = {}
+        self.wings: dict[object, object] = {}
         self.arcTerraneId = None
         self.marginIsleTerrane = None
         self.riftPartner = -1
@@ -47,7 +48,7 @@ class Plate:
         self.rollbackCmYr = 0.0
         self.lastBackArcAt = -math.inf
         self.isOceanBorn = False
-        self.scene = {}
+        self.scene: dict[str, object] = {}
 
     def set_quat(self, quaternion) -> None:
         self.quat = list(quaternion)

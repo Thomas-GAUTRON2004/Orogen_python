@@ -1,4 +1,5 @@
 """Deterministic force-balance primitives ported from V2 torque-balance.js."""
+
 from __future__ import annotations
 
 import math
@@ -8,8 +9,8 @@ import numpy as np
 
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .crust import CrustType
-from .simulation import fastest_speed
 from .forces import gather_boundary_loads
+from .simulation import fastest_speed
 
 
 def solve3(matrix: Sequence[float], vector: Sequence[float]) -> list[float]:
@@ -29,17 +30,20 @@ def solve3(matrix: Sequence[float], vector: Sequence[float]) -> list[float]:
             b[0] * c00
             - d[1] * (b[1] * d[8] - d[5] * b[2])
             + d[2] * (b[1] * d[7] - d[4] * b[2])
-        ) / determinant,
+        )
+        / determinant,
         (
             d[0] * (b[1] * d[8] - d[5] * b[2])
             - b[0] * c01
             + d[2] * (d[3] * b[2] - b[1] * d[6])
-        ) / determinant,
+        )
+        / determinant,
         (
             d[0] * (d[4] * b[2] - b[1] * d[7])
             - d[1] * (d[3] * b[2] - b[1] * d[6])
             + b[0] * c02
-        ) / determinant,
+        )
+        / determinant,
     ]
 
 
@@ -125,10 +129,9 @@ def balanced_rotation(
 def soften_speed(omega: Sequence[float], plate, centre, config: Mapping) -> list[float]:
     """Apply smooth continental/oceanic speed saturation."""
     result = [float(value) for value in omega]
-    continental = (
-        float(plate.stats["continentalCells"])
-        > float(config["continentalPlateShare"]) * float(plate.stats["cells"])
-    )
+    continental = float(plate.stats["continentalCells"]) > float(
+        config["continentalPlateShare"]
+    ) * float(plate.stats["cells"])
     limit_cm_yr = float(
         config["continentalSoftCmYr"] if continental else config["oceanicSoftCmYr"]
     )
@@ -148,13 +151,15 @@ def clamp_speed(
     speed = fastest_speed(result, plate, centre)
     if speed < 1e-12:
         return result, False
-    continental = (
-        float(plate.stats["continentalCells"])
-        > float(config["continentalPlateShare"]) * float(plate.stats["cells"])
+    continental = float(plate.stats["continentalCells"]) > float(
+        config["continentalPlateShare"]
+    ) * float(plate.stats["cells"])
+    limit = (
+        float(
+            config["maxSpeedContinental"] if continental else config["maxSpeedOceanic"]
+        )
+        * CM_PER_YR_TO_RAD_PER_MYR
     )
-    limit = float(
-        config["maxSpeedContinental"] if continental else config["maxSpeedOceanic"]
-    ) * CM_PER_YR_TO_RAD_PER_MYR
     if speed <= limit:
         return result, False
     factor = limit / speed
@@ -165,20 +170,21 @@ def _describe_dynamics(load: Mapping, target, centre, capped: bool, mesh) -> dic
     from .forces import FORCE_KINDS
     from .kinematics import speed_cm_yr_at
 
-    net = math.hypot(*(
-        float(load["torque"][i]) - float(load["flowTorque"][i])
-        for i in range(3)
-    ))
+    net = math.hypot(
+        *(float(load["torque"][i]) - float(load["flowTorque"][i]) for i in range(3))
+    )
     forces = []
     for index, name in enumerate(FORCE_KINDS):
         cells = int(load["cells"][index])
-        forces.append({
-            "name": name,
-            "cells": cells,
-            "km": cells * float(mesh.edge_km),
-            "vector": list(load["forceByKind"][index]),
-            "torque": float(np.linalg.norm(load["byKind"][index])),
-        })
+        forces.append(
+            {
+                "name": name,
+                "cells": cells,
+                "km": cells * float(mesh.edge_km),
+                "vector": list(load["forceByKind"][index]),
+                "torque": float(np.linalg.norm(load["byKind"][index])),
+            }
+        )
     total = float(load["torqueMagnitudeSum"])
     contacts = load["contacts"]
     return {
@@ -218,10 +224,5 @@ def update_plate_motion(world) -> None:
         target = soften_speed(target, plate, centre, config)
         target, capped = clamp_speed(target, plate, centre, config)
         initial = before[int(plate.id)]
-        plate.omega = [
-            initial[i] + (target[i] - initial[i]) * blend
-            for i in range(3)
-        ]
-        plate.dynamics = _describe_dynamics(
-            load, target, centre, capped, world.mesh
-        )
+        plate.omega = [initial[i] + (target[i] - initial[i]) * blend for i in range(3)]
+        plate.dynamics = _describe_dynamics(load, target, centre, capped, world.mesh)

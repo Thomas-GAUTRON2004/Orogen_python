@@ -3,6 +3,7 @@
 Port of v2/js/core/mesh-bfs.js. Mesh adjacency is stored in CSR form:
 adj_offset has num_cells + 1 entries and adj_list stores neighbour indices.
 """
+
 from __future__ import annotations
 
 import math
@@ -11,12 +12,13 @@ from typing import Any
 
 import numpy as np
 
-from .sphere_geometry import PLANET_RADIUS_KM
-
 from ._numba_kernels import (
-    NUMBA_AVAILABLE, hop_distance_numba, pieces_of_numba,
+    NUMBA_AVAILABLE,
+    hop_distance_numba,
     largest_piece_numba,
+    pieces_of_numba,
 )
+from .sphere_geometry import PLANET_RADIUS_KM
 
 Predicate = Callable[[int], bool]
 
@@ -34,12 +36,14 @@ def within_km(sim_mesh: Any, is_source: Predicate, radius_km: float) -> np.ndarr
         if not is_source(source):
             continue
         reached[source] = 1
-        edge = any(not is_source(int(adjacency[k]))
-                   for k in range(int(offsets[source]), int(offsets[source + 1])))
+        edge = any(
+            not is_source(int(adjacency[k]))
+            for k in range(int(offsets[source]), int(offsets[source + 1]))
+        )
         if not edge:
             continue
 
-        sx, sy, sz = (float(value) for value in xyz[3 * source:3 * source + 3])
+        sx, sy, sz = (float(value) for value in xyz[3 * source : 3 * source + 3])
         queue.clear()
         queue.append(source)
         seen[source] = source
@@ -52,8 +56,11 @@ def within_km(sim_mesh: Any, is_source: Predicate, radius_km: float) -> np.ndarr
                 if seen[neighbour] == source:
                     continue
                 offset = 3 * neighbour
-                cosine = (float(xyz[offset]) * sx + float(xyz[offset + 1]) * sy
-                          + float(xyz[offset + 2]) * sz)
+                cosine = (
+                    float(xyz[offset]) * sx
+                    + float(xyz[offset + 1]) * sy
+                    + float(xyz[offset + 2]) * sz
+                )
                 if cosine < min_dot:
                     continue
                 seen[neighbour] = source
@@ -72,7 +79,9 @@ def hop_distance(
     n = int(sim_mesh.num_cells)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     if NUMBA_AVAILABLE and can_enter is None:
-        sources = np.fromiter((bool(is_source(cell)) for cell in range(n)), dtype=np.bool_, count=n)
+        sources = np.fromiter(
+            (bool(is_source(cell)) for cell in range(n)), dtype=np.bool_, count=n
+        )
         return hop_distance_numba(
             np.ascontiguousarray(offsets, dtype=np.int32),
             np.ascontiguousarray(adjacency, dtype=np.int32),
@@ -212,7 +221,7 @@ def pieces_of(sim_mesh: Any, cells: Iterable[int]) -> list[list[int]]:
             np.asarray(ordered_cells, dtype=np.int32),
         )
         return [
-            flat[int(starts[i]):int(starts[i + 1])].tolist()
+            flat[int(starts[i]) : int(starts[i + 1])].tolist()
             for i in range(len(starts) - 1)
         ]
 
@@ -253,4 +262,3 @@ def largest_piece_of(sim_mesh: Any, cells: Iterable[int]) -> list[int]:
         if len(piece) > len(best):
             best = piece
     return best
-

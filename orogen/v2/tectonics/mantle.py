@@ -3,6 +3,7 @@
 The cycle tracker (landmass detection, heating and phase transitions) is a
 separate stage. This module evaluates an already-computed cycle state.
 """
+
 from __future__ import annotations
 
 import math
@@ -12,7 +13,6 @@ import numpy as np
 
 from ..core.sim_mesh import PLANET_RADIUS_KM
 from .crust import CrustType
-
 
 _PAIR = 65536
 
@@ -50,7 +50,11 @@ def flow_of_cycle(cycle, config: Mapping, x: float, y: float, z: float, out=None
         return dot
 
     up = cycle["up"]
-    cosine_up = float(up[0]) * position[0] + float(up[1]) * position[1] + float(up[2]) * position[2]
+    cosine_up = (
+        float(up[0]) * position[0]
+        + float(up[1]) * position[1]
+        + float(up[2]) * position[2]
+    )
     sine_up = math.sqrt(max(0.0, 1.0 - cosine_up * cosine_up))
     outflow = float(config.get("mantleOutflow", 0.0))
     if cosine_up > 0 and outflow > 0:
@@ -69,7 +73,11 @@ def flow_of_cycle(cycle, config: Mapping, x: float, y: float, z: float, out=None
         attenuation = min(1.0, distance / pack_km) if pack_km > 0 else 1.0
         add(target, strength * attenuation)
 
-    if inflow > 0 and float(cycle.get("gather", 0.0)) > 0 and cycle.get("down") is not None:
+    if (
+        inflow > 0
+        and float(cycle.get("gather", 0.0)) > 0
+        and cycle.get("down") is not None
+    ):
         pull(cycle["down"], inflow * float(cycle["gather"]))
     if (
         inflow > 0
@@ -133,13 +141,15 @@ def dispersal_field(world):
         radius = math.sqrt(count * cell_area / math.pi) / PLANET_RADIUS_KM
         far = radius + reach
         cutoff = math.cos(far) - 1e-9 if far < math.pi else -3.0
-        centres.append({
-            "id": plate_id,
-            "c": [record[0] / length, record[1] / length, record[2] / length],
-            "share": count / total if total else 0.0,
-            "radius": radius,
-            "cutoff": cutoff,
-        })
+        centres.append(
+            {
+                "id": plate_id,
+                "c": [record[0] / length, record[1] / length, record[2] / length],
+                "share": count / total if total else 0.0,
+                "radius": radius,
+                "cutoff": cutoff,
+            }
+        )
 
     touching = set()
     for cell in range(int(mesh.num_cells)):

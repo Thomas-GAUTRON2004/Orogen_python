@@ -3,7 +3,13 @@
 import numpy as np
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
-from orogen.v2.tectonics.ops.merge_plates import _stamp_cratons_rigidly, merge_plates
+from orogen.v2.tectonics.ops.merge_plates import (
+    _build_indentation_displacement,
+    _measure_overlap_geometry,
+    _resample_lower_cells,
+    _stamp_cratons_rigidly,
+    merge_plates,
+)
 from orogen.v2.tectonics.plate import Plate
 
 
@@ -47,9 +53,7 @@ class Index:
 class Mesh:
     def __init__(self):
         angles = np.arange(7, dtype=float) * 0.02
-        points = np.column_stack((
-            np.cos(angles), np.sin(angles), np.zeros(7)
-        ))
+        points = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(7)))
         self.xyz = points.astype(np.float32).ravel()
         self.num_cells = 7
         self.edge_km = 100.0
@@ -57,14 +61,28 @@ class Mesh:
         self.cell_area_km2 = 100.0
         self.index = Index(points)
         self.adj_offset = np.asarray([0, 4, 8, 11, 14, 16, 17, 17], dtype=np.int32)
-        self.adj_list = np.asarray([
-            4, 1, 2, 3,
-            0, 2, 3, 5,
-            0, 1, 3,
-            0, 2, 4,
-            0, 3,
-            1,
-        ], dtype=np.int32)
+        self.adj_list = np.asarray(
+            [
+                4,
+                1,
+                2,
+                3,
+                0,
+                2,
+                3,
+                5,
+                0,
+                1,
+                3,
+                0,
+                2,
+                4,
+                0,
+                3,
+                1,
+            ],
+            dtype=np.int32,
+        )
 
 
 def merge_fixture(gain=0.01):
@@ -200,3 +218,89 @@ def test_stamp_cratons_skips_a_zero_length_stamping_position():
         world.mesh,
     )
     assert output.count == 0
+
+
+def test_merge_plates_preserves_plate_identity_and_crust_accounting():
+    world, upper, lower = merge_fixture()
+    upper_id, lower_id = upper.id, lower.id
+
+    merge_plates(
+        world,
+        upper,
+        lower,
+        [1],
+        {"shorteningKm": 250.0, "meanRateCmYr": 2.5},
+    )
+
+    occupied = upper.crust.mask.astype(bool)
+    land = occupied & (upper.crust.type != CrustType["OCEAN"])
+    assert upper.id == upper_id
+    assert lower.id == lower_id
+    assert upper.crust.count == int(np.count_nonzero(occupied))
+    assert upper.stats["cells"] == int(np.count_nonzero(occupied))
+    assert upper.stats["continentalCells"] == int(np.count_nonzero(land))
+    assert np.all(np.isin(upper.crust.mask, (0, 1)))
+    assert not lower.alive
+    assert lower.crust.count == 0
+    assert lower.stats["cells"] == 0
+
+
+def test_lower_plate_resampling_is_identity_for_aligned_rasters():
+    world, upper, lower = merge_fixture(gain=0.0)
+
+    mapped = _resample_lower_cells(world.mesh, upper, lower, lower.crust)
+
+    assert mapped.shape == (world.mesh.num_cells,)
+    assert mapped.dtype == np.int32
+    for cell in range(world.mesh.num_cells):
+        expected = cell if lower.crust.mask[cell] else -1
+        assert mapped[cell] == expected
+
+
+def test_overlap_geometry_and_displacement_helpers_are_finite_and_consistent():
+    world, upper, lower = merge_fixture()
+    from_lower = _resample_lower_cells(world.mesh, upper, lower, lower.crust)
+    geometry = _measure_overlap_geometry(
+        world.mesh,
+        upper,
+        lower,
+        lower.crust,
+        from_lower,
+        [1],
+        float(world.mesh.edge_km),
+    )
+
+    assert geometry.overlap_count == 3
+    assert len(geometry.overlap_cells) == geometry.overlap_count
+    assert geometry.max_indent > 0.0
+    assert geometry.sum_indent >= geometry.max_indent
+    assert np.all(geometry.depth_km[geometry.overlap_cells] > 0.0)
+    assert np.all(np.isfinite(geometry.normal[geometry.overlap_cells]))
+    assert np.all(np.isfinite(geometry.along[geometry.overlap_cells]))
+
+    displacement = _build_indentation_displacement(
+        world.mesh,
+        geometry.overlap_cells,
+        geometry.end_a,
+        geometry.end_b,
+        geometry.depth_km,
+        geometry.along,
+        geometry.normal,
+        world.config,
+    )
+    assert displacement.shape == (world.mesh.num_cells, 3)
+    assert np.all(np.isfinite(displacement))
+    assert np.any(np.linalg.norm(displacement, axis=1) > 0.0)
+
+    zero_gain_config = {**world.config, "indentGain": 0.0}
+    zero_displacement = _build_indentation_displacement(
+        world.mesh,
+        geometry.overlap_cells,
+        geometry.end_a,
+        geometry.end_b,
+        geometry.depth_km,
+        geometry.along,
+        geometry.normal,
+        zero_gain_config,
+    )
+    assert not np.any(zero_displacement)

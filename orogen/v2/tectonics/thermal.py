@@ -3,6 +3,7 @@
 This module ports the heat-memory part of the hotspot stage. Plume birth,
 LIP construction, plume tails and volcano-track stamping remain separate.
 """
+
 from __future__ import annotations
 
 import math
@@ -70,7 +71,7 @@ def plume_heat_factor(world, plate) -> float:
     denominator = floor + gain
     if denominator <= 0:
         return 1.0
-    return (floor + gain * mean_heat ** power) / denominator
+    return (floor + gain * mean_heat**power) / denominator
 
 
 def pick_plume_site(world, rng) -> int:

@@ -1,7 +1,9 @@
 """Tectonic convergence/divergence resolver ported from Orogen V2 step/resolve.js."""
+
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 from ..core.mesh_rings import rings_of
@@ -15,6 +17,7 @@ from .segments import fracture_coordinate
 REACH_RINGS = 2
 AHEAD_CONE = 0.5
 PROXIMITY_RINGS = 3
+
 
 def resolve(world) -> dict[str, int]:
     """Settle convergence and divergence and rebuild a complete world ownership view."""
@@ -59,7 +62,9 @@ def _gather_and_subduct(world) -> int:
             claim_count[w] = 1
             land_claims[w] = int(land)
             return
-        wins = overrides(plate, cell, holder, int(owner_cell[w]), int(world.oceanOverrider[w]))
+        wins = overrides(
+            plate, cell, holder, int(owner_cell[w]), int(world.oceanOverrider[w])
+        )
         if wins is None:
             claim_count[w] += 1
             land_claims[w] += 1
@@ -83,8 +88,14 @@ def _gather_and_subduct(world) -> int:
 
 
 def _grow_crust_into_gaps(world, gaps: list[int]) -> int:
-    growers = [p for p in world.plates if p.alive and not p.isBackground and p.crust.count > 0]
-    everyone = [(p, p.cap_in_world(world.mesh)) for p in world.plates if p.alive and p.crust.count > 0]
+    growers = [
+        p for p in world.plates if p.alive and not p.isBackground and p.crust.count > 0
+    ]
+    everyone = [
+        (p, p.cap_in_world(world.mesh))
+        for p in world.plates
+        if p.alive and p.crust.count > 0
+    ]
     births = []
     for grower in growers:
         for cell in candidate_cells(world, grower, gaps):
@@ -136,11 +147,17 @@ def _fracture_at(world, grower, cell: int, point) -> float:
                     seen.add(r)
                     following.append(r)
         ring = following
-    other_omega = ([0.0, 0.0, 0.0] if partner < 0 or plates[partner].isBackground
-                   else getattr(plates[partner], "omegaSlow", plates[partner].omega))
+    other_omega = (
+        [0.0, 0.0, 0.0]
+        if partner < 0 or plates[partner].isBackground
+        else getattr(plates[partner], "omegaSlow", plates[partner].omega)
+    )
     omega = getattr(grower, "omegaSlow", grower.omega)
-    relative = (np.asarray(omega) - np.asarray(other_omega) if partner < 0 or grower.id < partner
-                else np.asarray(other_omega) - np.asarray(omega))
+    relative = (
+        np.asarray(omega) - np.asarray(other_omega)
+        if partner < 0 or grower.id < partner
+        else np.asarray(other_omega) - np.asarray(omega)
+    )
     local = grower.to_plate_frame(*map(float, relative))
     return fracture_coordinate(*map(float, xyz[cell]), local)
 
@@ -202,13 +219,22 @@ def decide_birth(world, grower, cell: int, everyone) -> dict:
             rival_dot = hit["dot"]
         if neighbour_hit is None or hit["dot"] > neighbour_hit["dot"]:
             neighbour_hit, neighbour = hit, plate
-    if rival_dot > -2 and math.acos(min(1.0, rival_dot)) - math.acos(min(1.0, own["dot"])) < mesh.edge_rad:
+    if (
+        rival_dot > -2
+        and math.acos(min(1.0, rival_dot)) - math.acos(min(1.0, own["dot"]))
+        < mesh.edge_rad
+    ):
         return {"born": False, "why": "too close to the mid-line"}
     closing = float(config.get("closingCmYr", config.get("closing_cm_yr", 0.0)))
-    if neighbour is not None and _is_advancing_on(grower, neighbour, neighbour_hit["cell"], mesh, point, closing):
+    if neighbour is not None and _is_advancing_on(
+        grower, neighbour, neighbour_hit["cell"], mesh, point, closing
+    ):
         return {"born": False, "why": "closing boundary"}
     flags = int(grower.crust.flags[own["cell"]])
-    parent_is_trench = bool(flags & CrustFlag["TRENCH"]) and int(grower.crust.type[own["cell"]]) == CrustType["OCEAN"]
+    parent_is_trench = (
+        bool(flags & CrustFlag["TRENCH"])
+        and int(grower.crust.type[own["cell"]]) == CrustType["OCEAN"]
+    )
     if parent_is_trench and int(grower.crust.wingKm[own["cell"]]) != 0:
         parent_is_trench = not _is_behind(grower, own["cell"], cell, mesh)
     return {"born": True, "trenchParent": own["cell"] if parent_is_trench else -1}
@@ -232,14 +258,22 @@ def _assign_gap_owners(world, gaps) -> None:
                 best, best_hit = plate, {"dot": 1.0, "cell": cell, "real": True}
                 break
         if best is None:
-            hits = [_nearest_crust(p, mesh, point, under[i]) for i, p in enumerate(near)]
-            for plate, hit in zip(near, hits):
-                if hit["cell"] >= 0 and not plate.isBackground and (best_hit is None or hit["dot"] > best_hit["dot"]):
+            hits = [
+                _nearest_crust(p, mesh, point, under[i]) for i, p in enumerate(near)
+            ]
+            for plate, hit in zip(near, hits, strict=False):
+                if (
+                    hit["cell"] >= 0
+                    and not plate.isBackground
+                    and (best_hit is None or hit["dot"] > best_hit["dot"])
+                ):
                     best, best_hit = plate, hit
-            for plate, hit in zip(near, hits):
+            for plate, hit in zip(near, hits, strict=False):
                 if plate is best:
                     continue
-                if hit["cell"] >= 0 and (foreign_hit is None or hit["dot"] > foreign_hit["dot"]):
+                if hit["cell"] >= 0 and (
+                    foreign_hit is None or hit["dot"] > foreign_hit["dot"]
+                ):
                     foreign, foreign_hit = plate, hit
         if best is None:
             continue
@@ -247,14 +281,20 @@ def _assign_gap_owners(world, gaps) -> None:
         world.claimCount[gap] = 1
         if best_hit.get("real"):
             continue
-        closing = float(world.config.get("closingCmYr", world.config.get("closing_cm_yr", 0.0)))
-        is_closing = foreign is not None and _is_advancing_on(best, foreign, foreign_hit["cell"], mesh, point, closing)
+        closing = float(
+            world.config.get("closingCmYr", world.config.get("closing_cm_yr", 0.0))
+        )
+        is_closing = foreign is not None and _is_advancing_on(
+            best, foreign, foreign_hit["cell"], mesh, point, closing
+        )
         world.provisional[gap] = 2 if is_closing else 1
         world.provisionalLike[gap] = best_hit["cell"]
 
 
-def _is_advancing_on(x, y, foreign_cell: int, mesh, point, closing_cm_yr: float) -> bool:
-    ox, oy, oz = (np.asarray(x.omega) - np.asarray(y.omega))
+def _is_advancing_on(
+    x, y, foreign_cell: int, mesh, point, closing_cm_yr: float
+) -> bool:
+    ox, oy, oz = np.asarray(x.omega) - np.asarray(y.omega)
     px, py, pz = map(float, point)
     velocity = np.array([oy * pz - oz * py, oz * px - ox * pz, ox * py - oy * px])
     speed = float(np.linalg.norm(velocity))

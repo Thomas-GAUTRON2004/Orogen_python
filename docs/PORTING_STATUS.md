@@ -52,7 +52,7 @@ test coverage.
 |---|---|---|---|
 | Python package and core | Partial | Seed/RNG, simplex noise, rotations, spherical geometry, sphere generation/indexing, SimMesh, interpolation, BFS, rings, heap and Dijkstra. | Persistence, full upstream configuration and remaining shared data models. |
 | Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity, first-pass resolution and boundary classification. | Initial-world generation, scenario builders, remaining collision-event parity and remaining plate operations. |
-| Tectonic evolution | Partial | Adaptive dt, general orogenic-belt propagation, force collection, mantle heat, supercontinent-cycle state, partial plate-motion update and `step_world` with rift/subduction-initiation and collision-tracking stages. Collision records measure shortening/fronts, call arc/terrane accretion and underthrusting, spread collision belts when the full belt configuration is supplied, and feed shortening into far-field records. Far-field diffusion can reactivate distant quiet sutures/failed rifts and rejuvenate existing ranges. With complete suture and merge configuration, eligible pairs run the raster redraw, sea sealing, suture flags and lower-plate retirement. After topology-changing transfers, the stepper rebuilds ownership and boundary state before force balance. | Full `simulate.js` stage sequence, far-field forcing from strongly coupled Andean/flat-slab margins, complete collision-driven orogeny/event history, full subduction/slab evolution, arc maturation/back-arcs, ocean-plate evolution and snapshots. |
+| Tectonic evolution | Partial | Adaptive dt, general orogenic-belt propagation, force collection (slab, rift/ridge classification and torque accumulation are now separate helpers), collision tracking (suture readiness, gap/ring checks and configured welding are isolated), mantle heat, supercontinent-cycle state, partial plate-motion update and `step_world` with rift/subduction-initiation and collision-tracking stages. `spread_belt` now separates front propagation, previous-record preservation, front metadata updates and per-cell geological recording; `rift_continents` separates schedule state, queued plume requests, overdue breakups and spontaneous attempts. Their focused characterization tests remain green. Collision records measure shortening/fronts, call arc/terrane accretion and underthrusting, spread collision belts when the full belt configuration is supplied, and feed shortening into far-field records. Far-field diffusion can reactivate distant quiet sutures/failed rifts and rejuvenate existing ranges. With complete suture and merge configuration, eligible pairs run the raster redraw, sea sealing, suture flags and lower-plate retirement. After topology-changing transfers, the stepper rebuilds ownership and boundary state before force balance. | Full `simulate.js` stage sequence, far-field forcing from strongly coupled Andean/flat-slab margins, complete collision-driven orogeny/event history, full subduction/slab evolution, arc maturation/back-arcs, ocean-plate evolution and snapshots. |
 | Rift geometry and plate splitting | Implemented as a subsystem | `rift_partition` assigns the two land blocks and ocean crust; `rift_path` searches and scores coast-to-coast candidates; `rift.split_plate` transfers crust, wings and records to a new plate, and marks margins/failed arms. | Differential tests against full upstream plate histories and interaction with still-unported tectonic stages. |
 | Rift execution | Partial, integrated | `rift_continents` consumes queued plume requests, applies waiting/expiry, supercontinent hold, overdue forced breakups and spontaneous tension/heat-driven attempts. `step_world` calls it when rift configuration is present. | Whole-simulation comparison across long histories and full upstream event interactions. |
 | Passive-margin subduction initiation | Partial, integrated | `initiate_subduction` groups old, sufficiently long and non-diverging inter-plate ocean contacts, chooses the upper/lower plate, arms trench cells and can create a new mobile plate from passive background ocean. `step_world` calls it when `subductionInitRatePerMyr` is positive and rebuilds the world view after successful topology changes. | Full slab/subduction evolution, intra-plate founder cadence, arc/back-arc evolution and collision/event orchestration. |
@@ -72,18 +72,22 @@ test coverage.
 - Document numerical tolerances; do not hide discrepancies with overly broad thresholds.
 - Keep invariant tests even when exact differential comparison is not possible.
 - Do not claim full compatibility until all functional areas and reference tests have been covered.
-- Maintain the CI coverage gate for `orogen.v2` (95% total minimum with branch coverage enabled).
+- Maintain the CI coverage gate for `orogen` (95% total minimum with branch coverage enabled).
 
-## Latest documented verification
+## Historical verification before the SciPy backend migration
 
-The latest PR-head source validation on 2026-11-18 completed successfully:
+The previous PR-head source validation on 2026-11-18 completed using the
+former shull backend:
 
 - **506 tests passed**.
-- **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled).
-- Python tests: [GitHub Actions run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404).
-- Platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed.
-- A/B pipeline benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444), structural comparisons passed at all three sizes.
-- Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
+- **99.43% total coverage** for `orogen.v2`.
+- Python tests: [run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404).
+- Former platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed.
+- Former SciPy-versus-shull benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444).
+
+These results predate the switch to SciPy/Qhull and do not validate the current
+backend. The current backend is checked by the new SciPy platform workflow and
+the full Python tests on the active PR.
 
 Rerun the workflows after subsequent source changes.
 
@@ -103,4 +107,9 @@ all seeds, resolutions or simulation histories.
 
 ## Numerical compatibility limits
 
-Production triangulation uses `shull>=0.4.0`. The selected seeded differential fixtures and mesh-invariant tests exercise finite inputs only; they do not guarantee universal connectivity across all point clouds, seeds or resolutions. The optional SciPy-versus-shull benchmark is a finite A/B comparison, not proof of whole-engine parity.
+Production triangulation uses `scipy.spatial.Delaunay` (Qhull, `scipy>=1.10`). SciPy was selected for its established Python/Qhull integration and simpler runtime support; the previously measured end-to-end performance advantage of shull was modest. Mesh-invariant and selected differential tests exercise finite inputs only; they do not guarantee universal connectivity across all point clouds, seeds or resolutions.
+## Quality refactoring progress
+
+- Continued Phase 2 by extracting the identification of old, untrenched oceanic coast cells and their connected margin runs from `founder_within_plates` into `_old_ocean_margin_runs`. The helper isolates a pure graph/raster stage from the breakup eligibility and plate-transfer orchestration; behavior is intended to remain unchanged. Focused CI validation is pending.
+
+- Continued the Phase 2 cleanup by extracting the lower-plate-to-upper-frame raster mapping from `merge_plates` into `_resample_lower_cells`. This isolates the one-time coordinate-frame sampling stage from overlap geometry and raster welding; behavior is intended to remain unchanged. Focused CI validation is pending.

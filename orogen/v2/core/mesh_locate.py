@@ -1,4 +1,5 @@
 """Piecewise-linear point location on a spherical mesh, ported from V2."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,7 +28,7 @@ def locate(
     xyz, offsets, adjacency = mesh.xyz, mesh.adj_offset, mesh.adj_list
     centre = int(mesh.index.nearest(x, y, z))
     offset = 3 * centre
-    cx, cy, cz = (float(value) for value in xyz[offset:offset + 3])
+    cx, cy, cz = (float(value) for value in xyz[offset : offset + 3])
     start, end = int(offsets[centre]), int(offsets[centre + 1])
 
     best_min = -float("inf")
@@ -38,8 +39,8 @@ def locate(
         a = int(adjacency[k])
         b = int(adjacency[k + 1 if k + 1 < end else start])
         oa, ob = 3 * a, 3 * b
-        ax, ay, az = (float(value) for value in xyz[oa:oa + 3])
-        bx, by, bz = (float(value) for value in xyz[ob:ob + 3])
+        ax, ay, az = (float(value) for value in xyz[oa : oa + 3])
+        bx, by, bz = (float(value) for value in xyz[ob : ob + 3])
 
         # Signed volumes are the spherical triangle's unnormalized barycentrics.
         sc = (ay * bz - az * by) * x + (az * bx - ax * bz) * y + (ax * by - ay * bx) * z

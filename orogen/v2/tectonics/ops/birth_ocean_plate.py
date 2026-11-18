@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 
-from .plate_transfer import transfer_cells
 from ..world import EventKind
+from .plate_transfer import transfer_cells
 
 
 def birth_ocean_plate(world, background, seed_cells, reach_km: float, name: str):
@@ -36,10 +36,7 @@ def birth_ocean_plate(world, background, seed_cells, reach_km: float, name: str)
             int(offsets[world_cell + 1]),
         ):
             neighbour = int(adjacency[edge])
-            if (
-                int(owner[neighbour]) == int(background.id)
-                and neighbour not in seen
-            ):
+            if int(owner[neighbour]) == int(background.id) and neighbour not in seen:
                 seen.add(neighbour)
                 frontier.append(neighbour)
                 take.append(neighbour)
@@ -54,10 +51,7 @@ def birth_ocean_plate(world, background, seed_cells, reach_km: float, name: str)
                 int(offsets[world_cell + 1]),
             ):
                 neighbour = int(adjacency[edge])
-                if (
-                    int(owner[neighbour]) != int(background.id)
-                    or neighbour in seen
-                ):
+                if int(owner[neighbour]) != int(background.id) or neighbour in seen:
                     continue
                 seen.add(neighbour)
                 following.append(neighbour)
@@ -76,10 +70,7 @@ def birth_ocean_plate(world, background, seed_cells, reach_km: float, name: str)
     cells_seen = set()
     for world_cell in take:
         raster_cell = int(owner_cell[world_cell])
-        if (
-            background.crust.mask[raster_cell]
-            and raster_cell not in cells_seen
-        ):
+        if background.crust.mask[raster_cell] and raster_cell not in cells_seen:
             cells_seen.add(raster_cell)
             cells.append(raster_cell)
 

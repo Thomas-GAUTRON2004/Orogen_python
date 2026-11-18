@@ -39,10 +39,7 @@ def scrape_arc(world, host, donor, cells) -> dict[str, int]:
             float(world_position[2]),
         )
 
-        if (
-            host_crust.mask[target]
-            and host_crust.type[target] != CrustType["OCEAN"]
-        ):
+        if host_crust.mask[target] and host_crust.type[target] != CrustType["OCEAN"]:
             absorbed += 1
         else:
             if rotation is None:

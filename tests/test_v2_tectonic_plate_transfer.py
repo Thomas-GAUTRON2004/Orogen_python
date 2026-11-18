@@ -3,12 +3,12 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
-from orogen.v2.tectonics.plate import Plate
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops.plate_transfer import (
     free_cell_beside,
     transfer_cells,
 )
+from orogen.v2.tectonics.plate import Plate
 
 
 class Index:
@@ -31,10 +31,9 @@ class Mesh:
             offsets.append(len(adjacency))
         self.adj_offset = np.asarray(offsets, dtype=np.int32)
         self.adj_list = np.asarray(adjacency, dtype=np.int32)
-        self.index = Index({
-            tuple(round(float(v), 5) for v in p): i
-            for i, p in enumerate(points)
-        })
+        self.index = Index(
+            {tuple(round(float(v), 5) for v in p): i for i, p in enumerate(points)}
+        )
 
 
 def test_transfer_cells_resamples_to_target_frame_and_rotates_far_field():
@@ -139,9 +138,5 @@ def test_free_cell_beside_returns_nearest_free_cell_or_minus_one():
     ]
     mesh = Mesh(points, [[1, 2], [0], [0]])
     plate = Plate(0, 3)
-    assert free_cell_beside(
-        plate, mesh, 0, [1.0, 0.0, 0.0], lambda _cell: False
-    ) == 1
-    assert free_cell_beside(
-        plate, mesh, 0, [1.0, 0.0, 0.0], lambda _cell: True
-    ) == -1
+    assert free_cell_beside(plate, mesh, 0, [1.0, 0.0, 0.0], lambda _cell: False) == 1
+    assert free_cell_beside(plate, mesh, 0, [1.0, 0.0, 0.0], lambda _cell: True) == -1

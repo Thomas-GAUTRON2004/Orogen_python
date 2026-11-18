@@ -4,14 +4,13 @@ from types import SimpleNamespace
 import numpy as np
 
 from orogen.v2.tectonics.crust import BeltSide, CrustFlag, CrustRaster, CrustType
+from orogen.v2.tectonics.ops import plate_accretion
 from orogen.v2.tectonics.ops.plate_accretion import (
     accrete_terrane,
     close_seas_between,
     landmass_of,
 )
 from orogen.v2.tectonics.plate import Plate
-from orogen.v2.tectonics import ops
-from orogen.v2.tectonics.ops import plate_accretion
 
 
 class Index:
@@ -82,9 +81,7 @@ def accretion_fixture():
             "terraneMinAreaKm2": 100.0,
             "sealStraitKm": 100.0,
             "inlandSeaMaxKm2": 0.0,
-            "belts": {
-                "ural": {"baseKm": 120.0, "perKm": 1.0, "maxKm": 400.0}
-            },
+            "belts": {"ural": {"baseKm": 120.0, "perKm": 1.0, "maxKm": 400.0}},
             "beltSpeedFactorMax": 1.6,
             "beltSpeedFactorMin": 0.6,
             "beltSpeedRefCmYr": 5.0,
@@ -165,8 +162,8 @@ def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     monkeypatch.setattr(
         plate_accretion,
         "spread_belt",
-        lambda plate, mesh, sources, belt, cfg, allow: (
-            belt_calls.append((plate.id, list(sources), belt["side"]))
+        lambda plate, mesh, sources, belt, cfg, allow: belt_calls.append(
+            (plate.id, list(sources), belt["side"])
         ),
     )
 
@@ -189,7 +186,6 @@ def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     ]
     assert host.stats["cells"] == 3
     assert donor.stats["cells"] == 0
-
 
 
 def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
@@ -230,8 +226,11 @@ def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
     world, host, donor = accretion_fixture()
     world.config["terraneMinAreaKm2"] = 101.0
     monkeypatch.setattr(
-        plate_accretion, "spread_belt",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("no belt for scrap")),
+        plate_accretion,
+        "spread_belt",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("no belt for scrap")
+        ),
     )
 
     result = accrete_terrane(world, host, donor, [2], 5.0)

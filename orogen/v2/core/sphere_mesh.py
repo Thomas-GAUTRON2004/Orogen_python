@@ -1,15 +1,16 @@
-"""Fibonacci sphere and Delaunay dual mesh builder from Orogen's V1 sphere-mesh.js.
+"""Fibonacci sphere and SciPy Delaunay dual mesh builder.
 
-shull supplies the planar Delaunay triangulation. The spherical closure and
-cyclic CSR region adjacency follow the upstream half-edge construction.
+SciPy/Qhull supplies the planar triangulation. Spherical closure and cyclic
+CSR region adjacency follow Orogen's half-edge construction.
 """
+
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
 
 import numpy as np
-import shull
+from scipy.spatial import Delaunay  # type: ignore[import-untyped]
 
 
 @dataclass(slots=True)
@@ -51,8 +52,8 @@ def generate_fibonacci_sphere(
             j_lat = rng() - rng()
             j_lon = rng() - rng()
             next_z = max(-1.0, z - dz * 2.0 * math.pi * radius / spacing)
-            latitude_deg += jitter * j_lat * (
-                latitude_deg - math.asin(next_z) * 180.0 / math.pi
+            latitude_deg += (
+                jitter * j_lat * (latitude_deg - math.asin(next_z) * 180.0 / math.pi)
             )
             longitude_deg += jitter * j_lon * (spacing / radius * 180.0 / math.pi)
 
@@ -74,18 +75,23 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
     return np.column_stack((points[:, 0] / denominator, points[:, 1] / denominator))
 
 
-
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
-    """Triangulate with shull, then close the planar convex hull at the pole."""
-    try:
-        delaunay = shull.Delaunay(
-            np.ascontiguousarray(points_2d, dtype=np.float64)
-        )
-    except Exception as exc:
-        raise ValueError(
-            "Delaunay triangulation failed for the projected sphere"
-        ) from exc
-    return _close_simplices(points_2d, delaunay.simplices, pole_id)
+    """Triangulate with SciPy/Qhull, then close the planar hull at the pole."""
+    points = np.ascontiguousarray(points_2d, dtype=np.float64)
+    # Qhull's 2-D initialization needs four points; the three-point minimum
+    # has exactly one valid simplex and is handled directly.
+    if len(points) == 3:
+        simplices = np.asarray([[0, 1, 2]], dtype=np.int32)
+    else:
+        try:
+            simplices = Delaunay(points).simplices
+        except Exception as exc:
+            # Qhull exposes backend-specific errors; normalize them here so the
+            # public mesh API remains independent of SciPy's exception hierarchy.
+            raise ValueError(
+                "Delaunay triangulation failed for the projected sphere"
+            ) from exc
+    return _close_simplices(points_2d, simplices, pole_id)
 
 
 def _close_simplices(
@@ -96,9 +102,9 @@ def _close_simplices(
     """Validate and orient planar Delaunay simplices, then close at the pole."""
     triangles = np.asarray(simplices, dtype=np.int32).copy()
     if triangles.ndim != 2 or triangles.shape[1] != 3 or triangles.size == 0:
-        raise ValueError("shull returned an invalid 2D triangulation")
+        raise ValueError("Delaunay returned an invalid 2D triangulation")
     if int(triangles.min()) < 0 or int(triangles.max()) >= len(points_2d):
-        raise ValueError("shull returned an out-of-range vertex index")
+        raise ValueError("Delaunay returned an out-of-range vertex index")
 
     # Normalize simplex winding before pairing directed half-edges.
     p = points_2d
@@ -128,6 +134,7 @@ def _close_simplices(
     # A planar hull edge u→v is closed by the spherical triangle v→u→pole.
     pole_triangles = np.asarray([(v, u, pole_id) for u, v in hull], dtype=np.int32)
     return np.concatenate((triangles, pole_triangles), axis=0)
+
 
 def _cyclic_region_adjacency(
     triangles: np.ndarray,

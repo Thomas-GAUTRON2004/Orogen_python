@@ -3,8 +3,14 @@ from types import SimpleNamespace
 import numpy as np
 
 from orogen.v2.core.mesh_bfs import (
-    flood_from, hop_distance, hops_from, largest_piece_of, pieces_of,
-    reaches_within, touches, within_km,
+    flood_from,
+    hop_distance,
+    hops_from,
+    largest_piece_of,
+    pieces_of,
+    reaches_within,
+    touches,
+    within_km,
 )
 
 
@@ -14,13 +20,26 @@ def mesh():
         num_cells=5,
         adj_offset=np.array([0, 1, 4, 5, 6, 6], dtype=np.int32),
         adj_list=np.array([1, 0, 2, 3, 1, 1], dtype=np.int32),
-        xyz=np.array([
-            1.0, 0.0, 0.0,
-            np.cos(0.01), np.sin(0.01), 0.0,
-            np.cos(0.02), np.sin(0.02), 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        ], dtype=np.float64),
+        xyz=np.array(
+            [
+                1.0,
+                0.0,
+                0.0,
+                np.cos(0.01),
+                np.sin(0.01),
+                0.0,
+                np.cos(0.02),
+                np.sin(0.02),
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+            ],
+            dtype=np.float64,
+        ),
     )
 
 

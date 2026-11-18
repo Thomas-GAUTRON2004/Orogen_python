@@ -1,4 +1,5 @@
 """Tests for cached plate-contact geometry."""
+
 from types import SimpleNamespace
 
 import numpy as np
@@ -9,7 +10,9 @@ from orogen.v2.tectonics.contact import contact_at
 
 
 def _world(mesh, owner):
-    return SimpleNamespace(mesh=mesh, owner=np.asarray(owner, dtype=np.int16), occupancyStamp=0)
+    return SimpleNamespace(
+        mesh=mesh, owner=np.asarray(owner, dtype=np.int16), occupancyStamp=0
+    )
 
 
 def test_contact_returns_interior_sentinel_without_overwriting_output():
@@ -23,7 +26,7 @@ def test_contact_returns_interior_sentinel_without_overwriting_output():
 def test_contact_normal_and_across_cell_are_cached_until_stamp_changes():
     mesh = build_sim_mesh(24, seed=9)
     cell = 0
-    neighbours = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+    neighbours = mesh.adj_list[mesh.adj_offset[cell] : mesh.adj_offset[cell + 1]]
     owner = np.zeros(mesh.num_cells, dtype=np.int16)
     owner[neighbours] = 1
     world = _world(mesh, owner)
@@ -75,15 +78,27 @@ def test_contact_handles_stamp_wraparound_and_cached_interior_result():
     assert contact_at(world, 0, out) == -1
     np.testing.assert_array_equal(out, [3.0, 3.0, 3.0, 3.0])
 
+
 def test_contact_zero_normal_skips_same_owner_neighbour_before_foreign_fallback():
     class TinyMesh:
         num_cells = 4
-        xyz = np.array([
-            0., 0., 0.,
-            0., 1., 0.,
-            1., 0., 0.,
-            -1., 0., 0.,
-        ], dtype=np.float32)
+        xyz = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                -1.0,
+                0.0,
+                0.0,
+            ],
+            dtype=np.float32,
+        )
         adj_offset = np.array([0, 3, 3, 3, 3], dtype=np.int32)
         adj_list = np.array([1, 2, 3], dtype=np.int32)
 
@@ -91,4 +106,3 @@ def test_contact_zero_normal_skips_same_owner_neighbour_before_foreign_fallback(
     out = np.zeros(4)
     assert contact_at(world, 0, out) == 2
     np.testing.assert_allclose(out, [1.0, 0.0, 0.0, 2.0])
-

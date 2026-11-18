@@ -1,4 +1,5 @@
 """Binary min-heap and multi-source Dijkstra helpers from V2 min-heap.js."""
+
 from __future__ import annotations
 
 import math
@@ -8,8 +9,8 @@ from typing import Any
 
 import numpy as np
 
-from .sphere_geometry import PLANET_RADIUS_KM
 from ._numba_kernels import NUMBA_AVAILABLE, spread_km_numba
+from .sphere_geometry import PLANET_RADIUS_KM
 
 
 class MinHeap:
@@ -27,8 +28,8 @@ class MinHeap:
         if self.size == len(self.keys):
             new_keys = np.empty(self.size * 2, dtype=np.float64)
             new_ids = np.empty(self.size * 2, dtype=np.int32)
-            new_keys[:self.size] = self.keys
-            new_ids[:self.size] = self.ids
+            new_keys[: self.size] = self.keys
+            new_ids[: self.size] = self.ids
             self.keys, self.ids = new_keys, new_ids
         index = self.size
         self.size += 1
@@ -60,7 +61,11 @@ class MinHeap:
                 if left >= count:
                     break
                 right = left + 1
-                child = right if right < count and self.keys[right] < self.keys[left] else left
+                child = (
+                    right
+                    if right < count and self.keys[right] < self.keys[left]
+                    else left
+                )
                 if self.keys[child] >= key:
                     break
                 self.keys[index] = self.keys[child]
@@ -86,12 +91,14 @@ def _edge_km_of(mesh: Any) -> np.ndarray:
     offsets, adjacency, xyz = mesh.adj_offset, mesh.adj_list, mesh.xyz
     edge_km = np.empty(len(adjacency), dtype=np.float64)
     for cell in range(len(offsets) - 1):
-        cx, cy, cz = (float(value) for value in xyz[3 * cell:3 * cell + 3])
+        cx, cy, cz = (float(value) for value in xyz[3 * cell : 3 * cell + 3])
         for k in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[k])
             offset = 3 * neighbour
             cosine = (
-                cx * float(xyz[offset]) + cy * float(xyz[offset + 1]) + cz * float(xyz[offset + 2])
+                cx * float(xyz[offset])
+                + cy * float(xyz[offset + 1])
+                + cz * float(xyz[offset + 2])
             )
             edge_km[k] = math.acos(min(1.0, float(cosine))) * PLANET_RADIUS_KM
     _EDGE_KM[mesh] = edge_km

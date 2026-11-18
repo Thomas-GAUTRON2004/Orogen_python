@@ -1,13 +1,30 @@
 """History-ending predicates and frame selection ported from Orogen V2."""
+
 from __future__ import annotations
 
 from .world import EventKind
 
 ENDINGS = [
-    {"id": "none", "label": "Wherever the history has got to", "phrase": "wherever it has got to"},
-    {"id": "supercontinent", "label": "A supercontinent (a Pangaea)", "phrase": "a supercontinent"},
-    {"id": "breakup", "label": "A supercontinent breaking up (young rift seas)", "phrase": "a supercontinent breaking up"},
-    {"id": "dispersed", "label": "Continents dispersed (as on Earth today)", "phrase": "dispersed continents"},
+    {
+        "id": "none",
+        "label": "Wherever the history has got to",
+        "phrase": "wherever it has got to",
+    },
+    {
+        "id": "supercontinent",
+        "label": "A supercontinent (a Pangaea)",
+        "phrase": "a supercontinent",
+    },
+    {
+        "id": "breakup",
+        "label": "A supercontinent breaking up (young rift seas)",
+        "phrase": "a supercontinent breaking up",
+    },
+    {
+        "id": "dispersed",
+        "label": "Continents dispersed (as on Earth today)",
+        "phrase": "dispersed continents",
+    },
 ]
 
 
@@ -31,7 +48,10 @@ def in_stage(state, stage: str, config: dict) -> bool:
         return (
             cycle["state"] == "assembled"
             and float(cycle["share"]) >= float(config["superShare"])
-            and (rift is None or time - float(rift["time"]) >= float(config["endingQuietMyr"]))
+            and (
+                rift is None
+                or time - float(rift["time"]) >= float(config["endingQuietMyr"])
+            )
         )
     if stage == "breakup":
         formed = last_of(EventKind["SUPERCONTINENT"])
@@ -39,9 +59,12 @@ def in_stage(state, stage: str, config: dict) -> bool:
             return False
         start = float(formed["time"]) - float(config["cycleHoldMyr"])
         first = next(
-            (event for event in events
-             if event["kind"] == EventKind["RIFT"]
-             and start - 1e-9 <= float(event["time"]) <= time + 1e-9),
+            (
+                event
+                for event in events
+                if event["kind"] == EventKind["RIFT"]
+                and start - 1e-9 <= float(event["time"]) <= time + 1e-9
+            ),
             None,
         )
         if first is None:
@@ -50,9 +73,8 @@ def in_stage(state, stage: str, config: dict) -> bool:
         low, high = map(float, config["endingBreakupMyr"])
         return age >= low - 1e-9 and age <= high + 1e-9
     if stage == "dispersed":
-        return (
-            cycle["state"] == "dispersed"
-            and float(cycle["share"]) <= float(config["endingDispersedShare"])
+        return cycle["state"] == "dispersed" and float(cycle["share"]) <= float(
+            config["endingDispersedShare"]
         )
     raise ValueError(f"unknown ending: {stage}")
 
@@ -64,26 +86,33 @@ def history_ending(min_myr: float, stage: str | None, config: dict) -> dict:
     return {
         "untilMyr": min_myr + float(config["endingExtraMyr"]),
         "stopAt": lambda world: (
-            float(world.time) >= min_myr - 1e-9
-            and in_stage(world, stage, config)
+            float(world.time) >= min_myr - 1e-9 and in_stage(world, stage, config)
         ),
     }
 
 
-def frames_ending(frames, min_myr: float, stage: str | None, config: dict, complete=False):
+def frames_ending(
+    frames, min_myr: float, stage: str | None, config: dict, complete=False
+):
     """Trim frames to the first eligible ending frame; return None while more history is needed."""
     if not stage or stage == "none":
         if not frames:
             return None
-        last = next((i for i, frame in enumerate(frames) if float(frame.time) > min_myr + 1e-9), -1)
+        last = next(
+            (i for i, frame in enumerate(frames) if float(frame.time) > min_myr + 1e-9),
+            -1,
+        )
         if last < 0:
             return frames if float(frames[-1].time) >= min_myr - 1e-9 else None
         return frames[:last]
     index = next(
-        (i for i, frame in enumerate(frames)
-         if float(frame.time) >= min_myr - 1e-9 and in_stage(frame, stage, config)),
+        (
+            i
+            for i, frame in enumerate(frames)
+            if float(frame.time) >= min_myr - 1e-9 and in_stage(frame, stage, config)
+        ),
         -1,
     )
     if index >= 0:
-        return frames[:index + 1]
+        return frames[: index + 1]
     return frames if complete else None

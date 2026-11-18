@@ -1,8 +1,8 @@
-import math
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import (
@@ -12,8 +12,6 @@ from orogen.v2.tectonics.ops import (
     try_rift,
 )
 from orogen.v2.tectonics.ops import rift as rift_module
-
-from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
 
 def test_pull_axis_requires_enough_trench_and_finds_principal_axis():
@@ -69,14 +67,13 @@ def test_try_rift_splits_plate_and_logs_event(monkeypatch):
 
     monkeypatch.setattr(rift_module, "pull_axis_of", lambda *_args: None)
     monkeypatch.setattr(rift_module, "rift_context", lambda *_args: {"ctx": True})
+
     def fake_find(_world, _plate, junction, *_args):
         calls.append(junction)
         return found if junction == 4 else None
 
     monkeypatch.setattr(rift_module, "find_rift", fake_find)
-    monkeypatch.setattr(
-        rift_module, "spread_belt", lambda *_args, **_kwargs: None
-    )
+    monkeypatch.setattr(rift_module, "spread_belt", lambda *_args, **_kwargs: None)
 
     result = try_rift(
         world,
@@ -110,12 +107,15 @@ def test_try_rift_returns_false_when_no_junction_yields_a_cut(monkeypatch):
     monkeypatch.setattr(rift_module, "pull_axis_of", lambda *_args: None)
     monkeypatch.setattr(rift_module, "rift_context", lambda *_args: {})
     monkeypatch.setattr(rift_module, "find_rift", lambda *_args: None)
-    assert try_rift(
-        world,
-        plate,
-        [-1, 0],
-        {"text": "no cut", "kind": "plume", "hotspot": -1},
-    ) is False
+    assert (
+        try_rift(
+            world,
+            plate,
+            [-1, 0],
+            {"text": "no cut", "kind": "plume", "hotspot": -1},
+        )
+        is False
+    )
     assert len(world.plates) == 1
     assert world.events == []
 
@@ -129,10 +129,7 @@ def test_plume_junctions_samples_evenly_spaced_land_cells():
     assert candidates[0] == 24
     assert len(set(candidates)) == 12
     assert all(plate.crust.mask[cell] for cell in candidates)
-    assert all(
-        plate.crust.type[cell] != CrustType["CRATON"]
-        for cell in candidates
-    )
+    assert all(plate.crust.type[cell] != CrustType["CRATON"] for cell in candidates)
 
 
 def test_plume_junctions_falls_back_from_a_craton_and_returns_small_set():

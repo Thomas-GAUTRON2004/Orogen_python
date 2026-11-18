@@ -1,9 +1,11 @@
 """Tests for adaptive tectonic stepping."""
+
 import math
+
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics.simulation import fastest_speed, closing_rate, choose_step
+from orogen.v2.tectonics.simulation import choose_step, closing_rate, fastest_speed
 from orogen.v2.tectonics.world import TectonicWorld
 
 

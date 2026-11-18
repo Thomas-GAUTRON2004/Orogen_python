@@ -23,6 +23,7 @@ def make_world():
     mesh.edge_km = 100.0
 
     from orogen.v2.tectonics.plate import Plate
+
     plate = Plate(0, 6)
     plate.crust.create(1, CrustType["CONTINENT"], 0)
     plate.crust.create(2, CrustType["CONTINENT"], 0)
@@ -32,28 +33,43 @@ def make_world():
     events = []
 
     world = SimpleNamespace(
-        mesh=mesh, plates=[plate],
+        mesh=mesh,
+        plates=[plate],
         owner=np.array([-1, 0, 0, 0, 0, -1], dtype=np.int16),
         ownerCell=np.arange(6, dtype=np.int32),
         mantleHeat=np.arange(6, dtype=np.float32),
-        time=0.0, events=events,
+        time=0.0,
+        events=events,
         rngCycle=lambda: next(cycle_random),
         config={
-            "mantleOutflow": 0.025, "mantleInflow": 0.015, "riftHeatGain": 5.0,
-            "cycleCheckMyr": 10.0, "cycleUpwellingKm": 20000.0,
-            "cycleNeckKm": 400.0, "superShare": 0.7, "dispersedShare": 0.6,
-            "cycleHoldMyr": 10.0, "cyclePeriodMinMyr": 600.0,
-            "cyclePeriodMaxMyr": 720.0, "cycleGatherMyr": 150.0,
-            "cycleDisperseMinMyr": 150.0, "cycleRampMyr": 30.0,
-            "dispersalMaxShare": 0.45, "superHoldMarginKm": 500.0,
+            "mantleOutflow": 0.025,
+            "mantleInflow": 0.015,
+            "riftHeatGain": 5.0,
+            "cycleCheckMyr": 10.0,
+            "cycleUpwellingKm": 20000.0,
+            "cycleNeckKm": 400.0,
+            "superShare": 0.7,
+            "dispersedShare": 0.6,
+            "cycleHoldMyr": 10.0,
+            "cyclePeriodMinMyr": 600.0,
+            "cyclePeriodMaxMyr": 720.0,
+            "cycleGatherMyr": 150.0,
+            "cycleDisperseMinMyr": 150.0,
+            "cycleRampMyr": 30.0,
+            "dispersalMaxShare": 0.45,
+            "superHoldMarginKm": 500.0,
         },
     )
 
     def log(kind, message, data=None):
-        world.events.append({
-            "kind": kind, "text": message, "data": {} if data is None else data,
-            "time": world.time,
-        })
+        world.events.append(
+            {
+                "kind": kind,
+                "text": message,
+                "data": {} if data is None else data,
+                "time": world.time,
+            }
+        )
 
     world.log = log
     return world
@@ -135,6 +151,8 @@ def test_track_cycle_ignores_old_rifts_and_disabled_cycle():
     assert cycle["phase"] == "assembled"
 
     disabled = make_world()
-    disabled.config.update({"mantleOutflow": 0.0, "mantleInflow": 0.0, "riftHeatGain": 0.0})
+    disabled.config.update(
+        {"mantleOutflow": 0.0, "mantleInflow": 0.0, "riftHeatGain": 0.0}
+    )
     assert track_cycle(disabled) is None
     assert not hasattr(disabled, "cycle")

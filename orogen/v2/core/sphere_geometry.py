@@ -1,12 +1,16 @@
 """Small spherical-geometry helpers ported from V2 sphere-geom.js."""
+
 from __future__ import annotations
 
 import math
-import numpy as np
 from collections.abc import Callable, Iterable, Sequence
 
+import numpy as np
+
 from ._numba_kernels import (
-    NUMBA_AVAILABLE, destination_many_numba, bearing_to_many_numba,
+    NUMBA_AVAILABLE,
+    bearing_to_many_numba,
+    destination_many_numba,
 )
 
 PLANET_RADIUS_KM = 6_371.0
@@ -58,11 +62,13 @@ def destination(point: Vector3, bearing: float, distance: float) -> list[float]:
     east, north = tangent_basis(point)
     dx, dy = math.cos(bearing), math.sin(bearing)
     sine, cosine = math.sin(distance), math.cos(distance)
-    return normalize([
-        point[0] * cosine + (east[0] * dx + north[0] * dy) * sine,
-        point[1] * cosine + (east[1] * dx + north[1] * dy) * sine,
-        point[2] * cosine + (east[2] * dx + north[2] * dy) * sine,
-    ])
+    return normalize(
+        [
+            point[0] * cosine + (east[0] * dx + north[0] * dy) * sine,
+            point[1] * cosine + (east[1] * dx + north[1] * dy) * sine,
+            point[2] * cosine + (east[2] * dx + north[2] * dy) * sine,
+        ]
+    )
 
 
 def bearing_to(point: Vector3, target: Vector3) -> float:
@@ -87,7 +93,8 @@ def _parameter_array(values, count: int, name: str) -> np.ndarray:
 
 
 def destination_many(
-    points: Sequence[Vector3], bearing: float | Sequence[float],
+    points: Sequence[Vector3],
+    bearing: float | Sequence[float],
     distance: float | Sequence[float],
 ) -> np.ndarray:
     """Vectorised destination() for an (n, 3) array of unit-sphere points.
@@ -107,7 +114,8 @@ def destination_many(
 
 
 def bearing_to_many(
-    points: Sequence[Vector3], targets: Sequence[Vector3],
+    points: Sequence[Vector3],
+    targets: Sequence[Vector3],
 ) -> np.ndarray:
     """Vectorised bearing_to() for matching arrays of points and targets."""
     values = _points_array(points, "points")
@@ -126,28 +134,38 @@ def cap_fraction(radius_rad: float) -> float:
     return (1 - math.cos(radius_rad)) / 2
 
 
-
-def polar_frame(pole: Vector3, reference: Vector3) -> Callable[[float, float, float], dict[str, float]]:
+def polar_frame(
+    pole: Vector3, reference: Vector3
+) -> Callable[[float, float, float], dict[str, float]]:
     """Return the upstream Euler-pole frame: colatitude and azimuth in degrees."""
     projection = dot(pole, reference)
-    u = normalize([
-        reference[0] - projection * pole[0],
-        reference[1] - projection * pole[1],
-        reference[2] - projection * pole[2],
-    ])
+    u = normalize(
+        [
+            reference[0] - projection * pole[0],
+            reference[1] - projection * pole[1],
+            reference[2] - projection * pole[2],
+        ]
+    )
     v = cross(pole, u)
 
     def coordinates(x: float, y: float, z: float) -> dict[str, float]:
-        colatitude = math.acos(max(-1.0, min(
-            1.0, x * pole[0] + y * pole[1] + z * pole[2]
-        ))) * 180.0 / math.pi
-        azimuth = math.atan2(
-            x * v[0] + y * v[1] + z * v[2],
-            x * u[0] + y * u[1] + z * u[2],
-        ) * 180.0 / math.pi
+        colatitude = (
+            math.acos(max(-1.0, min(1.0, x * pole[0] + y * pole[1] + z * pole[2])))
+            * 180.0
+            / math.pi
+        )
+        azimuth = (
+            math.atan2(
+                x * v[0] + y * v[1] + z * v[2],
+                x * u[0] + y * u[1] + z * u[2],
+            )
+            * 180.0
+            / math.pi
+        )
         return {"colat": colatitude, "azimuth": azimuth}
 
     return coordinates
+
 
 def cell_distance_km(xyz: Sequence[float], cell_a: int, cell_b: int) -> float:
     a, b = 3 * cell_a, 3 * cell_b

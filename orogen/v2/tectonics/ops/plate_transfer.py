@@ -18,7 +18,6 @@ def transfer_cells(world, source, target, cells) -> int:
     """
     mesh = world.mesh
     xyz, index = mesh.xyz, mesh.index
-    offsets, adjacency = mesh.adj_offset, mesh.adj_list
     source_crust, target_crust = source.crust, target.crust
     moved = 0
     rotation = None
@@ -41,23 +40,21 @@ def transfer_cells(world, source, target, cells) -> int:
         land = int(source_crust.type[cell]) != CrustType["OCEAN"]
         if land and _is_host_land(target_crust, target_cell):
             target_cell = free_cell_beside(
-                target, mesh, target_cell, world_point,
+                target,
+                mesh,
+                target_cell,
+                world_point,
                 lambda candidate: _is_host_land(target_crust, candidate),
             )
 
-        if target_cell >= 0 and (
-            land or not target_crust.mask[target_cell]
-        ):
+        if target_cell >= 0 and (land or not target_crust.mask[target_cell]):
             if rotation is None:
                 rotation = frame_rotation(source, target)
-            target_crust.copy_from(
-                target_cell, source_crust, cell, rotation
-            )
+            target_crust.copy_from(target_cell, source_crust, cell, rotation)
             if land:
-                target_crust.flags[target_cell] = (
-                    int(target_crust.flags[target_cell])
-                    & (0xFF ^ CrustFlag["TRENCH"])
-                )
+                target_crust.flags[target_cell] = int(
+                    target_crust.flags[target_cell]
+                ) & (0xFF ^ CrustFlag["TRENCH"])
             moved += 1
 
         source_crust.remove(cell)
@@ -98,10 +95,7 @@ def free_cell_beside(target, mesh, cell: int, world_point, taken) -> int:
 
 
 def _is_host_land(crust, cell: int) -> bool:
-    return bool(
-        crust.mask[cell]
-        and crust.type[cell] != CrustType["OCEAN"]
-    )
+    return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
 
 
 __all__ = ["free_cell_beside", "transfer_cells"]

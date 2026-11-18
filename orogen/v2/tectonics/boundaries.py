@@ -327,9 +327,10 @@ def classify_contact_boundaries(world, dt: float) -> int:
                 boundary[w] = BoundaryKind["OVERRIDING"]
                 if real:
                     subducted_km = closing * dt * 6371.0
-                    if feed_trench(
-                        world, w, plate_a.crust, cell_a, subducted_km
-                    ) and subduction_far_field:
+                    if (
+                        feed_trench(world, w, plate_a.crust, cell_a, subducted_km)
+                        and subduction_far_field
+                    ):
                         front = fed.setdefault(
                             plate_a,
                             {
@@ -356,11 +357,9 @@ def classify_contact_boundaries(world, dt: float) -> int:
                             + (wz * px - wx * pz) * normal[1]
                             + (wx * py - wy * px) * normal[2]
                         ) / CM_PER_YR_TO_RAD_PER_MYR
-                        if (
-                            slab_age < float(world.config["flatSlabMaxAgeMyr"])
-                            and advance
-                            > float(world.config["flatSlabAdvanceCmYr"])
-                        ):
+                        if slab_age < float(
+                            world.config["flatSlabMaxAgeMyr"]
+                        ) and advance > float(world.config["flatSlabAdvanceCmYr"]):
                             front["flat"] += 1
             else:
                 boundary[w] = BoundaryKind["SUBDUCTING"]

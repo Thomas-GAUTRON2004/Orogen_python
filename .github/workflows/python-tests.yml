@@ -114,22 +114,9 @@ jobs:
           fi
           exit "$scan_status"
 
-      - name: Check changed Python files with Ruff
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - name: Lint all Python files with Ruff
         run: |
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="HEAD~1"
-          fi
-          python_files="$(git diff --name-only --diff-filter=ACMR "$BASE_SHA"...HEAD -- '*.py' \
-            | grep -v -E '^(orogen/v2/core/sphere_mesh.py|tests/test_v2_numba_kernel_coverage.py)$' || true)"
-          if [ -n "$python_files" ]; then
-            # These two legacy files only receive documentation/comments in this change;
-            # their existing lint debt is excluded until the dedicated cleanup commit.
-            python -m ruff check $python_files
-          else
-            echo "No changed Python files in the active Ruff lint baseline."
-          fi
+          python -m ruff check orogen scripts tests
           python -m ruff format --check scripts/check_mypy_regressions.py
           python -m ruff format --check orogen scripts tests
 

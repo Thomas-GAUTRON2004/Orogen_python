@@ -249,3 +249,24 @@ def test_front_normal_ignores_disputed_and_oceanic_neighbours(monkeypatch):
     world.plates[1].crust.type[0] = CrustType["OCEAN"]
     loads = gather_boundary_loads(world)
     assert np.linalg.norm(loads[0]["contacts"][0]["n"]) == pytest.approx(1.0)
+
+def test_gather_boundary_loads_applies_mantle_flow_and_dispersal(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.plates[0].crust.type[0] = CrustType["CONTINENT"]
+    world.cycle = {"up": object()}
+    world.config["mantleOutflow"] = 1.0
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.forces.dispersal_field",
+        lambda _world: object(),
+    )
+    def flow(_world, _x, _y, _z, out):
+        out[:] = [0.0, 0.0, 1.0]
+    monkeypatch.setattr("orogen.v2.tectonics.forces.mantle_flow_at", flow)
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.forces.repel_at",
+        lambda _field, _owner, _x, _y, _z, _out: None,
+    )
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][4] == 1
+    assert loads[0]["forceByKind"][4] == pytest.approx([0.0, 0.0, 1.0])
+

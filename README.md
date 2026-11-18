@@ -107,11 +107,10 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The current production triangulation backend is SciPy/Qhull. Its focused
-compatibility matrix and the full Python test workflow run on the active
+SciPy/Qhull sphere-mesh tests are part of the standard Python test suite,
+which runs alongside the JavaScript/Python differential tests in the main
 [quality PR #9](https://github.com/Thomas-GAUTRON2004/Orogen_python/pull/9).
-The earlier 506-test / 99.43% result was recorded before the SciPy migration
-and is historical; it is not a validation result for the current backend.
+There is no separate SciPy compatibility matrix.
 
 ## Upstream and license
 

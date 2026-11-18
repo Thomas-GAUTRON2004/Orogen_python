@@ -325,7 +325,6 @@ def test_step_world_schedules_far_field_clock(monkeypatch):
     assert calls == [1.5]
 
 
-
 def test_step_world_runs_back_arc_stage_and_steers_after_motion(monkeypatch):
     world = make_world()
     calls = []

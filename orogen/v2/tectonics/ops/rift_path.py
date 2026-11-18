@@ -146,55 +146,25 @@ def _nearby_rift_cuts(xyz, first: dict, second: dict) -> bool:
     return cell_distance_km(xyz, first["cell"], second["cell"]) < _DISTINCT_CUT_KM
 
 
-def find_rift(
-    world,
-    plate,
+def _select_rift_coast_pair(
+    mesh,
+    crust,
     junction: int,
-    pull_axis=None,
-    need_cratons_both_sides: bool = True,
-    ctx: dict | None = None,
+    pull_axis,
+    costs: dict,
+    ctx: dict,
+    config,
+    need_cratons_both_sides: bool,
 ):
-    """Find the best valid coast-to-coast rift crossing the given junction.
-
-    The result contains the chosen path, failed arm, three arm traces,
-    great-circle normal and a cost/shape score. None means no valid cut.
-    """
-    mesh, config = world.mesh, world.config
+    """Rank coast endpoints and select the lowest-cost valid crossing."""
     xyz = mesh.xyz
     edge_km = float(mesh.edge_km)
-    crust = plate.crust
-
-    def land(cell: int) -> bool:
-        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
-
-    if not land(junction) or crust.type[junction] == CrustType["CRATON"]:
-        return None
-    if ctx is None:
-        ctx = rift_context(world, plate)
-
-    weak = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
-    grain = ctx["grain"]
-    costs = _cheapest_paths(
-        mesh,
-        crust,
-        junction,
-        lambda cell: (
-            (
-                float(config["riftWeaknessCost"])
-                if int(crust.flags[cell]) & weak
-                else 1.0
-            )
-            * grain(cell)
-        ),
-    )
-
     from_coast = ctx["from_coast"]
     coast = _coast_candidates(mesh, crust, junction, pull_axis, costs, ctx, config)
 
     if len(coast) < 2:
-        return None
+        return coast, None, None, math.inf
     coast.sort(key=lambda item: item["score"])
-
     top_count = max(
         8,
         math.floor(float(config["riftArmEndCoastKm"]) / edge_km + 0.5),
@@ -239,7 +209,6 @@ def find_rift(
             and pair["per_km"] > float(config["riftCostSlack"]) * pairs[0]["per_km"]
         ):
             break
-
         if any(
             (
                 _nearby_rift_cuts(xyz, item["a"], pair["a"])
@@ -277,17 +246,23 @@ def find_rift(
             chosen = pair
             chosen_path = path
 
-    if chosen is None or chosen_path is None:
-        return None
+    return coast, chosen, chosen_path, best_value
 
-    arm1 = chosen["a"]
-    arm2 = chosen["b"]
-    arm1_trace = _trace_parent_path(arm1["cell"], costs["from"])
-    arm2_trace = _trace_parent_path(arm2["cell"], costs["from"])
 
-    # Failed arms use an undiscounted tree so the aulacogen leaves a new weak line.
+def _trace_failed_rift_arms(
+    mesh,
+    xyz,
+    crust,
+    junction: int,
+    coast: list[dict],
+    arm1: dict,
+    arm2: dict,
+    grain,
+    config,
+) -> tuple[list[int], list[int]]:
+    """Trace the abandoned coast arm and optionally retain its full path."""
     plain = _cheapest_paths(mesh, crust, junction, grain)
-    failed_arm = []
+    failed_arm: list[int] = []
     taken = [arm1, arm2]
     plain_coast = [
         item for item in coast if math.isfinite(float(plain["cost"][item["cell"]]))
@@ -312,6 +287,78 @@ def find_rift(
 
     arm3_trace = (
         _trace_parent_path(taken[2]["cell"], plain["from"]) if len(taken) > 2 else []
+    )
+    return failed_arm, arm3_trace
+def find_rift(
+    world,
+    plate,
+    junction: int,
+    pull_axis=None,
+    need_cratons_both_sides: bool = True,
+    ctx: dict | None = None,
+):
+    """Find the best valid coast-to-coast rift crossing the given junction.
+
+    The result contains the chosen path, failed arm, three arm traces,
+    great-circle normal and a cost/shape score. None means no valid cut.
+    """
+    mesh, config = world.mesh, world.config
+    xyz = mesh.xyz
+    edge_km = float(mesh.edge_km)
+    crust = plate.crust
+
+    def land(cell: int) -> bool:
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
+
+    if not land(junction) or crust.type[junction] == CrustType["CRATON"]:
+        return None
+    if ctx is None:
+        ctx = rift_context(world, plate)
+
+    weak = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
+    grain = ctx["grain"]
+    costs = _cheapest_paths(
+        mesh,
+        crust,
+        junction,
+        lambda cell: (
+            (
+                float(config["riftWeaknessCost"])
+                if int(crust.flags[cell]) & weak
+                else 1.0
+            )
+            * grain(cell)
+        ),
+    )
+
+    coast, chosen, chosen_path, best_value = _select_rift_coast_pair(
+        mesh,
+        crust,
+        junction,
+        pull_axis,
+        costs,
+        ctx,
+        config,
+        need_cratons_both_sides,
+    )
+    if chosen is None or chosen_path is None:
+        return None
+
+    arm1 = chosen["a"]
+    arm2 = chosen["b"]
+    arm1_trace = _trace_parent_path(arm1["cell"], costs["from"])
+    arm2_trace = _trace_parent_path(arm2["cell"], costs["from"])
+
+    failed_arm, arm3_trace = _trace_failed_rift_arms(
+        mesh,
+        xyz,
+        crust,
+        junction,
+        coast,
+        arm1,
+        arm2,
+        grain,
+        config,
     )
     ends = [chosen_path[0], chosen_path[-1]]
     across = normalize(

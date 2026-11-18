@@ -12,6 +12,8 @@ from orogen.v2.tectonics.ops.rift_path import (
     _crosses_rather_than_hugs,
     _is_monotone,
     _nearby_rift_cuts,
+    _select_rift_coast_pair,
+    _trace_failed_rift_arms,
     _trace_parent_path,
 )
 
@@ -390,3 +392,53 @@ def test_rift_path_geometry_helpers_preserve_parent_and_distance_rules():
     distant = {"cell": 2}
     assert _nearby_rift_cuts(xyz, close, nearby)
     assert not _nearby_rift_cuts(xyz, close, distant)
+
+def test_rift_selection_and_failed_arm_helpers_match_public_result():
+    world, plate = square_world()
+    junction = 24
+    context = rift_context(world, plate)
+    grain = context["grain"]
+    costs = _cheapest_paths(
+        world.mesh,
+        plate.crust,
+        junction,
+        lambda cell: grain(cell),
+    )
+    coast, chosen, path, score = _select_rift_coast_pair(
+        world.mesh,
+        plate.crust,
+        junction,
+        None,
+        costs,
+        context,
+        world.config,
+        False,
+    )
+
+    assert len(coast) >= 2
+    assert chosen is not None
+    assert path is not None
+    assert np.isfinite(score)
+    first, second = chosen["a"], chosen["b"]
+    failed_arm, third_trace = _trace_failed_rift_arms(
+        world.mesh,
+        world.mesh.xyz,
+        plate.crust,
+        junction,
+        coast,
+        first,
+        second,
+        grain,
+        world.config,
+    )
+    result = find_rift(
+        world,
+        plate,
+        junction,
+        need_cratons_both_sides=False,
+        ctx=context,
+    )
+    assert result is not None
+    assert result["path"] == path
+    assert result["failed_arm"] == failed_arm
+    assert result["arms"][2] == third_trace

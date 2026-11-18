@@ -270,3 +270,19 @@ def test_gather_boundary_loads_applies_mantle_flow_and_dispersal(monkeypatch):
     assert loads[0]["cells"][4] == 1
     assert loads[0]["forceByKind"][4] == pytest.approx([0.0, 0.0, 1.0])
 
+def test_gather_boundary_loads_allows_flow_without_dispersal_field(monkeypatch):
+    world = make_world(monkeypatch, "pull")
+    world.plates[0].crust.type[0] = CrustType["CONTINENT"]
+    world.cycle = {"up": object()}
+    world.config["mantleOutflow"] = 1.0
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.forces.dispersal_field",
+        lambda _world: None,
+    )
+    def flow(_world, _x, _y, _z, out):
+        out[:] = [0.0, 0.0, 1.0]
+    monkeypatch.setattr("orogen.v2.tectonics.forces.mantle_flow_at", flow)
+    loads = gather_boundary_loads(world)
+    assert loads[0]["cells"][4] == 1
+    assert loads[0]["forceByKind"][4] == pytest.approx([0.0, 0.0, 1.0])
+

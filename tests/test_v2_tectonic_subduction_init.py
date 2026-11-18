@@ -437,18 +437,21 @@ def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
         0.01,
     )
     assert dispersed == pytest.approx((200.0, 200.0, 0.005))
-    assert _founder_run_probability(
-        world,
-        [1],
-        plate.crust.formedAt,
-        float(world.time),
-        1.0,
-        float(world.mesh.edge_km),
-        100.0,
-        101.0,
-        2.0,
-        0.01,
-    ) is None
+    assert (
+        _founder_run_probability(
+            world,
+            [1],
+            plate.crust.formedAt,
+            float(world.time),
+            1.0,
+            float(world.mesh.edge_km),
+            100.0,
+            101.0,
+            2.0,
+            0.01,
+        )
+        is None
+    )
 
     coast, run_of, runs = _old_ocean_margin_runs(
         world.mesh, plate.crust, float(world.time), 100.0

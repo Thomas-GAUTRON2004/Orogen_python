@@ -107,15 +107,11 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest PR-head source validation on 2026-11-18 passed **506 tests** with **99.43% total coverage** (the CI minimum is 95%, with branch coverage enabled):
-
-- [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404)
-- [Platform matrix](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402) — 9/9 jobs passed across Linux, Windows and macOS with Python 3.10, 3.12 and 3.14.
-- Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
-
-Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
-
-For benchmark methodology and results, including workloads where Python remains slower than JavaScript, see [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md).
+The current production triangulation backend is SciPy/Qhull. Its focused
+compatibility matrix and the full Python test workflow run on the active
+[quality PR #9](https://github.com/Thomas-GAUTRON2004/Orogen_python/pull/9).
+The earlier 506-test / 99.43% result was recorded before the SciPy migration
+and is historical; it is not a validation result for the current backend.
 
 ## Upstream and license
 

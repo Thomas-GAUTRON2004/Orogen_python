@@ -46,16 +46,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     )
 
     # Resample the lower plate once into the upper plate's coordinate frame.
-    from_lower = np.full(num_cells, -1, dtype=np.int32)
-    for cell in range(num_cells):
-        point = upper.to_world(
-            float(xyz[3 * cell]),
-            float(xyz[3 * cell + 1]),
-            float(xyz[3 * cell + 2]),
-        )
-        local = lower.cell_at(index, *map(float, point))
-        if lower_crust.mask[local]:
-            from_lower[cell] = local
+    from_lower = _resample_lower_cells(mesh, upper, lower, lower_crust)
 
     def upper_land(cell: int) -> bool:
         return bool(
@@ -376,6 +367,23 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         "overlapCells": overlap_count,
         "sealedCells": sealed,
     }
+
+
+def _resample_lower_cells(mesh, upper, lower, lower_crust) -> np.ndarray:
+    """Map every upper-frame world cell to its occupied lower-plate source."""
+    num_cells = int(mesh.num_cells)
+    xyz, index = mesh.xyz, mesh.index
+    from_lower = np.full(num_cells, -1, dtype=np.int32)
+    for cell in range(num_cells):
+        point = upper.to_world(
+            float(xyz[3 * cell]),
+            float(xyz[3 * cell + 1]),
+            float(xyz[3 * cell + 2]),
+        )
+        local = lower.cell_at(index, *map(float, point))
+        if lower_crust.mask[local]:
+            from_lower[cell] = local
+    return from_lower
 
 
 def _position(xyz, cell: int) -> np.ndarray:

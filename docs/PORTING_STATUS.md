@@ -107,3 +107,5 @@ Production triangulation uses `shull>=0.4.0`. The selected seeded differential f
 ## Quality refactoring progress
 
 - Continued Phase 2 by extracting the identification of old, untrenched oceanic coast cells and their connected margin runs from `founder_within_plates` into `_old_ocean_margin_runs`. The helper isolates a pure graph/raster stage from the breakup eligibility and plate-transfer orchestration; behavior is intended to remain unchanged. Focused CI validation is pending.
+
+- Continued the Phase 2 cleanup by extracting the lower-plate-to-upper-frame raster mapping from `merge_plates` into `_resample_lower_cells`. This isolates the one-time coordinate-frame sampling stage from overlap geometry and raster welding; behavior is intended to remain unchanged. Focused CI validation is pending.

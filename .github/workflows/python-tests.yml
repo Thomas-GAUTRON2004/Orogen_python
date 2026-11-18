@@ -211,4 +211,4 @@ jobs:
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=95
+            --cov-fail-under=99

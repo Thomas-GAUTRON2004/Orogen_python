@@ -494,3 +494,15 @@ def test_contact_classifier_records_transpression_belt_in_crust_raster(
     assert upper.crust.oroType[0] == OrogenyType["TRANSPRESSION"]
     assert upper.crust.oroWork[0] > 0.0
     assert upper.crust.beltReach[0] > 0.0
+
+
+
+def test_local_belt_helpers_skip_nonpositive_timestep(monkeypatch):
+    module, _mesh, _world, upper, _lower = _subduction_contact(monkeypatch)
+    calls = []
+    monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
+
+    module._spread_subduction_belts(upper, {upper: {}}, 0.0)
+    module._spread_transpression_belts(upper, {upper: {}}, -1.0)
+
+    assert calls == []

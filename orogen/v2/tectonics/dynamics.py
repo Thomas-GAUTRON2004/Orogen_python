@@ -73,7 +73,9 @@ def drag_tensor(plate, mesh, config: Mapping) -> np.ndarray:
     return rotation @ local @ rotation.T
 
 
-def _cross(a: Sequence[float], b: Sequence[float]) -> np.ndarray:
+def _cross(
+    a: Sequence[float] | np.ndarray, b: Sequence[float] | np.ndarray
+) -> np.ndarray:
     return np.cross(np.asarray(a, dtype=np.float64), np.asarray(b, dtype=np.float64))
 
 

@@ -63,6 +63,19 @@ jobs:
       - name: Verify installed dependencies
         run: python -m pip check
 
+      - name: Measure mypy baseline
+        run: |
+          python -m mypy --no-error-summary --show-error-codes orogen > "$RUNNER_TEMP/mypy-current.txt" 2>&1 || true
+          python - "$RUNNER_TEMP/mypy-current.txt" <<'PY'
+          import pathlib
+          import sys
+
+          lines = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+          errors = [line for line in lines if ": error:" in line]
+          print(f"Current mypy error count: {len(errors)}")
+          print("\n".join(errors))
+          PY
+
       - name: Scan Python package with Bandit
         run: bandit -q -r orogen
 

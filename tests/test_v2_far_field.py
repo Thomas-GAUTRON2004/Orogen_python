@@ -614,3 +614,9 @@ def test_rejuvenation_skips_ocean_cells():
     far_field._rejuvenate(world, plate, [2], [120.0], [50.0])
     assert np.array_equal(crust.rugged, before)
     assert np.array_equal(crust.upliftKm, np.zeros(5, dtype=np.float32))
+
+def test_feed_far_field_ignores_non_positive_work_values():
+    world, plate = make_world()
+    feed_far_field(world, plate, "negative", [0, 1], [-1.0, 0.0], 100.0, 1.0)
+    assert world.farPending["negative"]["cells"] == {}
+

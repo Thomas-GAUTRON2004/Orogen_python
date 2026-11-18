@@ -104,3 +104,6 @@ all seeds, resolutions or simulation histories.
 ## Numerical compatibility limits
 
 Production triangulation uses `shull>=0.4.0`. The selected seeded differential fixtures and mesh-invariant tests exercise finite inputs only; they do not guarantee universal connectivity across all point clouds, seeds or resolutions. The optional SciPy-versus-shull benchmark is a finite A/B comparison, not proof of whole-engine parity.
+## Quality refactoring progress
+
+- Continued Phase 2 by extracting the identification of old, untrenched oceanic coast cells and their connected margin runs from `founder_within_plates` into `_old_ocean_margin_runs`. The helper isolates a pure graph/raster stage from the breakup eligibility and plate-transfer orchestration; behavior is intended to remain unchanged. Focused CI validation is pending.

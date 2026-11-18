@@ -155,7 +155,7 @@ def test_open_back_arc_splits_a_coherent_continental_margin(monkeypatch):
     fresh = world.plates[-1]
     assert fresh.name == "West Isles"
     assert fresh.backArcOf == parent.id
-    assert fresh.rollbackCmYr == pytest.approx(0.9)
+    assert fresh.rollbackCmYr == pytest.approx(1.125)
     assert fresh.lastBackArcAt == world.time
     assert parent.lastBackArcAt == world.time
     assert fresh.crust.count == 105

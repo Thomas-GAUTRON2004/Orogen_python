@@ -285,7 +285,7 @@ def enclosed_sea_between_km2(world, upper, lower) -> float:
         )
 
     component = [-1] * n
-    sizes = []
+    sizes: list[int] = []
     for start in range(n):
         if not is_sea(start) or component[start] >= 0:
             continue
@@ -354,8 +354,8 @@ def open_sea_between(world, upper, lower) -> dict[str, float]:
             )
         )
 
-    coast_upper = []
-    coast_lower = []
+    coast_upper: list[int] = []
+    coast_lower: list[int] = []
     for cell in range(n):
         plate_id = int(owner[cell])
         if plate_id not in (upper.id, lower.id) or is_sea(cell):
@@ -506,8 +506,8 @@ def accrete_arcs(world, plate_a, plate_b, overlap) -> dict:
         )
 
     core = []
-    from_a = []
-    from_b = []
+    from_a: list[int] = []
+    from_b: list[int] = []
     arc_a_loses = plate_a.stats["continentalCells"] < plate_b.stats[
         "continentalCells"
     ] or (
@@ -923,60 +923,41 @@ def _collision_front_cells(
     return list(dict.fromkeys(upper_front)), list(dict.fromkeys(lower_front))
 
 
-def track_collisions(world, dt: float) -> dict:
-    """Track continent-on-continent contacts, shortening and underthrusting.
+def _plates_alive(plates, id_a: int, id_b: int) -> bool:
+    """Whether both collision participants still exist and are active."""
+    return (
+        0 <= id_a < len(plates)
+        and 0 <= id_b < len(plates)
+        and plates[id_a].alive
+        and plates[id_b].alive
+    )
 
-    This is the first orchestration slice of upstream step/collision.js.
-    Terrane/arc docking and overlap underthrusting are handled when their
-    prerequisites are configured. Belt propagation and plate welding remain
-    separate follow-up stages because their Python implementations are not
-    yet complete.
-    """
-    step_dt = float(dt)
-    if not math.isfinite(step_dt) or step_dt <= 0.0:
-        raise ValueError("dt must be a finite positive number")
 
-    config = world.config
-    contacts = collect_contacts(world)
-    overlaps = contacts["overlap"]
-    touching = contacts["touching"]
-    forget_stale_collisions(world)
-
+def _process_collision_overlap(
+    world,
+    key: str,
+    overlap_values: list[int],
+    step_dt: float,
+    config,
+    mesh,
+    edge_km: float,
+    cell_area: float,
+) -> tuple[int, int, int, bool]:
+    """Advance one active collision pair by one tectonic time step."""
     plates = world.plates
-    changed = False
+    xyz = mesh.xyz
     started = 0
     tracked = 0
     underthrust_total = 0
+    changed = False
 
     def both_alive(id_a: int, id_b: int) -> bool:
-        return (
-            0 <= id_a < len(plates)
-            and 0 <= id_b < len(plates)
-            and plates[id_a].alive
-            and plates[id_b].alive
-        )
+        return _plates_alive(plates, id_a, id_b)
 
-    # Small landmasses dock on contact, even before they overlap.
-    if "terraneMaxAreaKm2" in config:
-        for key, cells in touching.items():
-            if key in overlaps or key in world.collisions:
-                continue
-            id_a, id_b = map(int, key.split(":"))
-            if both_alive(id_a, id_b) and dock_if_terrane(
-                world, plates[id_a], plates[id_b], cells
-            ):
-                changed = True
-
-    mesh = world.mesh
-    xyz = mesh.xyz
-    edge_km = float(mesh.edge_km)
-    cell_area = float(mesh.cell_area_km2)
-
-    for key, overlap_values in overlaps.items():
         id_a, id_b = map(int, key.split(":"))
-        if not both_alive(id_a, id_b):
-            continue
-
+        if not _plates_alive(plates, id_a, id_b):
+        return (started, tracked, underthrust_total, changed)
+    
         # Arcs are transferred before continent-on-continent overlap is
         # counted. Keep this operation gated until its full config is present.
         if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(
@@ -987,16 +968,16 @@ def track_collisions(world, dt: float) -> dict:
             changed = changed or bool(arc_result["accreted"])
         else:
             core = [int(cell) for cell in overlap_values]
-
+    
         if not core or not both_alive(id_a, id_b):
-            continue
-
+        return (started, tracked, underthrust_total, changed)
+    
         record = world.collisions.get(key)
         if record is None:
             if "riftJitterFrontKm" in config and is_rift_jitter(
                 world, plates[id_a], plates[id_b], core
             ):
-                continue
+        return (started, tracked, underthrust_total, changed)
             if (
                 "riftPushMyr" in config
                 and "riftJitterFrontKm" in config
@@ -1006,8 +987,8 @@ def track_collisions(world, dt: float) -> dict:
                 and len(core) * cell_area / max(edge_km, 1e-12)
                 <= float(config["riftJitterFrontKm"])
             ):
-                continue
-
+        return (started, tracked, underthrust_total, changed)
+    
             sides = choose_sides(world, plates[id_a], plates[id_b], core)
             record = {
                 "upper": sides["upper"].id,
@@ -1030,27 +1011,27 @@ def track_collisions(world, dt: float) -> dict:
             }
             world.collisions[key] = record
             started += 1
-
+    
             if "terraneMaxAreaKm2" in config and dock_if_terrane(
                 world, sides["upper"], sides["lower"], core
             ):
                 del world.collisions[key]
                 changed = True
-                continue
-
+        return (started, tracked, underthrust_total, changed)
+    
         if record.get("sutured", False):
-            continue
-
+        return (started, tracked, underthrust_total, changed)
+    
         upper = plates[int(record["upper"])]
         lower = plates[int(record["lower"])]
         if not upper.alive or not lower.alive:
-            continue
-
+        return (started, tracked, underthrust_total, changed)
+    
         cells = [int(cell) for cell in core]
         record["cells"] = len(cells)
         record["lastActive"] = float(world.time)
         record["contactMyr"] = float(record.get("contactMyr", 0.0)) + step_dt
-
+    
         centre = centroid_of_cells(xyz, cells)
         upper_centre = upper.to_world(*map(float, upper.capCenter))
         lower_centre = lower.to_world(*map(float, lower.capCenter))
@@ -1061,7 +1042,7 @@ def track_collisions(world, dt: float) -> dict:
         closing = dot(cross(relative_omega, centre), normal)
         closing_cm_yr = closing / CM_PER_YR_TO_RAD_PER_MYR
         record["closingCmYr"] = closing_cm_yr
-
+    
         # A newly detected one-cell sliver between plates that are parting is
         # a raster timing artefact, not a persistent collision.
         front_limit = float(config.get("collisionJitterFrontKm", 0.0))
@@ -1071,8 +1052,8 @@ def track_collisions(world, dt: float) -> dict:
             and len(cells) * cell_area / max(edge_km, 1e-12) <= front_limit
         ):
             world.collisions.pop(key, None)
-            continue
-
+        return (started, tracked, underthrust_total, changed)
+    
         if record.get("announce", False):
             record["announce"] = False
             world.log(
@@ -1080,7 +1061,7 @@ def track_collisions(world, dt: float) -> dict:
                 f"{lower.name} meets {upper.name}",
                 {"upper": upper.id, "lower": lower.id},
             )
-
+    
         shortening_km = max(0.0, closing) * step_dt * PLANET_RADIUS_KM
         record["shorteningKm"] = float(record["shorteningKm"]) + shortening_km
         stall_rate = float(config.get("sutureStallCmYr", 0.4))
@@ -1094,7 +1075,7 @@ def track_collisions(world, dt: float) -> dict:
             float(world.time) - float(record["startedAt"]),
         )
         record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
-
+    
         upper_front, lower_front = _collision_front_cells(world, upper, lower, cells)
         record["frontKm"] = (
             max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
@@ -1103,7 +1084,7 @@ def track_collisions(world, dt: float) -> dict:
             float(record.get("frontMaxKm", 0.0)),
             float(record["frontKm"]),
         )
-
+    
         far_share = float(config.get("farCollisionShare", 0.0))
         if shortening_km > 0.0 and far_share > 0.0:
             feed_far_field(
@@ -1124,7 +1105,7 @@ def track_collisions(world, dt: float) -> dict:
                 float(record["frontKm"]),
                 far_share,
             )
-
+    
         # The accumulated shortening also builds a plateau-side and a
         # foreland-side belt. Keep this gated on the complete belt config so
         # smaller unit worlds can exercise collision tracking independently.
@@ -1175,11 +1156,11 @@ def track_collisions(world, dt: float) -> dict:
                     },
                     config,
                 )
-
+    
         under_now = underthrust(world, upper, lower, cells, record, shortening_km)
         underthrust_total += under_now
         changed = changed or under_now > 0
-
+    
         changed = (
             _update_suture_state(
                 world,
@@ -1194,8 +1175,69 @@ def track_collisions(world, dt: float) -> dict:
             )
             or changed
         )
-
+    
         tracked += 1
+
+    return started, tracked, underthrust_total, changed
+
+
+def track_collisions(world, dt: float) -> dict:
+    """Track continent-on-continent contacts, shortening and underthrusting.
+
+    This is the first orchestration slice of upstream step/collision.js.
+    Terrane/arc docking and overlap underthrusting are handled when their
+    prerequisites are configured. Belt propagation and plate welding remain
+    separate follow-up stages because their Python implementations are not
+    yet complete.
+    """
+    step_dt = float(dt)
+    if not math.isfinite(step_dt) or step_dt <= 0.0:
+        raise ValueError("dt must be a finite positive number")
+
+    config = world.config
+    contacts = collect_contacts(world)
+    overlaps = contacts["overlap"]
+    touching = contacts["touching"]
+    forget_stale_collisions(world)
+
+    plates = world.plates
+    changed = False
+    started = 0
+    tracked = 0
+    underthrust_total = 0
+
+    # Small landmasses dock on contact, even before they overlap.
+    if "terraneMaxAreaKm2" in config:
+        for key, cells in touching.items():
+            if key in overlaps or key in world.collisions:
+                continue
+            id_a, id_b = map(int, key.split(":"))
+            if both_alive(id_a, id_b) and dock_if_terrane(
+                world, plates[id_a], plates[id_b], cells
+            ):
+                changed = True
+
+    mesh = world.mesh
+    edge_km = float(mesh.edge_km)
+    cell_area = float(mesh.cell_area_km2)
+
+    for key, overlap_values in overlaps.items():
+        pair_started, pair_tracked, pair_underthrust, pair_changed = (
+            _process_collision_overlap(
+                world,
+                key,
+                overlap_values,
+                step_dt,
+                config,
+                mesh,
+                edge_km,
+                cell_area,
+            )
+        )
+        started += pair_started
+        tracked += pair_tracked
+        underthrust_total += pair_underthrust
+        changed = changed or pair_changed
 
     return {
         "tracked": tracked,

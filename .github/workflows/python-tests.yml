@@ -105,6 +105,9 @@ jobs:
                   f"file={finding.get('File')} "
                   f"line={finding.get('StartLine')} "
                   f"commit={finding.get('Commit')} "
+                  f"columns={finding.get('StartColumn')}-{finding.get('EndColumn')} "
+                  f"fingerprint={finding.get('Fingerprint')} "
+                  f"match={finding.get('Match')}"
                   f"description={finding.get('Description')}"
               )
           PY

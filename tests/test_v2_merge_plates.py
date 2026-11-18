@@ -256,6 +256,7 @@ def test_lower_plate_resampling_is_identity_for_aligned_rasters():
         expected = cell if lower.crust.mask[cell] else -1
         assert mapped[cell] == expected
 
+
 def test_overlap_geometry_and_displacement_helpers_are_finite_and_consistent():
     world, upper, lower = merge_fixture()
     from_lower = _resample_lower_cells(world.mesh, upper, lower, lower.crust)

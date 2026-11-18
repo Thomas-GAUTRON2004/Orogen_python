@@ -495,7 +495,6 @@ def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
     assert steer_back_arc_strips(world) == 0
 
 
-
 def test_open_back_arc_uses_real_world_rng_and_contact_geometry():
     import orogen.v2.tectonics.backarc as backarc
 

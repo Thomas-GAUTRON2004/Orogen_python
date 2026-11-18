@@ -264,7 +264,7 @@ __all__ = [
 
 
 def enclosed_sea_between_km2(world, upper, lower) -> float:
-    """Largest enclosed sea component bordered by both plates, in km²."""
+    """Find the largest enclosed sea component bordered by both plates, in km²."""
     mesh = world.mesh
     owner = world.owner
     owner_cell = world.ownerCell

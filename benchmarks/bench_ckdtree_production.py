@@ -72,10 +72,17 @@ for requested_cells in SIZES:
     xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape(-1, 3)
     queries = query_vectors(N_QUERIES)
 
+    # Normalize the float32 production vertices in float64. For unit query
+    # directions, Euclidean nearest-neighbour order then matches maximum
+    # spherical dot-product order, which is the intended geometric criterion.
+    norms = np.linalg.norm(xyz, axis=1)
+    unit_xyz = xyz / norms[:, None]
+    q_unit = queries / np.linalg.norm(queries, axis=1)[:, None]
+
     sphere_index_s, _ = measure(
         lambda: SphereIndex(mesh.xyz, mesh, 2), repeats=REPEATS
     )
-    tree_s, tree = measure(lambda: cKDTree(xyz), repeats=REPEATS)
+    tree_s, tree = measure(lambda: cKDTree(unit_xyz), repeats=REPEATS)
 
     prod_view = SimpleNamespace(
         xyz=mesh.xyz, adj_offset=mesh.adj_offset, adj_list=mesh.adj_list,
@@ -99,10 +106,10 @@ for requested_cells in SIZES:
         )
     )
     tree_batch_s, tree_batch_ids = measure(
-        lambda: tree.query(queries, k=1, workers=1)[1]
+        lambda: tree.query(q_unit, k=1, workers=1)[1]
     )
     tree_parallel_batch_s, _ = measure(
-        lambda: tree.query(queries, k=1, workers=-1)[1]
+        lambda: tree.query(q_unit, k=1, workers=-1)[1]
     )
 
     prod_locate_s, prod_result = measure(lambda: run_locate(prod_view, queries))
@@ -118,9 +125,6 @@ for requested_cells in SIZES:
 
     # Angular quality is evaluated from normalized float64 directions, avoiding
     # the negative-loss artifact caused by dot products of float32 coordinates.
-    norms = np.linalg.norm(xyz, axis=1)
-    unit_xyz = xyz / norms[:, None]
-    q_unit = queries / np.linalg.norm(queries, axis=1)[:, None]
     sphere_dot = np.einsum("ij,ij->i", unit_xyz[sphere_ids], q_unit)
     tree_dot = np.einsum("ij,ij->i", unit_xyz[tree_scalar_ids], q_unit)
     sphere_angle = np.degrees(np.arccos(np.clip(sphere_dot, -1.0, 1.0)))

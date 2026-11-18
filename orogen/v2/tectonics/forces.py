@@ -1,4 +1,5 @@
 """Partial boundary-force gathering ported from V2 step/forces.js.
+# ruff: noqa: I001 - preserve the module's established import grouping.
 
 Gathers slab pull, slab suction, young-ridge push and young-rift push from a
 resolved owner map. Collision-overlap contacts and mantle flow are excluded.
@@ -21,7 +22,8 @@ _PULL, _SUCTION, _RIDGE, _RIFT = range(4)
 
 
 def _new_load() -> dict:
-    zero = lambda: [0.0, 0.0, 0.0]
+    def zero() -> list[float]:
+        return [0.0, 0.0, 0.0]
     return {
         "torque": zero(),
         "flowTorque": zero(),

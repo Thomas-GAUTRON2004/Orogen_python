@@ -23,7 +23,7 @@ Base commit: `0afae616a78d318ac1c77e6b52b5118059d98f5f`
 ### Typing, dependencies and test hygiene
 
 - Added `orogen/py.typed`, configured package data so it is included in distributions, and annotated the top-level version constant.
-- Bounded runtime dependencies to `numpy>=1.24,<3` and `shull>=0.4.0,<1`.
+- Bounded runtime dependencies to `numpy>=1.24,<3` and SciPy/Qhull `scipy>=1.10` for production Delaunay triangulation.
 - Added `package.json` with `delaunator` pinned to `5.0.1`; CI now installs from that manifest.
 - Audited the 29 test functions with no direct Python `assert`: 23 use `pytest.raises` or NumPy testing assertions, while six are branch-coverage smoke tests for Numba `.py_func` bodies. The latter are now documented.
 - Documented why the sphere-mesh adapter catches backend-specific exceptions before translating them to the stable mesh API.
@@ -38,7 +38,7 @@ Base commit: `0afae616a78d318ac1c77e6b52b5118059d98f5f`
 - A wheel was built successfully and checked to contain `orogen/py.typed`.
 - The patch was applied to a clean copy of the supplied source archive without conflicts.
 
-**Test limitation:** the native `shull` package is not installed in this offline environment. The focused pytest run used a temporary SciPy-backed adapter outside the repository; this checks the selected code paths but does not validate the native `shull` backend or its performance. The complete test suite did not finish within the local execution limit, so no conclusion is drawn about tests that did not complete.
+**Historical test limitation:** at the time of the initial local checks, `shull` was not installed in the offline environment, so focused tests used a temporary SciPy-backed adapter and the complete suite did not finish within the local execution limit. This limitation predates the current switch to SciPy/Qhull as the actual production backend; current validation is delegated to the SciPy-focused GitHub Actions workflows.
 
 Ruff, mypy, Xenon and Bandit were not available locally and could not be installed because the environment had no package-index network access. Their CI steps are configured but have not yet been observed passing on this change. The full Ruff formatting pass, mypy diagnostic comparison and complete coverage threshold therefore remain to be confirmed by CI.
 
@@ -57,7 +57,7 @@ Ruff, mypy, Xenon and Bandit were not available locally and could not be install
 
 ## Remaining plan items
 
-- Run the updated GitHub Actions workflow against the actual native `shull` backend and confirm full-package branch coverage is at least 95%.
+- Run the updated GitHub Actions workflows against the production SciPy/Qhull backend and confirm full-package branch coverage is at least 95%.
 - Verify that mypy introduces no new diagnostics relative to the PR base, then work down the existing baseline in `crust.py`, `ops/merge_plates.py`, `_numba_kernels.py` and `ops/rift_path.py`.
 - Measure Radon/Xenon complexity and Numba performance before/after; the local environment did not provide a usable Radon/Xenon installation or a complete benchmark comparison.
 - Continue decomposing `track_collisions` (pair orchestration, convergence and front geometry), then refactor `merge_plates`, `find_rift`, `founder_within_plates`, and others. Add the proposed physical-property tests and cover the residual branches in `collision.py` and `contact.py`.
@@ -68,8 +68,10 @@ The report is included with the proposed quality-refactor changes. The associate
 - Replaced the Gitleaks Action's failing PR revision-range integration with a pinned Gitleaks CLI scan over the full commit range from the merge base, avoiding the action's invalid-range failure while retaining history scanning.
 - Extracted lower-plate raster resampling from `merge_plates` into `_resample_lower_cells`, alongside the previously extracted old-ocean margin-run discovery in `founder_within_plates`. Both changes await focused CI validation.
 
-## Discarded cKDTree experiment
+## Numerical backend selection
 
-- The cKDTree candidate was not selected for production. Its dedicated workflow (`.github/workflows/ckdtree-sphere-index.yml`) and benchmark (`benchmarks/bench_ckdtree_production.py`) have been removed from this branch.
-- Kept SciPy in the optional `benchmark` dependency group because `benchmarks/bench_shull_pipeline.py` uses it for the reference comparison; cKDTree-specific workflow and script are removed.
-- The supported production path remains the existing `SphereIndex` backend.
+- cKDTree remains discarded; its dedicated workflow and comparison script were removed. No cKDTree lookup is used in production.
+- Production Delaunay triangulation now uses `scipy.spatial.Delaunay` (Qhull), and SciPy is a required runtime dependency.
+- The previous `shull` runtime dependency, platform workflow, A/B benchmark workflow and comparison script were removed.
+- `SphereIndex` remains the separate spherical nearest-cell lookup structure; it is not a triangulation backend.
+- The SciPy platform matrix is limited to Ubuntu and Windows for Python 3.10, 3.12 and 3.14.

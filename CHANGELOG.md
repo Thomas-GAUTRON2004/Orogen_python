@@ -9,9 +9,13 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
   collision-belt propagation and suture welding through plate redraw/merge.
 - Far-field propagation capable of reactivating old sutures and failed rifts.
+- Strongly coupled Andean and flat-slab subduction margins feed the far-field deformation record, using slab-age/plate-advance classification and hysteresis.
+- Added age-dependent slab rollback, controlled back-arc strip splitting, finite-duration strip steering, and rejoining with oceanic seam bridging.
+- Boundary classification spreads local Andean and Laramide belts from subduction fronts, caps steep-slab arc belts, suppresses arc spreading above flat slabs, and spreads transpression belts along oblique closing land contacts.
 - SciPy/Qhull-backed spherical Delaunay triangulation through
   `scipy.spatial.Delaunay`.
 - Focused sphere-mesh tests for topology, reciprocal neighbours, cyclic

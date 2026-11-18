@@ -59,7 +59,7 @@ Sources of truth, in order of precedence:
  
 - Do not disable or skip a CI step (`--no-verify`, removing `bandit`, `gitleaks`,
   `ruff`, `mypy`, `xenon`, or `uv lock --check`).
-- Do not lower the 95 % coverage threshold.
+- Do not lower the 99 % coverage threshold.
 - Do not add `# type: ignore` without a precise code and a justification.
 - Do not add a bare `except:`, nor an `except Exception` without justification.
 - Do not add `# noqa` without a precise rule code.
@@ -78,7 +78,7 @@ Sources of truth, in order of precedence:
 npm install --no-save --package-lock=false       # upstream Delaunator reference
 python -m pip install -e ".[test,speed,quality]"
 uv lock --check                                  # if dependencies changed
-python -m pytest --cov=orogen --cov-branch --cov-fail-under=95
+python -m pytest --cov=orogen --cov-branch --cov-fail-under=99
 ruff check .                                    # match the repository-wide CI lint gate
 ruff check <changed files>                       # faster local feedback
 ruff format --check orogen scripts tests

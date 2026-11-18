@@ -1,8 +1,9 @@
-"""Boundary-motion primitives ported from Orogen V2 step/boundaries.js.
+"""Boundary-motion and local orogenic-belt stages ported from V2 boundaries.js.
 
-This module currently ports the deterministic classification and trench bookkeeping
-helpers. The full world pass also depends on orogeny and far-field deformation and
-is intentionally kept separate until those systems are ported.
+The classifier records real trench consumption, applies flat-slab hysteresis,
+feeds the far-field clock, spreads Andean/Laramide margin belts, and builds
+narrow transpression belts from convergent transform segments when the complete
+matching configuration groups are present.
 """
 
 from __future__ import annotations
@@ -10,11 +11,17 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.mesh_bfs import reaches_within
-from .config import CM_PER_YR_TO_RAD_PER_MYR
+from ..core.sphere_geometry import PLANET_RADIUS_KM
+from .config import CM_PER_YR_TO_KM_PER_MYR, CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
-from .crust import CrustFlag, CrustType
+from .crust import CrustFlag, CrustType, OrogenyType
+from .far_field import feed_far_field
+from .orogeny import belt_shape, belt_width_km, obliquity_deg
 from .polarity import overrides
-from .world import BoundaryKind
+from .spread_belt import spread_belt
+from .world import BoundaryKind, EventKind
+
+_ANDEAN_CELL_LENGTH_FACTOR = 0.87
 
 
 class Motion:
@@ -106,11 +113,301 @@ def feed_trench(world, world_cell: int, crust, cell: int, subducted_km: float) -
     return subducted_km > 0
 
 
-def classify_contact_boundaries(world, dt: float) -> int:
-    """Classify resolved cell contacts and update trench/polarity bookkeeping.
+_SUBDUCTION_FAR_FIELD_CONFIG = frozenset(
+    {
+        "apronKm",
+        "orogenyQuietMyr",
+        "flatSlabMaxAgeMyr",
+        "flatSlabAdvanceCmYr",
+        "flatSlabOnShare",
+        "flatSlabOffShare",
+        "andeanWorkShare",
+        "beltObliqueMin",
+        "farFieldEveryMyr",
+        "farReachKm",
+        "farFrontRefKm",
+        "farMaxKm",
+        "farCratonCost",
+        "farWeakCost",
+        "farCratonTake",
+        "farWeakTake",
+        "farFoldMyr",
+        "farAndeanShare",
+        "farAndeanRateCmYr",
+        "farFlatShare",
+    }
+)
 
-    This is the contact-state portion of upstream classifyBoundaries. Orogenic
-    belt spreading and far-field deformation remain separate, unported stages.
+
+_LOCAL_BELT_CONFIG = frozenset(
+    {
+        "belts",
+        "beltSpeedRefCmYr",
+        "beltSpeedExponent",
+        "beltSpeedFactorMin",
+        "beltSpeedFactorMax",
+        "beltYoungSlabBoost",
+        "beltYoungSlabRefMyr",
+        "beltOldSlabMin",
+        "arcBeltMaxKm",
+        "cratonRimKm",
+        "cratonRimCost",
+        "cratonRimShare",
+        "weakCellCost",
+        "beltWorkShare",
+        "thickeningPerWorkKm",
+    }
+)
+
+
+def _feed_subduction_far_field(world, fronts: dict, dt: float) -> None:
+    """Feed active overriding margins into the far-field deformation clock.
+
+    The flat-slab share and quiet-gap reset follow V2 step/boundaries.js.
+    This helper records far-field sources; local Andean/Laramide and arc belts
+    are spread separately after the flat-slab state has been updated.
+    """
+    if not fronts:
+        return
+
+    config, mesh = world.config, world.mesh
+    rate_reference = float(config["farAndeanRateCmYr"])
+    if rate_reference <= 0.0:
+        raise ValueError("farAndeanRateCmYr must be positive")
+
+    for plate, front in sorted(fronts.items(), key=lambda item: int(item[0].id)):
+        if float(world.time) - float(plate.lastFedAt) > float(
+            config["orogenyQuietMyr"]
+        ):
+            plate.flatSlab = False
+            plate.flatSlabKm = 0.0
+        plate.lastFedAt = float(world.time)
+
+        source_indices = [
+            index
+            for index, cell in enumerate(front["cells"])
+            if int(plate.crust.type[cell]) != CrustType["OCEAN"]
+            or near_land(plate, mesh, cell, config)
+        ]
+        andean_cells = [front["cells"][index] for index in source_indices]
+        if not andean_cells or dt <= 0.0:
+            if not andean_cells:
+                plate.flatSlabKm = 0.0
+            continue
+
+        flat_share = float(front["flat"]) / len(front["cells"])
+        flat = (
+            flat_share > float(config["flatSlabOffShare"])
+            if plate.flatSlab
+            else flat_share > float(config["flatSlabOnShare"])
+        )
+        if flat != plate.flatSlab:
+            plate.flatSlab = flat
+            if flat:
+                world.log(
+                    EventKind["SLAB_FLAT"],
+                    f"the slab going down beneath {plate.name} is young and it "
+                    "drives at it: the slab flattens, deformation reaches far "
+                    "inland (a Laramide belt) and the arc volcanoes fall silent",
+                    {"plate": plate.id},
+                )
+            else:
+                world.log(
+                    EventKind["SLAB_STEEP"],
+                    f"the slab beneath {plate.name} steepens again: the belt "
+                    "narrows to an Andean one",
+                    {"plate": plate.id},
+                )
+
+        plate.flatSlabKm = (
+            float(plate.flatSlabKm) + float(front["km"]) / len(front["cells"])
+            if flat
+            else 0.0
+        )
+
+        pushes = []
+        for index in source_indices:
+            km = float(front["kms"][index])
+            rate_cm_yr = km / float(dt) / CM_PER_YR_TO_KM_PER_MYR
+            work = (
+                km
+                * float(config["andeanWorkShare"])
+                * belt_shape(float(front["headOn"][index]), None, config)
+            )
+            share = (
+                float(config["farFlatShare"])
+                if flat
+                else float(config["farAndeanShare"])
+                * min(1.0, (rate_cm_yr / rate_reference) ** 2)
+            )
+            pushes.append(work * share)
+
+        feed_far_field(
+            world,
+            plate,
+            f"s{plate.id}",
+            andean_cells,
+            pushes,
+            len(andean_cells) * float(mesh.edge_km) * _ANDEAN_CELL_LENGTH_FACTOR,
+            1.0,
+        )
+
+
+def _belt_cap(config: dict, kind: str) -> float:
+    """Return a belt's maximum width at the fastest configured convergence."""
+    return float(config["belts"][kind]["maxKm"]) * float(config["beltSpeedFactorMax"])
+
+
+def _spread_subduction_belts(world, fronts: dict, dt: float) -> None:
+    """Spread local Andean/Laramide belts and, above steep slabs, narrow arc belts."""
+    if not fronts or dt <= 0.0:
+        return
+
+    config, mesh = world.config, world.mesh
+    andean_work_share = float(config["andeanWorkShare"])
+    for plate, front in sorted(fronts.items(), key=lambda item: int(item[0].id)):
+        source_indices = [
+            index
+            for index, cell in enumerate(front["cells"])
+            if int(plate.crust.type[cell]) != CrustType["OCEAN"]
+            or near_land(plate, mesh, cell, config)
+        ]
+        cells = [front["cells"][index] for index in source_indices]
+        if not cells:
+            continue
+
+        flat = bool(plate.flatSlab)
+        widths: list[float] = []
+        works: list[float] = []
+        shears: list[float] = []
+        for index in source_indices:
+            cell = int(front["cells"][index])
+            km = float(front["kms"][index])
+            rate_cm_yr = km / float(dt) / CM_PER_YR_TO_KM_PER_MYR
+            head_on = float(front["headOn"][index])
+            slab_age = float(front["ages"][index])
+            shape = belt_shape(head_on, slab_age, config)
+            steep_width = belt_width_km(
+                "andean",
+                float(plate.crust.slabKm[cell]) * andean_work_share,
+                rate_cm_yr,
+                config,
+            )
+            if flat:
+                flat_width = belt_width_km(
+                    "laramide",
+                    float(plate.flatSlabKm),
+                    rate_cm_yr,
+                    config,
+                )
+                width = min(
+                    _belt_cap(config, "laramide"),
+                    max(steep_width, flat_width) * shape,
+                )
+            else:
+                width = min(_belt_cap(config, "andean"), steep_width * shape)
+            widths.append(width)
+            works.append(km * andean_work_share * belt_shape(head_on, None, config))
+            shears.append(float(front["shears"][index]))
+
+        belt_type = OrogenyType["LARAMIDE"] if flat else OrogenyType["ANDEAN"]
+        non_arc = [
+            index
+            for index, cell in enumerate(cells)
+            if int(plate.crust.type[cell]) != CrustType["ARC"]
+        ]
+        if non_arc:
+            selected_widths = [widths[index] for index in non_arc]
+            selected_works = [works[index] for index in non_arc]
+            spread_belt(
+                plate,
+                mesh,
+                [cells[index] for index in non_arc],
+                {
+                    "type": belt_type,
+                    "time": float(world.time),
+                    "widthKm": max(selected_widths),
+                    "workKm": max(selected_works),
+                    "widths": selected_widths,
+                    "works": selected_works,
+                    "shears": [shears[index] for index in non_arc],
+                },
+                config,
+            )
+
+        arc = [
+            index
+            for index, cell in enumerate(cells)
+            if int(plate.crust.type[cell]) == CrustType["ARC"]
+        ]
+        if arc and not flat:
+            arc_widths = [
+                min(widths[index], float(config["arcBeltMaxKm"])) for index in arc
+            ]
+            arc_works = [works[index] for index in arc]
+            spread_belt(
+                plate,
+                mesh,
+                [cells[index] for index in arc],
+                {
+                    "type": OrogenyType["ARC"],
+                    "time": float(world.time),
+                    "widthKm": max(arc_widths),
+                    "workKm": max(arc_works),
+                    "widths": arc_widths,
+                    "works": arc_works,
+                    "shears": [shears[index] for index in arc],
+                },
+                config,
+            )
+
+
+def _spread_transpression_belts(world, fronts: dict, dt: float) -> None:
+    """Spread narrow transpression belts along land contacts that slide while closing."""
+    if not fronts or dt <= 0.0:
+        return
+
+    config, mesh = world.config, world.mesh
+    for plate, front in sorted(fronts.items(), key=lambda item: int(item[0].id)):
+        cells = [int(cell) for cell in front["cells"]]
+        if not cells:
+            continue
+        works = [float(km) for km in front["kms"]]
+        widths = [
+            min(
+                _belt_cap(config, "transpression"),
+                belt_width_km(
+                    "transpression",
+                    float(plate.crust.oroWork[cell]),
+                    km / float(dt) / CM_PER_YR_TO_KM_PER_MYR,
+                    config,
+                ),
+            )
+            for cell, km in zip(cells, works, strict=True)
+        ]
+        spread_belt(
+            plate,
+            mesh,
+            cells,
+            {
+                "type": OrogenyType["TRANSPRESSION"],
+                "time": float(world.time),
+                "widthKm": max(widths),
+                "workKm": max(works),
+                "widths": widths,
+                "works": works,
+                "shears": [float(value) for value in front["shears"]],
+            },
+            config,
+        )
+
+
+def classify_contact_boundaries(world, dt: float) -> int:
+    """Classify contacts, update trench state, and spread configured local belts.
+
+    The complete far-field/flat-slab configuration enables trench source
+    collection. Local Andean/Laramide and transpression spreading additionally
+    requires the full belt geometry and crust-record configuration group.
     """
     mesh = world.mesh
     owner, owner_cell, plates = world.owner, world.ownerCell, world.plates
@@ -119,6 +416,12 @@ def classify_contact_boundaries(world, dt: float) -> int:
     convergence.fill(0)
     normal = [0.0, 0.0, 0.0, 0.0]
     contacts = []
+    fed: dict[object, dict] = {}
+    slid: dict[object, dict] = {}
+    subduction_far_field = _SUBDUCTION_FAR_FIELD_CONFIG.issubset(world.config)
+    local_belt_spreading = subduction_far_field and _LOCAL_BELT_CONFIG.issubset(
+        world.config
+    )
     classified = 0
     xyz = mesh.xyz.reshape(-1, 3)
     active = float(world.config["boundaryActiveCmYr"]) * CM_PER_YR_TO_RAD_PER_MYR
@@ -164,6 +467,23 @@ def classify_contact_boundaries(world, dt: float) -> int:
             boundary[w] = BoundaryKind["RIDGE"]
         elif motion == Motion.SLIDING:
             boundary[w] = BoundaryKind["TRANSFORM"]
+            if (
+                local_belt_spreading
+                and real
+                and closing > 0.0
+                and int(plate_a.crust.type[cell_a])
+                not in (CrustType["OCEAN"], CrustType["CRATON"])
+            ):
+                front = slid.setdefault(
+                    plate_a,
+                    {"cells": [], "kms": [], "headOn": [], "shears": []},
+                )
+                front["cells"].append(cell_a)
+                front["kms"].append(closing * dt * PLANET_RADIUS_KM)
+                front["headOn"].append(closing / float(np.hypot(closing, shear)))
+                front["shears"].append(
+                    obliquity_deg([vx, vy, vz], normal[:3], [px, py, pz], closing)
+                )
         elif motion == Motion.CLOSING:
             a_overrides = overrides(
                 plate_a, cell_a, plate_b, cell_b, int(world.oceanOverrider[w])
@@ -201,7 +521,49 @@ def classify_contact_boundaries(world, dt: float) -> int:
             elif a_overrides:
                 boundary[w] = BoundaryKind["OVERRIDING"]
                 if real:
-                    feed_trench(world, w, plate_a.crust, cell_a, closing * dt * 6371.0)
+                    subducted_km = closing * dt * 6371.0
+                    if (
+                        feed_trench(world, w, plate_a.crust, cell_a, subducted_km)
+                        and subduction_far_field
+                    ):
+                        front = fed.setdefault(
+                            plate_a,
+                            {
+                                "cells": [],
+                                "kms": [],
+                                "headOn": [],
+                                "ages": [],
+                                "shears": [],
+                                "flat": 0,
+                                "km": 0.0,
+                            },
+                        )
+                        front["cells"].append(cell_a)
+                        front["kms"].append(subducted_km)
+                        front["headOn"].append(
+                            closing / float(np.hypot(closing, shear))
+                        )
+                        front["km"] += subducted_km
+
+                        slab_age = float(world.time) - float(
+                            plate_b.crust.formedAt[cell_b]
+                        )
+                        front["ages"].append(slab_age)
+                        front["shears"].append(
+                            obliquity_deg(
+                                [vx, vy, vz], normal[:3], [px, py, pz], closing
+                            )
+                        )
+                        wx, wy, wz = map(float, plate_a.omega)
+                        advance = (
+                            (wy * pz - wz * py) * normal[0]
+                            + (wz * px - wx * pz) * normal[1]
+                            + (wx * py - wy * px) * normal[2]
+                        ) / CM_PER_YR_TO_RAD_PER_MYR
+                        if slab_age < float(
+                            world.config["flatSlabMaxAgeMyr"]
+                        ) and advance > float(world.config["flatSlabAdvanceCmYr"]):
+                            front["flat"] += 1
             else:
                 boundary[w] = BoundaryKind["SUBDUCTING"]
                 if (
@@ -216,4 +578,9 @@ def classify_contact_boundaries(world, dt: float) -> int:
         vote_segments(world, contacts)
     else:
         world.oceanOverrider.fill(-1)
+    if subduction_far_field:
+        _feed_subduction_far_field(world, fed, float(dt))
+    if local_belt_spreading:
+        _spread_subduction_belts(world, fed, float(dt))
+        _spread_transpression_belts(world, slid, float(dt))
     return classified

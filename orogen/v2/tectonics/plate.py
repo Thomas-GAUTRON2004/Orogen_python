@@ -39,12 +39,12 @@ class Plate:
         self.riftPartner = -1
         self.oceanSplitWith = -1
         self.splitAt = -math.inf
-        self.riftPushDir = None
+        self.riftPushDir: list[float] | None = None
         self.flatSlab = False
         self.flatSlabKm = 0.0
         self.lastFedAt = -math.inf
         self.backArcOf = -1
-        self.backArcPushDir = None
+        self.backArcPushDir: list[float] | None = None
         self.rollbackCmYr = 0.0
         self.lastBackArcAt = -math.inf
         self.isOceanBorn = False

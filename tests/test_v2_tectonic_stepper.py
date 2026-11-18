@@ -139,10 +139,15 @@ def test_step_world_adaptive_dt_and_external_motion(monkeypatch):
         "orogen.v2.tectonics.stepper.update_plate_motion",
         lambda w: selected.append(True),
     )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.steer_back_arc_strips",
+        lambda _world: selected.append("steer") or 1,
+    )
     result = step_world(world, update_motion=False, update_cycle=False)
     assert result["dt"] == pytest.approx(1.25)
     assert result["cyclePhase"] is None
     assert result["motionUpdated"] is False
+    assert result["steeredBackArcs"] == 0
     assert selected == []
 
 
@@ -318,3 +323,42 @@ def test_step_world_schedules_far_field_clock(monkeypatch):
 
     assert result["farField"] == 0
     assert calls == [1.5]
+
+
+def test_step_world_runs_back_arc_stage_and_steers_after_motion(monkeypatch):
+    world = make_world()
+    calls = []
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.resolve",
+        lambda _world: calls.append("resolve") or {},
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.classify_contact_boundaries",
+        lambda _world, _dt: calls.append("classify") or 0,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plumes",
+        lambda _world, _dt: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.track_cycle",
+        lambda _world: None,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.open_back_arcs",
+        lambda _world, dt: calls.append(("backarcs", dt)) or 1,
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.update_plate_motion",
+        lambda _world: calls.append("motion"),
+    )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.steer_back_arc_strips",
+        lambda _world: calls.append("steer") or 1,
+    )
+
+    result = step_world(world, 1.0)
+
+    assert result["backArcs"] == 1
+    assert calls.count("resolve") == 2
+    assert calls.index(("backarcs", 1.0)) < calls.index("motion") < calls.index("steer")

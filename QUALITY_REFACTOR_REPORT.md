@@ -63,3 +63,6 @@ Ruff, mypy, Xenon and Bandit were not available locally and could not be install
 - Continue decomposing `track_collisions` (pair orchestration, convergence and front geometry), then refactor `merge_plates`, `find_rift`, `founder_within_plates`, and others. Add the proposed physical-property tests and cover the residual branches in `collision.py` and `contact.py`.
 
 The report is included with the proposed quality-refactor changes. The associated pull request and its CI runs are the publication and validation record.
+
+- Extracted old-ocean coast detection and connected-run labeling from `founder_within_plates` into `_old_ocean_margin_runs`. The change is committed; focused native-backend CI validation is pending.
+- Replaced the Gitleaks Action's failing PR revision-range integration with a pinned Gitleaks CLI scan over the full commit range from the merge base, avoiding the action's invalid-range failure while retaining history scanning.

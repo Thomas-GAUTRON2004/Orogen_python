@@ -2,7 +2,7 @@
 # Agent Instructions — Orogen_python
  
 This file is for any agent (AI or automation) that modifies this repository.
-Read it and `quality.md` before making any change.
+Read it and `QUALITY.md` before making any change.
  
 ## 1. What This Project Is
  
@@ -22,8 +22,8 @@ Sources of truth, in order of precedence:
 ## 2. Branches and Scope
  
 - Porting reference branch: `port/v3.0.1`.
-- Quality work branch: `quality/phase-1-refactor-2026-11-18`, the head of
-  pull request #9. Its state changes often.
+- Quality and tooling changes are proposed on dedicated branches and reviewed
+  through pull requests. Do not assume a particular shared quality branch is current.
 - Never push directly to `port/v3.0.1`, `main` or a shared quality branch. Create
   a dedicated branch (`docs/...`, `fix/...`, `feat/...`, `refactor/...`) and open
   a pull request against the branch the change belongs to.
@@ -79,7 +79,8 @@ npm install --no-save --package-lock=false       # upstream Delaunator reference
 python -m pip install -e ".[test,speed,quality]"
 uv lock --check                                  # if dependencies changed
 python -m pytest --cov=orogen --cov-branch --cov-fail-under=95
-ruff check <changed files>                       # what CI enforces
+ruff check .                                    # match the repository-wide CI lint gate
+ruff check <changed files>                       # faster local feedback
 ruff format --check orogen scripts tests
 mypy orogen                                      # must add no diagnostic
 bandit -q -r orogen

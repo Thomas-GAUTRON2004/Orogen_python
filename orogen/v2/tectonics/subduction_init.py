@@ -15,7 +15,7 @@ from .world import EventKind
 
 
 def _subduction_cell_is_stale(plate, cell: int) -> bool:
-    """Whether a contact cell belongs to a stale or unoccupied plate raster."""
+    """Determine whether a contact cell belongs to a stale or unoccupied plate raster."""
     return bool(
         (plate.reshaped and not plate.isBackground) or not plate.crust.mask[cell]
     )

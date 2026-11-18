@@ -9,8 +9,8 @@ change, and what is expected from it.
  
 Before you start, read:
  
-- [`quality.md`](QUALITY.md): the quality rules every change must follow.
-- [`agent.md`](AGENT.md): working rules that also apply to automated agents.
+- [`QUALITY.md`](QUALITY.md): the quality rules every change must follow.
+- [`AGENT.md`](AGENT.md): working rules that also apply to automated agents.
 - [`docs/PORTING_STATUS.md`](docs/PORTING_STATUS.md): what is ported, what is
   not, and the current priorities.
 - [`docs/SCIPY_BACKEND.md`](docs/SCIPY_BACKEND.md): the production triangulation
@@ -103,7 +103,7 @@ Notes on what CI enforces today:
 - The mypy check fails only if the pull request adds diagnostics compared with
   its base branch. The current baseline is recorded in the quality report.
 - Xenon applies only to newly added Python files.
-The full requirements are in [`quality.md`](quality.md). In short:
+The full requirements are in [`QUALITY.md`](QUALITY.md). In short:
  
 - all tests pass, and branch coverage stays at or above 95 %;
 - the code is formatted with `ruff format`, and changed files pass `ruff check`;

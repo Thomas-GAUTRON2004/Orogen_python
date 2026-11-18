@@ -162,9 +162,9 @@ def _fracture_at(world, grower, cell: int, point) -> float:
     )
     local = grower.to_plate_frame(*map(float, relative))
     return fracture_coordinate(
-        float(xyz[3 * cell]),
-        float(xyz[3 * cell + 1]),
-        float(xyz[3 * cell + 2]),
+        float(xyz[cell, 0]),
+        float(xyz[cell, 1]),
+        float(xyz[cell, 2]),
         local,
     )
 

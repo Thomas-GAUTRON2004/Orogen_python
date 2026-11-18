@@ -67,7 +67,7 @@ but not yet a complete simulation engine.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
 not yet ported. The collision detection/tracking and weld/merge pipeline, event-driven terrane
-accretion and arc scraping<!-- gitleaks:allow -->, slab/subduction propagation, arc maturation slow
+accretion and arc-material transfer, slab/subduction propagation, arc maturation slow
 cadence, back-arcs, ocean-plate evolution, terrain/geology stages, snapshots
 and run/resume handling remain outstanding.
 

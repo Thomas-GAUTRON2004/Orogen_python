@@ -289,6 +289,8 @@ def _trace_failed_rift_arms(
         _trace_parent_path(taken[2]["cell"], plain["from"]) if len(taken) > 2 else []
     )
     return failed_arm, arm3_trace
+
+
 def find_rift(
     world,
     plate,
@@ -304,7 +306,6 @@ def find_rift(
     """
     mesh, config = world.mesh, world.config
     xyz = mesh.xyz
-    edge_km = float(mesh.edge_km)
     crust = plate.crust
 
     def land(cell: int) -> bool:

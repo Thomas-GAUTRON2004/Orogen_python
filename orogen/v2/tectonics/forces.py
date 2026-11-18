@@ -1,9 +1,9 @@
 """Partial boundary-force gathering ported from V2 step/forces.js.
-# ruff: noqa: I001 - preserve the module's established import grouping.
 
 Gathers slab pull, slab suction, young-ridge push and young-rift push from a
 resolved owner map. Collision-overlap contacts and mantle flow are excluded.
 """
+# ruff: noqa: I001 - preserve the module's established import grouping.
 from __future__ import annotations
 
 import math

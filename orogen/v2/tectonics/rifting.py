@@ -12,7 +12,6 @@ from .ops.rift import (
 )
 from .supercontinent import is_continental
 
-
 _JUNCTION_TRIES = 12
 _FORCED_JUNCTION_TRIES = 48
 _LOOSE_SHAPE = {

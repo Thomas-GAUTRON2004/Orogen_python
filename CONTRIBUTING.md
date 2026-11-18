@@ -9,8 +9,8 @@ change, and what is expected from it.
  
 Before you start, read:
  
-- [`quality.md`](quality.md): the quality rules every change must follow.
-- [`agent.md`](agent.md): working rules that also apply to automated agents.
+- [`quality.md`](QUALITY.md): the quality rules every change must follow.
+- [`agent.md`](AGENT.md): working rules that also apply to automated agents.
 - [`docs/PORTING_STATUS.md`](docs/PORTING_STATUS.md): what is ported, what is
   not, and the current priorities.
 - [`docs/SCIPY_BACKEND.md`](docs/SCIPY_BACKEND.md): the production triangulation
@@ -171,5 +171,5 @@ secret blocks the merge.
 ## Questions
  
 If something in this guide is unclear, or a rule seems to block a legitimate
-change, open an issue. Improving this guide is als a welcome contribution.
+change, open an issue. Improving this guide is also a welcome contribution.
  

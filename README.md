@@ -14,14 +14,14 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 - [Testing and compatibility](docs/TESTING.md) — test commands, differential tests, and compatibility limits.
 - [Porting status](docs/PORTING_STATUS.md) — implemented, partial, and outstanding subsystems.
 - [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md) — numerical-kernel benchmark methodology and limitations.
-- [shull backend](docs/SHULL_BACKEND.md) — production triangulation, mesh validation, and SciPy comparison benchmark.
+- [SciPy backend](docs/SCIPY_BACKEND.md) — production triangulation, mesh validation, and numerical compatibility.
 
 ## Requirements and installation
 
 **Required runtime dependencies:**
 - Python 3.10 or later
 - NumPy 1.24 or later
-- shull 0.4.0 or later (Rust-backed Delaunay triangulation)
+- SciPy 1.10 or later (Qhull-backed Delaunay triangulation)
 
 **Optional acceleration dependency:**
 - Numba 0.59 or later — enables the JIT-compiled performance kernels. It is not required to use Orogen; the package falls back to its pure-Python implementations when Numba is not installed.
@@ -38,7 +38,7 @@ Install with Numba acceleration enabled:
 python -m pip install -e ".[test,speed]"
 ```
 
-The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`. SciPy remains in the `test` extra for reference tooling and is not a production runtime dependency. For the optional SciPy-versus-shull pipeline benchmark, install `python -m pip install -e ".[benchmark]"` and run `python benchmarks/bench_shull_pipeline.py`.
+SciPy is a required runtime dependency and supplies the production Qhull-backed Delaunay triangulation. The `test` extra adds pytest and coverage tools; the optional `speed` extra installs `numba>=0.59` for JIT-compiled kernels.
 
 The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 
@@ -101,7 +101,7 @@ See [Porting status](docs/PORTING_STATUS.md) for the subsystem-by-subsystem brea
 
 ## Numerical backend and reproducibility
 
-Production spherical triangulation uses `shull` (Rust-backed S-hull) through its NumPy interface. The planar simplices are closed at the north-pole region and converted to Orogen's cyclic CSR adjacency. SciPy remains a test/reference dependency rather than a production runtime dependency. The `shull` triangulation can choose a different valid diagonal in degenerate or near-degenerate cases, so compatibility is defined by mesh invariants and geometric topology checks rather than requiring byte-identical simplex ordering.
+Production spherical triangulation uses `scipy.spatial.Delaunay` (Qhull). The planar simplices are closed at the north-pole region and converted to Orogen's cyclic CSR adjacency. `SphereIndex` remains the separate spherical nearest-cell lookup; cKDTree is not used. Qhull can choose different valid diagonals for degenerate or near-degenerate point sets, so compatibility is checked through mesh invariants and selected differential fixtures rather than requiring byte-identical simplex ordering.
 
 The code preserves upstream deterministic seed and random-number conventions where implemented. Reproducibility depends on using the same parameters and supported execution paths. Numba is optional and has a pure-Python fallback. See [Architecture](docs/ARCHITECTURE.md#numerical-and-reproducibility-contract) and [Testing](docs/TESTING.md).
 
@@ -111,7 +111,6 @@ The latest PR-head source validation on 2026-11-18 passed **506 tests** with **9
 
 - [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404)
 - [Platform matrix](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402) — 9/9 jobs passed across Linux, Windows and macOS with Python 3.10, 3.12 and 3.14.
-- [SciPy-versus-shull pipeline benchmark](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444) — structural comparisons passed at 10k, 40k and 80k points.
 - Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
 
 Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.

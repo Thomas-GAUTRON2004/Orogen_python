@@ -85,7 +85,7 @@ Implemented tectonic building blocks include:
 - **Passive-margin subduction initiation:** detection of sufficiently old, long and non-diverging ocean contacts; upper/lower plate selection; trench arming and initiation events; and creation of a mobile oceanic plate when passive background ocean is the downgoing side. The separate intra-plate old-margin founder helper exists, but its upstream slow-step cadence is not yet integrated.
 - **Collision and sutures:** per-pair collision tracking, convergence/shortening and contact-front geometry, underthrusting, arc scraping and terrane docking, collision-belt propagation, far-field reactivation of old sutures/failed rifts, and configured suture closure through plate redraw/merge. Ownership and boundary state are rebuilt after topology-changing operations.
 
-Some collision, arc-maturation, terrane-accretion and sea-closure operations are also available as standalone tested helpers. Their presence does not mean the full upstream event scheduler or all long-term tectonic interactions have been ported.
+Collision tracking invokes configured arc scraping, terrane docking/accretion, underthrusting, collision-belt propagation and suture welding. Far-field evolution can reactivate old sutures and failed rifts when configured. Arc maturation remains a tested standalone helper whose upstream slow-stage schedule is not yet integrated. These integrations do not mean the full upstream event scheduler or all long-term tectonic interactions have been ported.
 
 ## Remaining porting work
 

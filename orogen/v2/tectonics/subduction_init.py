@@ -310,6 +310,161 @@ def _old_ocean_margin_runs(mesh, crust, time: float, minimum_age: float):
     return coast, run_of, runs
 
 
+def _plate_can_founder_margin(
+    plate,
+    minimum_cells: float,
+    num_cells: int,
+    minimum_share: float,
+) -> bool:
+    """Whether a living, non-background plate meets intraplate founder limits."""
+    if (
+        not plate.alive
+        or plate.isBackground
+        or plate.crust.count == 0
+        or int(plate.stats["continentalCells"]) <= 0
+        or (int(plate.stats["cells"]) - int(plate.stats["continentalCells"]))
+        < minimum_cells
+    ):
+        return False
+    return int(plate.stats["cells"]) >= minimum_share * num_cells
+
+
+def _founder_run_probability(
+    world,
+    run: list[int],
+    formed_at,
+    time: float,
+    dt: float,
+    edge_km: float,
+    minimum_age: float,
+    minimum_length: float,
+    age_cap: float,
+    base_rate: float,
+) -> tuple[float, float, float] | None:
+    """Measure a passive-margin run and calculate its seeded founder chance."""
+    length_km = len(run) * edge_km
+    if length_km < minimum_length:
+        return None
+    age_myr = sum(time - float(formed_at[cell]) for cell in run) / len(run)
+    chance = (
+        base_rate
+        * float(dt)
+        * min(age_cap, age_myr / minimum_age - 1.0)
+        * (length_km / minimum_length)
+    )
+    cycle = getattr(world, "cycle", None)
+    if (
+        cycle is not None
+        and cycle.get("phase") == "dispersing"
+        and age_myr <= time - float(cycle["breakupAt"]) + 1e-9
+    ):
+        chance *= float(world.config["disperseFounderFactor"])
+    return length_km, age_myr, chance
+
+
+def _carve_intraplate_ocean_cells(
+    mesh,
+    crust,
+    coast: np.ndarray,
+    run_of: np.ndarray,
+    run: list[int],
+    reach_hops: int,
+) -> tuple[np.ndarray, list[int]]:
+    """Grow the selected coast's ocean basin without crossing another coast run."""
+    num_cells = int(mesh.num_cells)
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    mask, kinds = crust.mask, crust.type
+    labels = np.zeros(num_cells, dtype=np.uint8)
+    mine = int(run_of[run[0]])
+    frontier: list[int] = []
+    for cell in range(num_cells):
+        if coast[cell]:
+            labels[cell] = 1 if int(run_of[cell]) == mine else 2
+            frontier.append(cell)
+
+    take: list[int] = []
+    for _ in range(reach_hops):
+        if not frontier:
+            break
+        following: list[int] = []
+        for cell in frontier:
+            label = labels[cell]
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if (
+                    labels[neighbour]
+                    or not mask[neighbour]
+                    or kinds[neighbour] != CrustType["OCEAN"]
+                ):
+                    continue
+                labels[neighbour] = label
+                following.append(neighbour)
+                if label == 1:
+                    take.append(neighbour)
+        frontier = following
+    return labels, take
+
+
+def _start_intraplate_ocean_founder(
+    world,
+    plate,
+    run: list[int],
+    take: list[int],
+    labels: np.ndarray,
+    coast: np.ndarray,
+    length_km: float,
+    age_myr: float,
+    time: float,
+    cell_area: float,
+    config,
+) -> bool:
+    """Create the new ocean plate, transfer its basin and arm the old margin."""
+    fresh = world.add_plate(ocean_plate_name(world))
+    fresh.set_quat(plate.quat.copy())
+    fresh.omega = plate.omega.copy()
+    fresh.isOceanBorn = True
+
+    for tip, direction in list(plate.wings.items()):
+        if labels[int(tip)] == 1 and not coast[int(tip)]:
+            fresh.wings[tip] = direction
+            del plate.wings[tip]
+
+    moved = transfer_cells(world, plate, fresh, take)
+    if moved == 0:
+        fresh.alive = False
+        return False
+
+    fresh.born = time
+    for cell in run:
+        plate.crust.arm_trench(cell, float(config["subductionInitSlabKm"]))
+    plate.dirty = True
+
+    area_mkm2 = len(take) * cell_area / 1e6
+    world.log(
+        EventKind["PLATE_BORN"],
+        (
+            f"{fresh.name} is born: {area_mkm2:.1f} Mkm² of "
+            f"{plate.name}’s old ocean breaks away"
+        ),
+        {"plate": fresh.id, "areaMkm2": area_mkm2},
+    )
+    world.log(
+        EventKind["SUBDUCTION_INIT"],
+        (
+            f"a new trench founders along {length_km:.0f} km of "
+            f"{plate.name}’s passive margin: {fresh.name}, ocean "
+            f"{age_myr:.0f} Myr old, begins to go down beneath it"
+        ),
+        {
+            "upper": plate.id,
+            "lower": fresh.id,
+            "lengthKm": length_km,
+            "ageMyr": age_myr,
+        },
+    )
+    return True
+
+
 def founder_within_plates(world, dt: float) -> int:
     """Found old ocean along a large plate's own outer continental margin.
 
@@ -319,11 +474,11 @@ def founder_within_plates(world, dt: float) -> int:
     """
     mesh, plates, config = world.mesh, world.plates, world.config
     time = float(world.time)
-    if float(config["marginFounderRatePerMyr"]) <= 0.0:
+    base_rate = float(config["marginFounderRatePerMyr"])
+    if base_rate <= 0.0:
         return 0
 
     num_cells = int(mesh.num_cells)
-    offsets, adjacency = mesh.adj_offset, mesh.adj_list
     edge_km = float(mesh.edge_km)
     cell_area = float(mesh.cell_area_km2)
     minimum_cells = float(config["oceanPlateMinAreaKm2"]) / cell_area
@@ -334,47 +489,35 @@ def founder_within_plates(world, dt: float) -> int:
     minimum_age = float(config["subductionInitAgeMyr"])
     minimum_length = float(config["subductionInitMinLengthKm"])
     age_cap = float(config["subductionInitAgeCap"])
+    minimum_share = float(config["marginFounderMinShare"])
     started = 0
 
     for plate in list(plates):
-        if (
-            not plate.alive
-            or plate.isBackground
-            or plate.crust.count == 0
-            or int(plate.stats["continentalCells"]) <= 0
-            or (int(plate.stats["cells"]) - int(plate.stats["continentalCells"]))
-            < minimum_cells
-        ):
-            continue
-        if (
-            int(plate.stats["cells"])
-            < float(config["marginFounderMinShare"]) * num_cells
+        if not _plate_can_founder_margin(
+            plate, minimum_cells, num_cells, minimum_share
         ):
             continue
 
         crust = plate.crust
-        mask, kinds = crust.mask, crust.type
-        formed_at = crust.formedAt
-        coast, run_of, runs = _old_ocean_margin_runs(mesh, crust, time, minimum_age)
-
+        coast, run_of, runs = _old_ocean_margin_runs(
+            mesh, crust, time, minimum_age
+        )
         for run in runs:
-            length_km = len(run) * edge_km
-            if length_km < minimum_length:
-                continue
-            age_myr = sum(time - float(formed_at[cell]) for cell in run) / len(run)
-            chance = (
-                float(config["marginFounderRatePerMyr"])
-                * float(dt)
-                * min(age_cap, age_myr / minimum_age - 1.0)
-                * (length_km / minimum_length)
+            metrics = _founder_run_probability(
+                world,
+                run,
+                crust.formedAt,
+                time,
+                dt,
+                edge_km,
+                minimum_age,
+                minimum_length,
+                age_cap,
+                base_rate,
             )
-            cycle = getattr(world, "cycle", None)
-            if (
-                cycle is not None
-                and cycle.get("phase") == "dispersing"
-                and age_myr <= time - float(cycle["breakupAt"]) + 1e-9
-            ):
-                chance *= float(config["disperseFounderFactor"])
+            if metrics is None:
+                continue
+            length_km, age_myr, chance = metrics
             if float(world.rngMarginFounder()) >= chance:
                 continue
 
@@ -382,82 +525,26 @@ def founder_within_plates(world, dt: float) -> int:
             if not any(exterior[cell] for cell in run):
                 continue
 
-            labels = np.zeros(num_cells, dtype=np.uint8)
-            mine = int(run_of[run[0]])
-            frontier = []
-            for cell in range(num_cells):
-                if coast[cell]:
-                    labels[cell] = 1 if int(run_of[cell]) == mine else 2
-                    frontier.append(cell)
-
-            take = []
-            for _ in range(reach_hops):
-                if not frontier:
-                    break
-                following = []
-                for cell in frontier:
-                    label = labels[cell]
-                    for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-                        neighbour = int(adjacency[edge])
-                        if (
-                            labels[neighbour]
-                            or not mask[neighbour]
-                            or kinds[neighbour] != CrustType["OCEAN"]
-                        ):
-                            continue
-                        labels[neighbour] = label
-                        following.append(neighbour)
-                        if label == 1:
-                            take.append(neighbour)
-                frontier = following
-
+            labels, take = _carve_intraplate_ocean_cells(
+                mesh, crust, coast, run_of, run, reach_hops
+            )
             if len(take) < minimum_cells:
                 continue
 
-            fresh = world.add_plate(ocean_plate_name(world))
-            fresh.set_quat(plate.quat.copy())
-            fresh.omega = plate.omega.copy()
-            fresh.isOceanBorn = True
-
-            for tip, direction in list(plate.wings.items()):
-                if labels[int(tip)] == 1 and not coast[int(tip)]:
-                    fresh.wings[tip] = direction
-                    del plate.wings[tip]
-
-            moved = transfer_cells(world, plate, fresh, take)
-            if moved == 0:
-                fresh.alive = False
-                continue
-
-            fresh.born = time
-            for cell in run:
-                plate.crust.arm_trench(cell, float(config["subductionInitSlabKm"]))
-            plate.dirty = True
-            started += 1
-
-            area_mkm2 = len(take) * cell_area / 1e6
-            world.log(
-                EventKind["PLATE_BORN"],
-                (
-                    f"{fresh.name} is born: {area_mkm2:.1f} Mkm² of "
-                    f"{plate.name}’s old ocean breaks away"
-                ),
-                {"plate": fresh.id, "areaMkm2": area_mkm2},
-            )
-            world.log(
-                EventKind["SUBDUCTION_INIT"],
-                (
-                    f"a new trench founders along {length_km:.0f} km of "
-                    f"{plate.name}’s passive margin: {fresh.name}, ocean "
-                    f"{age_myr:.0f} Myr old, begins to go down beneath it"
-                ),
-                {
-                    "upper": plate.id,
-                    "lower": fresh.id,
-                    "lengthKm": length_km,
-                    "ageMyr": age_myr,
-                },
-            )
-            break
+            if _start_intraplate_ocean_founder(
+                world,
+                plate,
+                run,
+                take,
+                labels,
+                coast,
+                length_km,
+                age_myr,
+                time,
+                cell_area,
+                config,
+            ):
+                started += 1
+                break
 
     return started

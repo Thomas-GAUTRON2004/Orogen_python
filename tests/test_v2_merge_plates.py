@@ -212,3 +212,28 @@ def test_stamp_cratons_skips_a_zero_length_stamping_position():
         world.mesh,
     )
     assert output.count == 0
+
+
+def test_merge_plates_preserves_plate_identity_and_crust_accounting():
+    world, upper, lower = merge_fixture()
+    upper_id, lower_id = upper.id, lower.id
+
+    merge_plates(
+        world,
+        upper,
+        lower,
+        [1],
+        {"shorteningKm": 250.0, "meanRateCmYr": 2.5},
+    )
+
+    occupied = upper.crust.mask.astype(bool)
+    land = occupied & (upper.crust.type != CrustType["OCEAN"])
+    assert upper.id == upper_id
+    assert lower.id == lower_id
+    assert upper.crust.count == int(np.count_nonzero(occupied))
+    assert upper.stats["cells"] == int(np.count_nonzero(occupied))
+    assert upper.stats["continentalCells"] == int(np.count_nonzero(land))
+    assert np.all(np.isin(upper.crust.mask, (0, 1)))
+    assert not lower.alive
+    assert lower.crust.count == 0
+    assert lower.stats["cells"] == 0

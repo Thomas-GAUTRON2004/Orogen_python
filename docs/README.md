@@ -9,7 +9,8 @@ This documentation describes the Python code currently present in this repositor
 3. Use the [Core API reference](CORE_API.md) for mesh and numerical operations.
 4. Use the [Tectonics API reference](TECTONICS_API.md) for crust and plate data structures.
 5. Read [Testing and compatibility](TESTING.md) before relying on numerical equivalence with upstream.
-6. Consult [Porting status](PORTING_STATUS.md) for the current implementation boundary.
+6. Read [shull backend](SHULL_BACKEND.md) for production triangulation and its A/B benchmark.
+7. Consult [Porting status](PORTING_STATUS.md) for the current implementation boundary.
 
 ## Scope and terminology
 

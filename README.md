@@ -13,7 +13,8 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 - [Tectonics API](docs/TECTONICS_API.md) — crust, plates, rifting, and tectonic operations.
 - [Testing and compatibility](docs/TESTING.md) — test commands, differential tests, and compatibility limits.
 - [Porting status](docs/PORTING_STATUS.md) — implemented, partial, and outstanding subsystems.
-- [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md) — benchmark methodology, measured workloads, and limitations.
+- [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md) — numerical-kernel benchmark methodology and limitations.
+- [shull backend](docs/SHULL_BACKEND.md) — production triangulation, mesh validation, and SciPy comparison benchmark.
 
 ## Requirements and installation
 
@@ -37,7 +38,7 @@ Install with Numba acceleration enabled:
 python -m pip install -e ".[test,speed]"
 ```
 
-The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`. SciPy is retained in the `test` extra for reference and differential tooling; it is not required by the production mesh builder.
+The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`. SciPy remains in the `test` extra for reference tooling and is not a production runtime dependency. For the optional SciPy-versus-shull pipeline benchmark, install `python -m pip install -e ".[benchmark]"` and run `python benchmarks/bench_shull_pipeline.py`.
 
 The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 
@@ -106,12 +107,14 @@ The code preserves upstream deterministic seed and random-number conventions whe
 
 ## Validation
 
-The latest successful test result explicitly documented in the repository is **476 tests passed** with **100% line coverage** for `orogen.v2`:
+The latest PR-head source validation on 2026-11-18 passed **506 tests** with **99.43% total coverage** (the CI minimum is 95%, with branch coverage enabled):
 
-- [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148)
-- Associated project revision: `6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17)
+- [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404)
+- [Platform matrix](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402) — 9/9 jobs passed across Linux, Windows and macOS with Python 3.10, 3.12 and 3.14.
+- [SciPy-versus-shull pipeline benchmark](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444) — structural comparisons passed at 10k, 40k and 80k points.
+- Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
 
-This is a historical verification point, not confirmation that the current branch head has passed CI. The current documentation-only commits have not been used as a basis for a fresh test claim. Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
+Coverage measures execution of implemented code; it does not measure feature completeness or prove whole-engine JavaScript parity. Differential tests cover selected operations and fixtures only.
 
 For benchmark methodology and results, including workloads where Python remains slower than JavaScript, see [Performance benchmarks](docs/JS_PYTHON_BENCHMARK.md).
 

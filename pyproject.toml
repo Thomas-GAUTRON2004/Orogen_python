@@ -15,6 +15,7 @@ dependencies = ["numpy>=1.24", "shull>=0.4.0"]
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-cov>=5", "scipy>=1.10"]
 speed = ["numba>=0.59"]
+benchmark = ["scipy>=1.10", "numba>=0.59"]
 
 [tool.setuptools.packages.find]
 include = ["orogen*"]

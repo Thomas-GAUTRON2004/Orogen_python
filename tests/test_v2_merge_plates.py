@@ -4,6 +4,8 @@ import numpy as np
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 from orogen.v2.tectonics.ops.merge_plates import (
+    _build_indentation_displacement,
+    _measure_overlap_geometry,
     _resample_lower_cells,
     _stamp_cratons_rigidly,
     merge_plates,
@@ -253,3 +255,53 @@ def test_lower_plate_resampling_is_identity_for_aligned_rasters():
     for cell in range(world.mesh.num_cells):
         expected = cell if lower.crust.mask[cell] else -1
         assert mapped[cell] == expected
+
+def test_overlap_geometry_and_displacement_helpers_are_finite_and_consistent():
+    world, upper, lower = merge_fixture()
+    from_lower = _resample_lower_cells(
+        world.mesh, upper, lower, lower.crust
+    )
+    geometry = _measure_overlap_geometry(
+        world.mesh,
+        upper,
+        lower,
+        lower.crust,
+        from_lower,
+        [1],
+        float(world.mesh.edge_km),
+    )
+
+    assert geometry.overlap_count == 3
+    assert len(geometry.overlap_cells) == geometry.overlap_count
+    assert geometry.max_indent > 0.0
+    assert geometry.sum_indent >= geometry.max_indent
+    assert np.all(geometry.depth_km[geometry.overlap_cells] > 0.0)
+    assert np.all(np.isfinite(geometry.normal[geometry.overlap_cells]))
+    assert np.all(np.isfinite(geometry.along[geometry.overlap_cells]))
+
+    displacement = _build_indentation_displacement(
+        world.mesh,
+        geometry.overlap_cells,
+        geometry.end_a,
+        geometry.end_b,
+        geometry.depth_km,
+        geometry.along,
+        geometry.normal,
+        world.config,
+    )
+    assert displacement.shape == (world.mesh.num_cells, 3)
+    assert np.all(np.isfinite(displacement))
+    assert np.any(np.linalg.norm(displacement, axis=1) > 0.0)
+
+    zero_gain_config = {**world.config, "indentGain": 0.0}
+    zero_displacement = _build_indentation_displacement(
+        world.mesh,
+        geometry.overlap_cells,
+        geometry.end_a,
+        geometry.end_b,
+        geometry.depth_km,
+        geometry.along,
+        geometry.normal,
+        zero_gain_config,
+    )
+    assert not np.any(zero_displacement)

@@ -5,17 +5,17 @@ from orogen.v2.tectonics import subduction_init
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.subduction_init import (
     _carve_intraplate_ocean_cells,
+    _collect_subduction_contacts,
+    _found_subduction_pair,
     _founder_run_probability,
     _old_ocean_margin_runs,
     _plate_can_founder_margin,
     _start_intraplate_ocean_founder,
+    _subduction_cell_is_stale,
+    _subduction_founder_metrics,
     arm_margin,
     choose_foundering,
     founder_within_plates,
-    _collect_subduction_contacts,
-    _found_subduction_pair,
-    _subduction_cell_is_stale,
-    _subduction_founder_metrics,
     initiate_subduction,
     is_on_segment,
 )

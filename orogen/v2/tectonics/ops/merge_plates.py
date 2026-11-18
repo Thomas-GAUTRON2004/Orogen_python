@@ -99,9 +99,7 @@ def _mark_suture_band(
 
     half_width = max(
         1,
-        math.floor(
-            float(config["sutureHalfWidthKm"]) / max(edge_km, 1e-12) + 0.5
-        ),
+        math.floor(float(config["sutureHalfWidthKm"]) / max(edge_km, 1e-12) + 0.5),
     )
     suture_dist, _ = hops_from(
         mesh,

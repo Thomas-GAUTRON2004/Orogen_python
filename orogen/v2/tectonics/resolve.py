@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 
@@ -106,7 +107,7 @@ def _grow_crust_into_gaps(world, gaps: list[int]) -> int:
     xyz = np.asarray(world.mesh.xyz).reshape(-1, 3)
     # Birth decisions are complete; initialize each plate's batch in one call
     # before recording per-cell geometry and trench metadata in original order.
-    groups = {}
+    groups: dict[int, list[Any]] = {}
     for plate, cell, _ in births:
         group = groups.setdefault(plate.id, [plate, []])
         group[1].append(cell)
@@ -129,7 +130,8 @@ def _fracture_at(world, grower, cell: int, point) -> float:
     xyz = np.asarray(mesh.xyz).reshape(-1, 3)
     start = int(mesh.index.nearest(*map(float, point)))
     partner, most, ring = -1, 0, [start]
-    seen, counts = {start}, {}
+    seen = {start}
+    counts: dict[int, int] = {}
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
     for _ in range(8):
         if not ring or partner >= 0:
@@ -159,7 +161,12 @@ def _fracture_at(world, grower, cell: int, point) -> float:
         else np.asarray(other_omega) - np.asarray(omega)
     )
     local = grower.to_plate_frame(*map(float, relative))
-    return fracture_coordinate(*map(float, xyz[cell]), local)
+    return fracture_coordinate(
+        float(xyz[3 * cell]),
+        float(xyz[3 * cell + 1]),
+        float(xyz[3 * cell + 2]),
+        local,
+    )
 
 
 def candidate_cells(world, grower, gaps) -> list[int]:
@@ -249,7 +256,10 @@ def _assign_gap_owners(world, gaps) -> None:
         point = xyz[gap]
         bin_id = int(bins.bin_of[gap])
         near = [p for p in everyone if may_have_crust_near(p, bin_id, stamp, bins)]
-        best = best_hit = foreign = foreign_hit = None
+        best: Any = None
+        best_hit: dict[str, Any] | None = None
+        foreign: Any = None
+        foreign_hit: dict[str, Any] | None = None
         under = []
         for plate in near:
             cell = plate.cell_at(mesh.index, *map(float, point))
@@ -277,6 +287,7 @@ def _assign_gap_owners(world, gaps) -> None:
                     foreign, foreign_hit = plate, hit
         if best is None:
             continue
+        assert best_hit is not None
         owner[gap], owner_cell[gap] = best.id, best_hit["cell"]
         world.claimCount[gap] = 1
         if best_hit.get("real"):
@@ -284,9 +295,11 @@ def _assign_gap_owners(world, gaps) -> None:
         closing = float(
             world.config.get("closingCmYr", world.config.get("closing_cm_yr", 0.0))
         )
-        is_closing = foreign is not None and _is_advancing_on(
-            best, foreign, foreign_hit["cell"], mesh, point, closing
-        )
+        is_closing = False
+        if foreign is not None and foreign_hit is not None:
+            is_closing = _is_advancing_on(
+                best, foreign, foreign_hit["cell"], mesh, point, closing
+            )
         world.provisional[gap] = 2 if is_closing else 1
         world.provisionalLike[gap] = best_hit["cell"]
 

@@ -393,6 +393,7 @@ def test_rift_path_geometry_helpers_preserve_parent_and_distance_rules():
     assert _nearby_rift_cuts(xyz, close, nearby)
     assert not _nearby_rift_cuts(xyz, close, distant)
 
+
 def test_rift_selection_and_failed_arm_helpers_match_public_result():
     world, plate = square_world()
     junction = 24

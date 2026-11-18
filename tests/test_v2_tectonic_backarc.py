@@ -71,7 +71,7 @@ def make_line_mesh(count=5, edge_km=100.0):
     return Mesh(points, neighbours, edge_km=edge_km)
 
 
-def make_margin_world():
+def make_margin_world(*, patch_rng=True):
     rows, cols = 18, 15
     edge_km = 100.0
     step = edge_km / 6371.0
@@ -120,7 +120,8 @@ def make_margin_world():
     world.ownerCell[:] = np.arange(mesh.num_cells, dtype=np.int32)
     world.boundaryKind.fill(BoundaryKind["NONE"])
     world.boundaryKind[1 : cols - 1] = BoundaryKind["OVERRIDING"]
-    world.rngBackArc = lambda: 0.0
+    if patch_rng:
+        world.rngBackArc = lambda: 0.0
     return world, parent, slab, other
 
 
@@ -264,6 +265,13 @@ def test_steer_back_arc_strip_adds_parent_velocity_and_rollback():
     assert steer_back_arc_strips(world) == 1
     rate = 2.0 * CM_PER_YR_TO_RAD_PER_MYR
     assert strip.omega == pytest.approx([0.01 - rate, 0.02, 0.03])
+    added = np.asarray(strip.omega) - np.asarray(parent.omega)
+    centre = np.asarray(strip.to_world(*strip.capCenter))
+    tangent = np.asarray(strip.to_world(*strip.backArcPushDir))
+    tangent -= np.dot(tangent, centre) * centre
+    velocity = np.cross(added, centre)
+    assert np.dot(added, centre) == pytest.approx(0.0, abs=1e-12)
+    assert np.dot(velocity, tangent) > 0.0
 
     world.time = 30.0
     assert steer_back_arc_strips(world) == 0
@@ -484,3 +492,49 @@ def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
     strips[4].backArcPushDir = [0.0, 1.0, 0.0]
     parent.alive = False
     assert steer_back_arc_strips(world) == 0
+
+
+
+def test_open_back_arc_uses_real_world_rng_and_contact_geometry():
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, slab, _other = make_margin_world(patch_rng=False)
+    world.config["backArcRatePerMyr"] = 0.0
+    cols = 15
+    for col in range(1, 11):
+        cell = cols + col
+        parent.crust.remove(cell)
+        slab.crust.create(cell, CrustType["OCEAN"], 0.0, 2000 + col)
+        world.owner[cell] = slab.id
+        world.ownerCell[cell] = cell
+
+    fronts = backarc._rollback_fronts(world)
+    assert (parent.id, slab.id) in fronts
+    assert len(fronts[(parent.id, slab.id)]["cells"]) >= 8
+    assert open_back_arcs(world, 1.0) == 0
+    assert len(world.plates) == 2
+
+
+def test_split_strip_clears_expired_reciprocal_partner():
+    import orogen.v2.tectonics.backarc as backarc
+
+    world, parent, _slab, _other = make_margin_world()
+    old_partner = world.add_plate("Old Rift Partner")
+    parent.riftPartner = old_partner.id
+    old_partner.riftPartner = parent.id
+    old_partner.riftPushDir = [1.0, 0.0, 0.0]
+    parent.born = 0.0
+    old_partner.born = 0.0
+
+    fresh = backarc._split_strip(
+        world,
+        parent,
+        {"cells": [1], "continental": False},
+        [0.0, 1.0, 0.0],
+        1.0,
+    )
+
+    assert parent.riftPartner == fresh.id
+    assert fresh.riftPartner == parent.id
+    assert old_partner.riftPartner == -1
+    assert old_partner.riftPushDir is None

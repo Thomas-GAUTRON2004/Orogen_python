@@ -2,9 +2,8 @@ import importlib
 
 import numpy as np
 
-from orogen.v2.tectonics.ops import birth_ocean_plate, ocean_plate_name
-
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.ops import birth_ocean_plate, ocean_plate_name
 from orogen.v2.tectonics.world import TectonicWorld
 
 birth_module = importlib.import_module("orogen.v2.tectonics.ops.birth_ocean_plate")

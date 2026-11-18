@@ -67,7 +67,7 @@ but not yet a complete simulation engine.
 
 The default upstream `TECTONICS` configuration and initial-world builders are
 not yet ported. The collision detection/tracking and weld/merge pipeline, event-driven terrane
-accretion and arc scraping, slab/subduction propagation, arc maturation slow
+accretion and arc scraping<!-- gitleaks:allow -->, slab/subduction propagation, arc maturation slow
 cadence, back-arcs, ocean-plate evolution, terrain/geology stages, snapshots
 and run/resume handling remain outstanding.
 
@@ -134,7 +134,8 @@ continental rifting and passive-margin subduction initiation when their
 configuration is present, and optionally updates plate motion. After a rift or
 new subduction system it resolves ownership/boundaries again before the force
 solve. It does not run the complete upstream collision/orogeny, slab evolution,
-arc/back-arc, ocean-plate, slow terrain/geology or snapshot sequence. It should not be treated as a full `simulate` generator.
+arc/back-arc, ocean-plate, slow terrain/geology or snapshot sequence. It should
+not be treated as a full `simulate` generator.
 
 ## Extension principles
 

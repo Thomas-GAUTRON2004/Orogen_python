@@ -489,6 +489,7 @@ def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
     assert fresh.crust.count == len(take)
     assert all(plate.crust.flags[cell] & CrustFlag["TRENCH"] for cell in selected)
 
+
 def test_subduction_contact_helpers_group_and_measure_the_same_founder_pair():
     world = make_boundary_world()
     contacts = _collect_subduction_contacts(world)

@@ -945,7 +945,9 @@ def _update_collision_progress(
     edge_km: float,
     cell_area: float,
     config,
-) -> tuple[np.ndarray, list[float], list[float], float, float, list[int], list[int]] | None:
+) -> (
+    tuple[np.ndarray, list[float], list[float], float, float, list[int], list[int]] | None
+):
     """Update collision kinematics, shortening and active continental fronts."""
     xyz = mesh.xyz
     record["cells"] = len(cells)

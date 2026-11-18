@@ -32,16 +32,12 @@ Context: Orogen_python is a Python port of the JavaScript V2 engine of Orogen
  
 - Configuration: `[tool.ruff]` in `pyproject.toml`. Enabled rule sets: `E`, `F`,
   `I`, `UP`, `B`, `SIM`; line length 88.
-- **CI enforces lint on the Python files changed by a pull request**, not on the
-  whole repository. Check them with `ruff check <changed files>`.
+- **CI enforces lint on the whole repository** with `ruff check .`. Run the same
+  command locally to reproduce the CI lint gate; checking only changed files is
+  useful for faster feedback but is not equivalent.
 - **CI enforces formatting on the whole package**:
   `ruff format --check orogen scripts tests`. To format, run `ruff format <files>`
   and do not mix formatting with functional changes in the same commit.
-- Two legacy files are excluded from the lint baseline
-  (`orogen/v2/core/sphere_mesh.py` and `tests/test_v2_numba_kernel_coverage.py`).
-  They may receive only documentation or comments until their dedicated cleanup.
-  Note that a whole-repository `ruff check` still reports the excluded file, so
-  do not treat a repository-wide count as the gate.
 - No `# noqa` without a precise rule code and a justifying comment.
 ## 4. Typing
  
@@ -125,7 +121,7 @@ Context: Orogen_python is a Python port of the JavaScript V2 engine of Orogen
 ## Pre-merge Checklist
  
 - [ ] `python -m pytest` passes, branch coverage ≥ 95 %
-- [ ] `ruff check` passes on the changed files; `ruff format --check` passes on
+- [ ] `ruff check .` passes; `ruff format --check` passes on
       `orogen scripts tests`
 - [ ] `mypy orogen` adds no diagnostic compared with the base branch
 - [ ] `xenon --max-absolute C` passes on new files

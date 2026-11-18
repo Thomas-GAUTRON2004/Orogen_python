@@ -101,7 +101,7 @@ def are_young_rift_partners(plate_a, plate_b, time: float, config) -> bool:
 def choose_sides(world, plate_a, plate_b, cells) -> dict:
     """Choose the upper plate from trench flags at the contact front."""
     mesh = world.mesh
-    xyz = mesh.xyz
+    xyz, index = mesh.xyz, mesh.index
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
 
     def flagged(plate) -> int:
@@ -968,7 +968,7 @@ def track_collisions(world, dt: float) -> dict:
                 changed = True
 
     mesh = world.mesh
-    xyz, index = mesh.xyz, mesh.index
+    xyz = mesh.xyz
     edge_km = float(mesh.edge_km)
     cell_area = float(mesh.cell_area_km2)
 

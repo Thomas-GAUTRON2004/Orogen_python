@@ -8,7 +8,7 @@ from .config import CM_PER_YR_TO_RAD_PER_MYR
 
 
 def fastest_speed(omega, plate, centre) -> float:
-    """Maximum angular surface speed over a plate's spherical cap (rad/Myr)."""
+    """Calculate the maximum angular surface speed over a plate's spherical cap (rad/Myr)."""
     rate = math.hypot(float(omega[0]), float(omega[1]), float(omega[2]))
     if rate < 1e-12:
         return 0.0

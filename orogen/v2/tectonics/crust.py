@@ -221,7 +221,6 @@ class CrustRaster:
     count: int
     fields: list[np.ndarray]
     _numba_fields: tuple[np.ndarray, ...]
-    oroType: np.ndarray
 
     def __init__(self, num_cells: int):
         if num_cells < 1:

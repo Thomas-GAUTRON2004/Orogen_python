@@ -16,6 +16,7 @@ pytestmark = pytest.mark.skipif(
     reason="install orogen[speed] to measure Numba kernel coverage",
 )
 
+
 def _graph():
     return (
         np.asarray([0, 1, 3, 4], dtype=np.int32),

@@ -252,9 +252,7 @@ def _feed_subduction_far_field(world, fronts: dict, dt: float) -> None:
 
 def _belt_cap(config: dict, kind: str) -> float:
     """Return a belt's maximum width at the fastest configured convergence."""
-    return float(config["belts"][kind]["maxKm"]) * float(
-        config["beltSpeedFactorMax"]
-    )
+    return float(config["belts"][kind]["maxKm"]) * float(config["beltSpeedFactorMax"])
 
 
 def _spread_subduction_belts(world, fronts: dict, dt: float) -> None:
@@ -306,9 +304,7 @@ def _spread_subduction_belts(world, fronts: dict, dt: float) -> None:
             else:
                 width = min(_belt_cap(config, "andean"), steep_width * shape)
             widths.append(width)
-            works.append(
-                km * andean_work_share * belt_shape(head_on, None, config)
-            )
+            works.append(km * andean_work_share * belt_shape(head_on, None, config))
             shears.append(float(front["shears"][index]))
 
         belt_type = OrogenyType["LARAMIDE"] if flat else OrogenyType["ANDEAN"]
@@ -420,8 +416,8 @@ def classify_contact_boundaries(world, dt: float) -> int:
     fed: dict[object, dict] = {}
     slid: dict[object, dict] = {}
     subduction_far_field = _SUBDUCTION_FAR_FIELD_CONFIG.issubset(world.config)
-    local_belt_spreading = (
-        subduction_far_field and _LOCAL_BELT_CONFIG.issubset(world.config)
+    local_belt_spreading = subduction_far_field and _LOCAL_BELT_CONFIG.issubset(
+        world.config
     )
     classified = 0
     xyz = mesh.xyz.reshape(-1, 3)
@@ -481,9 +477,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                 )
                 front["cells"].append(cell_a)
                 front["kms"].append(closing * dt * 6371.0)
-                front["headOn"].append(
-                    closing / float(np.hypot(closing, shear))
-                )
+                front["headOn"].append(closing / float(np.hypot(closing, shear)))
                 front["shears"].append(
                     obliquity_deg([vx, vy, vz], normal, [px, py, pz], closing)
                 )
@@ -553,9 +547,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                         )
                         front["ages"].append(slab_age)
                         front["shears"].append(
-                            obliquity_deg(
-                                [vx, vy, vz], normal, [px, py, pz], closing
-                            )
+                            obliquity_deg([vx, vy, vz], normal, [px, py, pz], closing)
                         )
                         wx, wy, wz = map(float, plate_a.omega)
                         advance = (

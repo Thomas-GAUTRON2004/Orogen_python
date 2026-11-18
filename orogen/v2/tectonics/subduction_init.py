@@ -64,7 +64,7 @@ def _collect_subduction_contacts(world) -> dict[tuple[int, int], dict]:
             ):
                 continue
 
-            key = tuple(sorted((plate_a_id, plate_b_id)))
+            key = (min(plate_a_id, plate_b_id), max(plate_a_id, plate_b_id))
             entry = by_pair.setdefault(key, {"cells": [], "ages": 0.0})
             entry["cells"].append(world_cell)
             entry["ages"] += time - min(

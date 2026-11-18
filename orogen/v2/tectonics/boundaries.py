@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..core.sphere_geometry import PLANET_RADIUS_KM
 from ..core.mesh_bfs import reaches_within
+from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import CM_PER_YR_TO_KM_PER_MYR, CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
 from .crust import CrustFlag, CrustType, OrogenyType

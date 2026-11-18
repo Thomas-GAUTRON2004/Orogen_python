@@ -87,10 +87,10 @@ def bin_index(mesh) -> BinIndex:
                 near.append(j)
         neighbours.append(np.asarray(near, dtype=np.int32))
     index.neighbours = tuple(neighbours)
-    try:
+    from contextlib import suppress
+
+    with suppress(AttributeError, TypeError):
         mesh._bins = index
-    except (AttributeError, TypeError):
-        pass
     return index
 
 

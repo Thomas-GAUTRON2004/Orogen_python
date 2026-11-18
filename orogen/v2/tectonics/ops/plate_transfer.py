@@ -18,7 +18,6 @@ def transfer_cells(world, source, target, cells) -> int:
     """
     mesh = world.mesh
     xyz, index = mesh.xyz, mesh.index
-    offsets, adjacency = mesh.adj_offset, mesh.adj_list
     source_crust, target_crust = source.crust, target.crust
     moved = 0
     rotation = None

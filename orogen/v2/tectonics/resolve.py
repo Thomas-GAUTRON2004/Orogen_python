@@ -261,7 +261,7 @@ def _assign_gap_owners(world, gaps) -> None:
             hits = [
                 _nearest_crust(p, mesh, point, under[i]) for i, p in enumerate(near)
             ]
-            for plate, hit in zip(near, hits):
+            for plate, hit in zip(near, hits, strict=False):
                 if (
                     hit["cell"] >= 0
                     and not plate.isBackground

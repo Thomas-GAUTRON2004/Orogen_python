@@ -221,7 +221,7 @@ def choose_junction(world, plate, rng) -> int:
         return -1
 
     pick = float(rng()) * total
-    for cell, weight in zip(candidates, weights):
+    for cell, weight in zip(candidates, weights, strict=False):
         pick -= weight
         if pick <= 0.0:
             return cell

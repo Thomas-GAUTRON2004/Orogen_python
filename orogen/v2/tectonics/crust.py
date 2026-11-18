@@ -230,7 +230,7 @@ class CrustRaster:
                 )
             )
         else:
-            for target, source in zip(destinations, source_indices):
+            for target, source in zip(destinations, source_indices, strict=False):
                 self.copy_from(
                     int(target), other, int(source), rotation if rotate else None
                 )
@@ -265,7 +265,7 @@ class CrustRaster:
         if not self.mask[cell]:
             self.count += 1
         self.mask[cell] = 1
-        for mine, theirs in zip(self.fields, other.fields):
+        for mine, theirs in zip(self.fields, other.fields, strict=False):
             mine[cell] = theirs[source]
         if rot is not None and (
             self.farDx[cell] or self.farDy[cell] or self.farDz[cell]
@@ -297,7 +297,7 @@ class CrustRaster:
         if not self.mask[cell]:
             self.count += 1
         self.mask[cell] = 1
-        for field, value in zip(self.fields, values):
+        for field, value in zip(self.fields, values, strict=False):
             field[cell] = value
 
     def remove(self, cell: int) -> None:

@@ -101,7 +101,7 @@ def are_young_rift_partners(plate_a, plate_b, time: float, config) -> bool:
 def choose_sides(world, plate_a, plate_b, cells) -> dict:
     """Choose the upper plate from trench flags at the contact front."""
     mesh = world.mesh
-    xyz, index = mesh.xyz, mesh.index
+    xyz = mesh.xyz
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
 
     def flagged(plate) -> int:
@@ -872,6 +872,57 @@ _BELT_CONFIG_KEYS = {
 }
 
 
+def _collision_front_cells(
+    world, upper, lower, cells: list[int]
+) -> tuple[list[int], list[int]]:
+    """Return unique local-raster cells bordering each side of a collision.
+
+    Ambiguous world claims and oceanic neighbours do not contribute to either
+    continental front. The returned indices are expressed in each plate's
+    local crust raster, not in world-mesh coordinates.
+    """
+    mesh = world.mesh
+    xyz, index = mesh.xyz, mesh.index
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+    owner, owner_cell = world.owner, world.ownerCell
+    land_claims = world.landClaims
+    upper_front: list[int] = []
+    lower_front: list[int] = []
+
+    for world_cell in cells:
+        touches_upper = False
+        touches_lower = False
+        for edge in range(int(offsets[world_cell]), int(offsets[world_cell + 1])):
+            neighbour = int(adjacency[edge])
+            if int(land_claims[neighbour]) > 1 or int(owner[neighbour]) < 0:
+                continue
+            neighbour_plate = int(owner[neighbour])
+            local_cell = int(owner_cell[neighbour])
+            if (
+                neighbour_plate == upper.id
+                and upper.crust.type[local_cell] != CrustType["OCEAN"]
+            ):
+                touches_upper = True
+            if (
+                neighbour_plate == lower.id
+                and lower.crust.type[local_cell] != CrustType["OCEAN"]
+            ):
+                touches_lower = True
+
+        offset = 3 * world_cell
+        point = (
+            float(xyz[offset]),
+            float(xyz[offset + 1]),
+            float(xyz[offset + 2]),
+        )
+        if touches_upper:
+            upper_front.append(upper.cell_at(index, *point))
+        if touches_lower:
+            lower_front.append(lower.cell_at(index, *point))
+
+    return list(dict.fromkeys(upper_front)), list(dict.fromkeys(lower_front))
+
+
 def track_collisions(world, dt: float) -> dict:
     """Track continent-on-continent contacts, shortening and underthrusting.
 
@@ -918,9 +969,6 @@ def track_collisions(world, dt: float) -> dict:
 
     mesh = world.mesh
     xyz, index = mesh.xyz, mesh.index
-    offsets, adjacency = mesh.adj_offset, mesh.adj_list
-    owner, owner_cell = world.owner, world.ownerCell
-    land_claims = world.landClaims
     edge_km = float(mesh.edge_km)
     cell_area = float(mesh.cell_area_km2)
 
@@ -1047,41 +1095,9 @@ def track_collisions(world, dt: float) -> dict:
         )
         record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
 
-        upper_front = []
-        lower_front = []
-        for world_cell in cells:
-            touches_upper = False
-            touches_lower = False
-            for edge in range(int(offsets[world_cell]), int(offsets[world_cell + 1])):
-                neighbour = int(adjacency[edge])
-                if int(land_claims[neighbour]) > 1 or int(owner[neighbour]) < 0:
-                    continue
-                neighbour_plate = int(owner[neighbour])
-                local_cell = int(owner_cell[neighbour])
-                if (
-                    neighbour_plate == upper.id
-                    and upper.crust.type[local_cell] != CrustType["OCEAN"]
-                ):
-                    touches_upper = True
-                if (
-                    neighbour_plate == lower.id
-                    and lower.crust.type[local_cell] != CrustType["OCEAN"]
-                ):
-                    touches_lower = True
-
-            offset = 3 * world_cell
-            point = (
-                float(xyz[offset]),
-                float(xyz[offset + 1]),
-                float(xyz[offset + 2]),
-            )
-            if touches_upper:
-                upper_front.append(upper.cell_at(index, *point))
-            if touches_lower:
-                lower_front.append(lower.cell_at(index, *point))
-
-        upper_front = list(dict.fromkeys(upper_front))
-        lower_front = list(dict.fromkeys(lower_front))
+        upper_front, lower_front = _collision_front_cells(
+            world, upper, lower, cells
+        )
         record["frontKm"] = (
             max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
         )

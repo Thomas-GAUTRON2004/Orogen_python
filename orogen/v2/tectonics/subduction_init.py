@@ -355,18 +355,7 @@ def founder_within_plates(world, dt: float) -> int:
 
         crust = plate.crust
         mask, kinds = crust.mask, crust.type
-        flags, formed_at = crust.flags, crust.formedAt
-
-        def land(cell: int, mask=mask, kinds=kinds) -> bool:
-            return bool(
-                mask[cell]
-                and kinds[cell]
-                in (
-                    CrustType["CONTINENT"],
-                    CrustType["CRATON"],
-                )
-            )
-
+        formed_at = crust.formedAt
         coast, run_of, runs = _old_ocean_margin_runs(
             mesh, crust, time, minimum_age
         )

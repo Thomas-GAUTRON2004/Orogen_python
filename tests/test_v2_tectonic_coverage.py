@@ -175,3 +175,12 @@ def test_rotated_plate_gather_maps_world_cells_to_plate_frame():
     claims = []
     for_each_claim(world, lambda w, p, c: claims.append((w, p.id, c)))
     assert (world_cell, plate.id, raster_cell) in claims
+
+def test_crust_restore_over_existing_cell_does_not_increment_count():
+    crust = CrustRaster(2)
+    crust.create(0, CrustType["CONTINENT"], 0, 1)
+    values = crust.snapshot(0)
+    crust.restore(0, values)
+    assert crust.count == 1
+    assert crust.mask.tolist() == [1, 0]
+

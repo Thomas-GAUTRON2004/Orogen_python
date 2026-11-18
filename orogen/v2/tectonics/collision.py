@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
 from ..core.mesh_bfs import hops_from
 from ..core.sphere_geometry import (
     PLANET_RADIUS_KM,

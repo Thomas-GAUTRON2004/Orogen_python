@@ -1,7 +1,7 @@
-"""Fibonacci sphere and Delaunay dual mesh builder from Orogen's V1 sphere-mesh.js.
+"""Fibonacci sphere and SciPy Delaunay dual mesh builder.
 
-shull supplies the planar Delaunay triangulation. The spherical closure and
-cyclic CSR region adjacency follow the upstream half-edge construction.
+SciPy/Qhull supplies the planar triangulation. Spherical closure and cyclic
+CSR region adjacency follow Orogen's half-edge construction.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-import shull
+from scipy.spatial import Delaunay
 
 
 @dataclass(slots=True)
@@ -76,16 +76,18 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
 
 
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
-    """Triangulate with shull, then close the planar convex hull at the pole."""
+    """Triangulate with SciPy/Qhull, then close the planar hull at the pole."""
     try:
-        delaunay = shull.Delaunay(np.ascontiguousarray(points_2d, dtype=np.float64))
+        simplices = Delaunay(
+            np.ascontiguousarray(points_2d, dtype=np.float64)
+        ).simplices
     except Exception as exc:
         # The native extension can surface backend-specific exception types;
         # normalize them at this boundary to keep the mesh API stable.
         raise ValueError(
             "Delaunay triangulation failed for the projected sphere"
         ) from exc
-    return _close_simplices(points_2d, delaunay.simplices, pole_id)
+    return _close_simplices(points_2d, simplices, pole_id)
 
 
 def _close_simplices(
@@ -96,9 +98,9 @@ def _close_simplices(
     """Validate and orient planar Delaunay simplices, then close at the pole."""
     triangles = np.asarray(simplices, dtype=np.int32).copy()
     if triangles.ndim != 2 or triangles.shape[1] != 3 or triangles.size == 0:
-        raise ValueError("shull returned an invalid 2D triangulation")
+        raise ValueError("Delaunay returned an invalid 2D triangulation")
     if int(triangles.min()) < 0 or int(triangles.max()) >= len(points_2d):
-        raise ValueError("shull returned an out-of-range vertex index")
+        raise ValueError("Delaunay returned an out-of-range vertex index")
 
     # Normalize simplex winding before pairing directed half-edges.
     p = points_2d

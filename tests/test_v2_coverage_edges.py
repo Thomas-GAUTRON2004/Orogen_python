@@ -278,3 +278,20 @@ def test_fibonacci_sphere_without_jitter_and_kinematic_pose_paths():
     assert np.allclose(np.linalg.norm(moved), 1.)
     assert not np.allclose(moved, q)
 
+def test_advance_plates_updates_only_living_plates():
+    from orogen.v2.tectonics.kinematics import advance_plates
+    class StubPlate:
+        def __init__(self, alive):
+            self.alive = alive
+            self.quat = [1., 0., 0., 0.]
+            self.omega = [0., 0., 0.]
+            self.updated = False
+        def set_quat(self, value):
+            self.updated = True
+            self.quat = value
+    living, dead = StubPlate(True), StubPlate(False)
+    world = SimpleNamespace(plates=[living, dead], time=2., step=4)
+    advance_plates(world, 0.5)
+    assert living.updated and not dead.updated
+    assert world.time == 2.5 and world.step == 5
+

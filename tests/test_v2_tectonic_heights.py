@@ -72,3 +72,16 @@ def test_thicken_cover_updates_maximum_and_burial():
     assert thicken_cover(c, 1, 3, 12, {"crustKm": 30}) == 0
     with pytest.raises(ValueError):
         thicken_cover(c, 0, 1, 12, {"crustKm": 0})
+
+def test_build_heights_does_not_reduce_existing_uplift_or_ruggedness():
+    c = CrustRaster(1)
+    c.create(0, CrustType["CONTINENT"], 0)
+    c.upliftKm[0] = 1000.0
+    c.rugged[0] = 1000.0
+    build_heights(
+        c, 0, OrogenyType["ANDEAN"], BeltSide["UPPER"],
+        0.3, 450, 20, 0, {},
+    )
+    assert c.upliftKm[0] == 1000.0
+    assert c.rugged[0] == 1000.0
+

@@ -62,7 +62,7 @@ def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
 
 
 def is_word_seed(text: object) -> bool:
-    """Whether a seed string is non-empty and not finite under JS Number()."""
+    """Determine whether a seed string is non-empty and not finite under JavaScript Number()."""
     value = "" if text is None else str(text)
     value = value.strip()
     if not value:

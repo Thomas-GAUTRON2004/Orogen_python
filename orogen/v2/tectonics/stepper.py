@@ -92,9 +92,10 @@ def step_world(
     if "farFieldEveryMyr" in world.config:
         far_field_state = evolve_far_field(world, step_dt)
 
+    steered_back_arcs = 0
     if update_motion:
         update_plate_motion(world)
-    steer_back_arc_strips(world)
+        steered_back_arcs = steer_back_arc_strips(world)
 
     return {
         "time": float(world.time),
@@ -108,6 +109,7 @@ def step_world(
         "rifts": int(rifts),
         "subductions": int(subductions),
         "backArcs": int(back_arcs),
+        "steeredBackArcs": int(steered_back_arcs),
         "collisions": collision_state,
         "farField": int(far_field_state),
         "motionUpdated": bool(update_motion),

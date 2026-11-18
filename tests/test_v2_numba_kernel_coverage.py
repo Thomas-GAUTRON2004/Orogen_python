@@ -154,3 +154,59 @@ def test_optional_numba_import_fallback(monkeypatch):
     finally:
         monkeypatch.setattr(builtins, "__import__", original_import)
         importlib.reload(kernels)
+
+def test_numba_kernel_heap_stale_entry_and_zero_axis_branches():
+    # Source insertion must bubble a lower initial Dijkstra key to the root.
+    offsets = np.asarray([0, 2, 3, 4, 4], dtype=np.int32)
+    adjacency = np.asarray([1, 2, 3, 1], dtype=np.int32)
+    xyz = np.asarray([
+        1., 0., 0.,
+        math.cos(.03), math.sin(.03), 0.,
+        math.cos(.01), math.sin(.01), 0.,
+        math.cos(.02), math.sin(.02), 0.,
+    ], dtype=np.float64)
+    mask = np.ones(4, dtype=np.bool_)
+    crust = np.zeros(4, dtype=np.int32)
+    flags = np.asarray([0, 2, 0, 0], dtype=np.int32)
+    kernels.far_field_distance_numba.py_func(
+        offsets, adjacency, xyz, mask, crust, flags,
+        np.asarray([0, 3], dtype=np.int32),
+        np.asarray([10., 100.], dtype=np.float64),
+        100., 1000., 1000., 1, 2, .3, 5.,
+    )
+
+    # Multiple initial seeds exercise heap insertion/sift-down; a later
+    # shorter route leaves a stale heap entry that must be discarded.
+    spread_offsets = np.asarray([0, 2, 3, 4, 4], dtype=np.int32)
+    spread_adjacency = np.asarray([1, 2, 1, 1], dtype=np.int32)
+    edge_km = np.asarray([10., 1., 1., 1.], dtype=np.float64)
+    seeded = np.asarray([10., 0., math.inf, math.inf], dtype=np.float64)
+    kernels.spread_km_numba.py_func(
+        spread_offsets, spread_adjacency, edge_km, seeded, 100.,
+    )
+    kernels.spread_km_numba.py_func(
+        spread_offsets, spread_adjacency, edge_km,
+        np.asarray([0., math.inf, math.inf, math.inf]), 100.,
+    )
+
+    # Distinct raster + rotation with a zero axis takes the no-rotation branch.
+    fields = [np.zeros(2, dtype=np.int32) for _ in range(55)]
+    out = [np.zeros(2, dtype=np.int32) for _ in range(55)]
+    kernels.copy_cells_numba.py_func(
+        out, fields, np.zeros(2, dtype=np.bool_),
+        np.asarray([1], dtype=np.int32), np.asarray([0], dtype=np.int32),
+        np.eye(3).ravel(), True, False,
+    )
+
+
+def test_numba_piece_kernel_empty_and_multiple_component_size_branches():
+    offsets = np.asarray([0, 1, 2, 2, 2], dtype=np.int32)
+    adjacency = np.asarray([1, 0], dtype=np.int32)
+    selected = np.asarray([0, 1, 2, 3], dtype=np.int32)
+    pieces = kernels.pieces_of_numba.py_func(offsets, adjacency, selected)
+    assert pieces[1].tolist() == [0, 2, 4]
+    # A later, strictly larger component replaces the first candidate.
+    assert kernels.largest_piece_numba.py_func(
+        offsets, adjacency, selected,
+    ).tolist() == [0, 1]
+

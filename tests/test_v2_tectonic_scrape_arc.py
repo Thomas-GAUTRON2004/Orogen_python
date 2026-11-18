@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
-from orogen.v2.tectonics.plate import Plate
 from orogen.v2.tectonics.ops.scrape_arc import scrape_arc
+from orogen.v2.tectonics.plate import Plate
 
 
 class Index:

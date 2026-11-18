@@ -1,5 +1,3 @@
-import numpy as np
-
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.polarity import overrides

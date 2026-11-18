@@ -1,5 +1,17 @@
 """Tectonic plate operations ported from Orogen V2."""
 
+from .birth_ocean_plate import birth_ocean_plate, ocean_plate_name
+from .merge_plates import merge_plates
+from .plate_accretion import accrete_terrane, close_seas_between, landmass_of
+from .plate_transfer import free_cell_beside, transfer_cells
+from .rift import (
+    choose_junction,
+    names_after_split,
+    plume_junctions,
+    pull_axis_of,
+    split_plate,
+    try_rift,
+)
 from .rift_partition import (
     elongation_of,
     exterior_sea,
@@ -9,18 +21,6 @@ from .rift_partition import (
 )
 from .rift_path import find_rift, grain_of, rift_context
 from .scrape_arc import scrape_arc
-from .plate_transfer import free_cell_beside, transfer_cells
-from .birth_ocean_plate import birth_ocean_plate, ocean_plate_name
-from .plate_accretion import accrete_terrane, close_seas_between, landmass_of
-from .merge_plates import merge_plates
-from .rift import (
-    choose_junction,
-    names_after_split,
-    plume_junctions,
-    pull_axis_of,
-    split_plate,
-    try_rift,
-)
 
 __all__ = [
     "elongation_of",

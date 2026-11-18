@@ -191,7 +191,7 @@ def exterior_sea(mesh, crust) -> np.ndarray:
 
     if not frontier:
         seen = np.zeros(num_cells, dtype=np.uint8)
-        largest = []
+        largest: list[int] = []
         for start in range(num_cells):
             if seen[start] or crust.type[start] != CrustType["OCEAN"]:
                 continue

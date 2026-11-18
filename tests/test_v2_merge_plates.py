@@ -242,6 +242,7 @@ def test_merge_plates_preserves_plate_identity_and_crust_accounting():
     assert lower.crust.count == 0
     assert lower.stats["cells"] == 0
 
+
 def test_lower_plate_resampling_is_identity_for_aligned_rasters():
     world, upper, lower = merge_fixture(gain=0.0)
 

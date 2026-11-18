@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 
@@ -80,20 +81,20 @@ class TectonicWorld:
         self.rngCycle = make_rng((self.seed ^ 0xC1C1) & 0xFFFFFFFF)
 
         n = int(sim_mesh.num_cells)
-        self.hotspots = []
+        self.hotspots: list[dict[str, Any]] = []
         self.mantleHeat = np.zeros(n, dtype=np.float32)
         self.hotspotsReady = False
         self.cycle = None
-        self.pendingPlumeRifts = []
+        self.pendingPlumeRifts: list[dict[str, Any]] = []
         self.lastRiftAt = None
-        self.plumes = []
+        self.plumes: list[dict[str, Any]] = []
         self.terraneLetters = None
         self.time = 0.0
         self.step = 0
         self.occupancyStamp = 0
         self.lastDt = 0.0
         self.slowMyr = 0.0
-        self.plates = []
+        self.plates: list[Plate] = []
         self.goneCrust = None
 
         self.owner = np.full(n, -1, dtype=np.int16)
@@ -115,9 +116,9 @@ class TectonicWorld:
             "underthrustCells": 0,
             "recycledCells": 0,
         }
-        self.events = []
-        self.collisions = {}
-        self.arcScrapes = {}
+        self.events: list[dict[str, Any]] = []
+        self.collisions: dict[Any, Any] = {}
+        self.arcScrapes: dict[Any, Any] = {}
         self.lastTerraneId = 0
         self.erosionNoise = None
         self.erosionThreshold = 0.0

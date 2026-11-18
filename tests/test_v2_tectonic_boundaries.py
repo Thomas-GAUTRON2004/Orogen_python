@@ -87,6 +87,7 @@ def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
     import orogen.v2.tectonics.boundaries as boundaries
 
     mesh, world = _world()
+    world.config.update({"boundaryActiveCmYr": 0.5, "obliqueLimit": 1.0, "segmentPolarity": False})
     a, b = world.add_plate("A"), world.add_plate("B")
     a.crust.create(0, CrustType["CONTINENT"], 0, 1)
     b.crust.create(0, CrustType["CONTINENT"], 0, 2)

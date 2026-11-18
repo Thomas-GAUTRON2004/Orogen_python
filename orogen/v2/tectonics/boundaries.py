@@ -109,7 +109,6 @@ def feed_trench(world, world_cell: int, crust, cell: int, subducted_km: float) -
     return subducted_km > 0
 
 
-
 _SUBDUCTION_FAR_FIELD_CONFIG = frozenset(
     {
         "apronKm",

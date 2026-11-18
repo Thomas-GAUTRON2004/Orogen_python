@@ -171,7 +171,6 @@ def test_contact_classifier_votes_ocean_segments_and_feeds_overriding_trench(
     assert world.oceanOverrider[0] == a.id
 
 
-
 def _subduction_far_field_config():
     return {
         "apronKm": 100.0,

@@ -147,7 +147,7 @@ jobs:
             orogen/v2/tectonics/ops/rift_path.py \
             orogen/v2/tectonics/subduction_init.py
 
-      - name: Run Python and JavaScript differential tests
+      - name: Run Python and JavaScript differential tests (including SciPy sphere mesh)
         env:
           NUMBA_JIT_COVERAGE: "1"
         run: |

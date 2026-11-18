@@ -67,9 +67,23 @@ jobs:
         run: bandit -q -r orogen
 
       - name: Scan repository for leaked secrets
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          version="8.24.3"
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$(git merge-base "$BASE_SHA" HEAD)"
+            "$RUNNER_TEMP/gitleaks" git --redact --exit-code 2 \
+              --log-opts="--all ${base}..HEAD" .
+          else
+            "$RUNNER_TEMP/gitleaks" dir --redact --exit-code 2 .
+          fi
 
       - name: Check changed Python files with Ruff
         env:

@@ -15,8 +15,10 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from orogen.v2.core.mesh_locate import locate
+from orogen.v2.core.seed import make_rng
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.sphere_index import SphereIndex
+from orogen.v2.core.sphere_mesh import build_sphere
 
 
 SEED = 20261118
@@ -46,6 +48,14 @@ class KDTreeIndex:
         return int(self.tree.query((x, y, z), k=1, workers=1)[1])
 
 
+def build_mesh_with_tree(requested_cells: int, seed: int):
+    """Candidate full-build path: production sphere/CSR plus cKDTree."""
+    sphere, xyz = build_sphere(requested_cells, 0.35, make_rng(seed + 4242))
+    points = np.asarray(xyz, dtype=np.float64).reshape(-1, 3)
+    points /= np.linalg.norm(points, axis=1)[:, None]
+    return sphere, xyz, cKDTree(points)
+
+
 def query_vectors(count: int) -> np.ndarray:
     rng = np.random.default_rng(SEED)
     points = rng.normal(size=(count, 3))
@@ -69,6 +79,9 @@ for requested_cells in SIZES:
     print(f"\n=== requested_cells={requested_cells} ===", flush=True)
 
     build_s, mesh = measure(lambda: build_sim_mesh(requested_cells, SEED), repeats=2)
+    candidate_build_s, candidate_build = measure(
+        lambda: build_mesh_with_tree(requested_cells, SEED), repeats=2
+    )
     xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape(-1, 3)
     queries = query_vectors(N_QUERIES)
 
@@ -135,7 +148,8 @@ for requested_cells in SIZES:
         f"mesh_cells={mesh.num_cells} vertices={len(xyz)} queries={len(queries)}"
     )
     print(
-        f"build_sim_mesh={build_s:.6f}s "
+        f"build_sim_mesh_SphereIndex={build_s:.6f}s "
+        f"build_mesh_cKDTree={candidate_build_s:.6f}s "
         f"SphereIndex_construct={sphere_index_s:.6f}s "
         f"cKDTree_construct={tree_s:.6f}s"
     )

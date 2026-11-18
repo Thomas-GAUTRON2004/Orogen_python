@@ -401,6 +401,7 @@ def test_founder_within_plates_rejects_runs_not_on_exterior_sea(monkeypatch):
     assert len(world.plates) == 1
     assert world.events == []
 
+
 def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
     world, plate = make_intraplate_world(oceanPlateReachKm=500.0)
     num_cells = world.mesh.num_cells

@@ -1357,17 +1357,30 @@ def test_collision_front_cells_returns_unique_valid_land_contacts():
 
 def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeypatch):
     """Exercise the stepper-to-collision seam without replacing the tracker."""
-    from orogen.v2.tectonics import collision, stepper
+    from orogen.v2.tectonics import boundaries, collision, stepper
+    from orogen.v2.tectonics.world import BoundaryKind
 
     world, upper, lower = collision_tracking_world()
     world.step = 0
+    world.boundaryKind = np.zeros(5, dtype=np.uint8)
+    world.convergence = np.zeros(5, dtype=np.float32)
+    world.provisional = np.zeros(5, dtype=np.uint8)
+    world.oceanOverrider = np.full(5, -1, dtype=np.int16)
+    world.consumedAt = np.zeros(5, dtype=np.uint8)
+    world.config.update(
+        {
+            "boundaryActiveCmYr": 0.3,
+            "obliqueLimit": 0.35,
+            "segmentPolarity": False,
+        }
+    )
 
     # Keep unrelated stages inert: the contact geometry and collision tracker
     # remain real, while this test isolates their integration in step_world.
     monkeypatch.setattr(stepper, "closing_rate", lambda _world: 0.0)
     monkeypatch.setattr(stepper, "advance_plates", lambda *_args: None)
     monkeypatch.setattr(stepper, "resolve", lambda _world: {})
-    monkeypatch.setattr(stepper, "classify_contact_boundaries", lambda _world, _dt: 0)
+    monkeypatch.setattr(boundaries, "contact_at", lambda _world, _cell, _normal: -1)
     monkeypatch.setattr(stepper, "update_plumes", lambda _world, _dt: None)
     monkeypatch.setattr(stepper, "open_back_arcs", lambda _world, _dt: 0)
     monkeypatch.setattr(
@@ -1385,6 +1398,8 @@ def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeyp
     )
 
     record = world.collisions["0:1"]
+    assert result["classifiedBoundaries"] == 1
+    assert world.boundaryKind[2] == BoundaryKind["COLLISION"]
     assert result["collisions"] == {
         "tracked": 1,
         "started": 1,

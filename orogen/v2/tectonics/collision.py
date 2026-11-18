@@ -957,9 +957,7 @@ def _process_collision_overlap(
 
     # Arcs are transferred before continent-on-continent overlap is
     # counted. Keep this operation gated until its full config is present.
-    if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(
-        config
-    ):
+    if {"arcAccreteMinKm2", "terraneMinAreaKm2", "arcScrapeLogKm2"}.issubset(config):
         arc_result = accrete_arcs(world, plates[id_a], plates[id_b], overlap_values)
         core = arc_result["core"]
         changed = changed or bool(arc_result["accreted"])
@@ -1116,12 +1114,8 @@ def _process_collision_overlap(
         shape = belt_shape(closing / max(1e-12, relative_speed), None, config)
         accumulated = float(record["shorteningKm"])
         mean_rate = float(record["meanRateCmYr"])
-        upper_width = (
-            belt_width_km(upper_kind, accumulated, mean_rate, config) * shape
-        )
-        lower_width = (
-            belt_width_km(lower_kind, accumulated, mean_rate, config) * shape
-        )
+        upper_width = belt_width_km(upper_kind, accumulated, mean_rate, config) * shape
+        lower_width = belt_width_km(lower_kind, accumulated, mean_rate, config) * shape
         shear = obliquity_deg(velocity, normal, centre, closing)
         if upper_front:
             spread_belt(

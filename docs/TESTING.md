@@ -15,12 +15,14 @@ python -m pytest
 ### Spherical mesh backend tests
 
 The production sphere-mesh builder uses `scipy.spatial.Delaunay`
-(Qhull). Focused tests cover spherical topology, cyclic CSR adjacency,
-deterministic builds, small point counts, Qhull exception translation,
-invalid simplex shapes and out-of-range indices. The
-`scipy sphere-mesh compatibility` workflow checks Python 3.10, 3.12 and
-3.14 on Ubuntu and Windows. See [SciPy backend](SCIPY_BACKEND.md) for the
-production path and compatibility contract.
+(Qhull). Focused tests in `tests/test_v2_sphere_mesh.py` cover spherical
+topology, cyclic CSR adjacency, deterministic builds, small point counts,
+Qhull exception translation, invalid simplex shapes and out-of-range indices.
+They are collected automatically by the main Python test suite; there is no
+separate SciPy compatibility workflow or platform matrix. The main CI job
+also runs the JavaScript/Python differential suite, including selected mesh
+fixtures. See [SciPy backend](SCIPY_BACKEND.md) for the production path and
+compatibility contract.
 
 ### JavaScript differential tests
 

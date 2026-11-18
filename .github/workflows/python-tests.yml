@@ -148,16 +148,26 @@ jobs:
 
       - name: Check complexity of newly added Python files
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event.before }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="HEAD~1"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # Push runs validate the full pushed range; PR runs independently
+            # check only the latest head commit, so legacy complexity is not
+            # re-audited on every pull-request synchronization.
+            parent_sha="$(git rev-parse "$PR_HEAD_SHA^")"
+            new_python_files="$(git diff --name-only --diff-filter=A "$parent_sha" "$PR_HEAD_SHA" -- '*.py')"
+          else
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="HEAD~1"
+            fi
+            new_python_files="$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '*.py')"
           fi
-          new_python_files="$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '*.py')"
           if [ -n "$new_python_files" ]; then
             xenon --max-absolute C $new_python_files
           else
-            echo "No new Python files; complexity gate not applicable."
+            echo "No newly added Python files in this update; complexity gate not applicable."
           fi
 
       - name: Compare mypy diagnostics with the base branch

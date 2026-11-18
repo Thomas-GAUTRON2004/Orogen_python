@@ -259,10 +259,7 @@ def _append_collision_lock_contacts(
     config: Mapping,
 ) -> bool:
     """Handle contested land overlaps; return True when boundary force is skipped."""
-    if (
-        int(world.landClaims[world_cell]) <= 1
-        or int(world.collider[world_cell]) < 0
-    ):
+    if int(world.landClaims[world_cell]) <= 1 or int(world.collider[world_cell]) < 0:
         return False
 
     other_id = int(world.collider[world_cell])
@@ -390,9 +387,7 @@ def _accumulate_boundary_edge_load(
         )
     if kind < 0 or size == 0:
         return
-    _accumulate_boundary_force(
-        load, kind, size, length, direction, xyz[world_cell]
-    )
+    _accumulate_boundary_force(load, kind, size, length, direction, xyz[world_cell])
 
 
 def gather_boundary_loads(world) -> dict[int, dict]:
@@ -473,5 +468,3 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         )
 
     return loads
-
-

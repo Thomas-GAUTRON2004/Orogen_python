@@ -1131,6 +1131,9 @@ dependencies = [
 [package.optional-dependencies]
 benchmark = [
     { name = "numba" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 quality = [
     { name = "bandit" },
@@ -1159,6 +1162,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5" },
     { name = "ruff", marker = "extra == 'quality'", specifier = ">=0.8" },
+    { name = "scipy", marker = "extra == 'benchmark'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'test'", specifier = ">=1.10" },
     { name = "shull", specifier = ">=0.4.0,<1" },
     { name = "xenon", marker = "extra == 'quality'", specifier = ">=0.9" },

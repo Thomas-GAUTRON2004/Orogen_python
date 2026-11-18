@@ -66,7 +66,7 @@ The report is included with the proposed quality-refactor changes. The associate
 
 - Extracted old-ocean coast detection and connected-run labeling from `founder_within_plates` into `_old_ocean_margin_runs`. The change is committed; focused native-backend CI validation is pending.
 - Replaced the Gitleaks Action's failing PR revision-range integration with a pinned Gitleaks CLI scan over the full commit range from the merge base, avoiding the action's invalid-range failure while retaining history scanning.
-- Extracted lower-plate raster resampling from `merge_plates` into `_resample_lower_cells`, alongside the previously extracted old-ocean margin-run discovery in `founder_within_plates`. Both changes await focused CI validation.
+- Extracted lower-plate raster resampling from `merge_plates` into `_resample_lower_cells`, alongside old-ocean margin-run discovery in `founder_within_plates`. Both refactorings are included in the SciPy-migration PR-head full-suite validation below.
 
 ## Numerical backend selection
 
@@ -75,3 +75,13 @@ The report is included with the proposed quality-refactor changes. The associate
 - The previous `shull` runtime dependency, platform workflow, A/B benchmark workflow and comparison script were removed.
 - `SphereIndex` remains the separate spherical nearest-cell lookup structure; it is not a triangulation backend.
 - The SciPy platform matrix is limited to Ubuntu and Windows for Python 3.10, 3.12 and 3.14.
+
+
+## SciPy production backend migration — 2026-11-18
+
+- Replaced the production planar triangulator with `scipy.spatial.Delaunay` (Qhull); `scipy>=1.10` is now a required runtime dependency and `shull` has been removed from the dependency graph.
+- Preserved the Orogen spherical closure, cyclic CSR adjacency, `SphereIndex` lookup, and public mesh array layouts. The three-point minimum is handled by its single possible simplex; Qhull is used for four or more points.
+- Removed the former shull platform and comparison workflows/scripts. cKDTree remains excluded. The SciPy compatibility matrix contains six jobs: Ubuntu/Windows × Python 3.10/3.12/3.14; macOS is excluded.
+- GitHub Actions on PR-head `0ac5ed9c6e9d4791fce457cca7f64eaa9844b43a`: **517 tests passed**, **99.44% branch coverage** (95% minimum), and **6/6** SciPy platform jobs passed.
+- Ruff, Bandit, Gitleaks, Xenon, `uv lock --check` and mypy-baseline comparison passed. Mypy diagnostics fell from 118 on the base to 62 on the PR head, with no new diagnostics.
+- Validation runs: [Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44324665297) and [SciPy platform matrix](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44324665407).

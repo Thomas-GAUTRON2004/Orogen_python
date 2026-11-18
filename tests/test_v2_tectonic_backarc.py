@@ -59,9 +59,7 @@ def backarc_config():
 
 def make_line_mesh(count=5, edge_km=100.0):
     step = edge_km / 6371.0
-    points = [
-        [math.cos(i * step), math.sin(i * step), 0.0] for i in range(count)
-    ]
+    points = [[math.cos(i * step), math.sin(i * step), 0.0] for i in range(count)]
     neighbours = []
     for cell in range(count):
         row = []

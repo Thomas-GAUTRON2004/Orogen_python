@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 
@@ -231,7 +232,7 @@ class CrustRaster:
         # Allocate one backing matrix per dtype instead of one allocation per
         # field. Each field remains a contiguous, independently writable 1-D
         # view with exactly the same dtype and values as before.
-        fields_by_dtype: dict[object, list[str]] = {}
+        fields_by_dtype: dict[np.dtype[Any], list[str]] = {}
         for name in CELL_FIELDS:
             dtype = np.dtype(_DTYPES[name])
             fields_by_dtype.setdefault(dtype, []).append(name)

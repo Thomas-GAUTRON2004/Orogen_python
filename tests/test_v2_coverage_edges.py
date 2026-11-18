@@ -146,6 +146,22 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
         sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
 
 
+def test_shull_rejects_invalid_simplex_shape_and_indices(monkeypatch):
+    class WrongShape:
+        def __init__(self, points):
+            self.simplices = np.array([0, 1, 2], dtype=np.int32)
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", WrongShape)
+    with pytest.raises(ValueError, match="invalid 2D triangulation"):
+        sphere_mesh._closed_triangles(np.array([[0., 0.], [0., 1.], [1., 0.]]), 3)
+
+    class OutOfRange:
+        def __init__(self, points):
+            self.simplices = np.array([[0, 1, 3]], dtype=np.int32)
+    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", OutOfRange)
+    with pytest.raises(ValueError, match="out-of-range vertex index"):
+        sphere_mesh._closed_triangles(np.array([[0., 0.], [0., 1.], [1., 0.]]), 3)
+
+
 def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():
     points = np.array([[0., 0.], [0., 1.], [1., 0.]])
     closed = sphere_mesh._closed_triangles(points, 3)

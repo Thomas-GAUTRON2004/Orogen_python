@@ -692,8 +692,8 @@ def _suture_is_ready(
     cells: list[int],
     cell_area: float,
     config,
-) -> bool:
-    """Whether accumulated shortening, stalling, contact or overlap can trigger welding."""
+) -> tuple[bool, bool]:
+    """Return the raw readiness and minimum-front candidate flags."""
     ready = (
         float(record["shorteningKm"])
         >= float(config.get("sutureShorteningKm", math.inf))
@@ -706,11 +706,12 @@ def _suture_is_ready(
         >= float(config.get("sutureContactMyr", math.inf))
         or len(cells) * cell_area >= float(config.get("sutureOverlapKm2", math.inf))
     )
-    return bool(
+    candidate = bool(
         ready
         and float(record["frontMaxKm"])
         >= float(config.get("sutureMinContactKm", math.inf))
     )
+    return ready, candidate
 
 
 def _refresh_suture_gap(
@@ -758,6 +759,7 @@ def _update_suture_weld_flags(
     config,
     time: float,
     due: bool,
+    ready: bool,
     closed: bool,
 ) -> tuple[bool, bool]:
     """Apply stacking and ring-sea gates and record weld eligibility."""
@@ -766,12 +768,8 @@ def _update_suture_weld_flags(
         float(record["frontKm"]), edge_km
     ) >= float(config["sutureStackKm"])
     would_weld = bool(
-        (float(record["shorteningKm"]) >= float(config.get("sutureShorteningKm", math.inf))
-         or float(record["stalledMyr"]) >= float(config.get("sutureStallMyr", math.inf))
-         or float(record["contactMyr"]) >= float(config.get("sutureContactMyr", math.inf))
-         or len(cells) * cell_area >= float(config.get("sutureOverlapKm2", math.inf)))
-        and (closed or stacked)
-        or overdue
+        (ready and (closed or stacked) or overdue)
+        and float(record["frontMaxKm"]) >= float(config["sutureMinContactKm"])
     )
     would_weld = bool(
         would_weld
@@ -829,7 +827,8 @@ def _merge_eligible_suture(
         else "stalled"
         if float(record["stalledMyr"]) >= float(config.get("sutureStallMyr", math.inf))
         else "contact"
-        if float(record["shorteningKm"]) < float(config.get("sutureShorteningKm", math.inf))
+        if float(record["shorteningKm"])
+        < float(config.get("sutureShorteningKm", math.inf))
         else "shortening"
     )
     result = merge_plates(world, upper, lower, cells, record)
@@ -884,7 +883,7 @@ def _update_suture_state(
 ) -> bool:
     """Advance suture readiness, gap/ring checks and configured plate welding."""
     time = float(world.time)
-    candidate = _suture_is_ready(record, cells, cell_area, config)
+    ready, candidate = _suture_is_ready(record, cells, cell_area, config)
     record["sutureCandidate"] = candidate
     record["weldCandidate"] = False
     record["weldBlockedByRing"] = False
@@ -905,6 +904,7 @@ def _update_suture_state(
         config,
         time,
         due,
+        ready,
         closed,
     )
     return _merge_eligible_suture(

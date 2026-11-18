@@ -33,7 +33,7 @@ class Plate:
         self.bins = None
         self.dynamics = None
         self.wingBudgetKm = 0.0
-        self.wings = {}
+        self.wings: dict[object, object] = {}
         self.arcTerraneId = None
         self.marginIsleTerrane = None
         self.riftPartner = -1
@@ -48,7 +48,7 @@ class Plate:
         self.rollbackCmYr = 0.0
         self.lastBackArcAt = -math.inf
         self.isOceanBorn = False
-        self.scene = {}
+        self.scene: dict[str, object] = {}
 
     def set_quat(self, quaternion) -> None:
         self.quat = list(quaternion)

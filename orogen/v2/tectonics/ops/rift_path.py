@@ -143,9 +143,7 @@ def _angular_separation(first: dict, second: dict) -> float:
 
 def _nearby_rift_cuts(xyz, first: dict, second: dict) -> bool:
     """Whether two candidate cuts are within the duplicate-cut threshold."""
-    return (
-        cell_distance_km(xyz, first["cell"], second["cell"]) < _DISTINCT_CUT_KM
-    )
+    return cell_distance_km(xyz, first["cell"], second["cell"]) < _DISTINCT_CUT_KM
 
 
 def find_rift(
@@ -203,12 +201,17 @@ def find_rift(
     )
     top = coast[:top_count]
     for item in top:
-        item["length_km"] = len(_trace_parent_path(item["cell"], costs["from"])) * edge_km
+        item["length_km"] = (
+            len(_trace_parent_path(item["cell"], costs["from"])) * edge_km
+        )
 
     pairs = []
     for first in top:
         for second in top:
-            if first is second or _angular_separation(first, second) < _RIFT_ARMS_APART_DEG:
+            if (
+                first is second
+                or _angular_separation(first, second) < _RIFT_ARMS_APART_DEG
+            ):
                 continue
             chord = cell_distance_km(xyz, first["cell"], second["cell"])
             if (
@@ -238,8 +241,14 @@ def find_rift(
             break
 
         if any(
-            (_nearby_rift_cuts(xyz, item["a"], pair["a"]) and _nearby_rift_cuts(xyz, item["b"], pair["b"]))
-            or (_nearby_rift_cuts(xyz, item["a"], pair["b"]) and _nearby_rift_cuts(xyz, item["b"], pair["a"]))
+            (
+                _nearby_rift_cuts(xyz, item["a"], pair["a"])
+                and _nearby_rift_cuts(xyz, item["b"], pair["b"])
+            )
+            or (
+                _nearby_rift_cuts(xyz, item["a"], pair["b"])
+                and _nearby_rift_cuts(xyz, item["b"], pair["a"])
+            )
             for item in tried
         ):
             continue
@@ -287,7 +296,10 @@ def find_rift(
     for item in plain_coast:
         if len(taken) >= 2 + int(config["riftFailedArms"]):
             break
-        if any(_angular_separation(existing, item) < _ARM_SEPARATION_DEG for existing in taken):
+        if any(
+            _angular_separation(existing, item) < _ARM_SEPARATION_DEG
+            for existing in taken
+        ):
             continue
         taken.append(item)
         path = _trace_parent_path(item["cell"], plain["from"])
@@ -298,7 +310,9 @@ def find_rift(
             failed_arm.append(path[index])
             distance += cell_distance_km(xyz, path[index - 1], path[index])
 
-    arm3_trace = _trace_parent_path(taken[2]["cell"], plain["from"]) if len(taken) > 2 else []
+    arm3_trace = (
+        _trace_parent_path(taken[2]["cell"], plain["from"]) if len(taken) > 2 else []
+    )
     ends = [chosen_path[0], chosen_path[-1]]
     across = normalize(
         cross(

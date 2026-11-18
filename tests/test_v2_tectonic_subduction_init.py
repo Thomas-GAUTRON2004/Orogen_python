@@ -12,6 +12,10 @@ from orogen.v2.tectonics.subduction_init import (
     arm_margin,
     choose_foundering,
     founder_within_plates,
+    _collect_subduction_contacts,
+    _found_subduction_pair,
+    _subduction_cell_is_stale,
+    _subduction_founder_metrics,
     initiate_subduction,
     is_on_segment,
 )
@@ -484,3 +488,40 @@ def test_intraplate_founder_helpers_preserve_margin_selection_and_transfer():
     assert fresh.isOceanBorn
     assert fresh.crust.count == len(take)
     assert all(plate.crust.flags[cell] & CrustFlag["TRENCH"] for cell in selected)
+
+def test_subduction_contact_helpers_group_and_measure_the_same_founder_pair():
+    world = make_boundary_world()
+    contacts = _collect_subduction_contacts(world)
+
+    assert list(contacts) == [(0, 1)]
+    entry = contacts[(0, 1)]
+    assert entry["cells"] == [0]
+    assert entry["ages"] == pytest.approx(100.0)
+    assert _subduction_cell_is_stale(world.plates[0], 0) is False
+
+    metrics = _subduction_founder_metrics(world, entry, 1.0, 100.0)
+    assert metrics is not None
+    length_km, age_myr, chance = metrics
+    assert length_km == pytest.approx(100.0)
+    assert age_myr == pytest.approx(100.0)
+    assert chance > 0.0
+
+    world.config["subductionInitMinLengthKm"] = 101.0
+    assert _subduction_founder_metrics(world, entry, 1.0, 100.0) is None
+
+
+def test_found_subduction_pair_helper_creates_the_same_trench_event():
+    world = make_boundary_world()
+    contacts = _collect_subduction_contacts(world)
+
+    assert _found_subduction_pair(
+        world,
+        (0, 1),
+        contacts[(0, 1)],
+        1.0,
+        float(world.mesh.edge_km),
+    )
+    assert world.plates[1].crust.flags[0] & CrustFlag["TRENCH"]
+    assert world.events[-1]["kind"] == "subduction-init"
+    assert world.events[-1]["data"]["upper"] == 1
+    assert world.events[-1]["data"]["lower"] == 0

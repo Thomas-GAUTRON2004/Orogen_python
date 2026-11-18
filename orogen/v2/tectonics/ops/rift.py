@@ -304,7 +304,7 @@ def names_after_split(world, plate_a, plate_b, before: str) -> tuple[str, str]:
 
     base = re.sub(r"(·\d+)+$", "", before)
     taken = {str(plate.name) for plate in world.plates if plate.alive}
-    names = []
+    names: list[str] = []
     number = 1
     while len(names) < 2:
         candidate = f"{base}·{number}"

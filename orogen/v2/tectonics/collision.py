@@ -935,6 +935,17 @@ def _plates_alive(plates, id_a: int, id_b: int) -> bool:
     )
 
 
+CollisionProgress = tuple[
+    np.ndarray,
+    list[float],
+    list[float],
+    float,
+    float,
+    list[int],
+    list[int],
+]
+
+
 def _update_collision_progress(
     world,
     key: str,
@@ -947,9 +958,7 @@ def _update_collision_progress(
     edge_km: float,
     cell_area: float,
     config,
-) -> (
-    tuple[np.ndarray, list[float], list[float], float, float, list[int], list[int]] | None
-):
+) -> CollisionProgress | None:
     """Update collision kinematics, shortening and active continental fronts."""
     xyz = mesh.xyz
     record["cells"] = len(cells)

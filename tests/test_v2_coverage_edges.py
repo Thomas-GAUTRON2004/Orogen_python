@@ -154,7 +154,7 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
         def __init__(self, points):
             raise RuntimeError("bad geometry")
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", BrokenDelaunay)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", BrokenDelaunay)
     with pytest.raises(ValueError, match="Delaunay triangulation failed"):
         sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
 
@@ -162,17 +162,17 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
         def __init__(self, points):
             self.simplices = np.empty((0, 3), dtype=np.int32)
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", EmptyDelaunay)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", EmptyDelaunay)
     with pytest.raises(ValueError, match="invalid 2D triangulation"):
         sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
 
 
-def test_shull_rejects_invalid_simplex_shape_and_indices(monkeypatch):
+def test_delaunay_rejects_invalid_simplex_shape_and_indices(monkeypatch):
     class WrongShape:
         def __init__(self, points):
             self.simplices = np.array([0, 1, 2], dtype=np.int32)
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", WrongShape)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", WrongShape)
     with pytest.raises(ValueError, match="invalid 2D triangulation"):
         sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
 
@@ -180,7 +180,7 @@ def test_shull_rejects_invalid_simplex_shape_and_indices(monkeypatch):
         def __init__(self, points):
             self.simplices = np.array([[0, 1, 3]], dtype=np.int32)
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", OutOfRange)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", OutOfRange)
     with pytest.raises(ValueError, match="out-of-range vertex index"):
         sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
 
@@ -189,7 +189,7 @@ def test_shull_rejects_invalid_simplex_shape_and_indices(monkeypatch):
             # Duplicate simplices leave no boundary edges in the edge counter.
             self.simplices = np.array([[0, 1, 2], [0, 1, 2]], dtype=np.int32)
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", NoHullDelaunay)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", NoHullDelaunay)
     with pytest.raises(ValueError, match="no closed convex hull"):
         sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
 
@@ -281,7 +281,7 @@ def test_sphere_mesh_normalizes_clockwise_simplex_winding(monkeypatch):
         def __init__(self, points):
             self.simplices = np.array([[0, 1, 2]], dtype=np.int32)
 
-    monkeypatch.setattr(sphere_mesh.shull, "Delaunay", ClockwiseDelaunay)
+    monkeypatch.setattr(sphere_mesh, "Delaunay", ClockwiseDelaunay)
     points = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]])
     triangles = sphere_mesh._closed_triangles(points, 3)
     assert triangles[0].tolist() == [0, 2, 1]

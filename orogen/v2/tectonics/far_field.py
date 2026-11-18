@@ -540,9 +540,7 @@ def _rejuvenate(
             queue.append(neighbour)
 
     reached = list(dict.fromkeys(queue))
-    heights = cast(
-        Mapping[str, Any], world.config.get("heights") or DEFAULT_HEIGHTS
-    )
+    heights = cast(Mapping[str, Any], world.config.get("heights") or DEFAULT_HEIGHTS)
     intraplate_build = float(heights["upliftBuildKm"][OrogenyType["INTRAPLATE"]])
     if intraplate_build <= 0.0:
         raise ValueError("INTRAPLATE upliftBuildKm must be positive")

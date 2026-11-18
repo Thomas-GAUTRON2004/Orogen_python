@@ -12,6 +12,7 @@ describe the repository state and changes recorded during the V2 port.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
   collision-belt propagation and suture welding through plate redraw/merge.
 - Far-field propagation capable of reactivating old sutures and failed rifts.
+- Strongly coupled Andean and flat-slab subduction margins now feed the far-field deformation record, using slab-age/plate-advance classification and hysteresis.
 - SciPy/Qhull-backed spherical Delaunay triangulation through
   `scipy.spatial.Delaunay`.
 - Focused sphere-mesh tests for topology, reciprocal neighbours, cyclic

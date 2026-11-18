@@ -22,9 +22,9 @@ Context: Orogen_python is a Python port of the JavaScript V2 engine of Orogen
   implementation.
 ## 2. Coverage
  
-- Branch coverage of the whole `orogen` package, with a **95 %** threshold, as
+- Branch coverage of the whole `orogen` package, with a **99 %** threshold, as
   enforced by CI:
-  `python -m pytest --cov=orogen --cov-branch --cov-fail-under=95`.
+  `python -m pytest --cov=orogen --cov-branch --cov-fail-under=99`.
 - The threshold is never lowered. A coverage drop in a pull request is justified
   in its description.
 - The pure-Python fallback (used when Numba is absent) stays covered.

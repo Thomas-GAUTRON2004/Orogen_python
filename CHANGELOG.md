@@ -9,6 +9,7 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
   collision-belt propagation and suture welding through plate redraw/merge.
 - Far-field propagation capable of reactivating old sutures and failed rifts.

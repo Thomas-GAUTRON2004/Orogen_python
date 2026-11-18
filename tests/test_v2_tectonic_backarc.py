@@ -3,12 +3,12 @@ import math
 import numpy as np
 import pytest
 
+from orogen.v2.core.sphere_geometry import PLANET_RADIUS_KM
 from orogen.v2.tectonics.backarc import (
     open_back_arcs,
     rollback_cm_yr,
     steer_back_arc_strips,
 )
-from orogen.v2.core.sphere_geometry import PLANET_RADIUS_KM
 from orogen.v2.tectonics.config import CM_PER_YR_TO_RAD_PER_MYR
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.world import BoundaryKind, EventKind, TectonicWorld

@@ -771,10 +771,6 @@ def _update_suture_weld_flags(
         (ready and (closed or stacked) or overdue)
         and float(record["frontMaxKm"]) >= float(config["sutureMinContactKm"])
     )
-    would_weld = bool(
-        would_weld
-        and float(record["frontMaxKm"]) >= float(config["sutureMinContactKm"])
-    )
     if would_weld and (due or "ringKm2" not in record):
         record["ringKm2"] = enclosed_sea_between_km2(world, upper, lower)
     if due:

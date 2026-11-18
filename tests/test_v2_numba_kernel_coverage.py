@@ -244,3 +244,15 @@ def test_numba_spread_heap_sifts_seeded_keys_down():
         np.asarray([0., 1., 2., 3.]), 10.,
     )
 
+def test_numba_same_raster_rotation_skips_zero_axis():
+    fields = [np.zeros(3, dtype=np.int32) for _ in range(55)]
+    fields[52][0] = 127
+    kernels.copy_cells_numba.py_func(
+        fields, fields, np.zeros(3, dtype=np.bool_),
+        np.asarray([1], dtype=np.int32), np.asarray([2], dtype=np.int32),
+        np.eye(3).ravel(), True, True,
+    )
+    assert fields[52][1] == 0
+    assert fields[53][1] == 0
+    assert fields[54][1] == 0
+

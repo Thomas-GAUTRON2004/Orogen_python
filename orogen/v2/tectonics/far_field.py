@@ -314,7 +314,7 @@ def recent_push(far_fold: float, far_at: float, time: float, fold_myr: float) ->
 
 
 def _smoothstep(value: float) -> float:
-    """Cubic smooth transition clamped to the unit interval."""
+    """Apply a cubic smooth transition, clamped to the unit interval."""
     x = float(value)
     if x <= 0.0:
         return 0.0

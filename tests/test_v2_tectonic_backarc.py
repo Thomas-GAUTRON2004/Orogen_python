@@ -9,7 +9,7 @@ from orogen.v2.tectonics.backarc import (
     steer_back_arc_strips,
 )
 from orogen.v2.tectonics.config import CM_PER_YR_TO_RAD_PER_MYR
-from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.world import BoundaryKind, EventKind, TectonicWorld
 
 
@@ -164,8 +164,8 @@ def test_open_back_arc_splits_a_coherent_continental_margin(monkeypatch):
     assert parent.crust.count == world.mesh.num_cells - 1 - fresh.crust.count
     assert fresh.riftPartner == parent.id
     assert parent.riftPartner == fresh.id
-    assert np.any(fresh.crust.flags & 2)
-    assert np.any(parent.crust.flags & 2)
+    assert np.any(fresh.crust.flags & CrustFlag["RIFT_MARGIN"])
+    assert np.any(parent.crust.flags & CrustFlag["RIFT_MARGIN"])
     assert world.events[-1]["kind"] == EventKind["BACKARC_OPEN"]
     assert world.events[-1]["data"]["continental"] is True
 

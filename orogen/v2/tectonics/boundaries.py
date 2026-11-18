@@ -331,37 +331,37 @@ def classify_contact_boundaries(world, dt: float) -> int:
                         world, w, plate_a.crust, cell_a, subducted_km
                     ) and subduction_far_field:
                         front = fed.setdefault(
-                                plate_a,
-                                {
-                                    "cells": [],
-                                    "kms": [],
-                                    "headOn": [],
-                                    "flat": 0,
-                                    "km": 0.0,
-                                },
-                            )
-                            front["cells"].append(cell_a)
-                            front["kms"].append(subducted_km)
-                            front["headOn"].append(
-                                closing / float(np.hypot(closing, shear))
-                            )
-                            front["km"] += subducted_km
+                            plate_a,
+                            {
+                                "cells": [],
+                                "kms": [],
+                                "headOn": [],
+                                "flat": 0,
+                                "km": 0.0,
+                            },
+                        )
+                        front["cells"].append(cell_a)
+                        front["kms"].append(subducted_km)
+                        front["headOn"].append(
+                            closing / float(np.hypot(closing, shear))
+                        )
+                        front["km"] += subducted_km
 
-                            slab_age = float(world.time) - float(
-                                plate_b.crust.formedAt[cell_b]
-                            )
-                            wx, wy, wz = map(float, plate_a.omega)
-                            advance = (
-                                (wy * pz - wz * py) * normal[0]
-                                + (wz * px - wx * pz) * normal[1]
-                                + (wx * py - wy * px) * normal[2]
-                            ) / CM_PER_YR_TO_RAD_PER_MYR
-                            if (
-                                slab_age < float(world.config["flatSlabMaxAgeMyr"])
-                                and advance
-                                > float(world.config["flatSlabAdvanceCmYr"])
-                            ):
-                                front["flat"] += 1
+                        slab_age = float(world.time) - float(
+                            plate_b.crust.formedAt[cell_b]
+                        )
+                        wx, wy, wz = map(float, plate_a.omega)
+                        advance = (
+                            (wy * pz - wz * py) * normal[0]
+                            + (wz * px - wx * pz) * normal[1]
+                            + (wx * py - wy * px) * normal[2]
+                        ) / CM_PER_YR_TO_RAD_PER_MYR
+                        if (
+                            slab_age < float(world.config["flatSlabMaxAgeMyr"])
+                            and advance
+                            > float(world.config["flatSlabAdvanceCmYr"])
+                        ):
+                            front["flat"] += 1
             else:
                 boundary[w] = BoundaryKind["SUBDUCTING"]
                 if (

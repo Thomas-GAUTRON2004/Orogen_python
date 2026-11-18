@@ -1335,8 +1335,7 @@ def test_underthrust_consumes_lower_cells_without_upper_land_to_thicken():
     assert lower.crust.mask[1] == 0
     assert lower.crust.mask[2] == 0
     assert upper.crust.mask[3] == 1
-    # The missing upper cell and oceanic upper cell are consumed below,
-    # but neither may receive thickening or root growth.
-    assert upper.crust.thickKm[2] == pytest.approx(10.0)
-    assert upper.crust.rootKm[2] == pytest.approx(10.0)
+    # The oceanic upper cell is consumed below but must not be thickened.
+    assert upper.crust.thickKm[2] == pytest.approx(0.0)
+    assert upper.crust.rootKm[2] == pytest.approx(0.0)
 

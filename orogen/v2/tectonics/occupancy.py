@@ -79,9 +79,17 @@ def bin_index(mesh) -> BinIndex:
     neighbours = []
     for i, c in enumerate(centres):
         near = []
-        for j, d in enumerate(centres):
+        for j, neighbour_centre in enumerate(centres):
             angle = math.acos(
-                max(-1.0, min(1.0, c[0] * d[0] + c[1] * d[1] + c[2] * d[2]))
+                max(
+                    -1.0,
+                    min(
+                        1.0,
+                        c[0] * neighbour_centre[0]
+                        + c[1] * neighbour_centre[1]
+                        + c[2] * neighbour_centre[2],
+                    ),
+                )
             )
             if angle <= radii[i] + radii[j] + reach:
                 near.append(j)

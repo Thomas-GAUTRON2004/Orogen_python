@@ -499,9 +499,7 @@ def founder_within_plates(world, dt: float) -> int:
             continue
 
         crust = plate.crust
-        coast, run_of, runs = _old_ocean_margin_runs(
-            mesh, crust, time, minimum_age
-        )
+        coast, run_of, runs = _old_ocean_margin_runs(mesh, crust, time, minimum_age)
         for run in runs:
             metrics = _founder_run_probability(
                 world,

@@ -138,7 +138,7 @@ def find_rift(
     great-circle normal and a cost/shape score. None means no valid cut.
     """
     mesh, config = world.mesh, world.config
-    xyz, offsets, adjacency = mesh.xyz, mesh.adj_offset, mesh.adj_list
+    xyz = mesh.xyz
     edge_km = float(mesh.edge_km)
     crust = plate.crust
 

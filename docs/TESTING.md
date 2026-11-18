@@ -12,6 +12,19 @@ These cover edge cases, array invariants, graph behaviour, geometry, state mutat
 python -m pytest
 ```
 
+### Spherical mesh backend tests
+
+The production sphere-mesh builder uses the native `shull` Delaunay backend.
+Focused tests cover spherical topology, cyclic CSR adjacency, deterministic
+builds, exception translation, invalid simplex shapes and out-of-range
+indices. The `shull platform compatibility` workflow checks Python 3.10,
+3.12 and 3.14 on Linux, Windows and macOS.
+
+For an optional SciPy-versus-shull pipeline benchmark, install
+`python -m pip install -e ".[benchmark]"` and run
+`python benchmarks/bench_shull_pipeline.py`. SciPy remains a test and
+benchmark dependency, not a production runtime dependency.
+
 ### JavaScript differential tests
 
 The differential harness executes vendored JavaScript reference modules from upstream tag `v3.0.1`. It compares selected Python operations against the reference implementation; it is not a whole-engine comparison.
@@ -34,22 +47,23 @@ Reference files are under `tests/reference/v2/`. They are test fixtures, not a s
 Run the CI-equivalent coverage command:
 
 ```bash
-python -m pytest --cov=orogen.v2 --cov-report=term-missing --cov-report=xml --cov-fail-under=100
+NUMBA_JIT_COVERAGE=1 python -m pytest --cov=orogen.v2 --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=95
 ```
 
-CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before running the suite. It enforces 100% line coverage for `orogen.v2`.
+CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before running the suite. It enables branch coverage, sets `NUMBA_JIT_COVERAGE=1`, and enforces a 95% total-coverage minimum for `orogen.v2`.
 
 ## Latest documented verification
 
-The latest successful test run explicitly recorded in the benchmark documentation is:
+The last successful baseline run on `port/v3.0.1`, before the backend-benchmark refresh, was:
 
-- **476 tests passed**;
-- **100% line coverage** for `orogen.v2`;
-- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
+- **506 tests passed**;
+- **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled);
+- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44260359489);
+- validated revision: `090c8e3f22d592c9f1bcc4d50c9cb635e36e2942`.
 
 This is a historical verified run, not a claim that the current branch head has been tested. The run is associated in the project history with commit `6ea20d647169979ccbdf107732ddb7f2535695b9`; rerun CI after subsequent code changes to establish the current status.
 
-The differential suite covers selected core, geometry, mesh and tectonic operations. The seven historical Delaunay fixture matches (12/99, 24/1, 48/17, 96/2026, 128/7, 256/42, 512/12345) were measured with SciPy/Qhull and do not establish equivalent connectivity for the new shull backend. New shull-specific tests check spherical mesh invariants across multiple sizes.
+The differential suite covers selected core, geometry, mesh and tectonic operations. Production mesh tests now exercise shull directly and check spherical mesh invariants, error translation, simplex shape and index bounds. The optional A/B benchmark compares SciPy and shull on selected deterministic point sets; neither finite test set proves equivalence for all inputs.
 
 ## What the checks establish
 

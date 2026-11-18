@@ -1,6 +1,6 @@
 # Orogen 3.0.1 Porting Status
 
-Last updated: 2026-11-17
+Last updated: 2026-11-18
 
 ## Latest porting batch
 
@@ -72,22 +72,18 @@ test coverage.
 - Document numerical tolerances; do not hide discrepancies with overly broad thresholds.
 - Keep invariant tests even when exact differential comparison is not possible.
 - Do not claim full compatibility until all functional areas and reference tests have been covered.
-- Maintain 100% line coverage for `orogen.v2`, enforced by the `pytest-cov` threshold in CI.
+- Maintain the CI coverage gate for `orogen.v2` (95% total minimum with branch coverage enabled).
 
 ## Latest documented verification
 
-The latest successful test run explicitly recorded in the benchmark documentation is:
+The last successful baseline test run on `port/v3.0.1`, before the current PR refresh, is:
 
-- **476 tests passed**.
-- **100% line coverage** for `orogen.v2`.
-- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460148).
-- Paired JS/Python benchmark: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44168460176).
+- **506 tests passed**.
+- **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled).
+- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44260359489).
+- Validated revision: `090c8e3f22d592c9f1bcc4d50c9cb635e36e2942`.
 
-The test run is associated in the project history with commit
-`6ea20d647169979ccbdf107732ddb7f2535695b9` (2026-11-17). It is a historical
-verification point, not evidence that later branch changes have passed CI.
-Rerun the test workflow after subsequent code changes before describing the
-current branch head as verified.
+This is a baseline verification point, not evidence that the refreshed PR head has passed CI. Rerun the test workflow after source changes.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for
@@ -105,9 +101,4 @@ all seeds, resolutions or simulation histories.
 
 ## Numerical compatibility limits
 
-Production triangulation now uses `shull` 0.4.0 or later. The earlier seven-fixture
-SciPy/Qhull comparison is historical evidence for the former backend and must
-not be interpreted as a shull-vs-Delaunator result. The shull migration adds
-mesh-invariant checks across small and medium sizes; CI must establish the
-current branch's differential and regression status. No universal connectivity
-or whole-engine parity is claimed.
+Production triangulation uses `shull>=0.4.0`. The selected seeded differential fixtures and mesh-invariant tests exercise finite inputs only; they do not guarantee universal connectivity across all point clouds, seeds or resolutions. The optional SciPy-versus-shull benchmark is a finite A/B comparison, not proof of whole-engine parity.

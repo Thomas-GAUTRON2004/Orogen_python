@@ -10,3 +10,14 @@ This repository ports parts of the Orogen 3.0.1 engine.
 The Python implementation is a derivative work where it translates or adapts
 upstream algorithms. Ported modules retain source references in their
 documentation and should be compared against the upstream implementation.
+
+
+## Runtime dependency attribution
+
+- `shull` 0.4.0 or later: https://github.com/schlegelp/shull
+- Copyright holder: Philipp Schlegel.
+- License: GNU General Public License v3.0 only (`GPL-3.0-only`), as declared
+  by the dependency's Rust manifest and license file.
+- `shull` is installed as a separate package dependency; its source is not
+  vendored into this repository. Its license and source distribution remain
+  available from the upstream project.

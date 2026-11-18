@@ -29,48 +29,48 @@ def _fill_inverse_warp_holes(
     num_cells: int,
 ) -> None:
     """Repair small interior raster gaps without growing the external edge."""
-for _pass in range(2):
-    fills: list[tuple[int, int]] = []
-    for cell in range(num_cells):
-        if output.mask[cell]:
-            continue
-        crust_count = 0
-        land_count = 0
-        land_source = -1
-        sea_source = -1
-        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-            neighbour = int(adjacency[edge])
-            if not output.mask[neighbour]:
+    for _pass in range(2):
+        fills: list[tuple[int, int]] = []
+        for cell in range(num_cells):
+            if output.mask[cell]:
                 continue
-            crust_count += 1
-            if output.type[neighbour] != CrustType["OCEAN"]:
-                land_count += 1
-                if land_source < 0:
-                    land_source = neighbour
-            elif sea_source < 0:
-                sea_source = neighbour
-        if crust_count < 4:
-            continue
-        source = land_source if 2 * land_count >= crust_count else sea_source
-        if source >= 0:
-            fills.append((cell, source))
-    if fills:
-        fill_targets = np.fromiter(
-            (cell for cell, _source in fills),
-            dtype=np.int32,
-            count=len(fills),
-        )
-        fill_sources = np.fromiter(
-            (source for _cell, source in fills),
-            dtype=np.int32,
-            count=len(fills),
-        )
-        output.copy_many(fill_targets, output, fill_sources)
-        filled_cratons = output.type[fill_targets] == CrustType["CRATON"]
-        output.type[fill_targets[filled_cratons]] = CrustType["CONTINENT"]
-        origin[fill_targets] = origin[fill_sources]
-    if not fills:
-        break
+            crust_count = 0
+            land_count = 0
+            land_source = -1
+            sea_source = -1
+            for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+                neighbour = int(adjacency[edge])
+                if not output.mask[neighbour]:
+                    continue
+                crust_count += 1
+                if output.type[neighbour] != CrustType["OCEAN"]:
+                    land_count += 1
+                    if land_source < 0:
+                        land_source = neighbour
+                elif sea_source < 0:
+                    sea_source = neighbour
+            if crust_count < 4:
+                continue
+            source = land_source if 2 * land_count >= crust_count else sea_source
+            if source >= 0:
+                fills.append((cell, source))
+        if fills:
+            fill_targets = np.fromiter(
+                (cell for cell, _source in fills),
+                dtype=np.int32,
+                count=len(fills),
+            )
+            fill_sources = np.fromiter(
+                (source for _cell, source in fills),
+                dtype=np.int32,
+                count=len(fills),
+            )
+            output.copy_many(fill_targets, output, fill_sources)
+            filled_cratons = output.type[fill_targets] == CrustType["CRATON"]
+            output.type[fill_targets[filled_cratons]] = CrustType["CONTINENT"]
+            origin[fill_targets] = origin[fill_sources]
+        if not fills:
+            break
 
 
 def _mark_suture_band(
@@ -82,35 +82,38 @@ def _mark_suture_band(
 ) -> list[int]:
     """Mark the land interface between plate origins as a suture band."""
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
-seam: list[int] = []
-for cell in range(num_cells):
-    if not output.mask[cell] or output.type[cell] == CrustType["OCEAN"]:
-        continue
-    for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-        neighbour = int(adjacency[edge])
-        if (
-            output.mask[neighbour]
-            and output.type[neighbour] != CrustType["OCEAN"]
-            and origin[neighbour] != origin[cell]
-        ):
-            seam.append(cell)
-            break
+    edge_km = float(mesh.edge_km)
+    seam: list[int] = []
+    for cell in range(num_cells):
+        if not output.mask[cell] or output.type[cell] == CrustType["OCEAN"]:
+            continue
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+            neighbour = int(adjacency[edge])
+            if (
+                output.mask[neighbour]
+                and output.type[neighbour] != CrustType["OCEAN"]
+                and origin[neighbour] != origin[cell]
+            ):
+                seam.append(cell)
+                break
 
-half_width = max(
-    1,
-    math.floor(float(config["sutureHalfWidthKm"]) / max(edge_km, 1e-12) + 0.5),
-)
-suture_dist, _ = hops_from(
-    mesh,
-    seam,
-    lambda cell: bool(
-        output.mask[cell] and output.type[cell] != CrustType["OCEAN"]
-    ),
-    half_width,
-)
-for cell in range(num_cells):
-    if suture_dist[cell] >= 0 and output.type[cell] != CrustType["CRATON"]:
-        output.flags[cell] |= CrustFlag["SUTURE"]
+    half_width = max(
+        1,
+        math.floor(
+            float(config["sutureHalfWidthKm"]) / max(edge_km, 1e-12) + 0.5
+        ),
+    )
+    suture_dist, _ = hops_from(
+        mesh,
+        seam,
+        lambda cell: bool(
+            output.mask[cell] and output.type[cell] != CrustType["OCEAN"]
+        ),
+        half_width,
+    )
+    for cell in range(num_cells):
+        if suture_dist[cell] >= 0 and output.type[cell] != CrustType["CRATON"]:
+            output.flags[cell] |= CrustFlag["SUTURE"]
     return seam
 
 

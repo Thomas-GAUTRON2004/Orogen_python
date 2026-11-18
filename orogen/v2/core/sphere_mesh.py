@@ -1,7 +1,7 @@
 """Fibonacci sphere and Delaunay dual mesh builder from Orogen's V1 sphere-mesh.js.
 
-SciPy/Qhull supplies the planar Delaunay triangulation. The spherical closure
-and cyclic CSR region adjacency follow the upstream half-edge construction.
+shull supplies the planar Delaunay triangulation. The spherical closure and
+cyclic CSR region adjacency follow the upstream half-edge construction.
 """
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.spatial import Delaunay, QhullError
+import shull
 
 
 @dataclass(slots=True)
@@ -77,11 +77,15 @@ def stereographic_projection(xyz: np.ndarray, num_points: int) -> np.ndarray:
 def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
     """Triangulate the projected points and close the convex hull at the pole."""
     try:
-        delaunay = Delaunay(points_2d)
-    except QhullError as exc:
+        delaunay = shull.Delaunay(np.ascontiguousarray(points_2d, dtype=np.float64))
+    except Exception as exc:
         raise ValueError("Delaunay triangulation failed for the projected sphere") from exc
 
     triangles = np.asarray(delaunay.simplices, dtype=np.int32).copy()
+    if triangles.ndim != 2 or triangles.shape[1] != 3 or triangles.size == 0:
+        raise ValueError("shull returned an invalid 2D triangulation")
+    if int(triangles.min()) < 0 or int(triangles.max()) >= len(points_2d):
+        raise ValueError("shull returned an out-of-range vertex index")
     # Normalize simplex winding. Qhull normally emits CCW simplices, but make
     # the winding contract explicit before pairing directed half-edges.
     p = points_2d

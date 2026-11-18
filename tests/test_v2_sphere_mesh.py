@@ -77,3 +77,23 @@ def test_point_location_on_generated_mesh_recovers_containing_triangle():
     assert np.all(weights >= 0)
     assert np.isclose(weights.sum(), 1.0)
     assert len(set(map(int, cells))) == 3
+
+def test_shull_spherical_mesh_topology_across_small_and_medium_sizes():
+    for num_points, seed in ((3, 1), (4, 2), (10, 3), (48, 4242), (257, 991)):
+        mesh, xyz = build_sphere(num_points, 0.35, make_rng(seed))
+        vertices = num_points + 1
+        edges = len(mesh.adj_list) // 2
+        assert mesh.num_regions == vertices
+        assert mesh.num_triangles == 2 * vertices - 4
+        assert vertices - edges + mesh.num_triangles == 2
+        assert xyz.shape == (3 * vertices,)
+        assert np.isfinite(xyz).all()
+        assert np.all(mesh.triangles >= 0)
+        assert np.all(mesh.triangles < vertices)
+        assert mesh.adj_offset[0] == 0
+        assert mesh.adj_offset[-1] == len(mesh.adj_list)
+        for cell in range(vertices):
+            ring = mesh.adj_list[mesh.adj_offset[cell]:mesh.adj_offset[cell + 1]]
+            assert len(ring) >= 3
+            assert len(np.unique(ring)) == len(ring)
+            assert cell not in ring

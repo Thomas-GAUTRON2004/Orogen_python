@@ -449,6 +449,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     collision record's `sutured` flag and rebuilding world ownership.
     """
     mesh, config, time = world.mesh, world.config, float(world.time)
+    num_cells = int(mesh.num_cells)
     edge_km = float(mesh.edge_km)
 
     upper_crust, lower_crust = upper.crust, lower.crust

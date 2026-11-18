@@ -12,9 +12,9 @@ from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
 from .crust import CrustFlag, CrustType
+from .ops.plate_transfer import transfer_cells
 from .plate import Plate
 from .world import BoundaryKind, EventKind
-from .ops.plate_transfer import transfer_cells
 
 
 _REJOIN_CONFIG = frozenset({"backArcActiveMyr", "backArcSeamKm"})
@@ -80,7 +80,7 @@ def _rollback_fronts(world) -> dict:
     owner, owner_cell, plates = world.owner, world.ownerCell, world.plates
     normal = [0.0, 0.0, 0.0, 0.0]
     xyz = mesh.xyz.reshape(-1, 3)
-    fronts = {}
+    fronts: dict[tuple[int, int], dict] = {}
 
     for w in range(mesh.num_cells):
         if int(world.boundaryKind[w]) != BoundaryKind["OVERRIDING"]:
@@ -210,7 +210,7 @@ def _band_behind(world, plate: Plate, segment: list[int], width_km: float):
     source = np.full(mesh.num_cells, -1, dtype=np.int32)
     best = np.full(mesh.num_cells, -2.0, dtype=np.float64)
     in_strip = np.zeros(mesh.num_cells, dtype=np.uint8)
-    ring = deque()
+    ring: deque[int] = deque()
 
     for world_cell in segment:
         cell = int(world.ownerCell[world_cell])

@@ -75,3 +75,82 @@ def test_numba_weighted_distance_kernel_python_body_covers_cost_and_mask_paths()
     blocked = mask.copy()
     blocked[1] = False
     kernels.far_field_distance_numba.py_func(offsets, adjacency, xyz, blocked, crust_type, flags, source_cells, source_works, 100.0, 1000.0, 1.0, 1, 2, 0.3, 1.6)
+
+
+def test_numba_kernel_heap_and_copy_branches():
+    offsets = np.asarray([0, 2, 4, 5, 6], dtype=np.int32)
+    adjacency = np.asarray([1, 2, 0, 3, 1, 2], dtype=np.int32)
+    xyz = np.asarray([
+        1., 0., 0.,
+        math.cos(.01), math.sin(.01), 0.,
+        math.cos(.02), math.sin(.02), 0.,
+        math.cos(.03), math.sin(.03), 0.,
+    ], dtype=np.float64)
+    mask = np.ones(4, dtype=np.bool_)
+    crust_type = np.asarray([0, 1, 0, 0], dtype=np.int32)
+    flags = np.asarray([0, 0, 2, 0], dtype=np.int32)
+    sources = np.asarray([0, 3], dtype=np.int32)
+    works = np.asarray([100., 90.], dtype=np.float64)
+    kernels.far_field_distance_numba.py_func(
+        offsets, adjacency, xyz, mask, crust_type, flags, sources, works,
+        100., 1000., 1000., 1, 2, .3, 1.6,
+    )
+
+    distances = np.asarray([0., math.inf, math.inf, 0.], dtype=np.float64)
+    kernels.spread_km_numba.py_func(
+        offsets, adjacency, np.ones(adjacency.size), distances, 100.
+    )
+    kernels.spread_km_numba.py_func(
+        offsets, adjacency, np.ones(adjacency.size),
+        np.full(4, math.inf), 100.
+    )
+
+    fields = [np.zeros(4, dtype=np.int32) for _ in range(55)]
+    fields[52][0] = 127
+    mask_a = np.zeros(4, dtype=np.bool_)
+    destinations = np.asarray([1, 1, 2, 3], dtype=np.int32)
+    source_cells = np.asarray([0, 0, 3, 3], dtype=np.int32)
+    # Same-raster path with rotation disabled.
+    kernels.copy_cells_numba.py_func(
+        fields, fields, mask_a, np.asarray([1], dtype=np.int32),
+        np.asarray([0], dtype=np.int32), np.eye(3).ravel(), False, True,
+    )
+    # Distinct-raster path: duplicate destination, nonzero and zero axes.
+    out = [np.zeros(4, dtype=np.int32) for _ in range(55)]
+    kernels.copy_cells_numba.py_func(
+        out, fields, np.zeros(4, dtype=np.bool_), destinations, source_cells,
+        np.eye(3).ravel(), True, False,
+    )
+
+
+def test_noise_kernel_all_simplex_orderings_and_corner_cutoffs():
+    from itertools import product
+
+    perm = np.arange(512, dtype=np.uint8)
+    pm3 = (3 * (perm % 12)).astype(np.uint8)
+    grad = np.asarray([0.1, 0.2, 0.3] * 12, dtype=np.float64)
+    kernel = kernels.noise3d_numba.py_func
+    for point in product((-1.1, -0.4, -0.1, 0.2, 0.7, 1.3), repeat=3):
+        kernel(*point, perm, pm3, grad)
+
+
+def test_optional_numba_import_fallback(monkeypatch):
+    import builtins
+    import importlib
+
+    original_import = builtins.__import__
+
+    def without_numba(name, *args, **kwargs):
+        if name == "numba":
+            raise ImportError("Numba intentionally disabled for fallback test")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_numba)
+    try:
+        importlib.reload(kernels)
+        assert not kernels.NUMBA_AVAILABLE
+        assert kernels.noise3d_numba is None
+        assert kernels.copy_cells_numba is None
+    finally:
+        monkeypatch.setattr(builtins, "__import__", original_import)
+        importlib.reload(kernels)

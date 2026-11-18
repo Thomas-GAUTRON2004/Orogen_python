@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import math
 
-from .crust import BeltSide, CrustFlag, CrustType, OrogenyType
-from .config import CM_PER_YR_TO_RAD_PER_MYR
-from .world import EventKind
-from .orogeny import belt_shape, belt_width_km, obliquity_deg
-from .spread_belt import spread_belt
-from .ops.merge_plates import merge_plates
-from .far_field import feed_far_field
 from ..core.mesh_bfs import hops_from
 from ..core.sphere_geometry import PLANET_RADIUS_KM, centroid_of_cells, cross, dot, tangent_toward
+from .config import CM_PER_YR_TO_RAD_PER_MYR
+from .crust import BeltSide, CrustFlag, CrustType, OrogenyType
+from .far_field import feed_far_field
+from .ops.merge_plates import merge_plates
+from .orogeny import belt_shape, belt_width_km, obliquity_deg
+from .spread_belt import spread_belt
+from .world import EventKind
 
 
 def collect_contacts(world) -> dict:
@@ -732,6 +732,214 @@ def _position(xyz, cell: int):
     )
 
 
+
+def _update_suture_state(
+    world,
+    upper,
+    lower,
+    cells: list[int],
+    record: dict,
+    under_now: int,
+    edge_km: float,
+    cell_area: float,
+    config,
+) -> bool:
+    """Advance suture readiness, gap/ring checks and configured plate welding."""
+    merged = False
+    time = float(world.time)
+        # A first candidate must also have a sufficiently long front. The
+        # full suture configuration enables periodic gap/ring measurements;
+        # only a complete merge configuration permits the destructive redraw.
+        ready = (
+            float(record["shorteningKm"])
+            >= float(config.get("sutureShorteningKm", math.inf))
+            or (
+                float(record["stalledMyr"])
+                >= float(config.get("sutureStallMyr", math.inf))
+                and float(record["shorteningKm"])
+                >= float(config.get("sutureStallMinKm", math.inf))
+            )
+            or float(record["contactMyr"])
+            >= float(config.get("sutureContactMyr", math.inf))
+            or len(cells) * cell_area
+            >= float(config.get("sutureOverlapKm2", math.inf))
+        )
+        record["sutureCandidate"] = bool(
+            ready
+            and float(record["frontMaxKm"])
+            >= float(config.get("sutureMinContactKm", math.inf))
+        )
+        record["weldCandidate"] = False
+        record["weldBlockedByRing"] = False
+        record["mergeEligible"] = False
+    
+        gap_keys = {
+            "sutureCheckMyr",
+            "sutureGapKm",
+            "sutureGapWidthKm",
+            "sutureStallGiveUpMyr",
+            "sutureGapStallMyr",
+            "sutureLockMaxMyr",
+            "sutureStackKm",
+            "ringSeaKm2",
+        }
+        if record["sutureCandidate"] and gap_keys.issubset(config):
+            time = float(world.time)
+            due = not (
+                time - float(record.get("checkedAt", -math.inf))
+                < float(config["sutureCheckMyr"])
+            )
+            if due:
+                gap = open_sea_between(world, upper, lower)
+                record["gapKm2"] = float(gap["km2"])
+                record["gapWidestKm"] = float(gap["widestKm"])
+                best_gap = float(record.get("gapBestKm2", math.inf))
+                if not record["gapKm2"] >= 0.9 * best_gap:
+                    record["gapBestKm2"] = record["gapKm2"]
+                    record["gapShrankAt"] = time
+    
+            record.setdefault("gapKm2", math.inf)
+            closed = (
+                float(record.get("gapWidestKm", math.inf))
+                <= float(config["sutureGapWidthKm"])
+                or float(record["stalledMyr"])
+                >= float(config["sutureStallGiveUpMyr"])
+                or time - float(record.get("gapShrankAt", time))
+                >= float(config["sutureGapStallMyr"])
+            )
+            overdue = (
+                float(record["contactMyr"])
+                >= float(config["sutureLockMaxMyr"])
+            )
+            stacked = (
+                (len(cells) - under_now) * cell_area
+                / max(float(record["frontKm"]), edge_km)
+                >= float(config["sutureStackKm"])
+            )
+            would_weld = bool(
+                (
+                    ready and (closed or stacked)
+                    or overdue
+                )
+                and float(record["frontMaxKm"])
+                >= float(config["sutureMinContactKm"])
+            )
+            if would_weld and (
+                due or "ringKm2" not in record
+            ):
+                record["ringKm2"] = enclosed_sea_between_km2(
+                    world, upper, lower
+                )
+            if due:
+                record["checkedAt"] = time
+    
+            ring_area = float(record.get("ringKm2", math.inf))
+            ring_too_large = bool(
+                would_weld and ring_area > float(config["ringSeaKm2"])
+            )
+            ring_blocked = bool(
+                ring_too_large and not stacked and not overdue
+            )
+            record["weldCandidate"] = would_weld
+            record["weldBlockedByRing"] = ring_blocked
+            record["mergeEligible"] = bool(
+                would_weld and not ring_blocked
+            )
+            if (
+                ring_too_large
+                and not record.get("ringLogged", False)
+            ):
+                record["ringLogged"] = True
+                world.log(
+                    EventKind["COLLISION"],
+                    (
+                        f"{lower.name} and {upper.name} stay apart: their "
+                        f"land rings a {ring_area / 1e6:.1f} Mkm² sea"
+                    ),
+                    {
+                        "upper": upper.id,
+                        "lower": lower.id,
+                        "ringKm2": ring_area,
+                    },
+                )
+    
+            merge_keys = _BELT_CONFIG_KEYS | {
+                "indentFalloffKm",
+                "indentGain",
+                "escapeShare",
+                "sutureHalfWidthKm",
+                "sealStraitKm",
+                "inlandSeaMaxKm2",
+            }
+            if record["mergeEligible"] and merge_keys.issubset(config):
+                why = (
+                    "stacked" if stacked and not closed
+                    else "overdue" if not closed
+                    else "stalled"
+                    if float(record["stalledMyr"])
+                    >= float(config.get("sutureStallMyr", math.inf))
+                    else "contact"
+                    if float(record["shorteningKm"])
+                    < float(config.get("sutureShorteningKm", math.inf))
+                    else "shortening"
+                )
+                result = merge_plates(world, upper, lower, cells, record)
+                record["sutured"] = True
+                record["sutureReason"] = why
+                merged = True
+                world.log(
+                    EventKind["SUTURE"],
+                    (
+                        f"{lower.name} sutured to {upper.name} after "
+                        f"{time - float(record['startedAt']):.0f} Myr: "
+                        f"{record['frontKm']:.0f} km front, "
+                        f"{record['shorteningKm']:.0f} km of shortening, "
+                        f"outlines redrawn (indented up to "
+                        f"{result['maxIndentKm']:.0f} km; "
+                        f"{result['landLostCells']} cells of land absorbed "
+                        f"into the belt"
+                        + (
+                            f", {result['sealedCells']} cells of sea "
+                            "between them closed"
+                            if result["sealedCells"] else ""
+                        )
+                        + ")"
+                    ),
+                    {
+                        "upper": upper.id,
+                        "lower": lower.id,
+                        "afterMyr": time - float(record["startedAt"]),
+                        "frontKm": float(record["frontKm"]),
+                        "shorteningKm": float(record["shorteningKm"]),
+                        "maxIndentKm": float(result["maxIndentKm"]),
+                        "landLostCells": int(result["landLostCells"]),
+                        "sealedCells": int(result["sealedCells"]),
+                        "gapKm2": float(record["gapKm2"]),
+                        "gapWidestKm": float(record["gapWidestKm"]),
+                        "why": why,
+                    },
+                )
+    return merged
+
+
+_BELT_CONFIG_KEYS = {
+    "belts",
+    "beltSpeedFactorMin",
+    "beltSpeedFactorMax",
+    "beltSpeedRefCmYr",
+    "beltSpeedExponent",
+    "beltObliqueMin",
+    "apronKm",
+    "orogenyQuietMyr",
+    "beltWorkShare",
+    "thickeningPerWorkKm",
+    "weakCellCost",
+    "cratonRimKm",
+    "cratonRimCost",
+    "cratonRimShare",
+    "sutureMinContactKm",
+}
+
 def track_collisions(world, dt: float) -> dict:
     """Track continent-on-continent contacts, shortening and underthrusting.
 
@@ -992,24 +1200,7 @@ def track_collisions(world, dt: float) -> dict:
         # The accumulated shortening also builds a plateau-side and a
         # foreland-side belt. Keep this gated on the complete belt config so
         # smaller unit worlds can exercise collision tracking independently.
-        belt_keys = {
-            "belts",
-            "beltSpeedFactorMin",
-            "beltSpeedFactorMax",
-            "beltSpeedRefCmYr",
-            "beltSpeedExponent",
-            "beltObliqueMin",
-            "apronKm",
-            "orogenyQuietMyr",
-            "beltWorkShare",
-            "thickeningPerWorkKm",
-            "weakCellCost",
-            "cratonRimKm",
-            "cratonRimCost",
-            "cratonRimShare",
-            "sutureMinContactKm",
-        }
-        if shortening_km > 0.0 and belt_keys.issubset(config):
+        if shortening_km > 0.0 and _BELT_CONFIG_KEYS.issubset(config):
             major = (
                 float(record["frontKm"])
                 >= float(config["sutureMinContactKm"])
@@ -1074,178 +1265,18 @@ def track_collisions(world, dt: float) -> dict:
         underthrust_total += under_now
         changed = changed or under_now > 0
 
-        # A first candidate must also have a sufficiently long front. The
-        # full suture configuration enables periodic gap/ring measurements;
-        # only a complete merge configuration permits the destructive redraw.
-        ready = (
-            float(record["shorteningKm"])
-            >= float(config.get("sutureShorteningKm", math.inf))
-            or (
-                float(record["stalledMyr"])
-                >= float(config.get("sutureStallMyr", math.inf))
-                and float(record["shorteningKm"])
-                >= float(config.get("sutureStallMinKm", math.inf))
-            )
-            or float(record["contactMyr"])
-            >= float(config.get("sutureContactMyr", math.inf))
-            or len(cells) * cell_area
-            >= float(config.get("sutureOverlapKm2", math.inf))
-        )
-        record["sutureCandidate"] = bool(
-            ready
-            and float(record["frontMaxKm"])
-            >= float(config.get("sutureMinContactKm", math.inf))
-        )
-        record["weldCandidate"] = False
-        record["weldBlockedByRing"] = False
-        record["mergeEligible"] = False
+        changed = _update_suture_state(
+            world,
+            upper,
+            lower,
+            cells,
+            record,
+            under_now,
+            edge_km,
+            cell_area,
+            config,
+        ) or changed
 
-        gap_keys = {
-            "sutureCheckMyr",
-            "sutureGapKm",
-            "sutureGapWidthKm",
-            "sutureStallGiveUpMyr",
-            "sutureGapStallMyr",
-            "sutureLockMaxMyr",
-            "sutureStackKm",
-            "ringSeaKm2",
-        }
-        if record["sutureCandidate"] and gap_keys.issubset(config):
-            time = float(world.time)
-            due = not (
-                time - float(record.get("checkedAt", -math.inf))
-                < float(config["sutureCheckMyr"])
-            )
-            if due:
-                gap = open_sea_between(world, upper, lower)
-                record["gapKm2"] = float(gap["km2"])
-                record["gapWidestKm"] = float(gap["widestKm"])
-                best_gap = float(record.get("gapBestKm2", math.inf))
-                if not record["gapKm2"] >= 0.9 * best_gap:
-                    record["gapBestKm2"] = record["gapKm2"]
-                    record["gapShrankAt"] = time
-
-            record.setdefault("gapKm2", math.inf)
-            closed = (
-                float(record.get("gapWidestKm", math.inf))
-                <= float(config["sutureGapWidthKm"])
-                or float(record["stalledMyr"])
-                >= float(config["sutureStallGiveUpMyr"])
-                or time - float(record.get("gapShrankAt", time))
-                >= float(config["sutureGapStallMyr"])
-            )
-            overdue = (
-                float(record["contactMyr"])
-                >= float(config["sutureLockMaxMyr"])
-            )
-            stacked = (
-                (len(cells) - under_now) * cell_area
-                / max(float(record["frontKm"]), edge_km)
-                >= float(config["sutureStackKm"])
-            )
-            would_weld = bool(
-                (
-                    ready and (closed or stacked)
-                    or overdue
-                )
-                and float(record["frontMaxKm"])
-                >= float(config["sutureMinContactKm"])
-            )
-            if would_weld and (
-                due or "ringKm2" not in record
-            ):
-                record["ringKm2"] = enclosed_sea_between_km2(
-                    world, upper, lower
-                )
-            if due:
-                record["checkedAt"] = time
-
-            ring_area = float(record.get("ringKm2", math.inf))
-            ring_too_large = bool(
-                would_weld and ring_area > float(config["ringSeaKm2"])
-            )
-            ring_blocked = bool(
-                ring_too_large and not stacked and not overdue
-            )
-            record["weldCandidate"] = would_weld
-            record["weldBlockedByRing"] = ring_blocked
-            record["mergeEligible"] = bool(
-                would_weld and not ring_blocked
-            )
-            if (
-                ring_too_large
-                and not record.get("ringLogged", False)
-            ):
-                record["ringLogged"] = True
-                world.log(
-                    EventKind["COLLISION"],
-                    (
-                        f"{lower.name} and {upper.name} stay apart: their "
-                        f"land rings a {ring_area / 1e6:.1f} Mkm² sea"
-                    ),
-                    {
-                        "upper": upper.id,
-                        "lower": lower.id,
-                        "ringKm2": ring_area,
-                    },
-                )
-
-            merge_keys = belt_keys | {
-                "indentFalloffKm",
-                "indentGain",
-                "escapeShare",
-                "sutureHalfWidthKm",
-                "sealStraitKm",
-                "inlandSeaMaxKm2",
-            }
-            if record["mergeEligible"] and merge_keys.issubset(config):
-                why = (
-                    "stacked" if stacked and not closed
-                    else "overdue" if not closed
-                    else "stalled"
-                    if float(record["stalledMyr"])
-                    >= float(config.get("sutureStallMyr", math.inf))
-                    else "contact"
-                    if float(record["shorteningKm"])
-                    < float(config.get("sutureShorteningKm", math.inf))
-                    else "shortening"
-                )
-                result = merge_plates(world, upper, lower, cells, record)
-                record["sutured"] = True
-                record["sutureReason"] = why
-                changed = True
-                world.log(
-                    EventKind["SUTURE"],
-                    (
-                        f"{lower.name} sutured to {upper.name} after "
-                        f"{time - float(record['startedAt']):.0f} Myr: "
-                        f"{record['frontKm']:.0f} km front, "
-                        f"{record['shorteningKm']:.0f} km of shortening, "
-                        f"outlines redrawn (indented up to "
-                        f"{result['maxIndentKm']:.0f} km; "
-                        f"{result['landLostCells']} cells of land absorbed "
-                        f"into the belt"
-                        + (
-                            f", {result['sealedCells']} cells of sea "
-                            "between them closed"
-                            if result["sealedCells"] else ""
-                        )
-                        + ")"
-                    ),
-                    {
-                        "upper": upper.id,
-                        "lower": lower.id,
-                        "afterMyr": time - float(record["startedAt"]),
-                        "frontKm": float(record["frontKm"]),
-                        "shorteningKm": float(record["shorteningKm"]),
-                        "maxIndentKm": float(result["maxIndentKm"]),
-                        "landLostCells": int(result["landLostCells"]),
-                        "sealedCells": int(result["sealedCells"]),
-                        "gapKm2": float(record["gapKm2"]),
-                        "gapWidestKm": float(record["gapWidestKm"]),
-                        "why": why,
-                    },
-                )
         tracked += 1
 
     return {

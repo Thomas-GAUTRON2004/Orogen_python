@@ -232,7 +232,7 @@ def find_rift(
     chosen = None
     chosen_path = None
     best_value = math.inf
-    tried = []
+    tried: list[dict] = []
     for pair in pairs:
         if len(tried) >= _PAIRS_TRIED or (
             tried
@@ -277,7 +277,7 @@ def find_rift(
             chosen = pair
             chosen_path = path
 
-    if chosen is None:
+    if chosen is None or chosen_path is None:
         return None
 
     arm1 = chosen["a"]

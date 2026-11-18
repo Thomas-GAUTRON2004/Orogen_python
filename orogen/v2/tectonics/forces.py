@@ -236,9 +236,22 @@ def _accumulate_mantle_flow(
         CrustType["CRATON"],
     ):
         return
-    mantle_flow_at(world, *map(float, position), flow)
+    mantle_flow_at(
+        world,
+        float(position[0]),
+        float(position[1]),
+        float(position[2]),
+        flow,
+    )
     if apart is not None:
-        repel_at(apart, owner_id, *map(float, position), flow)
+        repel_at(
+            apart,
+            owner_id,
+            float(position[0]),
+            float(position[1]),
+            float(position[2]),
+            flow,
+        )
     force = flow * flow_area
     torque = np.cross(position, force)
     load["torque"] = (np.asarray(load["torque"]) + torque).tolist()

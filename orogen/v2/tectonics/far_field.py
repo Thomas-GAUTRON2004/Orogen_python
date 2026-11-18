@@ -51,7 +51,7 @@ def feed_far_field(
         cell = int(cell_value)
         work = (
             float(works)
-            if isinstance(works, (int, float, np.integer, np.floating))
+            if isinstance(works, int | float | np.integer | np.floating)
             else float(works[index])
         )
         pushed = work * float(share)

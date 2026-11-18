@@ -268,7 +268,7 @@ def _assign_gap_owners(world, gaps) -> None:
                     and (best_hit is None or hit["dot"] > best_hit["dot"])
                 ):
                     best, best_hit = plate, hit
-            for plate, hit in zip(near, hits):
+            for plate, hit in zip(near, hits, strict=False):
                 if plate is best:
                     continue
                 if hit["cell"] >= 0 and (

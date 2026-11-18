@@ -167,9 +167,7 @@ def find_rift(
     )
 
     from_coast = ctx["from_coast"]
-    coast = _coast_candidates(
-        mesh, crust, junction, pull_axis, costs, ctx, config
-    )
+    coast = _coast_candidates(mesh, crust, junction, pull_axis, costs, ctx, config)
 
     if len(coast) < 2:
         return None

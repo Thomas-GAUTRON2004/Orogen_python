@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..core.sphere_geometry import PLANET_RADIUS_KM
 from ..core.mesh_bfs import reaches_within
 from .config import CM_PER_YR_TO_KM_PER_MYR, CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
@@ -19,6 +20,8 @@ from .orogeny import belt_shape, belt_width_km, obliquity_deg
 from .polarity import overrides
 from .spread_belt import spread_belt
 from .world import BoundaryKind, EventKind
+
+_ANDEAN_CELL_LENGTH_FACTOR = 0.87
 
 
 class Motion:
@@ -245,7 +248,7 @@ def _feed_subduction_far_field(world, fronts: dict, dt: float) -> None:
             f"s{plate.id}",
             andean_cells,
             pushes,
-            len(andean_cells) * float(mesh.edge_km) * 0.87,
+            len(andean_cells) * float(mesh.edge_km) * _ANDEAN_CELL_LENGTH_FACTOR,
             1.0,
         )
 
@@ -476,7 +479,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                     {"cells": [], "kms": [], "headOn": [], "shears": []},
                 )
                 front["cells"].append(cell_a)
-                front["kms"].append(closing * dt * 6371.0)
+                front["kms"].append(closing * dt * PLANET_RADIUS_KM)
                 front["headOn"].append(closing / float(np.hypot(closing, shear)))
                 front["shears"].append(
                     obliquity_deg([vx, vy, vz], normal[:3], [px, py, pz], closing)

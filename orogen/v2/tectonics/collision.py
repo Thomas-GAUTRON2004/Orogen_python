@@ -936,7 +936,7 @@ def _plates_alive(plates, id_a: int, id_b: int) -> bool:
 
 
 CollisionProgress = tuple[
-    np.ndarray,
+    list[float],
     list[float],
     list[float],
     float,
@@ -1069,7 +1069,7 @@ def _spread_collision_belts(
     upper,
     lower,
     record: dict,
-    centre: np.ndarray,
+    centre: list[float],
     normal: list[float],
     relative_omega: list[float],
     closing: float,

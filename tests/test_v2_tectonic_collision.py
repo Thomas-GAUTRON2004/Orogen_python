@@ -1367,17 +1367,15 @@ def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeyp
     monkeypatch.setattr(stepper, "closing_rate", lambda _world: 0.0)
     monkeypatch.setattr(stepper, "advance_plates", lambda *_args: None)
     monkeypatch.setattr(stepper, "resolve", lambda _world: {})
-    monkeypatch.setattr(
-        stepper, "classify_contact_boundaries", lambda _world, _dt: 0
-    )
+    monkeypatch.setattr(stepper, "classify_contact_boundaries", lambda _world, _dt: 0)
     monkeypatch.setattr(stepper, "update_plumes", lambda _world, _dt: None)
     monkeypatch.setattr(stepper, "open_back_arcs", lambda _world, _dt: 0)
     monkeypatch.setattr(
-        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+        collision,
+        "centroid_of_cells",
+        lambda _xyz, _cells: [1.0, 0.0, 0.0],
     )
-    monkeypatch.setattr(
-        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
-    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
 
     result = stepper.step_world(
         world,

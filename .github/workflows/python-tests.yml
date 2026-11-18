@@ -128,6 +128,24 @@ jobs:
           python -m mypy --no-error-summary --show-error-codes orogen > "$RUNNER_TEMP/mypy-current.txt" 2>&1 || true
           python scripts/check_mypy_regressions.py \
             "$RUNNER_TEMP/mypy-base.txt" "$RUNNER_TEMP/mypy-current.txt"
+          echo "::group::Current mypy diagnostics"
+          cat "$RUNNER_TEMP/mypy-current.txt"
+          echo "::endgroup::"
+
+      - name: Audit remaining complexity hotspots
+        run: |
+          radon cc -s -a \
+            orogen/v2/tectonics/collision.py \
+            orogen/v2/tectonics/forces.py \
+            orogen/v2/tectonics/ops/merge_plates.py \
+            orogen/v2/tectonics/ops/rift_path.py \
+            orogen/v2/tectonics/subduction_init.py
+          radon mi -s \
+            orogen/v2/tectonics/collision.py \
+            orogen/v2/tectonics/forces.py \
+            orogen/v2/tectonics/ops/merge_plates.py \
+            orogen/v2/tectonics/ops/rift_path.py \
+            orogen/v2/tectonics/subduction_init.py
 
       - name: Run Python and JavaScript differential tests
         env:

@@ -74,3 +74,21 @@ def test_contact_handles_stamp_wraparound_and_cached_interior_result():
     out[:] = 3.0
     assert contact_at(world, 0, out) == -1
     np.testing.assert_array_equal(out, [3.0, 3.0, 3.0, 3.0])
+
+def test_contact_zero_normal_skips_same_owner_neighbour_before_foreign_fallback():
+    class TinyMesh:
+        num_cells = 4
+        xyz = np.array([
+            0., 0., 0.,
+            0., 1., 0.,
+            1., 0., 0.,
+            -1., 0., 0.,
+        ], dtype=np.float32)
+        adj_offset = np.array([0, 3, 3, 3, 3], dtype=np.int32)
+        adj_list = np.array([1, 2, 3], dtype=np.int32)
+
+    world = _world(TinyMesh(), [0, 0, 1, 1])
+    out = np.zeros(4)
+    assert contact_at(world, 0, out) == 2
+    np.testing.assert_allclose(out, [1.0, 0.0, 0.0, 2.0])
+

@@ -9,6 +9,7 @@ the overlap lens drives an inverse warp of the upper crust.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -115,32 +116,34 @@ def _mark_suture_band(
     return seam
 
 
-def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
-    """Weld two plates in the upper plate's frame and retire the lower plate.
+@dataclass(slots=True)
+class _OverlapGeometry:
+    """Measured overlap lens and its local indentation geometry."""
 
-    Returns the land-loss, indentation and sea-closure counters reported by
-    the upstream suture event. The caller is responsible for setting the
-    collision record's `sutured` flag and rebuilding world ownership.
-    """
-    mesh, config, time = world.mesh, world.config, float(world.time)
-    xyz = mesh.xyz
+    overlap_count: int
+    overlap_cells: list[int]
+    end_a: int
+    end_b: int
+    depth_km: np.ndarray
+    along: np.ndarray
+    normal: np.ndarray
+    max_indent: float
+    sum_indent: float
+
+
+def _measure_overlap_geometry(
+    mesh,
+    upper,
+    lower,
+    lower_crust: CrustRaster,
+    from_lower: np.ndarray,
+    overlap_world_cells,
+    edge_km: float,
+) -> _OverlapGeometry:
+    """Find the overlap lens and measure its depth, axis and local normals."""
+    xyz, index = mesh.xyz, mesh.index
+    upper_crust = upper.crust
     num_cells = int(mesh.num_cells)
-    offsets, adjacency, index = mesh.adj_offset, mesh.adj_list, mesh.index
-    edge_km = float(mesh.edge_km)
-
-    upper_crust, lower_crust = upper.crust, lower.crust
-    lower_to_upper = frame_rotation(lower, upper)
-    land_before = int(upper.stats["continentalCells"]) + int(
-        lower.stats["continentalCells"]
-    )
-    hue = (
-        lower.hue
-        if int(lower.stats["cells"]) > int(upper.stats["cells"])
-        else upper.hue
-    )
-
-    # Resample the lower plate once into the upper plate's coordinate frame.
-    from_lower = _resample_lower_cells(mesh, upper, lower, lower_crust)
 
     def upper_land(cell: int) -> bool:
         return bool(
@@ -169,23 +172,19 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
                 overlap[cell] = 1
                 overlap_count += 1
 
-    # Identify the rear and nose edges of the overlapping indenter.
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
     rear_side: list[int] = []
     nose_side: list[int] = []
-    for cell in np.flatnonzero(overlap):
-        cell = int(cell)
+    for cell_value in np.flatnonzero(overlap):
+        cell = int(cell_value)
         for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
-            if overlap[neighbour]:
-                continue
-            if upper_land(neighbour):
+            if not overlap[neighbour] and upper_land(neighbour):
                 rear_side.append(cell)
                 break
         for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
             neighbour = int(adjacency[edge])
-            if overlap[neighbour]:
-                continue
-            if lower_land(neighbour):
+            if not overlap[neighbour] and lower_land(neighbour):
                 nose_side.append(cell)
                 break
 
@@ -227,11 +226,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
         to_cell = int(rear_source[cell]) if rear_source[cell] >= 0 else cell
         here = _position(xyz, cell)
         if from_cell == to_cell:
-            direction = tangent_toward(
-                here,
-                lower_centre_in_upper,
-                upper.capCenter,
-            )
+            direction = tangent_toward(here, lower_centre_in_upper, upper.capCenter)
         else:
             direction = tangent_toward(
                 here,
@@ -239,6 +234,119 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
                 _position(xyz, to_cell),
             )
         normal[cell] = direction
+
+    return _OverlapGeometry(
+        overlap_count=overlap_count,
+        overlap_cells=overlap_cells,
+        end_a=end_a,
+        end_b=end_b,
+        depth_km=depth_km,
+        along=along,
+        normal=normal,
+        max_indent=max_indent,
+        sum_indent=sum_indent,
+    )
+
+
+def _build_indentation_displacement(
+    mesh,
+    overlap_cells: list[int],
+    end_a: int,
+    end_b: int,
+    depth_km: np.ndarray,
+    along: np.ndarray,
+    normal: np.ndarray,
+    config,
+) -> np.ndarray:
+    """Build the inverse-warp displacement field around an overlap lens."""
+    xyz = mesh.xyz
+    num_cells = int(mesh.num_cells)
+    edge_km = float(mesh.edge_km)
+    falloff_km = float(config["indentFalloffKm"])
+    indent_gain = float(config["indentGain"])
+    max_hops = math.ceil(falloff_km / max(edge_km, 1e-12)) + 1
+    reach_dist, reach_source = hops_from(
+        mesh, overlap_cells, lambda _cell: True, max_hops
+    )
+    displacement = np.zeros((num_cells, 3), dtype=np.float32)
+    position_a = _position(xyz, end_a)
+    position_b = _position(xyz, end_b)
+    for cell in range(num_cells):
+        near = int(reach_source[cell])
+        if near < 0:
+            continue
+        distance_km = int(reach_dist[cell]) * edge_km * math.sqrt(3.0) / 2.0
+        if distance_km >= falloff_km:
+            continue
+        taper = (1.0 - distance_km / falloff_km) ** 1.5
+        magnitude = indent_gain * float(depth_km[near]) * taper
+        if magnitude <= 0:
+            continue
+        lateral_share = float(config["escapeShare"]) * abs(float(along[near]))
+        here = _position(xyz, cell)
+        end = position_a if along[near] > 0 else position_b
+        lateral = tangent_toward(here, here, end)
+        normal_vector = normal[near]
+        displacement[cell] = magnitude * (
+            (1.0 - lateral_share) * normal_vector
+            + lateral_share * np.asarray(lateral, dtype=np.float32)
+        )
+    return displacement
+
+
+def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
+    """Weld two plates in the upper plate's frame and retire the lower plate.
+
+    Returns the land-loss, indentation and sea-closure counters reported by
+    the upstream suture event. The caller is responsible for setting the
+    collision record's `sutured` flag and rebuilding world ownership.
+    """
+    mesh, config, time = world.mesh, world.config, float(world.time)
+    xyz = mesh.xyz
+    num_cells = int(mesh.num_cells)
+    offsets, adjacency, index = mesh.adj_offset, mesh.adj_list, mesh.index
+    edge_km = float(mesh.edge_km)
+
+    upper_crust, lower_crust = upper.crust, lower.crust
+    lower_to_upper = frame_rotation(lower, upper)
+    land_before = int(upper.stats["continentalCells"]) + int(
+        lower.stats["continentalCells"]
+    )
+    hue = (
+        lower.hue
+        if int(lower.stats["cells"]) > int(upper.stats["cells"])
+        else upper.hue
+    )
+
+    # Resample the lower plate once into the upper plate's coordinate frame.
+    from_lower = _resample_lower_cells(mesh, upper, lower, lower_crust)
+
+    # Measure the overlap lens once; all later deformation uses this frame.
+    geometry = _measure_overlap_geometry(
+        mesh,
+        upper,
+        lower,
+        lower_crust,
+        from_lower,
+        overlap_world_cells,
+        edge_km,
+    )
+    overlap_count = geometry.overlap_count
+    overlap_cells = geometry.overlap_cells
+    end_a, end_b = geometry.end_a, geometry.end_b
+    depth_km, along, normal = geometry.depth_km, geometry.along, geometry.normal
+    max_indent, sum_indent = geometry.max_indent, geometry.sum_indent
+
+    displacement = _build_indentation_displacement(
+        mesh,
+        overlap_cells,
+        end_a,
+        end_b,
+        depth_km,
+        along,
+        normal,
+        config,
+    )
 
     # Inverse displacement of the upper raster, decaying behind the indenter.
     falloff_km = float(config["indentFalloffKm"])

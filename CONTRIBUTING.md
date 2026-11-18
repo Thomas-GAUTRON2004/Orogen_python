@@ -51,8 +51,8 @@ fallback, which must keep passing.
  
 ## Branches and Pull Requests
  
-- The porting reference branch is `port/v3.0.1`. Quality work is done on a
-  dedicated branch (currently `quality/phase-1-refactor-2026-11-18`).
+- The porting reference branch is `port/v3.0.1`. Work on a dedicated branch
+  for each change; do not rely on a fixed name for another contributor's branch.
 - Create your own branch with a descriptive name: `fix/...`, `feat/...`,
   `refactor/...` or `docs/...`. Fork the repository if you do not have write
   access.
@@ -87,7 +87,7 @@ Run the checks that CI runs:
 ```bash
 uv lock --check                                    # if dependencies changed
 python -m pytest --cov=orogen --cov-branch --cov-fail-under=95
-ruff check <changed files>
+ruff check .                                      # same repository-wide lint gate as CI
 ruff format --check orogen scripts tests
 mypy orogen                                        # must not add diagnostics
 bandit -q -r orogen
@@ -96,9 +96,8 @@ xenon --max-absolute C <new files>
  
 Notes on what CI enforces today:
  
-- Ruff lint runs on the Python files changed by the pull request, not on the
-  whole repository. A few legacy files are excluded from lint until a dedicated
-  cleanup; do not add lint debt to them.
+- Ruff lint runs on the whole repository (`ruff check .`), including Python
+  files outside the package. Keep the repository-wide lint gate clean.
 - `ruff format --check` runs on the whole package, scripts and tests.
 - The mypy check fails only if the pull request adds diagnostics compared with
   its base branch. The current baseline is recorded in the quality report.

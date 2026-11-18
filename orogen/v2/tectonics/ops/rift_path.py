@@ -142,7 +142,7 @@ def _angular_separation(first: dict, second: dict) -> float:
 
 
 def _nearby_rift_cuts(xyz, first: dict, second: dict) -> bool:
-    """Whether two candidate cuts are within the duplicate-cut threshold."""
+    """Determine whether two candidate cuts are within the duplicate-cut threshold."""
     return cell_distance_km(xyz, first["cell"], second["cell"]) < _DISTINCT_CUT_KM
 
 

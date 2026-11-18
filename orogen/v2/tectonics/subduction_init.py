@@ -15,7 +15,7 @@ from .world import EventKind
 
 
 def _subduction_cell_is_stale(plate, cell: int) -> bool:
-    """Whether a contact cell belongs to a stale or unoccupied plate raster."""
+    """Determine whether a contact cell belongs to a stale or unoccupied plate raster."""
     return bool(
         (plate.reshaped and not plate.isBackground) or not plate.crust.mask[cell]
     )
@@ -344,7 +344,7 @@ def _plate_can_founder_margin(
     num_cells: int,
     minimum_share: float,
 ) -> bool:
-    """Whether a living, non-background plate meets intraplate founder limits."""
+    """Determine whether a living, non-background plate meets intraplate founder limits."""
     if (
         not plate.alive
         or plate.isBackground

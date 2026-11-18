@@ -20,7 +20,7 @@ A progressive Python port of the **Orogen 3.0.1** procedural planetary simulatio
 **Required runtime dependencies:**
 - Python 3.10 or later
 - NumPy 1.24 or later
-- SciPy 1.10 or later
+- shull 0.4.0 or later (Rust-backed Delaunay triangulation)
 
 **Optional acceleration dependency:**
 - Numba 0.59 or later — enables the JIT-compiled performance kernels. It is not required to use Orogen; the package falls back to its pure-Python implementations when Numba is not installed.
@@ -37,7 +37,7 @@ Install with Numba acceleration enabled:
 python -m pip install -e ".[test,speed]"
 ```
 
-The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`.
+The `speed` extra declared in `pyproject.toml` installs `numba>=0.59`. SciPy is retained in the `test` extra for reference and differential tooling; it is not required by the production mesh builder.
 
 The JavaScript differential reference tests additionally require Node.js 22+ and Delaunator 5.0.1:
 
@@ -100,7 +100,7 @@ See [Porting status](docs/PORTING_STATUS.md) for the subsystem-by-subsystem brea
 
 ## Numerical backend and reproducibility
 
-Production spherical triangulation uses SciPy/Qhull, whereas the upstream JavaScript implementation uses Delaunator. Differential checks match topology for seven selected seed/resolution pairs; this does not guarantee identical connectivity for every input.
+Production spherical triangulation uses `shull` (Rust-backed S-hull) through its NumPy interface. The planar simplices are closed at the north-pole region and converted to Orogen's cyclic CSR adjacency. SciPy remains a test/reference dependency rather than a production runtime dependency. The `shull` triangulation can choose a different valid diagonal in degenerate or near-degenerate cases, so compatibility is defined by mesh invariants and geometric topology checks rather than requiring byte-identical simplex ordering.
 
 The code preserves upstream deterministic seed and random-number conventions where implemented. Reproducibility depends on using the same parameters and supported execution paths. Numba is optional and has a pure-Python fallback. See [Architecture](docs/ARCHITECTURE.md#numerical-and-reproducibility-contract) and [Testing](docs/TESTING.md).
 

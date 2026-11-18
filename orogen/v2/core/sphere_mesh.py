@@ -1,7 +1,7 @@
 """Fibonacci sphere and Delaunay dual mesh builder from Orogen's V1 sphere-mesh.js.
 
-SciPy/Qhull supplies the planar Delaunay triangulation. The spherical closure
-and cyclic CSR region adjacency follow the upstream half-edge construction.
+shull supplies the planar Delaunay triangulation. The spherical closure and
+cyclic CSR region adjacency follow the upstream half-edge construction.
 """
 from __future__ import annotations
 

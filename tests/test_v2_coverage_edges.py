@@ -156,7 +156,7 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", BrokenDelaunay)
     with pytest.raises(ValueError, match="Delaunay triangulation failed"):
-        sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
+        sphere_mesh._closed_triangles(np.zeros((4, 2)), 4)
 
     class EmptyDelaunay:
         def __init__(self, points):
@@ -164,7 +164,7 @@ def test_sphere_mesh_validation_and_exception_translation(monkeypatch):
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", EmptyDelaunay)
     with pytest.raises(ValueError, match="invalid 2D triangulation"):
-        sphere_mesh._closed_triangles(np.zeros((3, 2)), 3)
+        sphere_mesh._closed_triangles(np.zeros((4, 2)), 4)
 
 
 def test_delaunay_rejects_invalid_simplex_shape_and_indices(monkeypatch):
@@ -174,15 +174,19 @@ def test_delaunay_rejects_invalid_simplex_shape_and_indices(monkeypatch):
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", WrongShape)
     with pytest.raises(ValueError, match="invalid 2D triangulation"):
-        sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
+        sphere_mesh._closed_triangles(
+            np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]), 4
+        )
 
     class OutOfRange:
         def __init__(self, points):
-            self.simplices = np.array([[0, 1, 3]], dtype=np.int32)
+            self.simplices = np.array([[0, 1, 4]], dtype=np.int32)
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", OutOfRange)
     with pytest.raises(ValueError, match="out-of-range vertex index"):
-        sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
+        sphere_mesh._closed_triangles(
+            np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]), 4
+        )
 
     class NoHullDelaunay:
         def __init__(self, points):
@@ -191,7 +195,9 @@ def test_delaunay_rejects_invalid_simplex_shape_and_indices(monkeypatch):
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", NoHullDelaunay)
     with pytest.raises(ValueError, match="no closed convex hull"):
-        sphere_mesh._closed_triangles(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]), 3)
+        sphere_mesh._closed_triangles(
+            np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]), 4
+        )
 
 
 def test_sphere_mesh_orientation_and_invalid_cyclic_adjacency():

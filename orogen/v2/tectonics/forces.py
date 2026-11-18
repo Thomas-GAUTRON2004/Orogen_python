@@ -215,11 +215,191 @@ def _accumulate_boundary_force(
     load["cells"][kind] += 1
 
 
+def _accumulate_mantle_flow(
+    world,
+    plate,
+    owner_id: int,
+    world_cell: int,
+    load: dict | None,
+    flowing: bool,
+    apart,
+    flow: np.ndarray,
+    flow_area: float,
+    position: np.ndarray,
+) -> None:
+    """Accumulate mantle-flow torque for one owned continental cell."""
+    if not flowing or load is None:
+        return
+    cell = int(world.ownerCell[world_cell])
+    if int(plate.crust.type[cell]) not in (
+        CrustType["CONTINENT"],
+        CrustType["CRATON"],
+    ):
+        return
+    mantle_flow_at(world, *map(float, position), flow)
+    if apart is not None:
+        repel_at(apart, owner_id, *map(float, position), flow)
+    force = flow * flow_area
+    torque = np.cross(position, force)
+    load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
+    load["flowTorque"] = (np.asarray(load["flowTorque"]) + torque).tolist()
+    load["byKind"][4] = (np.asarray(load["byKind"][4]) + torque).tolist()
+    load["forceByKind"][4] = (np.asarray(load["forceByKind"][4]) + force).tolist()
+    load["cells"][4] += 1
+
+
+def _append_collision_lock_contacts(
+    world,
+    world_cell: int,
+    owner_id: int,
+    plate,
+    loads: dict[int, dict],
+    plates_by_id: dict,
+    xyz: np.ndarray,
+    config: Mapping,
+) -> bool:
+    """Handle contested land overlaps; return True when boundary force is skipped."""
+    if (
+        int(world.landClaims[world_cell]) <= 1
+        or int(world.collider[world_cell]) < 0
+    ):
+        return False
+
+    other_id = int(world.collider[world_cell])
+    other = plates_by_id.get(other_id)
+    if other is None:
+        return True
+    r0, r1, r2 = map(float, xyz[world_cell])
+    other_cell = int(other.cell_at(world.mesh.index, r0, r1, r2))
+    crust_a, crust_b = plate.crust, other.crust
+    flags_a = int(crust_a.flags[int(world.ownerCell[world_cell])])
+    flags_b = int(crust_b.flags[other_cell])
+    if (
+        _are_young_rift_partners(plate, other, float(world.time), config)
+        and flags_a & CrustFlag["RIFT_MARGIN"]
+        and flags_b & CrustFlag["RIFT_MARGIN"]
+    ):
+        return True
+
+    cell_a = int(world.ownerCell[world_cell])
+    if (
+        int(crust_a.type[cell_a]) == CrustType["ARC"]
+        or int(crust_b.type[other_cell]) == CrustType["ARC"]
+    ):
+        return True
+    craton = (
+        int(crust_a.type[cell_a]) == CrustType["CRATON"]
+        or int(crust_b.type[other_cell]) == CrustType["CRATON"]
+    )
+    weight = float(config["cratonLockFactor"]) if craton else 1.0
+    position = xyz[world_cell]
+    normal = _front_normal(
+        world, world_cell, owner_id, other_id, position, plates_by_id
+    )
+    load = loads.get(owner_id)
+    if load is not None:
+        load["contacts"].append(
+            {
+                "r": position.tolist(),
+                "n": normal,
+                "other": other_id,
+                "weight": weight,
+            }
+        )
+    other_load = loads.get(other_id)
+    if other_load is not None:
+        other_load["contacts"].append(
+            {
+                "r": position.tolist(),
+                "n": [-normal[0], -normal[1], -normal[2]],
+                "other": owner_id,
+                "weight": weight,
+            }
+        )
+    return True
+
+
+def _accumulate_boundary_edge_load(
+    world,
+    world_cell: int,
+    owner_id: int,
+    plate,
+    load: dict,
+    plates_by_id: dict,
+    xyz: np.ndarray,
+    normal_out: np.ndarray,
+    edge_length: float,
+    config: Mapping,
+) -> None:
+    """Classify and accumulate the non-collision force at one boundary edge."""
+    across = contact_at(world, world_cell, normal_out)
+    if across < 0:
+        return
+    other_id = int(world.owner[across])
+    other = plates_by_id.get(other_id)
+    if other is None or other_id == owner_id:
+        return
+    cell_a = int(world.ownerCell[world_cell])
+    cell_b = int(world.ownerCell[across])
+    crust_a, crust_b = plate.crust, other.crust
+    ocean_a = int(crust_a.type[cell_a]) == CrustType["OCEAN"]
+    ocean_b = int(crust_b.type[cell_b]) == CrustType["OCEAN"]
+    trench_a = bool(int(crust_a.flags[cell_a]) & CrustFlag["TRENCH"])
+    trench_b = bool(int(crust_b.flags[cell_b]) & CrustFlag["TRENCH"])
+    length = edge_length * float(normal_out[3])
+    if length <= 0:
+        return
+
+    direction = normal_out[:3].copy()
+    slab_force = _slab_force(
+        crust_a,
+        cell_a,
+        crust_b,
+        cell_b,
+        ocean_a,
+        ocean_b,
+        trench_a,
+        trench_b,
+        float(world.time),
+        config,
+    )
+    if slab_force is not None:
+        kind, size = slab_force
+        if kind == _PULL:
+            load["slabs"].append(
+                {
+                    "r": xyz[world_cell].tolist(),
+                    "n": direction.tolist(),
+                    "other": other_id,
+                    "length": length,
+                }
+            )
+    else:
+        kind, size, direction = _rift_or_ridge_force(
+            plate,
+            other,
+            crust_a,
+            cell_a,
+            crust_b,
+            cell_b,
+            ocean_a,
+            ocean_b,
+            direction,
+            float(world.time),
+            config,
+        )
+    if kind < 0 or size == 0:
+        return
+    _accumulate_boundary_force(
+        load, kind, size, length, direction, xyz[world_cell]
+    )
+
+
 def gather_boundary_loads(world) -> dict[int, dict]:
-    """Gather four local boundary-force families for living non-background plates.
+    """Gather local boundary-force records for living non-background plates.
 
     Output records can be passed to balanced_rotation. Requires a resolved
-    owner/ownerCell map and includes slab, collision-lock and boundary-force records.
+    owner/ownerCell map and includes slab, collision-lock and boundary forces.
     """
     mesh = world.mesh
     config = world.config
@@ -258,143 +438,40 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         plate = plates_by_id.get(owner_id)
         if plate is None:
             continue
+
         load = loads.get(owner_id)
-        if flowing and load is not None:
-            cell = int(world.ownerCell[world_cell])
-            if int(plate.crust.type[cell]) in (
-                CrustType["CONTINENT"],
-                CrustType["CRATON"],
-            ):
-                position = xyz[world_cell]
-                mantle_flow_at(world, *map(float, position), flow)
-                if apart is not None:
-                    repel_at(apart, owner_id, *map(float, position), flow)
-                force = flow * flow_area
-                torque = np.cross(position, force)
-                load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
-                load["flowTorque"] = (np.asarray(load["flowTorque"]) + torque).tolist()
-                load["byKind"][4] = (np.asarray(load["byKind"][4]) + torque).tolist()
-                load["forceByKind"][4] = (
-                    np.asarray(load["forceByKind"][4]) + force
-                ).tolist()
-                load["cells"][4] += 1
-        if (
-            int(world.landClaims[world_cell]) > 1
-            and int(world.collider[world_cell]) >= 0
+        position = xyz[world_cell]
+        _accumulate_mantle_flow(
+            world,
+            plate,
+            owner_id,
+            world_cell,
+            load,
+            flowing,
+            apart,
+            flow,
+            flow_area,
+            position,
+        )
+        if _append_collision_lock_contacts(
+            world, world_cell, owner_id, plate, loads, plates_by_id, xyz, config
         ):
-            other_id = int(world.collider[world_cell])
-            other = plates_by_id.get(other_id)
-            if other is None:
-                continue
-            r0, r1, r2 = map(float, xyz[world_cell])
-            other_cell = int(other.cell_at(mesh.index, r0, r1, r2))
-            crust_a, crust_b = plate.crust, other.crust
-            flags_a = int(crust_a.flags[int(world.ownerCell[world_cell])])
-            flags_b = int(other.crust.flags[other_cell])
-            if (
-                _are_young_rift_partners(plate, other, float(world.time), config)
-                and flags_a & CrustFlag["RIFT_MARGIN"]
-                and flags_b & CrustFlag["RIFT_MARGIN"]
-            ):
-                continue
-            cell_a = int(world.ownerCell[world_cell])
-            if (
-                int(crust_a.type[cell_a]) == CrustType["ARC"]
-                or int(crust_b.type[other_cell]) == CrustType["ARC"]
-            ):
-                continue
-            craton = (
-                int(crust_a.type[cell_a]) == CrustType["CRATON"]
-                or int(crust_b.type[other_cell]) == CrustType["CRATON"]
-            )
-            weight = float(config["cratonLockFactor"]) if craton else 1.0
-            position = xyz[world_cell]
-            normal = _front_normal(
-                world, world_cell, owner_id, other_id, position, plates_by_id
-            )
-            load = loads.get(owner_id)
-            if load is not None:
-                load["contacts"].append(
-                    {
-                        "r": position.tolist(),
-                        "n": normal,
-                        "other": other_id,
-                        "weight": weight,
-                    }
-                )
-            other_load = loads.get(other_id)
-            if other_load is not None:
-                other_load["contacts"].append(
-                    {
-                        "r": position.tolist(),
-                        "n": [-normal[0], -normal[1], -normal[2]],
-                        "other": owner_id,
-                        "weight": weight,
-                    }
-                )
             continue
-        load = loads.get(owner_id)
         if load is None:
             continue
-        across = contact_at(world, world_cell, normal_out)
-        if across < 0:
-            continue
-        other_id = int(world.owner[across])
-        other = plates_by_id.get(other_id)
-        if other is None or other_id == owner_id:
-            continue
-        cell_a = int(world.ownerCell[world_cell])
-        cell_b = int(world.ownerCell[across])
-        crust_a, crust_b = plate.crust, other.crust
-        ocean_a = int(crust_a.type[cell_a]) == CrustType["OCEAN"]
-        ocean_b = int(crust_b.type[cell_b]) == CrustType["OCEAN"]
-        trench_a = bool(int(crust_a.flags[cell_a]) & CrustFlag["TRENCH"])
-        trench_b = bool(int(crust_b.flags[cell_b]) & CrustFlag["TRENCH"])
-        length = edge_length * float(normal_out[3])
-        if length <= 0:
-            continue
-
-        direction = normal_out[:3].copy()
-        slab_force = _slab_force(
-            crust_a,
-            cell_a,
-            crust_b,
-            cell_b,
-            ocean_a,
-            ocean_b,
-            trench_a,
-            trench_b,
-            float(world.time),
+        _accumulate_boundary_edge_load(
+            world,
+            world_cell,
+            owner_id,
+            plate,
+            load,
+            plates_by_id,
+            xyz,
+            normal_out,
+            edge_length,
             config,
         )
-        if slab_force is not None:
-            kind, size = slab_force
-            if kind == _PULL:
-                load["slabs"].append(
-                    {
-                        "r": xyz[world_cell].tolist(),
-                        "n": direction.tolist(),
-                        "other": other_id,
-                        "length": length,
-                    }
-                )
-        else:
-            kind, size, direction = _rift_or_ridge_force(
-                plate,
-                other,
-                crust_a,
-                cell_a,
-                crust_b,
-                cell_b,
-                ocean_a,
-                ocean_b,
-                direction,
-                float(world.time),
-                config,
-            )
-        if kind < 0 or size == 0:
-            continue
-
-        _accumulate_boundary_force(load, kind, size, length, direction, xyz[world_cell])
 
     return loads
+
+

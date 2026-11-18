@@ -233,8 +233,12 @@ def decide_birth(world, grower, cell: int, everyone) -> dict:
     ):
         return {"born": False, "why": "too close to the mid-line"}
     closing = float(config.get("closingCmYr", config.get("closing_cm_yr", 0.0)))
-    if neighbour is not None and _is_advancing_on(
-        grower, neighbour, neighbour_hit["cell"], mesh, point, closing
+    if (
+        neighbour is not None
+        and neighbour_hit is not None
+        and _is_advancing_on(
+            grower, neighbour, neighbour_hit["cell"], mesh, point, closing
+        )
     ):
         return {"born": False, "why": "closing boundary"}
     flags = int(grower.crust.flags[own["cell"]])
@@ -285,9 +289,8 @@ def _assign_gap_owners(world, gaps) -> None:
                     foreign_hit is None or hit["dot"] > foreign_hit["dot"]
                 ):
                     foreign, foreign_hit = plate, hit
-        if best is None:
+        if best is None or best_hit is None:
             continue
-        assert best_hit is not None
         owner[gap], owner_cell[gap] = best.id, best_hit["cell"]
         world.claimCount[gap] = 1
         if best_hit.get("real"):

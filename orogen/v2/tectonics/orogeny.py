@@ -6,7 +6,7 @@ import math
 
 
 def belt_width_km(kind: str, work_km: float, rate_cm_yr: float, config: dict) -> float:
-    """Width of an orogenic belt from accumulated shortening and current rate."""
+    """Calculate the width of an orogenic belt from accumulated shortening and current rate."""
     belt = config["belts"][kind]
     speed = min(
         float(config["beltSpeedFactorMax"]),

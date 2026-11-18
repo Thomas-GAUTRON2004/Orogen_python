@@ -43,6 +43,7 @@ def test_numba_kernel_python_bodies_cover_noise_geometry_and_graph_branches():
     kernels.bearing_to_many_numba.py_func(points_array, targets)
 
 def test_numba_kernel_python_bodies_cover_crust_array_mutation_paths():
+    """Coverage-only smoke test for raster mutation branches; state invariants are asserted in the raster tests."""
     fields = [np.zeros(4, dtype=np.int32) for _ in range(55)]
     mask = np.zeros(4, dtype=np.bool_)
     cells = np.asarray([0, 1, 1, 3], dtype=np.int32)
@@ -78,6 +79,7 @@ def test_numba_weighted_distance_kernel_python_body_covers_cost_and_mask_paths()
 
 
 def test_numba_kernel_heap_and_copy_branches():
+    """Coverage-only branch exercise; observable copy semantics are checked in the Numba parity tests."""
     offsets = np.asarray([0, 2, 4, 5, 6], dtype=np.int32)
     adjacency = np.asarray([1, 2, 0, 3, 1, 2], dtype=np.int32)
     xyz = np.asarray([
@@ -124,6 +126,7 @@ def test_numba_kernel_heap_and_copy_branches():
 
 
 def test_noise_kernel_all_simplex_orderings_and_corner_cutoffs():
+    """Coverage-only exercise of every simplex ordering and corner cutoff."""
     from itertools import product
 
     perm = np.arange(512, dtype=np.uint8)
@@ -156,6 +159,7 @@ def test_optional_numba_import_fallback(monkeypatch):
         importlib.reload(kernels)
 
 def test_numba_kernel_heap_stale_entry_and_zero_axis_branches():
+    """Coverage-only exercise of stale-heap and zero-axis branches."""
     # Source insertion must bubble a lower initial Dijkstra key to the root.
     offsets = np.asarray([0, 2, 3, 4, 4], dtype=np.int32)
     adjacency = np.asarray([1, 2, 3, 1], dtype=np.int32)
@@ -211,6 +215,7 @@ def test_numba_piece_kernel_empty_and_multiple_component_size_branches():
     ).tolist() == [0, 1]
 
 def test_numba_weighted_heap_sift_down_and_stale_source_entries():
+    """Coverage-only exercise of heap sift-down and stale-source branches."""
     offsets = np.zeros(5, dtype=np.int32)
     adjacency = np.asarray([], dtype=np.int32)
     xyz = np.tile(np.asarray([1., 0., 0.]), 4)
@@ -238,6 +243,7 @@ def test_numba_weighted_heap_sift_down_and_stale_source_entries():
 
 
 def test_numba_spread_heap_sifts_seeded_keys_down():
+    """Coverage-only exercise of seeded-key heap reordering."""
     offsets = np.zeros(5, dtype=np.int32)
     kernels.spread_km_numba.py_func(
         offsets, np.asarray([], dtype=np.int32), np.asarray([], dtype=np.float64),

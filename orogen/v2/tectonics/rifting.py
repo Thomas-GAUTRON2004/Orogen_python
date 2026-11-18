@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 from .ops.rift import (
     choose_junction,
@@ -61,6 +62,263 @@ def search_junctions(world, request: dict) -> list:
     ]
 
 
+@dataclass(slots=True)
+class _RiftSchedule:
+    """Cached timing and area rules shared by the rifting stages."""
+
+    config: dict
+    time: float
+    step_dt: float
+    paced: bool
+    min_gap: float
+    min_area: float
+    cell_area_km2: float
+    super_held: set | None
+
+    def age_of(self, plate) -> float:
+        return self.time - float(plate.born)
+
+    def area_of(self, plate) -> float:
+        return (
+            float(plate.stats["continentalCells"]) * self.cell_area_km2
+        )
+
+    def too_young(self, plate) -> bool:
+        return self.paced and self.age_of(plate) < self.min_gap - 1e-9
+
+    def big_age(self, plate) -> float:
+        since = getattr(plate, "bigSince", None)
+        return self.time - max(
+            float(plate.born),
+            self.time if since is None else float(since),
+        )
+
+    def overdue(self, plate) -> bool:
+        return (
+            self.paced
+            and self.big_age(plate) + self.step_dt
+            >= float(self.config["riftMaxGapMyr"])
+            - float(self.config["riftGlobalGapMyr"])
+            - 1e-9
+            and self.area_of(plate) >= self.min_area
+        )
+
+    def held(self, plate) -> bool:
+        return bool(
+            self.super_held is not None
+            and plate.id in self.super_held
+            and not self.overdue(plate)
+        )
+
+
+def _refresh_big_continent_clock(plates, schedule: _RiftSchedule) -> None:
+    """Start or clear each eligible plate's maximum-breakup-age clock."""
+    for plate in plates:
+        if not plate.alive or plate.isBackground:
+            continue
+        if schedule.area_of(plate) >= schedule.min_area:
+            if getattr(plate, "bigSince", None) is None:
+                plate.bigSince = schedule.time
+        else:
+            plate.bigSince = None
+
+
+def _process_pending_plume_rifts(
+    world,
+    pending,
+    schedule: _RiftSchedule,
+    world_waits: bool,
+) -> int:
+    """Process queued plume requests and retain only requests still waiting."""
+    config = schedule.config
+    plates = world.plates
+    waiting = []
+    splits = 0
+    for request in pending:
+        plate_id = int(request["plate"])
+        plate = plates[plate_id] if 0 <= plate_id < len(plates) else None
+        if plate is None or not plate.alive:
+            continue
+        if "since" not in request:
+            request["since"] = schedule.time
+            request["junctions"] = (
+                [int(request["cell"])]
+                if int(request.get("cell", -1)) >= 0
+                else plume_junctions(world, plate, request["xyz"])
+            )
+        since = float(request["since"])
+        if (
+            world_waits
+            or (schedule.paced and splits)
+            or schedule.held(plate)
+            or schedule.too_young(plate)
+        ):
+            if (
+                schedule.paced
+                and schedule.time - since
+                < float(config["plumeRiftWaitMyr"]) - 1e-9
+            ):
+                waiting.append(request)
+            continue
+
+        cause = request["cause"]
+        success = try_rift(
+            world, plate, request["junctions"], cause, False
+        )
+        if not success and schedule.time > since:
+            success = _with_loose_shape(
+                config,
+                lambda: try_rift(
+                    world, plate, request["junctions"], cause, False
+                ),
+            )
+        if success:
+            splits += 1
+
+    world.pendingPlumeRifts = waiting
+    return splits
+
+
+def _try_overdue_rifts(world, plates, schedule: _RiftSchedule) -> bool:
+    """Give the oldest eligible continental piece its forced-breakup chance."""
+    due = [
+        plate
+        for plate in plates
+        if (
+            plate.alive
+            and not plate.isBackground
+            and plate.dynamics
+            and schedule.overdue(plate)
+        )
+    ]
+    due.sort(key=schedule.big_age, reverse=True)
+    for plate in due:
+        if _force_rift(world, plate, schedule.age_of(plate)):
+            return True
+    return False
+
+
+def _spontaneous_rift_parameters(
+    plate,
+    schedule: _RiftSchedule,
+    cycle,
+    heat,
+    gather_into,
+):
+    """Return the stochastic attempt parameters, or None when ineligible."""
+    config = schedule.config
+    area_km2 = schedule.area_of(plate)
+    too_soon = bool(cycle is not None and plate.id in cycle.get("clump", []))
+    mantle_heat = 0.0 if heat is None else float(heat.get(plate.id, 0.0))
+
+    if schedule.paced:
+        tenure = 0.0
+    elif too_soon:
+        tenure = float(config["riftTenureHotMyr"])
+    elif heat is not None and plate.bornOfRift:
+        tenure = (
+            float(config["riftTenureMyr"])
+            + (
+                float(config["riftTenureHotMyr"])
+                - float(config["riftTenureMyr"])
+            ) * mantle_heat
+        )
+    else:
+        tenure = float(config["riftTenureMyr"])
+    if area_km2 < schedule.min_area or schedule.age_of(plate) < tenure:
+        return None
+
+    if heat is not None:
+        heat_factor = (
+            float(config["riftHeatFloor"])
+            + float(config["riftHeatGain"])
+            * mantle_heat ** float(config["riftHeatPower"])
+        )
+    else:
+        heat_factor = 1.0
+    if too_soon:
+        heat_factor = (
+            max(heat_factor, 1.0) * float(config["dispersalRiftBoost"])
+        )
+    if heat is not None and gather_into and plate.id in gather_into:
+        heat_factor *= (
+            1.0
+            - (1.0 - float(config["gatherRiftFactor"]))
+            * float(cycle["gather"])
+        )
+
+    tension = (
+        max(
+            float(plate.dynamics["tension"]),
+            float(config["riftHeatTension"]) * mantle_heat,
+        )
+        if heat is not None
+        else float(plate.dynamics["tension"])
+    )
+    pace = pace_of(schedule.age_of(plate), config) if schedule.paced else 1.0
+    chance = (
+        pace
+        * float(config.get("riftRatePerMyr", 0.0))
+        * schedule.step_dt
+        * tension
+        * heat_factor
+        * min(
+            float(config["riftSizeCap"]),
+            area_km2 / schedule.min_area - 1.0,
+        )
+    )
+    return chance, tension, mantle_heat
+
+
+def _try_spontaneous_rifts(
+    world,
+    plates,
+    schedule: _RiftSchedule,
+    cycle,
+    heat,
+    gather_into,
+) -> int:
+    """Run the probabilistic tension/heat-driven breakup pass."""
+    splits = 0
+    for plate in list(plates):
+        if (
+            not plate.alive
+            or plate.isBackground
+            or not plate.dynamics
+            or schedule.held(plate)
+            or schedule.too_young(plate)
+        ):
+            continue
+        parameters = _spontaneous_rift_parameters(
+            plate, schedule, cycle, heat, gather_into
+        )
+        if parameters is None:
+            continue
+        chance, tension, mantle_heat = parameters
+        if float(world.rng()) >= chance:
+            continue
+
+        junctions = [
+            choose_junction(world, plate, world.rng)
+            for _ in range(_JUNCTION_TRIES)
+        ]
+        cause = {
+            "text": f"tension {tension:.2f}"
+            + (
+                f", mantle heat {mantle_heat:.2f}"
+                if heat is not None
+                else ""
+            ),
+            "kind": "tension",
+            "hotspot": -1,
+        }
+        if try_rift(world, plate, junctions, cause):
+            splits += 1
+            if schedule.paced:
+                break
+    return splits
+
+
 def rift_continents(world, dt: float) -> int:
     """Execute queued plume rifts, overdue breakups and spontaneous rifting.
 
@@ -87,50 +345,8 @@ def rift_continents(world, dt: float) -> int:
         and time - float(last_rift)
         < float(config["riftGlobalGapMyr"]) - 1e-9
     )
-
-    def age_of(plate) -> float:
-        return time - float(plate.born)
-
-    def area_of(plate) -> float:
-        return (
-            float(plate.stats["continentalCells"])
-            * float(mesh.cell_area_km2)
-        )
-
-    def too_young(plate) -> bool:
-        return paced and age_of(plate) < min_gap - 1e-9
-
     min_area = float(config.get("riftMinContinentKm2", math.inf))
-    for plate in plates:
-        if not plate.alive or plate.isBackground:
-            continue
-        if area_of(plate) >= min_area:
-            if getattr(plate, "bigSince", None) is None:
-                plate.bigSince = time
-        else:
-            plate.bigSince = None
-
-    def big_age(plate) -> float:
-        since = getattr(plate, "bigSince", None)
-        return time - max(float(plate.born), time if since is None else float(since))
-
     cycle = getattr(world, "cycle", None)
-    gather_into = (
-        set(cycle.get("largestPlates", []))
-        if cycle is not None and float(cycle.get("gather", 0.0)) > 0.0
-        else None
-    )
-
-    def overdue(plate) -> bool:
-        return (
-            paced
-            and big_age(plate) + step_dt
-            >= float(config["riftMaxGapMyr"])
-            - float(config["riftGlobalGapMyr"])
-            - 1e-9
-            and area_of(plate) >= min_area
-        )
-
     super_held = None
     if (
         cycle is not None
@@ -141,59 +357,26 @@ def rift_continents(world, dt: float) -> int:
     ):
         super_held = set(cycle.get("largestPlates", []))
 
-    def held(plate) -> bool:
-        return bool(
-            super_held is not None
-            and plate.id in super_held
-            and not overdue(plate)
-        )
+    schedule = _RiftSchedule(
+        config=config,
+        time=time,
+        step_dt=step_dt,
+        paced=paced,
+        min_gap=min_gap,
+        min_area=min_area,
+        cell_area_km2=float(mesh.cell_area_km2),
+        super_held=super_held,
+    )
+    _refresh_big_continent_clock(plates, schedule)
+    gather_into = (
+        set(cycle.get("largestPlates", []))
+        if cycle is not None and float(cycle.get("gather", 0.0)) > 0.0
+        else None
+    )
 
-    # Pending plume heads keep their original plate-frame junctions while the
-    # continental piece is too young or the global rift clock is closed.
-    waiting = []
-    splits = 0
-    for request in pending:
-        plate_id = int(request["plate"])
-        plate = plates[plate_id] if 0 <= plate_id < len(plates) else None
-        if plate is None or not plate.alive:
-            continue
-        if "since" not in request:
-            request["since"] = time
-            request["junctions"] = (
-                [int(request["cell"])]
-                if int(request.get("cell", -1)) >= 0
-                else plume_junctions(world, plate, request["xyz"])
-            )
-        since = float(request["since"])
-        if (
-            world_waits
-            or (paced and splits)
-            or held(plate)
-            or too_young(plate)
-        ):
-            if (
-                paced
-                and time - since
-                < float(config["plumeRiftWaitMyr"]) - 1e-9
-            ):
-                waiting.append(request)
-            continue
-
-        cause = request["cause"]
-        success = try_rift(
-            world, plate, request["junctions"], cause, False
-        )
-        if not success and time > since:
-            success = _with_loose_shape(
-                config,
-                lambda: try_rift(
-                    world, plate, request["junctions"], cause, False
-                ),
-            )
-        if success:
-            splits += 1
-
-    world.pendingPlumeRifts = waiting
+    splits = _process_pending_plume_rifts(
+        world, pending, schedule, world_waits
+    )
     if world_waits or (paced and splits):
         return splits
 
@@ -202,122 +385,11 @@ def rift_continents(world, dt: float) -> int:
         if float(config.get("riftHeatGain", 0.0)) > 0.0
         else None
     )
-
-    # A sufficiently large continental piece that has reached its maximum
-    # breakup interval gets the first chance, regardless of its random rate.
-    if paced:
-        due = [
-            plate for plate in plates
-            if (
-                plate.alive
-                and not plate.isBackground
-                and plate.dynamics
-                and overdue(plate)
-            )
-        ]
-        due.sort(key=big_age, reverse=True)
-        for plate in due:
-            if _force_rift(world, plate, age_of(plate)):
-                return 1
-
-    # Spontaneous rifting is probabilistic, weighted by tension, size, mantle
-    # heat, dispersal state and the piece's age since its last rift or weld.
-    for plate in list(plates):
-        if (
-            not plate.alive
-            or plate.isBackground
-            or not plate.dynamics
-            or held(plate)
-            or too_young(plate)
-        ):
-            continue
-        area_km2 = area_of(plate)
-        too_soon = bool(
-            cycle is not None
-            and plate.id in cycle.get("clump", [])
-        )
-        mantle_heat = 0.0 if heat is None else float(heat.get(plate.id, 0.0))
-
-        if paced:
-            tenure = 0.0
-        elif too_soon:
-            tenure = float(config["riftTenureHotMyr"])
-        elif heat is not None and plate.bornOfRift:
-            tenure = (
-                float(config["riftTenureMyr"])
-                + (
-                    float(config["riftTenureHotMyr"])
-                    - float(config["riftTenureMyr"])
-                ) * mantle_heat
-            )
-        else:
-            tenure = float(config["riftTenureMyr"])
-        if area_km2 < min_area or age_of(plate) < tenure:
-            continue
-
-        if heat is not None:
-            heat_factor = (
-                float(config["riftHeatFloor"])
-                + float(config["riftHeatGain"])
-                * mantle_heat ** float(config["riftHeatPower"])
-            )
-        else:
-            heat_factor = 1.0
-        if too_soon:
-            heat_factor = (
-                max(heat_factor, 1.0)
-                * float(config["dispersalRiftBoost"])
-            )
-        if heat is not None and gather_into and plate.id in gather_into:
-            heat_factor *= (
-                1.0
-                - (1.0 - float(config["gatherRiftFactor"]))
-                * float(cycle["gather"])
-            )
-
-        tension = (
-            max(
-                float(plate.dynamics["tension"]),
-                float(config["riftHeatTension"]) * mantle_heat,
-            )
-            if heat is not None
-            else float(plate.dynamics["tension"])
-        )
-        pace = pace_of(age_of(plate), config) if paced else 1.0
-        chance = (
-            pace
-            * rate
-            * step_dt
-            * tension
-            * heat_factor
-            * min(
-                float(config["riftSizeCap"]),
-                area_km2 / min_area - 1.0,
-            )
-        )
-        if float(world.rng()) >= chance:
-            continue
-
-        junctions = [
-            choose_junction(world, plate, world.rng)
-            for _ in range(_JUNCTION_TRIES)
-        ]
-        cause = {
-            "text": f"tension {tension:.2f}"
-            + (
-                f", mantle heat {mantle_heat:.2f}"
-                if heat is not None
-                else ""
-            ),
-            "kind": "tension",
-            "hotspot": -1,
-        }
-        if try_rift(world, plate, junctions, cause):
-            splits += 1
-            if paced:
-                break
-
-    return splits
+    if paced and _try_overdue_rifts(world, plates, schedule):
+        return 1
+    return splits + _try_spontaneous_rifts(
+        world, plates, schedule, cycle, heat, gather_into
+    )
 
 
 def _force_rift(world, plate, age: float) -> bool:

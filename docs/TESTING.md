@@ -37,25 +37,36 @@ Requirements:
 Install the JavaScript dependency without creating a project lockfile:
 
 ```bash
-npm install --no-save --package-lock=false delaunator@5.0.1
+npm install --no-save --package-lock=false
 python -m pytest
 ```
 
 Reference files are under `tests/reference/v2/`. They are test fixtures, not a separately supported JavaScript package. The exact upstream source revision is recorded in [UPSTREAM_SOURCE.md](../UPSTREAM_SOURCE.md).
+
+### Audit des tests sans instruction `assert`
+
+L’audit statique recense 29 fonctions de test sans instruction `assert` Python.
+23 utilisent néanmoins `pytest.raises` ou `numpy.testing` comme mécanisme
+d’assertion. Les 6 fonctions restantes de
+`tests/test_v2_numba_kernel_coverage.py` sont des tests de couverture de branches :
+elles exécutent explicitement les corps Python des kernels Numba (`.py_func`)
+pour faire remonter les arcs de couverture ; elles sont maintenant documentées
+comme telles. Les tests de parité et d’invariants du comportement observable
+restent dans les suites Numba et raster dédiées.
 
 ### Coverage enforcement
 
 Run the CI-equivalent coverage command:
 
 ```bash
-NUMBA_JIT_COVERAGE=1 python -m pytest --cov=orogen.v2 --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=95
+NUMBA_JIT_COVERAGE=1 python -m pytest --cov=orogen --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=95
 ```
 
-CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before running the suite. It enables branch coverage, sets `NUMBA_JIT_COVERAGE=1`, and enforces a 95% total-coverage minimum for `orogen.v2`.
+CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before running the suite. It enables branch coverage, sets `NUMBA_JIT_COVERAGE=1`, and enforces a 95% total-coverage minimum for the full `orogen` package.
 
-## Latest documented verification
+## Last completed upstream CI verification (before the quality refactor)
 
-The latest PR-head source validation on 2026-11-18 completed successfully:
+The previous PR-head source validation on 2026-11-18 completed successfully:
 
 - **506 tests passed**;
 - **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled);

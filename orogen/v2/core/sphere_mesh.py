@@ -82,6 +82,8 @@ def _closed_triangles(points_2d: np.ndarray, pole_id: int) -> np.ndarray:
             np.ascontiguousarray(points_2d, dtype=np.float64)
         )
     except Exception as exc:
+        # The native extension can surface backend-specific exception types;
+        # normalize them at this boundary to keep the mesh API stable.
         raise ValueError(
             "Delaunay triangulation failed for the projected sphere"
         ) from exc

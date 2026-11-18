@@ -450,3 +450,47 @@ def test_local_belt_spreading_remains_disabled_for_partial_far_field_config(
 
     assert classify_contact_boundaries(world, 1.0) == 1
     assert calls == []
+
+
+
+def test_contact_classifier_records_andean_belt_in_crust_raster(monkeypatch):
+    module, _mesh, world, upper, _lower = _subduction_contact(
+        monkeypatch, slab_age_myr=60.0
+    )
+    world.config.update(_subduction_local_belt_config())
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert upper.crust.oroType[0] == OrogenyType["ANDEAN"]
+    assert upper.crust.oroWork[0] > 0.0
+    assert upper.crust.beltReach[0] > 0.0
+    assert upper.crust.thickKm[0] > 0.0
+
+
+def test_contact_classifier_records_transpression_belt_in_crust_raster(
+    monkeypatch,
+):
+    import orogen.v2.tectonics.boundaries as module
+
+    _mesh, world, upper, _lower, position, normal = _setup()
+    world.config.update(_subduction_far_field_config())
+    world.config.update(_subduction_local_belt_config())
+    upper.crust.type[0] = CrustType["CONTINENT"]
+    tangent = np.cross(position, normal)
+    velocity = normal * 0.001 + tangent * 0.01
+    upper.omega = list(np.cross(position, velocity))
+
+    def contact(_world, cell, out):
+        if cell == 0:
+            out[:] = [*normal, 1.0]
+            return 1
+        return -1
+
+    monkeypatch.setattr(module, "contact_at", contact)
+    monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["TRANSFORM"]
+    assert upper.crust.oroType[0] == OrogenyType["TRANSPRESSION"]
+    assert upper.crust.oroWork[0] > 0.0
+    assert upper.crust.beltReach[0] > 0.0

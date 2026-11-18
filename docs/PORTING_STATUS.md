@@ -74,16 +74,20 @@ test coverage.
 - Do not claim full compatibility until all functional areas and reference tests have been covered.
 - Maintain the CI coverage gate for `orogen` (95% total minimum with branch coverage enabled).
 
-## Latest documented verification
+## Historical verification before the SciPy backend migration
 
-The latest PR-head source validation on 2026-11-18 completed successfully:
+The previous PR-head source validation on 2026-11-18 completed using the
+former shull backend:
 
 - **506 tests passed**.
-- **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled).
-- Python tests: [GitHub Actions run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404).
-- Platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed.
-- A/B pipeline benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444), structural comparisons passed at all three sizes.
-- Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
+- **99.43% total coverage** for `orogen.v2`.
+- Python tests: [run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404).
+- Former platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed.
+- Former SciPy-versus-shull benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444).
+
+These results predate the switch to SciPy/Qhull and do not validate the current
+backend. The current backend is checked by the new SciPy platform workflow and
+the full Python tests on the active PR.
 
 Rerun the workflows after subsequent source changes.
 

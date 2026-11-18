@@ -25,7 +25,7 @@ class SimMesh:
 
 
 def texels_for(num_cells: int) -> int:
-    """Cube-map table oversampling used by the upstream V2 implementation."""
+    """Return the cube-map table oversampling factor used by the upstream V2 implementation."""
     return 1 if num_cells > 1_000_000 else 2
 
 

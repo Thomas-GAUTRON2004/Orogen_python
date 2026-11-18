@@ -547,7 +547,9 @@ def classify_contact_boundaries(world, dt: float) -> int:
                         )
                         front["ages"].append(slab_age)
                         front["shears"].append(
-                            obliquity_deg([vx, vy, vz], normal[:3], [px, py, pz], closing)
+                            obliquity_deg(
+                                [vx, vy, vz], normal[:3], [px, py, pz], closing
+                            )
                         )
                         wx, wy, wz = map(float, plate_a.omega)
                         advance = (

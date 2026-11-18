@@ -304,7 +304,6 @@ def test_subduction_flat_slab_hysteresis_and_quiet_gap_reset(monkeypatch):
     assert len(feed_calls) == 2
 
 
-
 def _subduction_local_belt_config():
     return {
         "belts": {
@@ -452,7 +451,6 @@ def test_local_belt_spreading_remains_disabled_for_partial_far_field_config(
     assert calls == []
 
 
-
 def test_contact_classifier_records_andean_belt_in_crust_raster(monkeypatch):
     module, _mesh, world, upper, _lower = _subduction_contact(
         monkeypatch, slab_age_myr=60.0
@@ -494,7 +492,6 @@ def test_contact_classifier_records_transpression_belt_in_crust_raster(
     assert upper.crust.oroType[0] == OrogenyType["TRANSPRESSION"]
     assert upper.crust.oroWork[0] > 0.0
     assert upper.crust.beltReach[0] > 0.0
-
 
 
 def test_local_belt_helpers_skip_nonpositive_timestep(monkeypatch):

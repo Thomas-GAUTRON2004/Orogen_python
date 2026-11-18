@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import orogen.v2.core.sphere_mesh as sphere_mesh
-
 from orogen.v2.core.seed import make_rng
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.sphere_mesh import (
@@ -106,6 +105,7 @@ def test_scipy_spherical_mesh_topology_across_small_and_medium_sizes():
             assert len(np.unique(ring)) == len(ring)
             assert cell not in ring
 
+
 def test_qhull_errors_are_normalized_at_the_mesh_boundary(monkeypatch):
     from scipy.spatial import QhullError
 
@@ -113,6 +113,8 @@ def test_qhull_errors_are_normalized_at_the_mesh_boundary(monkeypatch):
         raise QhullError("synthetic Qhull failure")
 
     monkeypatch.setattr(sphere_mesh, "Delaunay", fail_triangulation)
-    points = np.asarray([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
+    points = np.asarray(
+        [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]
+    )
     with pytest.raises(ValueError, match="Delaunay triangulation failed"):
         sphere_mesh._closed_triangles(points, pole_id=3)

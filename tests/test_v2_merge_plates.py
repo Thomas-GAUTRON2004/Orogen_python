@@ -3,7 +3,11 @@
 import numpy as np
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
-from orogen.v2.tectonics.ops.merge_plates import _stamp_cratons_rigidly, merge_plates
+from orogen.v2.tectonics.ops.merge_plates import (
+    _resample_lower_cells,
+    _stamp_cratons_rigidly,
+    merge_plates,
+)
 from orogen.v2.tectonics.plate import Plate
 
 
@@ -237,3 +241,14 @@ def test_merge_plates_preserves_plate_identity_and_crust_accounting():
     assert not lower.alive
     assert lower.crust.count == 0
     assert lower.stats["cells"] == 0
+
+def test_lower_plate_resampling_is_identity_for_aligned_rasters():
+    world, upper, lower = merge_fixture(gain=0.0)
+
+    mapped = _resample_lower_cells(world.mesh, upper, lower, lower.crust)
+
+    assert mapped.shape == (world.mesh.num_cells,)
+    assert mapped.dtype == np.int32
+    for cell in range(world.mesh.num_cells):
+        expected = cell if lower.crust.mask[cell] else -1
+        assert mapped[cell] == expected

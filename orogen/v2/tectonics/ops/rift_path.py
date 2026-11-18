@@ -84,6 +84,46 @@ def rift_context(world, plate) -> dict:
     }
 
 
+def _coast_candidates(mesh, crust, junction, pull_axis, costs, ctx, config):
+    """Rank oceanic coast cells reachable from a proposed rift junction."""
+    xyz, offsets, adjacency = mesh.xyz, mesh.adj_offset, mesh.adj_list
+    exterior = ctx["exterior"]
+    junction_position = _position(xyz, junction)
+
+    def land(cell: int) -> bool:
+        return bool(crust.mask[cell] and crust.type[cell] != CrustType["OCEAN"])
+
+    coast = []
+    for cell_value in ctx["cells"]:
+        cell = int(cell_value)
+        if not land(cell) or not math.isfinite(float(costs["cost"][cell])):
+            continue
+        is_coast = False
+        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
+            if exterior[int(adjacency[edge])]:
+                is_coast = True
+                break
+        if not is_coast or cell_distance_km(xyz, junction, cell) < float(
+            config["riftMinArmKm"]
+        ):
+            continue
+        direction = tangent_toward(
+            junction_position,
+            junction_position,
+            _position(xyz, cell),
+        )
+        along = abs(dot(direction, pull_axis)) if pull_axis is not None else 0.0
+        coast.append(
+            {
+                "cell": cell,
+                "direction": direction,
+                "score": float(costs["cost"][cell])
+                * (1.0 + float(config["riftAcrossPullBias"]) * along),
+            }
+        )
+    return coast
+
+
 def find_rift(
     world,
     plate,
@@ -126,37 +166,10 @@ def find_rift(
         ),
     )
 
-    exterior = ctx["exterior"]
     from_coast = ctx["from_coast"]
-    junction_position = _position(xyz, junction)
-    coast = []
-    for cell_value in ctx["cells"]:
-        cell = int(cell_value)
-        if not land(cell) or not math.isfinite(float(costs["cost"][cell])):
-            continue
-        is_coast = False
-        for edge in range(int(offsets[cell]), int(offsets[cell + 1])):
-            if exterior[int(adjacency[edge])]:
-                is_coast = True
-                break
-        if not is_coast or cell_distance_km(xyz, junction, cell) < float(
-            config["riftMinArmKm"]
-        ):
-            continue
-        direction = tangent_toward(
-            junction_position,
-            junction_position,
-            _position(xyz, cell),
-        )
-        along = abs(dot(direction, pull_axis)) if pull_axis is not None else 0.0
-        coast.append(
-            {
-                "cell": cell,
-                "direction": direction,
-                "score": float(costs["cost"][cell])
-                * (1.0 + float(config["riftAcrossPullBias"]) * along),
-            }
-        )
+    coast = _coast_candidates(
+        mesh, crust, junction, pull_axis, costs, ctx, config
+    )
 
     if len(coast) < 2:
         return None

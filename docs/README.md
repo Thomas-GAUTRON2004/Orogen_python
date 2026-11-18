@@ -4,6 +4,8 @@ This documentation describes the Python code currently present in this repositor
 
 ## Start here
 
+- Read the [project changelog](../CHANGELOG.md) for user-visible changes.
+
 1. Read [Getting started](GETTING_STARTED.md) to install the package and run a first mesh/noise example.
 2. Read [Architecture](ARCHITECTURE.md) to understand the package boundaries and numerical conventions.
 3. Use the [Core API reference](CORE_API.md) for mesh and numerical operations.

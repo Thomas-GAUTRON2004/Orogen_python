@@ -146,11 +146,13 @@ def test_graph_neighbourhood_and_dijkstra_match_original_on_generated_meshes(
 ):
     expected = next(x for x in original_spheres if x["n"] == n and x["seed"] == seed)
     mesh = build_sim_mesh(n, seed)
+
     def source(cell):
         return cell == 0 or cell == mesh.num_cells // 2
 
     def enter(cell):
         return cell % 11 != 5
+
     assert (
         within_km(mesh, source, mesh.edge_km * 2).tolist() == expected["bfs"]["within"]
     )

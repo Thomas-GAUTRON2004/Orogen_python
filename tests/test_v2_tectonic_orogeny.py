@@ -1,6 +1,5 @@
 """Tests for the pure orogenic belt geometry rules."""
 
-
 import pytest
 
 from orogen.v2.tectonics.orogeny import belt_shape, belt_width_km, obliquity_deg

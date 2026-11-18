@@ -106,6 +106,7 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
 
     def within(cell: int) -> bool:
         return bool(overlap[cell])
+
     rear_dist, rear_source = hops_from(mesh, rear_side, within)
     nose_dist, nose_source = hops_from(mesh, nose_side, within)
     overlap_cells = [int(cell) for cell in np.flatnonzero(overlap)]

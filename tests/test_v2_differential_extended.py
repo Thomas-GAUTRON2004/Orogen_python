@@ -229,11 +229,13 @@ def test_barycentric_point_location_matches_original(original_extended):
 
 def test_breadth_first_mesh_operations_match_original(original_extended):
     mesh = _mesh()
+
     def source(c):
         return c in (0, 2)
 
     def enter(c):
         return c != 5
+
     e = original_extended["bfs"]
     assert within_km(mesh, source, 9000).tolist() == e["within"]
     assert hop_distance(mesh, source, 2, enter).tolist() == e["hops"]

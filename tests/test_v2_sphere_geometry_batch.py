@@ -137,7 +137,9 @@ def test_crust_batch_create_and_snapshot_match_scalar_order():
     batch = CrustRaster(5)
     scalar = CrustRaster(5)
     batch.create_many(cells, types, times, terranes)
-    for cell, crust_type, formed_at, terrane in zip(cells, types, times, terranes, strict=False):
+    for cell, crust_type, formed_at, terrane in zip(
+        cells, types, times, terranes, strict=False
+    ):
         scalar.create(int(cell), int(crust_type), float(formed_at), int(terrane))
 
     assert batch.count == scalar.count == 4

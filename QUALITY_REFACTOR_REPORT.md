@@ -53,7 +53,7 @@ Ruff, mypy, Xenon and Bandit were not available locally and could not be install
 - Extracted suture readiness, gap/ring checks and configured welding from `track_collisions` into `_update_suture_state`; the targeted collision/force/rifting/spread/orogeny suite passes 105 tests with the same adapter.
 - Ran the full Ruff formatting pass in a dedicated formatting-only commit (`1a359d8`), covering the Python package, scripts and tests.
 - Generated `uv.lock` on GitHub Actions with CPython 3.12; uv resolved 44 packages and `uv lock --check` passed. The lockfile is committed separately (`5015af8`).
-- Fixed the initial Ruff findings and restored the missing cKDTree benchmark script exposed by the first PR CI run. The latest full Python test workflow is still being validated.
+- Fixed the initial Ruff findings and restored the missing cKDTree benchmark script exposed by the first PR CI run. Applied Ruff's safe autofixes to the changed source and test files; the complete recheck is pending.
 
 ## Remaining plan items
 

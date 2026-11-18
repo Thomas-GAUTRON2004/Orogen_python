@@ -139,10 +139,15 @@ def test_step_world_adaptive_dt_and_external_motion(monkeypatch):
         "orogen.v2.tectonics.stepper.update_plate_motion",
         lambda w: selected.append(True),
     )
+    monkeypatch.setattr(
+        "orogen.v2.tectonics.stepper.steer_back_arc_strips",
+        lambda _world: selected.append("steer") or 1,
+    )
     result = step_world(world, update_motion=False, update_cycle=False)
     assert result["dt"] == pytest.approx(1.25)
     assert result["cyclePhase"] is None
     assert result["motionUpdated"] is False
+    assert result["steeredBackArcs"] == 0
     assert selected == []
 
 

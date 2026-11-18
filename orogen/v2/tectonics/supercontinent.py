@@ -12,7 +12,7 @@ from .crust import CrustType
 
 
 def is_continental(world, cell: int) -> bool:
-    """True for continental or cratonic crust; island arcs do not count as land."""
+    """Return True for continental or cratonic crust; island arcs do not count as land."""
     owner = int(world.owner[cell])
     if owner < 0:
         return False

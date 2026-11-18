@@ -210,3 +210,37 @@ def test_numba_piece_kernel_empty_and_multiple_component_size_branches():
         offsets, adjacency, selected,
     ).tolist() == [0, 1]
 
+def test_numba_weighted_heap_sift_down_and_stale_source_entries():
+    offsets = np.zeros(5, dtype=np.int32)
+    adjacency = np.asarray([], dtype=np.int32)
+    xyz = np.tile(np.asarray([1., 0., 0.]), 4)
+    mask = np.ones(4, dtype=np.bool_)
+    crust = np.zeros(4, dtype=np.int32)
+    flags = np.zeros(4, dtype=np.int32)
+
+    # Insert keys in a non-heap order. Popping the minimum must sift the
+    # final key down through the left child.
+    kernels.far_field_distance_numba.py_func(
+        offsets, adjacency, xyz, mask, crust, flags,
+        np.asarray([0, 1, 2, 3], dtype=np.int32),
+        np.asarray([math.exp(-3), math.exp(-1), math.exp(-2), 1.]),
+        1., 1., 100., 1, 2, 1., 1.,
+    )
+
+    # Repeated source cells can leave an obsolete larger key in the heap;
+    # it must be discarded after the better source entry is processed.
+    kernels.far_field_distance_numba.py_func(
+        offsets, adjacency, xyz, mask, crust, flags,
+        np.asarray([0, 0, 0], dtype=np.int32),
+        np.asarray([math.exp(-3), 1., 1.]),
+        1., 1., 100., 1, 2, 1., 1.,
+    )
+
+
+def test_numba_spread_heap_sifts_seeded_keys_down():
+    offsets = np.zeros(5, dtype=np.int32)
+    kernels.spread_km_numba.py_func(
+        offsets, np.asarray([], dtype=np.int32), np.asarray([], dtype=np.float64),
+        np.asarray([0., 1., 2., 3.]), 10.,
+    )
+

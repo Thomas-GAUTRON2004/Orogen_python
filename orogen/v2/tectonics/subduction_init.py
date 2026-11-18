@@ -266,8 +266,7 @@ def _old_ocean_margin_runs(mesh, crust, time: float, minimum_age: float):
 
     def land(cell: int) -> bool:
         return bool(
-            mask[cell]
-            and kinds[cell] in (CrustType["CONTINENT"], CrustType["CRATON"])
+            mask[cell] and kinds[cell] in (CrustType["CONTINENT"], CrustType["CRATON"])
         )
 
     coast = np.zeros(num_cells, dtype=np.uint8)
@@ -356,9 +355,7 @@ def founder_within_plates(world, dt: float) -> int:
         crust = plate.crust
         mask, kinds = crust.mask, crust.type
         formed_at = crust.formedAt
-        coast, run_of, runs = _old_ocean_margin_runs(
-            mesh, crust, time, minimum_age
-        )
+        coast, run_of, runs = _old_ocean_margin_runs(mesh, crust, time, minimum_age)
 
         for run in runs:
             length_km = len(run) * edge_km

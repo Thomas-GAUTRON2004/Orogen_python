@@ -62,29 +62,39 @@ simplex sets, closed spherical faces, CSR adjacency, `SphereIndex` lookup
 tables and BFS distances. It also measures the production `build_sim_mesh`
 path. Timings are diagnostic and are not hard pass/fail performance limits.
 
-A prior benchmark run on the original shull feature branch reported these
+The latest successful benchmark run (2026-11-18) used Python 3.12.16,
+NumPy 2.5.5, SciPy 1.18.1 and shull 0.4.0 on a hosted Linux runner. These are
 three-round medians after warm-up:
 
 | Points | SciPy/Qhull | shull | Triangulation speedup |
 |---:|---:|---:|---:|
-| 10,000 | 25.6 ms | 2.2 ms | 11.90× |
-| 40,000 | 119.3 ms | 9.8 ms | 12.20× |
-| 80,000 | 367.7 ms | 21.0 ms | 17.52× |
+| 10,000 | 25.6 ms | 2.2 ms | 11.87× |
+| 40,000 | 118.4 ms | 9.8 ms | 12.08× |
+| 80,000 | 328.6 ms | 21.0 ms | 15.65× |
+
+The broader production pipeline comparison (triangulation, pole closure,
+Python cyclic CSR and `SphereIndex`) measured:
 
 | Cells | SciPy pipeline | shull pipeline | Pipeline speedup |
 |---:|---:|---:|---:|
-| 10,001 | 0.4033 s | 0.3662 s | 1.10× |
-| 40,001 | 1.5637 s | 1.4452 s | 1.08× |
-| 80,001 | 3.2971 s | 2.8801 s | 1.14× |
+| 10,001 | 0.4000 s | 0.3610 s | 1.11× |
+| 40,001 | 1.5701 s | 1.4418 s | 1.09× |
+| 80,001 | 3.2453 s | 2.9018 s | 1.12× |
 
-That historical run also reported a 344,204 KiB peak RSS for the entire
-comparison process, including imports and both backends; it is not a
-per-backend memory measurement. See the
-[historical benchmark workflow](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44183846060).
-A fresh benchmark is required after changes to the current branch.
+The production `build_sim_mesh` wall times using shull were 0.3719 s, 1.4984 s
+and 3.0364 s for the same three input sizes. The retained output arrays occupied
+0.65 MiB, 2.60 MiB and 5.19 MiB respectively. The A/B assertions passed for
+canonical simplex sets, closed faces, CSR offsets and adjacency,
+`SphereIndex` tables, and BFS distance arrays at all three sizes.
 
-The `shull production pipeline benchmark` workflow runs the comparison on
-GitHub Actions and records process peak memory using GNU `/usr/bin/time -v`.
+GNU `/usr/bin/time -v` reported **343,088 KiB (about 335 MiB)** maximum
+resident set size for the entire comparison process, including imports, both
+backends and full production builds. This is not a per-backend memory
+measurement.
+
+[Latest production pipeline benchmark run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444).
+The platform compatibility run passed all 9 combinations of operating system
+and Python version: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402).
 
 ## Remaining optimization scope
 

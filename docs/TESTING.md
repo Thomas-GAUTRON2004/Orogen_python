@@ -18,7 +18,8 @@ The production sphere-mesh builder uses the native `shull` Delaunay backend.
 Focused tests cover spherical topology, cyclic CSR adjacency, deterministic
 builds, exception translation, invalid simplex shapes and out-of-range
 indices. The `shull platform compatibility` workflow checks Python 3.10,
-3.12 and 3.14 on Linux, Windows and macOS.
+3.12 and 3.14 on Linux, Windows and macOS. The latest PR-head run passed all
+9 jobs: [platform matrix run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402).
 
 For an optional SciPy-versus-shull pipeline benchmark, install
 `python -m pip install -e ".[benchmark]"` and run
@@ -54,14 +55,15 @@ CI installs Python 3.12, Node.js 22, the test extras, and Delaunator before runn
 
 ## Latest documented verification
 
-The last successful baseline run on `port/v3.0.1`, before the backend-benchmark refresh, was:
+The latest PR-head source validation on 2026-11-18 completed successfully:
 
 - **506 tests passed**;
 - **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled);
-- run: [GitHub Actions — Python tests](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44260359489);
-- validated revision: `090c8e3f22d592c9f1bcc4d50c9cb635e36e2942`.
+- Python tests: [GitHub Actions run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404);
+- platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed;
+- benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444), all structural comparisons passed.
 
-This is a historical verified run, not a claim that the current branch head has been tested. The run is associated in the project history with commit `6ea20d647169979ccbdf107732ddb7f2535695b9`; rerun CI after subsequent code changes to establish the current status.
+The tested source revision was `b5063ddaa0694d03ea170c78b6076e39818998b2`. Rerun the workflows after subsequent source changes.
 
 The differential suite covers selected core, geometry, mesh and tectonic operations. Production mesh tests now exercise shull directly and check spherical mesh invariants, error translation, simplex shape and index bounds. The optional A/B benchmark compares SciPy and shull on selected deterministic point sets; neither finite test set proves equivalence for all inputs.
 

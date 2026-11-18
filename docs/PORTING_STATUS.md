@@ -76,14 +76,16 @@ test coverage.
 
 ## Latest documented verification
 
-The last successful baseline test run on `port/v3.0.1`, before the current PR refresh, is:
+The latest PR-head source validation on 2026-11-18 completed successfully:
 
 - **506 tests passed**.
 - **99.43% total coverage** for `orogen.v2` (CI minimum: 95%, branch coverage enabled).
-- Python tests: [GitHub Actions run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44260359489).
-- Validated revision: `090c8e3f22d592c9f1bcc4d50c9cb635e36e2942`.
+- Python tests: [GitHub Actions run 44263575404](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575404).
+- Platform matrix: [run 44263575402](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575402), 9/9 jobs passed.
+- A/B pipeline benchmark: [run 44263575444](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44263575444), structural comparisons passed at all three sizes.
+- Validated source revision: `b5063ddaa0694d03ea170c78b6076e39818998b2`.
 
-This is a baseline verification point, not evidence that the refreshed PR head has passed CI. Rerun the test workflow after source changes.
+Rerun the workflows after subsequent source changes.
 
 Coverage measures execution of code present; it is not feature completeness.
 Differential checks cover selected fixtures and do not prove equivalence for

@@ -1125,15 +1125,14 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "shull" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 
 [package.optional-dependencies]
 benchmark = [
     { name = "numba" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 quality = [
     { name = "bandit" },
@@ -1147,9 +1146,6 @@ speed = [
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 
 [package.metadata]
@@ -1162,9 +1158,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5" },
     { name = "ruff", marker = "extra == 'quality'", specifier = ">=0.8" },
-    { name = "scipy", marker = "extra == 'benchmark'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'test'", specifier = ">=1.10" },
-    { name = "shull", specifier = ">=0.4.0,<1" },
+    { name = "scipy", specifier = ">=1.10" },
     { name = "xenon", marker = "extra == 'quality'", specifier = ">=0.9" },
 ]
 provides-extras = ["test", "speed", "benchmark", "quality"]
@@ -1574,26 +1568,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/cf/d9/135be205d9de8783193aff9cc3bf483a03a38e4b29432c954e8cb66ac14e/scipy-1.18.1-cp315-cp315t-musllinux_1_2_x86_64.whl", hash = "sha256:179ce34a8d0fe273d8883ba59e17e052247d08973dfcb743ca52bb1cce2d60b0", size = 37521946, upload-time = "2026-08-21T23:28:35.245Z" },
     { url = "https://files.pythonhosted.org/packages/5c/a2/5b7d5270621ab7cfa3f7766067bf95dc360b5efb6394694e8143b4156e2b/scipy-1.18.1-cp315-cp315t-win_amd64.whl", hash = "sha256:5632e3ae3d09197c446310cd5187de63e28448ce22f0f67b2b93d97503c0c230", size = 37408295, upload-time = "2026-08-21T23:28:40.724Z" },
     { url = "https://files.pythonhosted.org/packages/63/ad/741c19fcb66755ff953daf9243af8480e4bf3d7fbe57583c178c7d2b6b51/scipy-1.18.1-cp315-cp315t-win_arm64.whl", hash = "sha256:eda632a7981f69730d6281f451db9c1c370993a2c0d7ddb43e2a809a2862b83a", size = 25319710, upload-time = "2026-08-21T23:28:45.713Z" },
-]
-
-[[package]]
-name = "shull"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/66/ca36be7048259fbbe354837c948c0faf17145205efacf9bf680646e4f450/shull-0.4.0.tar.gz", hash = "sha256:d3557110d54778e1f2b04b8dd111ea833e487b0a0f63482fb2b9d673a02c926f", size = 89339, upload-time = "2026-07-23T14:36:49.751Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/d8/f93fbb2a0a5515a84801895fa3436479fc87651019b862f5289ff7f52e90/shull-0.4.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:8b49c351f51cdb4d0a5c3006199143e971dd62b86714eca529f415b703dcc8c3", size = 617860, upload-time = "2026-07-23T14:36:41.365Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/a0/c55ba9a2739652fc94c05a72637117db38b1a7e5cd9cf8bf03ee7147f391/shull-0.4.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:6b0179122260391a1fc33efeadb6492b8b9741525d1c1109a1b088a3b1ebc746", size = 592879, upload-time = "2026-07-23T14:36:42.529Z" },
-    { url = "https://files.pythonhosted.org/packages/a8/57/fd7f9d42547bc6b75a03d4066a1b5f24fb233770098c48cf964c73932761/shull-0.4.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:674df304788436828312ec9ddf800fd89540ebbfd6318dfea530645907ffa54e", size = 660549, upload-time = "2026-07-23T14:36:43.895Z" },
-    { url = "https://files.pythonhosted.org/packages/85/60/ce38b8cd361d76d2049c65765130d948dd362a2947cf736e5f5c9999d865/shull-0.4.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9cdaa9d8fe842c42b322f63ffcd3a3f14389d7f96d1013bb81919dba8b74cdd5", size = 669423, upload-time = "2026-07-23T14:36:45.545Z" },
-    { url = "https://files.pythonhosted.org/packages/cc/86/2d3f978097f68068dddbcdf31210e86ebedb88cdb011e550bba26bd724d5/shull-0.4.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:57d4503ee3c9f08ff9478efe1ba7add285ad19b73c102fac8485c868f383371e", size = 837063, upload-time = "2026-07-23T14:36:46.524Z" },
-    { url = "https://files.pythonhosted.org/packages/0d/3c/ecdaf87b227aa72ce7f7a8cc497d6f1a7f00d10cb1be27c24793d630c820/shull-0.4.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:dea334d21d8b57c53f9801d136cd7c0d1333a264066ebe492f48b60a60fb37b9", size = 890604, upload-time = "2026-07-23T14:36:47.668Z" },
-    { url = "https://files.pythonhosted.org/packages/cb/0d/4bd37b9777f63680b2eacbb8599970da9c15a2a589ba1e5d92c7e53e8d12/shull-0.4.0-cp310-abi3-win_amd64.whl", hash = "sha256:cc7ce1c6cf4ac300f92189c02e1dd300f151b06644b2fa70457677a50a3575d0", size = 493949, upload-time = "2026-07-23T14:36:48.707Z" },
 ]
 
 [[package]]

@@ -7,9 +7,12 @@ import pytest
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
 from orogen.v2.tectonics.ops import find_rift, grain_of, rift_context, rift_path
 from orogen.v2.tectonics.ops.rift_path import (
+    _angular_separation,
     _cheapest_paths,
     _crosses_rather_than_hugs,
     _is_monotone,
+    _nearby_rift_cuts,
+    _trace_parent_path,
 )
 
 
@@ -355,3 +358,28 @@ def test_coast_distance_satisfies_breadth_first_distance_invariants():
                 abs(int(distance[cell]) - int(distance[neighbour])) <= 1
                 for neighbour in reachable_land
             )
+
+def test_rift_path_geometry_helpers_preserve_parent_and_distance_rules():
+    parent = np.asarray([-1, 0, 1, 1, 3], dtype=np.int32)
+    assert _trace_parent_path(4, parent) == [0, 1, 3, 4]
+    assert _trace_parent_path(2, parent) == [0, 1, 2]
+
+    first = {"direction": [1.0, 0.0, 0.0], "cell": 0}
+    perpendicular = {"direction": [0.0, 1.0, 0.0], "cell": 2}
+    opposite = {"direction": [-1.0, 0.0, 0.0], "cell": 4}
+    assert _angular_separation(first, perpendicular) == pytest.approx(90.0)
+    assert _angular_separation(first, opposite) == pytest.approx(180.0)
+
+    xyz = np.asarray(
+        [
+            1.0, 0.0, 0.0,
+            math.cos(0.01), math.sin(0.01), 0.0,
+            -1.0, 0.0, 0.0,
+        ],
+        dtype=np.float32,
+    )
+    close = {"cell": 0}
+    nearby = {"cell": 1}
+    distant = {"cell": 2}
+    assert _nearby_rift_cuts(xyz, close, nearby)
+    assert not _nearby_rift_cuts(xyz, close, distant)

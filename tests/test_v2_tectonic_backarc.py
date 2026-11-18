@@ -461,7 +461,7 @@ def test_strip_name_is_unique_and_strips_existing_suffixes():
     assert backarc._strip_name(world, parent, True) == "West Isles 2"
     world.add_plate("West Isles 2")
     assert backarc._strip_name(world, parent, True) == "West Isles 3"
-    assert backarc._strip_name(world, parent, False) == "West Arc"
+    assert backarc._strip_name(world, parent, False) == "West Arc 2"
 
 
 def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():

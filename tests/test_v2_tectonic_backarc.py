@@ -394,7 +394,7 @@ def test_try_open_back_arc_rejects_ineligible_fronts(monkeypatch, reason):
     elif reason == "short":
         front["cells"] = [1]
     elif reason == "chance":
-        world.rngBackArc = lambda: 1.0
+        world.rngBackArc = lambda: 2.0
     elif reason == "no_strip":
         monkeypatch.setattr(backarc, "_strip_behind", lambda *_args: None)
     else:

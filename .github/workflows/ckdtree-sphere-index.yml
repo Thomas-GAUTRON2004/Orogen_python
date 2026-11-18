@@ -2,6 +2,12 @@ name: ckdtree-sphere-index benchmark
 on:
   push:
     branches: ["experiment/ckdtree-sphere-index"]
+  pull_request:
+    branches: ["port/v3.0.1"]
+    paths:
+      - ".github/workflows/ckdtree-sphere-index.yml"
+      - "benchmarks/bench_ckdtree_production.py"
+      - "orogen/**"
   workflow_dispatch:
 jobs:
   benchmark:

@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = [
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# PEP 8 / Pyflakes, Python naming conventions, and NumPy-style docstrings.
+select = ["E4", "E7", "E9", "F", "N", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

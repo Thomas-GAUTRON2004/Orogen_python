@@ -5,15 +5,16 @@ coverage.py with Python branch arcs for the same kernel bodies.
 """
 
 import math
+
 import numpy as np
 import pytest
+
 from orogen.v2.core import _numba_kernels as kernels
 
 pytestmark = pytest.mark.skipif(
     not kernels.NUMBA_AVAILABLE,
     reason="install orogen[speed] to measure Numba kernel coverage",
 )
-
 
 def _graph():
     return (

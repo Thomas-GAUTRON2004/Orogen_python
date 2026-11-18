@@ -67,3 +67,9 @@ The report is included with the proposed quality-refactor changes. The associate
 - Extracted old-ocean coast detection and connected-run labeling from `founder_within_plates` into `_old_ocean_margin_runs`. The change is committed; focused native-backend CI validation is pending.
 - Replaced the Gitleaks Action's failing PR revision-range integration with a pinned Gitleaks CLI scan over the full commit range from the merge base, avoiding the action's invalid-range failure while retaining history scanning.
 - Extracted lower-plate raster resampling from `merge_plates` into `_resample_lower_cells`, alongside the previously extracted old-ocean margin-run discovery in `founder_within_plates`. Both changes await focused CI validation.
+
+## Discarded cKDTree experiment
+
+- The cKDTree candidate was not selected for production. Its dedicated workflow (`.github/workflows/ckdtree-sphere-index.yml`) and benchmark (`benchmarks/bench_ckdtree_production.py`) have been removed from this branch.
+- Removed SciPy from the optional `benchmark` dependency group and synchronized `uv.lock`. SciPy remains in the `test` extra; this cleanup does not change the test environment.
+- The supported production path remains the existing `SphereIndex` backend.

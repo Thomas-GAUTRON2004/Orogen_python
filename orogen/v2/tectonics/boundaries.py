@@ -161,8 +161,8 @@ def _feed_subduction_far_field(world, fronts: dict, dt: float) -> None:
     """Feed active overriding margins into the far-field deformation clock.
 
     The flat-slab share and quiet-gap reset follow V2 step/boundaries.js.
-    This records far-field sources only; local Andean/Laramide belt spreading
-    is deliberately not performed by this partial boundary-classification pass.
+    This helper records far-field sources; local Andean/Laramide and arc belts
+    are spread separately after the flat-slab state has been updated.
     """
     if not fronts:
         return
@@ -479,7 +479,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                 front["kms"].append(closing * dt * 6371.0)
                 front["headOn"].append(closing / float(np.hypot(closing, shear)))
                 front["shears"].append(
-                    obliquity_deg([vx, vy, vz], normal, [px, py, pz], closing)
+                    obliquity_deg([vx, vy, vz], normal[:3], [px, py, pz], closing)
                 )
         elif motion == Motion.CLOSING:
             a_overrides = overrides(
@@ -547,7 +547,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
                         )
                         front["ages"].append(slab_age)
                         front["shears"].append(
-                            obliquity_deg([vx, vy, vz], normal, [px, py, pz], closing)
+                            obliquity_deg([vx, vy, vz], normal[:3], [px, py, pz], closing)
                         )
                         wx, wy, wz = map(float, plate_a.omega)
                         advance = (

@@ -339,9 +339,7 @@ def _subduction_local_belt_config():
 def test_contact_classifier_spreads_local_andean_and_laramide_belts(
     monkeypatch, slab_age_myr, expected_type
 ):
-    module, _mesh, world, upper, _lower = _subduction_contact(
-        monkeypatch, slab_age_myr
-    )
+    module, _mesh, world, upper, _lower = _subduction_contact(monkeypatch, slab_age_myr)
     world.config.update(_subduction_local_belt_config())
     calls = []
     monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)

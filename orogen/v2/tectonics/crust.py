@@ -161,6 +161,8 @@ _DTYPES = {
 class CrustRaster:
     """Structure-of-arrays record for crust in one plate's local frame."""
 
+    oroType: np.ndarray
+
     def __init__(self, num_cells: int):
         if num_cells < 1:
             raise ValueError("num_cells must be positive")

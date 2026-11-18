@@ -258,9 +258,7 @@ def test_lower_plate_resampling_is_identity_for_aligned_rasters():
 
 def test_overlap_geometry_and_displacement_helpers_are_finite_and_consistent():
     world, upper, lower = merge_fixture()
-    from_lower = _resample_lower_cells(
-        world.mesh, upper, lower, lower.crust
-    )
+    from_lower = _resample_lower_cells(world.mesh, upper, lower, lower.crust)
     geometry = _measure_overlap_geometry(
         world.mesh,
         upper,

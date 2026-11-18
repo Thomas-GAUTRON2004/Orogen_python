@@ -242,7 +242,7 @@ def classify_contact_boundaries(world, dt: float) -> int:
     convergence.fill(0)
     normal = [0.0, 0.0, 0.0, 0.0]
     contacts = []
-    fed = {}
+    fed: dict[object, dict] = {}
     subduction_far_field = _SUBDUCTION_FAR_FIELD_CONFIG.issubset(world.config)
     classified = 0
     xyz = mesh.xyz.reshape(-1, 3)
@@ -327,9 +327,10 @@ def classify_contact_boundaries(world, dt: float) -> int:
                 boundary[w] = BoundaryKind["OVERRIDING"]
                 if real:
                     subducted_km = closing * dt * 6371.0
-                    if feed_trench(world, w, plate_a.crust, cell_a, subducted_km):
-                        if subduction_far_field:
-                            front = fed.setdefault(
+                    if feed_trench(
+                        world, w, plate_a.crust, cell_a, subducted_km
+                    ) and subduction_far_field:
+                        front = fed.setdefault(
                                 plate_a,
                                 {
                                     "cells": [],

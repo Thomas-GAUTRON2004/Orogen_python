@@ -294,97 +294,22 @@ def _build_indentation_displacement(
     return displacement
 
 
-def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
-    """Weld two plates in the upper plate's frame and retire the lower plate.
-
-    Returns the land-loss, indentation and sea-closure counters reported by
-    the upstream suture event. The caller is responsible for setting the
-    collision record's `sutured` flag and rebuilding world ownership.
-    """
-    mesh, config, time = world.mesh, world.config, float(world.time)
-    xyz = mesh.xyz
+def _build_merged_crust(
+    upper_crust: CrustRaster,
+    lower_crust: CrustRaster,
+    from_lower: np.ndarray,
+    displacement: np.ndarray,
+    mesh,
+    lower_to_upper: np.ndarray,
+) -> tuple[CrustRaster, np.ndarray]:
+    """Resample and combine both plates into the upper plate's local raster."""
+    xyz, index = mesh.xyz, mesh.index
     num_cells = int(mesh.num_cells)
-    offsets, adjacency, index = mesh.adj_offset, mesh.adj_list, mesh.index
-    edge_km = float(mesh.edge_km)
-
-    upper_crust, lower_crust = upper.crust, lower.crust
-    lower_to_upper = frame_rotation(lower, upper)
-    land_before = int(upper.stats["continentalCells"]) + int(
-        lower.stats["continentalCells"]
-    )
-    hue = (
-        lower.hue
-        if int(lower.stats["cells"]) > int(upper.stats["cells"])
-        else upper.hue
-    )
-
-    # Resample the lower plate once into the upper plate's coordinate frame.
-    from_lower = _resample_lower_cells(mesh, upper, lower, lower_crust)
-
-    # Measure the overlap lens once; all later deformation uses this frame.
-    geometry = _measure_overlap_geometry(
-        mesh,
-        upper,
-        lower,
-        lower_crust,
-        from_lower,
-        overlap_world_cells,
-        edge_km,
-    )
-    overlap_count = geometry.overlap_count
-    overlap_cells = geometry.overlap_cells
-    end_a, end_b = geometry.end_a, geometry.end_b
-    depth_km, along, normal = geometry.depth_km, geometry.along, geometry.normal
-    max_indent, sum_indent = geometry.max_indent, geometry.sum_indent
-
-    displacement = _build_indentation_displacement(
-        mesh,
-        overlap_cells,
-        end_a,
-        end_b,
-        depth_km,
-        along,
-        normal,
-        config,
-    )
-
-    # Inverse displacement of the upper raster, decaying behind the indenter.
-    falloff_km = float(config["indentFalloffKm"])
-    indent_gain = float(config["indentGain"])
-    max_hops = math.ceil(falloff_km / max(edge_km, 1e-12)) + 1
-    reach_dist, reach_source = hops_from(
-        mesh, overlap_cells, lambda _cell: True, max_hops
-    )
-    displacement = np.zeros((num_cells, 3), dtype=np.float32)
-    position_a = _position(xyz, end_a)
-    position_b = _position(xyz, end_b)
-    for cell in range(num_cells):
-        near = int(reach_source[cell])
-        if near < 0:
-            continue
-        distance_km = int(reach_dist[cell]) * edge_km * math.sqrt(3.0) / 2.0
-        if distance_km >= falloff_km:
-            continue
-        taper = (1.0 - distance_km / falloff_km) ** 1.5
-        magnitude = indent_gain * float(depth_km[near]) * taper
-        if magnitude <= 0:
-            continue
-        lateral_share = float(config["escapeShare"]) * abs(float(along[near]))
-        here = _position(xyz, cell)
-        end = position_a if along[near] > 0 else position_b
-        lateral = tangent_toward(here, here, end)
-        normal_vector = normal[near]
-        displacement[cell] = magnitude * (
-            (1.0 - lateral_share) * normal_vector
-            + lateral_share * np.asarray(lateral, dtype=np.float32)
-        )
-
-    # Build the output raster in the upper plate's local frame.
     output = CrustRaster(num_cells)
     origin = np.zeros(num_cells, dtype=np.int8)
     moved = np.zeros(3, dtype=np.float64)
-    upper_targets = []
-    upper_sources = []
+    upper_targets: list[int] = []
+    upper_sources: list[int] = []
     for cell in range(num_cells):
         source = cell
         delta = displacement[cell]
@@ -430,16 +355,29 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             )
             origin[lower_targets] = 2
 
-    _fill_inverse_warp_holes(output, origin, offsets, adjacency, num_cells)
+    _fill_inverse_warp_holes(
+        output,
+        origin,
+        mesh.adj_offset,
+        mesh.adj_list,
+        num_cells,
+    )
+    return output, origin
 
-    sealed = close_seas_between(output, origin, mesh, upper, config, time)
 
-    seam = _mark_suture_band(output, origin, mesh, config, num_cells)
-
-    # Redraw plateau and foreland records over their respective sides.
+def _redraw_suture_belts(
+    output: CrustRaster,
+    origin: np.ndarray,
+    seam: list[int],
+    mesh,
+    collision: dict,
+    mean_indent: float,
+    time: float,
+    config,
+) -> None:
+    """Redraw plateau and foreland deformation records on their seam sides."""
     merged = type("MergedPlate", (), {})()
     merged.crust = output
-    mean_indent = sum_indent / max(1, overlap_count)
     rear_seam = [cell for cell in seam if origin[cell] == 1]
     nose_seam = [cell for cell in seam if origin[cell] == 2]
     total_work = float(collision["shorteningKm"]) + mean_indent
@@ -477,6 +415,17 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
             lambda cell: origin[cell] == 2,
         )
 
+
+def _finalize_merged_plates(
+    world,
+    upper,
+    lower,
+    output: CrustRaster,
+    hue: int,
+    time: float,
+) -> None:
+    """Retire the indenter and refresh the surviving upper plate after welding."""
+    xyz = world.mesh.xyz
     upper.crust = output
     upper.wings.clear()
     upper.mark_reshaped()
@@ -486,10 +435,88 @@ def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
     upper.bornOfRift = False
     lower.alive = False
     upper.hue = hue
-    lower.crust = CrustRaster(num_cells)
+    lower.crust = CrustRaster(int(world.mesh.num_cells))
     lower.omega = [0.0, 0.0, 0.0]
     lower.dynamics = None
     lower.refresh_extent(xyz)
+
+
+def merge_plates(world, upper, lower, overlap_world_cells, collision) -> dict:
+    """Weld two plates in the upper plate's frame and retire the lower plate.
+
+    Returns the land-loss, indentation and sea-closure counters reported by
+    the upstream suture event. The caller is responsible for setting the
+    collision record's `sutured` flag and rebuilding world ownership.
+    """
+    mesh, config, time = world.mesh, world.config, float(world.time)
+    edge_km = float(mesh.edge_km)
+
+    upper_crust, lower_crust = upper.crust, lower.crust
+    lower_to_upper = frame_rotation(lower, upper)
+    land_before = int(upper.stats["continentalCells"]) + int(
+        lower.stats["continentalCells"]
+    )
+    hue = (
+        lower.hue
+        if int(lower.stats["cells"]) > int(upper.stats["cells"])
+        else upper.hue
+    )
+
+    # Resample the lower plate once into the upper plate's coordinate frame.
+    from_lower = _resample_lower_cells(mesh, upper, lower, lower_crust)
+
+    # Measure the overlap lens once; all later deformation uses this frame.
+    geometry = _measure_overlap_geometry(
+        mesh,
+        upper,
+        lower,
+        lower_crust,
+        from_lower,
+        overlap_world_cells,
+        edge_km,
+    )
+    overlap_count = geometry.overlap_count
+    overlap_cells = geometry.overlap_cells
+    end_a, end_b = geometry.end_a, geometry.end_b
+    depth_km, along, normal = geometry.depth_km, geometry.along, geometry.normal
+    max_indent, sum_indent = geometry.max_indent, geometry.sum_indent
+
+    displacement = _build_indentation_displacement(
+        mesh,
+        overlap_cells,
+        end_a,
+        end_b,
+        depth_km,
+        along,
+        normal,
+        config,
+    )
+
+    output, origin = _build_merged_crust(
+        upper_crust,
+        lower_crust,
+        from_lower,
+        displacement,
+        mesh,
+        lower_to_upper,
+    )
+
+    sealed = close_seas_between(output, origin, mesh, upper, config, time)
+
+    seam = _mark_suture_band(output, origin, mesh, config, num_cells)
+
+    mean_indent = sum_indent / max(1, overlap_count)
+    _redraw_suture_belts(
+        output,
+        origin,
+        seam,
+        mesh,
+        collision,
+        mean_indent,
+        time,
+        config,
+    )
+    _finalize_merged_plates(world, upper, lower, output, hue, time)
 
     return {
         "landLostCells": land_before - (int(upper.stats["continentalCells"]) - sealed),

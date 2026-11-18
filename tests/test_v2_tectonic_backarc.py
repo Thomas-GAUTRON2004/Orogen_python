@@ -307,7 +307,9 @@ def test_rollback_fronts_skips_invalid_overriding_contacts(monkeypatch):
     world.owner[other] = slab.id
 
 
-@pytest.mark.parametrize("invalid_slab", ["dead", "background", "reshaped", "empty", "continental"])
+@pytest.mark.parametrize(
+    "invalid_slab", ["dead", "background", "reshaped", "empty", "continental"]
+)
 def test_rollback_fronts_skips_non_ocean_slab_cells(monkeypatch, invalid_slab):
     import orogen.v2.tectonics.backarc as backarc
 
@@ -332,7 +334,9 @@ def test_rollback_fronts_skips_non_ocean_slab_cells(monkeypatch, invalid_slab):
     assert backarc._rollback_fronts(world) == {}
 
 
-def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contacts(monkeypatch):
+def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contacts(
+    monkeypatch,
+):
     import orogen.v2.tectonics.backarc as backarc
 
     world, parent, slab, other = make_margin_world()
@@ -374,7 +378,10 @@ def test_open_back_arcs_handles_missing_config_nonpositive_dt_and_disabled_rate(
     assert open_back_arcs(world, 1.0) == 0
 
 
-@pytest.mark.parametrize("reason", ["dead", "reshaped", "tenure", "short", "chance", "no_strip", "continental_chance"])
+@pytest.mark.parametrize(
+    "reason",
+    ["dead", "reshaped", "tenure", "short", "chance", "no_strip", "continental_chance"],
+)
 def test_try_open_back_arc_rejects_ineligible_fronts(monkeypatch, reason):
     import orogen.v2.tectonics.backarc as backarc
 

@@ -226,12 +226,16 @@ def _measure_overlap_geometry(
         to_cell = int(rear_source[cell]) if rear_source[cell] >= 0 else cell
         here = _position(xyz, cell)
         if from_cell == to_cell:
-            direction = tangent_toward(here, lower_centre_in_upper, upper.capCenter)
+            direction = tangent_toward(
+                tuple(map(float, here)),
+                tuple(map(float, lower_centre_in_upper)),
+                tuple(map(float, upper.capCenter)),
+            )
         else:
             direction = tangent_toward(
-                here,
-                _position(xyz, from_cell),
-                _position(xyz, to_cell),
+                tuple(map(float, here)),
+                tuple(map(float, _position(xyz, from_cell))),
+                tuple(map(float, _position(xyz, to_cell))),
             )
         normal[cell] = direction
 
@@ -285,7 +289,11 @@ def _build_indentation_displacement(
         lateral_share = float(config["escapeShare"]) * abs(float(along[near]))
         here = _position(xyz, cell)
         end = position_a if along[near] > 0 else position_b
-        lateral = tangent_toward(here, here, end)
+        lateral = tangent_toward(
+            tuple(map(float, here)),
+            tuple(map(float, here)),
+            tuple(map(float, end)),
+        )
         normal_vector = normal[near]
         displacement[cell] = magnitude * (
             (1.0 - lateral_share) * normal_vector

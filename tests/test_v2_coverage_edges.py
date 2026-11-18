@@ -243,3 +243,38 @@ def test_sphere_mesh_normalizes_clockwise_simplex_winding(monkeypatch):
     points = np.array([[0., 0.], [0., 1.], [1., 0.]])
     triangles = sphere_mesh._closed_triangles(points, 3)
     assert triangles[0].tolist() == [0, 2, 1]
+
+def test_bfs_duplicate_sources_and_locate_reused_output_buffers():
+    mesh = Graph([0, 1, 2, 2], [1, 0],
+                 [1., 0., 0., 0., 1., 0., 0., 0., 1.])
+    distances, origins = hops_from(mesh, [0, 0, 1, 1], max_hops=0)
+    assert distances.tolist() == [0, 0, -1]
+    assert origins.tolist() == [0, 1, -1]
+
+    # Supplying both output arrays takes the reuse path instead of allocating.
+    cells = np.empty(3, dtype=np.int32)
+    weights = np.empty(3, dtype=np.float64)
+    tri_mesh = SimpleNamespace(
+        xyz=np.array([
+            1., 0., 0., 0., 1., 0., 0., 0., 1., -1., 0., 0.,
+        ], dtype=np.float32),
+        adj_offset=np.array([0, 3, 3, 3, 3], dtype=np.int32),
+        adj_list=np.array([1, 2, 3], dtype=np.int32),
+        index=SimpleNamespace(nearest=lambda *_: 0),
+    )
+    got_cells, got_weights = locate(tri_mesh, 1., 1., 1., cells, weights)
+    assert got_cells is cells and got_weights is weights
+    assert cells.tolist() == [0, 1, 2]
+    assert np.isclose(weights.sum(), 1.)
+
+
+def test_fibonacci_sphere_without_jitter_and_kinematic_pose_paths():
+    xyz = sphere_mesh.generate_fibonacci_sphere(8, 0.0, lambda: 0.5)
+    assert xyz.shape == (24,)
+    from orogen.v2.tectonics.kinematics import pose_at_constant_omega
+    q = [1., 0., 0., 0.]
+    assert pose_at_constant_omega(q, [0., 0., 0.], 5.) == q
+    moved = pose_at_constant_omega(q, [0., 0., 1.], math.pi / 2)
+    assert np.allclose(np.linalg.norm(moved), 1.)
+    assert not np.allclose(moved, q)
+

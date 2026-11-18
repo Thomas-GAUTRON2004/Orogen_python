@@ -44,7 +44,7 @@ def belt_shape(head_on: float, slab_age_myr: float | None, config: dict) -> floa
 
 
 def obliquity_deg(velocity, normal, position, closing: float) -> float:
-    """Signed obliquity in degrees; positive is dextral, negative sinistral."""
+    """Calculate signed obliquity in degrees; positive values are dextral and negative values are sinistral."""
     px, py, pz = map(float, position)
     nx, ny, nz = map(float, normal)
     vx, vy, vz = map(float, velocity)

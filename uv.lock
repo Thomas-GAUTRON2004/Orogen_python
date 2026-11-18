@@ -1159,7 +1159,6 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5" },
     { name = "ruff", marker = "extra == 'quality'", specifier = ">=0.8" },
-    { name = "scipy", marker = "extra == 'benchmark'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'test'", specifier = ">=1.10" },
     { name = "shull", specifier = ">=0.4.0,<1" },
     { name = "xenon", marker = "extra == 'quality'", specifier = ">=0.9" },

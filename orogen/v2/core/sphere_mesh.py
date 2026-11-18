@@ -10,7 +10,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.spatial import Delaunay
+from scipy.spatial import Delaunay  # type: ignore[import-untyped]
 
 
 @dataclass(slots=True)

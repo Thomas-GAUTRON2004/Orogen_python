@@ -9,6 +9,9 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Collision tracking with configured terrane/arc transfer, underthrusting,
+  collision-belt propagation and suture welding through plate redraw/merge.
+- Far-field propagation capable of reactivating old sutures and failed rifts.
 - SciPy/Qhull-backed spherical Delaunay triangulation through
   `scipy.spatial.Delaunay`.
 - Focused sphere-mesh tests for topology, reciprocal neighbours, cyclic
@@ -19,6 +22,8 @@ describe the repository state and changes recorded during the V2 port.
   compatibility limits, the SciPy backend and porting status.
 
 ### Changed
+- The partial `step_world` orchestrator now conditionally includes collision
+  tracking and far-field evolution, and rebuilds ownership after topology changes.
 - The production spherical triangulation backend is SciPy/Qhull. Orogen retains
   its north-pole closure, cyclic CSR adjacency and separate `SphereIndex`
   lookup.

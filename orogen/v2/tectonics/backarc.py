@@ -13,9 +13,8 @@ from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
 from .crust import CrustFlag, CrustType
 from .plate import Plate
-from .polarity import BoundaryKind
+from .world import BoundaryKind, EventKind
 from .ops.plate_transfer import transfer_cells
-from .world import EventKind
 
 
 _REJOIN_CONFIG = frozenset({"backArcActiveMyr", "backArcSeamKm"})
@@ -260,7 +259,7 @@ def _judge_strip(world, plate: Plate, in_strip) -> dict | None:
             arc += 1
             land_cells.append(cell)
 
-    if len(cells) * 2 > int(crust.count):
+    if not cells or len(cells) * 2 > int(crust.count):
         return None
     continental = land > arc
     if continental:

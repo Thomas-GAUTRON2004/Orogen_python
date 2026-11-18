@@ -307,6 +307,7 @@ def test_find_rift_without_optional_failed_arm():
     assert result["failed_arm"] == []
     assert result["arms"][2] == []
 
+
 def test_coast_distance_satisfies_breadth_first_distance_invariants():
     from orogen.v2.tectonics.ops.rift_path import coast_distance
 
@@ -330,8 +331,7 @@ def test_coast_distance_satisfies_breadth_first_distance_invariants():
                 for edge in range(int(offsets[cell]), int(offsets[cell + 1]))
             ]
             is_land = bool(
-                plate.crust.mask[cell]
-                and plate.crust.type[cell] != CrustType["OCEAN"]
+                plate.crust.mask[cell] and plate.crust.type[cell] != CrustType["OCEAN"]
             )
             if not is_land or distance[cell] < 0:
                 continue

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from collections import deque
+import math
 
 import numpy as np
 
@@ -12,8 +12,8 @@ from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .contact import contact_at
 from .crust import CrustFlag, CrustType
-from .plate import Plate
 from .ops.plate_transfer import transfer_cells
+from .plate import Plate
 from .world import BoundaryKind, EventKind
 
 

@@ -738,8 +738,7 @@ def _refresh_suture_gap(
 
     record.setdefault("gapKm2", math.inf)
     closed = (
-        float(record.get("gapWidestKm", math.inf))
-        <= float(config["sutureGapWidthKm"])
+        float(record.get("gapWidestKm", math.inf)) <= float(config["sutureGapWidthKm"])
         or float(record["stalledMyr"]) >= float(config["sutureStallGiveUpMyr"])
         or time - float(record.get("gapShrankAt", time))
         >= float(config["sutureGapStallMyr"])

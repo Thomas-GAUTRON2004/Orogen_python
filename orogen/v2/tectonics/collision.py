@@ -1095,9 +1095,7 @@ def track_collisions(world, dt: float) -> dict:
         )
         record["meanRateCmYr"] = float(record["shorteningKm"]) / elapsed / 10.0
 
-        upper_front, lower_front = _collision_front_cells(
-            world, upper, lower, cells
-        )
+        upper_front, lower_front = _collision_front_cells(world, upper, lower, cells)
         record["frontKm"] = (
             max(len(upper_front), len(lower_front)) * edge_km * math.sqrt(3.0) / 2.0
         )

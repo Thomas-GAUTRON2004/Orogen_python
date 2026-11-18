@@ -56,7 +56,7 @@ The differential suite covers selected core, geometry, mesh and tectonic operati
 - Python tests establish the tested invariants and behaviours of the implemented modules.
 - JavaScript differential tests establish agreement for the specific operations and inputs exercised by those tests.
 - Numba-vs-Python tests establish agreement between the accelerated implementation and its Python fallback; by themselves, they do not establish JavaScript parity.
-- The seven Delaunay fixtures establish agreement only for those resolution/seed pairs.
+- The historical seven Delaunay fixtures establish SciPy/Qhull agreement only; shull must be evaluated against its own CI results.
 
 These results do not establish that every possible input matches upstream.
 

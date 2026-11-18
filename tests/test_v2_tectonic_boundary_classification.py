@@ -498,11 +498,11 @@ def test_contact_classifier_records_transpression_belt_in_crust_raster(
 
 
 def test_local_belt_helpers_skip_nonpositive_timestep(monkeypatch):
-    module, _mesh, _world, upper, _lower = _subduction_contact(monkeypatch)
+    module, _mesh, world, upper, _lower = _subduction_contact(monkeypatch)
     calls = []
     monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
 
-    module._spread_subduction_belts(upper, {upper: {}}, 0.0)
-    module._spread_transpression_belts(upper, {upper: {}}, -1.0)
+    module._spread_subduction_belts(world, {upper: {}}, 0.0)
+    module._spread_transpression_belts(world, {upper: {}}, -1.0)
 
     assert calls == []

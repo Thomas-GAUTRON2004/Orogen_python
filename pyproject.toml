@@ -24,4 +24,4 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.coverage.run]
-omit = ["orogen/v2/core/_numba_kernels.py"]
+branch = true

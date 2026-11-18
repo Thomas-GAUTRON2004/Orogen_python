@@ -161,6 +161,66 @@ _DTYPES = {
 class CrustRaster:
     """Structure-of-arrays record for crust in one plate's local frame."""
 
+    type: np.ndarray
+    flags: np.ndarray
+    formedAt: np.ndarray
+    terrane: np.ndarray
+    slabKm: np.ndarray
+    wingKm: np.ndarray
+    oroType: np.ndarray
+    oroWork: np.ndarray
+    oroStart: np.ndarray
+    oroLast: np.ndarray
+    thickKm: np.ndarray
+    beltU: np.ndarray
+    beltReach: np.ndarray
+    beltAt: np.ndarray
+    beltSide: np.ndarray
+    beltShear: np.ndarray
+    prevType: np.ndarray
+    prevLast: np.ndarray
+    prevU: np.ndarray
+    prevReach: np.ndarray
+    prevSide: np.ndarray
+    prevShear: np.ndarray
+    rootKm: np.ndarray
+    upliftKm: np.ndarray
+    baseKm: np.ndarray
+    rugged: np.ndarray
+    prevRugged: np.ndarray
+    volcWornKm: np.ndarray
+    riverIncKm: np.ndarray
+    volcType: np.ndarray
+    volcAt: np.ndarray
+    volcKm: np.ndarray
+    volcSource: np.ndarray
+    fzU: np.ndarray
+    geoFlags: np.ndarray
+    coverKm: np.ndarray
+    coverMaxKm: np.ndarray
+    coverMaxAt: np.ndarray
+    coverCarb: np.ndarray
+    coverSalt: np.ndarray
+    coverCoal: np.ndarray
+    coverOrganic: np.ndarray
+    exhumKm: np.ndarray
+    unroofKm: np.ndarray
+    floodMyr: np.ndarray
+    floodLast: np.ndarray
+    arcMyr: np.ndarray
+    riftAt: np.ndarray
+    farWork: np.ndarray
+    farDist: np.ndarray
+    farFold: np.ndarray
+    farAt: np.ndarray
+    farDx: np.ndarray
+    farDy: np.ndarray
+    farDz: np.ndarray
+    numCells: int
+    mask: np.ndarray
+    count: int
+    fields: list[np.ndarray]
+    _numba_fields: tuple[np.ndarray, ...]
     oroType: np.ndarray
 
     def __init__(self, num_cells: int):
@@ -172,7 +232,7 @@ class CrustRaster:
         # Allocate one backing matrix per dtype instead of one allocation per
         # field. Each field remains a contiguous, independently writable 1-D
         # view with exactly the same dtype and values as before.
-        fields_by_dtype = {}
+        fields_by_dtype: dict[object, list[str]] = {}
         for name in CELL_FIELDS:
             dtype = np.dtype(_DTYPES[name])
             fields_by_dtype.setdefault(dtype, []).append(name)

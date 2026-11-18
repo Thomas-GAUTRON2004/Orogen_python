@@ -1353,3 +1353,47 @@ def test_collision_front_cells_returns_unique_valid_land_contacts():
     world.landClaims[1] = 2
     world.landClaims[3] = 2
     assert _collision_front_cells(world, upper, lower, [2]) == ([], [])
+
+
+def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeypatch):
+    """Exercise the stepper-to-collision seam without replacing the tracker."""
+    from orogen.v2.tectonics import collision, stepper
+
+    world, upper, lower = collision_tracking_world()
+    world.step = 0
+
+    # Keep unrelated stages inert: the contact geometry and collision tracker
+    # remain real, while this test isolates their integration in step_world.
+    monkeypatch.setattr(stepper, "closing_rate", lambda _world: 0.0)
+    monkeypatch.setattr(stepper, "advance_plates", lambda *_args: None)
+    monkeypatch.setattr(stepper, "resolve", lambda _world: {})
+    monkeypatch.setattr(
+        stepper, "classify_contact_boundaries", lambda _world, _dt: 0
+    )
+    monkeypatch.setattr(stepper, "update_plumes", lambda _world, _dt: None)
+    monkeypatch.setattr(stepper, "open_back_arcs", lambda _world, _dt: 0)
+    monkeypatch.setattr(
+        collision, "centroid_of_cells", lambda _xyz, _cells: [1.0, 0.0, 0.0]
+    )
+    monkeypatch.setattr(
+        collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0]
+    )
+
+    result = stepper.step_world(
+        world,
+        1.0,
+        update_motion=False,
+        update_cycle=False,
+    )
+
+    record = world.collisions["0:1"]
+    assert result["collisions"] == {
+        "tracked": 1,
+        "started": 1,
+        "underthrustCells": 0,
+        "changed": False,
+    }
+    assert record["upper"] == upper.id
+    assert record["lower"] == lower.id
+    assert record["shorteningKm"] == pytest.approx(63.71)
+    assert [event["kind"] for event in world.events] == ["collision"]

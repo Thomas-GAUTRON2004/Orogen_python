@@ -1,0 +1,26 @@
+name: Temporary Ruff import diagnostic
+
+on:
+  push:
+    branches:
+      - feat/subduction-far-field-2026-11-18
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-imports:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned Ruff
+        run: python -m pip install "ruff==0.11.13"
+      - name: Apply and print Ruff's exact import fix
+        run: |
+          python -m ruff check --fix orogen/v2/tectonics/backarc.py || true
+          git diff -- orogen/v2/tectonics/backarc.py

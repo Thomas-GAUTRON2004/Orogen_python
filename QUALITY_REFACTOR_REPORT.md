@@ -31,6 +31,7 @@ Base commit: `0afae616a78d318ac1c77e6b52b5118059d98f5f`
 ## Validation performed
 
 - 78 focused tests passed across `test_v2_spread_belt.py`, `test_v2_tectonic_rifting.py`, `test_v2_far_field.py` and `test_v2_tectonic_orogeny.py`.
+- After the boundary-force extraction, 34 tests passed across `test_v2_tectonic_forces.py`, `test_v2_tectonic_dynamics.py` and `test_v2_tectonic_stepper.py`, using a temporary SciPy-backed adapter because `shull` is unavailable in this local environment.
 - `compileall` succeeded for all Python files under `orogen`, `scripts` and `tests`.
 - `pyproject.toml`, `package.json` and `.github/workflows/python-tests.yml` parsed successfully.
 - A wheel was built successfully and checked to contain `orogen/py.typed`.
@@ -40,6 +41,11 @@ Base commit: `0afae616a78d318ac1c77e6b52b5118059d98f5f`
 
 Ruff, mypy, Xenon and Bandit were not available locally and could not be installed because the environment had no package-index network access. Their CI steps are configured but have not yet been observed passing on this change. The full Ruff formatting pass, mypy diagnostic comparison and complete coverage threshold therefore remain to be confirmed by CI.
 
+## Additional work after the initial quality pilot
+
+- Extracted slab pull/suction classification, young-rift/ridge classification and force accumulation from `gather_boundary_loads` into dedicated helpers. The existing force, dynamics and stepper tests pass (34 tests) with a temporary SciPy-backed test adapter.
+- Fixed the Ruff findings in `rift_continents` and restored the missing cKDTree benchmark script from the experiment branch after the PR CI exposed the missing path.
+
 ## Remaining plan items
 
 - Run and commit the full Ruff formatting pass as a dedicated formatting-only change; historical formatting debt has not been globally removed here.
@@ -47,6 +53,6 @@ Ruff, mypy, Xenon and Bandit were not available locally and could not be install
 - Run the updated GitHub Actions workflow against the actual native `shull` backend and confirm full-package branch coverage is at least 95%.
 - Verify that mypy introduces no new diagnostics relative to the PR base, then work down the existing baseline in `crust.py`, `ops/merge_plates.py`, `_numba_kernels.py` and `ops/rift_path.py`.
 - Measure Radon/Xenon complexity and Numba performance before/after; the local environment did not provide a usable Radon/Xenon installation or a complete benchmark comparison.
-- Continue the remaining Phase 2 refactors (`gather_boundary_loads`, `track_collisions`, `merge_plates`, `find_rift`, `founder_within_plates`, and others), then add the proposed physical-property tests and cover the residual branches in `collision.py` and `contact.py`.
+- Continue the remaining Phase 2 refactors (`track_collisions`, `merge_plates`, `find_rift`, `founder_within_plates`, and others), then add the proposed physical-property tests and cover the residual branches in `collision.py` and `contact.py`.
 
 The report is included with the proposed quality-refactor changes. The associated pull request and its CI runs are the publication and validation record.

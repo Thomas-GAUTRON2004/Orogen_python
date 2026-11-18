@@ -97,6 +97,108 @@ def _front_normal(world, cell: int, plate_a_id: int, plate_b_id: int, position, 
     return (vector / length).tolist()
 
 
+
+def _slab_force(
+    crust_a,
+    cell_a: int,
+    crust_b,
+    cell_b: int,
+    ocean_a: bool,
+    ocean_b: bool,
+    trench_a: bool,
+    trench_b: bool,
+    time: float,
+    config: Mapping,
+) -> tuple[int, float] | None:
+    """Return the slab pull/suction category and magnitude when applicable."""
+    if trench_b and ocean_a and not trench_a:
+        age = math.sqrt(
+            min(
+                1.0,
+                max(0.0, time - float(crust_a.formedAt[cell_a]))
+                / float(config["slabPullAgeRefMyr"]),
+            )
+        )
+        maturity = min(
+            1.0, float(crust_b.slabKm[cell_b]) / float(config["slabMatureKm"])
+        )
+        return _PULL, float(config["slabPull"]) * age * maturity
+
+    if trench_a and ocean_b and not trench_b:
+        age = math.sqrt(
+            min(
+                1.0,
+                max(0.0, time - float(crust_b.formedAt[cell_b]))
+                / float(config["slabPullAgeRefMyr"]),
+            )
+        )
+        maturity = min(
+            1.0, float(crust_a.slabKm[cell_a]) / float(config["slabMatureKm"])
+        )
+        return _SUCTION, float(config["slabSuction"]) * age * maturity
+    return None
+
+
+def _rift_or_ridge_force(
+    plate,
+    other,
+    crust_a,
+    cell_a: int,
+    crust_b,
+    cell_b: int,
+    ocean_a: bool,
+    ocean_b: bool,
+    direction: np.ndarray,
+    time: float,
+    config: Mapping,
+) -> tuple[int, float, np.ndarray]:
+    """Classify a non-slab contact as young-rift or young-ridge push."""
+    rift_age = _rift_age(
+        plate, crust_a, cell_a, other, crust_b, cell_b, time
+    )
+    if rift_age < float(config["riftPushMyr"]):
+        size = -float(config["riftPush"]) * (
+            1.0 - rift_age / float(config["riftPushMyr"])
+        )
+        if plate.riftPushDir is not None:
+            direction = np.asarray(
+                plate.to_world(*map(float, plate.riftPushDir)),
+                dtype=np.float64,
+            )
+            size = abs(size)
+        return _RIFT, size, direction
+
+    if (
+        ocean_a
+        and ocean_b
+        and float(crust_a.formedAt[cell_a]) >= 0
+        and float(crust_b.formedAt[cell_b]) >= 0
+        and time - float(crust_a.formedAt[cell_a]) < float(config["ridgeMaxAgeMyr"])
+        and time - float(crust_b.formedAt[cell_b]) < float(config["ridgeMaxAgeMyr"])
+    ):
+        return _RIDGE, -float(config["ridgePush"]), direction
+    return -1, 0.0, direction
+
+
+def _accumulate_boundary_force(
+    load: dict,
+    kind: int,
+    size: float,
+    length: float,
+    direction: np.ndarray,
+    position: np.ndarray,
+) -> None:
+    """Accumulate one classified force into its torque and force channels."""
+    force = size * length * direction
+    torque = np.cross(position, force)
+    load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
+    load["byKind"][kind] = (np.asarray(load["byKind"][kind]) + torque).tolist()
+    load["forceByKind"][kind] = (
+        np.asarray(load["forceByKind"][kind]) + force
+    ).tolist()
+    load["torqueMagnitudeSum"] += float(np.linalg.norm(torque))
+    load["cells"][kind] += 1
+
 def gather_boundary_loads(world) -> dict[int, dict]:
     """Gather four local boundary-force families for living non-background plates.
 
@@ -219,51 +321,47 @@ def gather_boundary_loads(world) -> dict[int, dict]:
         if length <= 0:
             continue
 
-        kind = -1
-        size = 0.0
         direction = normal_out[:3].copy()
-        if trench_b and ocean_a and not trench_a:
-            kind = _PULL
-            age = math.sqrt(min(1.0, max(0.0, float(world.time) - float(crust_a.formedAt[cell_a])) / float(world.config["slabPullAgeRefMyr"])))
-            maturity = min(1.0, float(crust_b.slabKm[cell_b]) / float(world.config["slabMatureKm"]))
-            size = float(world.config["slabPull"]) * age * maturity
-            load["slabs"].append({
-                "r": xyz[world_cell].tolist(),
-                "n": direction.tolist(),
-                "other": other_id,
-                "length": length,
-            })
-        elif trench_a and ocean_b and not trench_b:
-            kind = _SUCTION
-            age = math.sqrt(min(1.0, max(0.0, float(world.time) - float(crust_b.formedAt[cell_b])) / float(world.config["slabPullAgeRefMyr"])))
-            maturity = min(1.0, float(crust_a.slabKm[cell_a]) / float(world.config["slabMatureKm"]))
-            size = float(world.config["slabSuction"]) * age * maturity
+        slab_force = _slab_force(
+            crust_a,
+            cell_a,
+            crust_b,
+            cell_b,
+            ocean_a,
+            ocean_b,
+            trench_a,
+            trench_b,
+            float(world.time),
+            config,
+        )
+        if slab_force is not None:
+            kind, size = slab_force
+            if kind == _PULL:
+                load["slabs"].append({
+                    "r": xyz[world_cell].tolist(),
+                    "n": direction.tolist(),
+                    "other": other_id,
+                    "length": length,
+                })
         else:
-            rift_age = _rift_age(plate, crust_a, cell_a, other, crust_b, cell_b, float(world.time))
-            if rift_age < float(world.config["riftPushMyr"]):
-                kind = _RIFT
-                size = -float(world.config["riftPush"]) * (1.0 - rift_age / float(world.config["riftPushMyr"]))
-                if plate.riftPushDir is not None:
-                    direction = plate.to_world(*map(float, plate.riftPushDir))
-                    size = abs(size)
-            elif (
-                ocean_a and ocean_b
-                and float(crust_a.formedAt[cell_a]) >= 0
-                and float(crust_b.formedAt[cell_b]) >= 0
-                and float(world.time) - float(crust_a.formedAt[cell_a]) < float(world.config["ridgeMaxAgeMyr"])
-                and float(world.time) - float(crust_b.formedAt[cell_b]) < float(world.config["ridgeMaxAgeMyr"])
-            ):
-                kind = _RIDGE
-                size = -float(world.config["ridgePush"])
+            kind, size, direction = _rift_or_ridge_force(
+                plate,
+                other,
+                crust_a,
+                cell_a,
+                crust_b,
+                cell_b,
+                ocean_a,
+                ocean_b,
+                direction,
+                float(world.time),
+                config,
+            )
         if kind < 0 or size == 0:
             continue
 
-        force = size * length * direction
-        torque = np.cross(xyz[world_cell], force)
-        load["torque"] = (np.asarray(load["torque"]) + torque).tolist()
-        load["byKind"][kind] = (np.asarray(load["byKind"][kind]) + torque).tolist()
-        load["forceByKind"][kind] = (np.asarray(load["forceByKind"][kind]) + force).tolist()
-        load["torqueMagnitudeSum"] += float(np.linalg.norm(torque))
-        load["cells"][kind] += 1
+        _accumulate_boundary_force(
+            load, kind, size, length, direction, xyz[world_cell]
+        )
 
     return loads

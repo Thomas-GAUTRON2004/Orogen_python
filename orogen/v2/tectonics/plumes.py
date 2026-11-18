@@ -6,6 +6,7 @@ Execution of queued plume-triggered rifts remains a later tectonic stage.
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 
@@ -341,9 +342,9 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
 
     centre = np.asarray(plume["xyz"], dtype=np.float64)
     axis = float(rs()) * math.pi
-    basis1, basis2 = tangent_basis(centre)
+    basis1, basis2 = tangent_basis(tuple(map(float, centre)))
     flow_count = 1 + math.floor(float(rs()) * float(rs()) * 4.0)
-    flows = []
+    flows: list[dict[str, Any]] = []
     total_weight = 0.0
     for i in range(flow_count):
         weight = 1.0 if i == 0 else 0.25 + 0.6 * float(rs())

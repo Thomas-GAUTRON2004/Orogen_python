@@ -128,7 +128,9 @@ def test_spherical_geometry_matches_original(original_extended):
     assert cap_fraction(0.75) == pytest.approx(g["cap"], abs=2e-15)
     polar = polar_frame([0.3, 0.4, math.sqrt(0.75)], [0, 0, 1])
     for point, expected in zip(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0]], g["polar"]
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0]],
+        g["polar"],
+        strict=False,
     ):
         actual = polar(*point)
         assert actual["colat"] == pytest.approx(expected["colat"], abs=2e-12)
@@ -218,7 +220,7 @@ def test_barycentric_point_location_matches_original(original_extended):
         [0.2, 0.3, -1],
         [1, 1, 1],
     ]
-    for point, expected in zip(queries, original_extended["locate"]):
+    for point, expected in zip(queries, original_extended["locate"], strict=False):
         cells, weights = locate(mesh, *point)
         assert cells.tolist() == expected["cells"]
         _close(weights, expected["weights"])
@@ -227,8 +229,11 @@ def test_barycentric_point_location_matches_original(original_extended):
 
 def test_breadth_first_mesh_operations_match_original(original_extended):
     mesh = _mesh()
-    source = lambda c: c in (0, 2)
-    enter = lambda c: c != 5
+    def source(c):
+        return c in (0, 2)
+
+    def enter(c):
+        return c != 5
     e = original_extended["bfs"]
     assert within_km(mesh, source, 9000).tolist() == e["within"]
     assert hop_distance(mesh, source, 2, enter).tolist() == e["hops"]

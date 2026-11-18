@@ -87,7 +87,6 @@ def make_world():
             "continentalSoftCmYr": 7.0,
             "oceanicSoftCmYr": 12.0,
             "maxSpeedContinental": 10.0,
-            "maxSpeedOceanic": 25.0,
         },
         events=[],
         collisions={},

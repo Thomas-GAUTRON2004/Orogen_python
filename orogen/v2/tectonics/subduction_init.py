@@ -303,7 +303,7 @@ def founder_within_plates(world, dt: float) -> int:
         mask, kinds = crust.mask, crust.type
         flags, formed_at = crust.flags, crust.formedAt
 
-        def land(cell: int) -> bool:
+        def land(cell: int, mask=mask, kinds=kinds) -> bool:
             return bool(
                 mask[cell]
                 and kinds[cell]

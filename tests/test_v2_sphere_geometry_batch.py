@@ -137,7 +137,7 @@ def test_crust_batch_create_and_snapshot_match_scalar_order():
     batch = CrustRaster(5)
     scalar = CrustRaster(5)
     batch.create_many(cells, types, times, terranes)
-    for cell, crust_type, formed_at, terrane in zip(cells, types, times, terranes):
+    for cell, crust_type, formed_at, terrane in zip(cells, types, times, terranes, strict=False):
         scalar.create(int(cell), int(crust_type), float(formed_at), int(terrane))
 
     assert batch.count == scalar.count == 4
@@ -216,7 +216,7 @@ def test_crust_copy_many_matches_scalar_copy_and_rotation():
         ]
     )
     batch.copy_many(destinations, source, sources, rotation)
-    for target, source_cell in zip(destinations, sources):
+    for target, source_cell in zip(destinations, sources, strict=False):
         scalar.copy_from(target, source, source_cell, rotation)
 
     assert batch.count == scalar.count
@@ -234,7 +234,7 @@ def test_crust_copy_many_supports_same_raster_overlapping_order():
         batch.create(cell, CrustType["CONTINENT"], cell, cell + 1)
         scalar.create(cell, CrustType["CONTINENT"], cell, cell + 1)
     batch.copy_many([1, 2, 3], batch, [0, 1, 2])
-    for target, source in zip([1, 2, 3], [0, 1, 2]):
+    for target, source in zip([1, 2, 3], [0, 1, 2], strict=False):
         scalar.copy_from(target, scalar, source)
     assert batch.count == scalar.count
     for cell in range(5):

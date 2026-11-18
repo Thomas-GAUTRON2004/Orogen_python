@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections import deque
 
 import numpy as np
@@ -307,6 +308,9 @@ def _split_strip(
         < float(world.config["riftPushMyr"])
     )
     if not still_rifting:
+        if partner is not None and int(partner.riftPartner) == int(parent.id):
+            partner.riftPartner = -1
+            partner.riftPushDir = None
         fresh.riftPushDir = fresh.backArcPushDir[:]
         parent.riftPushDir = [-value for value in fresh.backArcPushDir]
         fresh.riftPartner = int(parent.id)
@@ -326,8 +330,6 @@ def _split_strip(
 
 def _strip_name(world, parent: Plate, continental: bool) -> str:
     """Name the fragment uniquely while retaining its originating landmass."""
-    import re
-
     root = re.sub(r" (Arc|Isles)( \d+)?$", "", str(parent.name))
     suffix = "Isles" if continental else "Arc"
     base = f"{root} {suffix}"

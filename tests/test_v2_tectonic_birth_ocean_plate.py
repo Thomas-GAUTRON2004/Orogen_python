@@ -125,3 +125,18 @@ def test_ocean_plate_names_increment_by_existing_ocean_born_plates():
     b = world.add_plate("another")
     b.isOceanBorn = True
     assert ocean_plate_name(world) == "Thalassa 3"
+
+def test_birth_ocean_plate_deduplicates_raster_cells_and_skips_empty_rasters():
+    world, background = make_world(minimum_area=0.0)
+    # World cells 1 and 2 map to the same raster cell; cell 3 maps to an
+    # unoccupied raster cell. Only one unique, occupied raster cell transfers.
+    world.ownerCell[2] = 1
+    world.ownerCell[3] = 0
+    fresh = birth_ocean_plate(
+        world, background, seed_cells=[0, 3], reach_km=1000.0, name="dedup"
+    )
+    assert fresh is not None
+    assert fresh.crust.count == 1
+    assert fresh.crust.mask[1]
+    assert not fresh.crust.mask[0]
+

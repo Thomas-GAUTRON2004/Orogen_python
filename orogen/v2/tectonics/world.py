@@ -91,7 +91,7 @@ class TectonicWorld:
         self.pendingPlumeRifts: list[dict[str, Any]] = []
         self.lastRiftAt = None
         self.plumes: list[dict[str, Any]] = []
-        self.terraneLetters = None
+        self.terraneLetters: dict[int, str] | None = None
         self.time = 0.0
         self.step = 0
         self.occupancyStamp = 0
@@ -125,6 +125,7 @@ class TectonicWorld:
         self.lastTerraneId = 0
         self.erosionNoise = None
         self.erosionThreshold = 0.0
+        self.startSeamKm: dict[str, np.ndarray] | None = None
 
     def next_terrane_id(self) -> int:
         if self.lastTerraneId == 0:

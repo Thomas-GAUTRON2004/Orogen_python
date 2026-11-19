@@ -54,7 +54,7 @@ def build_continental_scene(
         land,
         CrustType["CONTINENT"],
         -float(world.config.get("initialLandAgeMyr", 2000.0)),
-        1
+        1,
     )
     water = np.flatnonzero(~land_mask)
     ocean.crust.create_many(

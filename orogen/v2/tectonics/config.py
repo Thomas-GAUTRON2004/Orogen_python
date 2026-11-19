@@ -1,4 +1,3 @@
-# fmt: off
 """Shared V2 tectonic configuration defaults and mechanism controls.
 
 Directly ported from upstream v3.0.1 v2/js/tectonics/config.js.
@@ -9,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
-from math import isfinite
+from math import isfinite, isinf
 from numbers import Real
 from typing import Any
 
@@ -17,6 +16,7 @@ CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
 # Preserve the upstream config catalogue and its explanatory comments.
+# fmt: off
 TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
@@ -558,6 +558,7 @@ TECTONICS: dict[str, Any] = {
         "historyMyr": 600,                  # [WBP] 500–1000 Myr covers nearly all surviving geology
     },
 }
+# fmt: on
 
 MECHANISMS: dict[str, dict[str, Any]] = {
     "wings":          { "wingGrowthCmYr": 0 },                                   # trench wings (step/wings.js)
@@ -580,7 +581,18 @@ MECHANISMS: dict[str, dict[str, Any]] = {
     "mantleHeatRifts": { "riftHeatGain": 0, "riftHeatFloor": 1, "dispersalRiftBoost": 1, "riftHeatTension": 0 },                  # continents rift readily over mantle they have insulated (step/rifting.js)
     "mantleFlow":     { "mantleOutflow": 0, "mantleInflow": 0, "dispersalRepulsion": 0, "disperseFounderFactor": 1 }, # the mantle's flow drags continents apart and together again (step/supercontinent.js)
     "farField":       { "farCollisionShare": 0, "farAndeanShare": 0, "farFlatShare": 0, "farStartWorkKm": 0, "farReactivate": 0 },     # a front's push felt far inland (step/far-field.js; records only)
-}  # fmt: skip
+}
+
+# The mechanism catalogue also contributes known top-level config fields.
+# In particular, backgroundEndMyr is intentionally +inf when retirement is off.
+_CONFIG_SCHEMA: dict[str, Any] = {
+    **TECTONICS,
+    **{
+        key: value
+        for mechanism in MECHANISMS.values()
+        for key, value in mechanism.items()
+    },
+}
 
 
 def mechanisms_off(*names: str) -> dict[str, Any]:
@@ -687,7 +699,7 @@ def _validate_known_shape(value: Any, default: Any, path: str) -> None:
         if isinstance(value, bool) or not isinstance(value, Real):
             raise TypeError(f"{path} must be a real number")
         if not isfinite(float(value)) and not (
-            path == "backgroundEndMyr" and float(value) == float("inf")
+            isinf(float(default)) and float(value) == float(default)
         ):
             raise ValueError(f"{path} must be finite")
         return
@@ -715,8 +727,8 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
     if not isinstance(config, Mapping):
         raise TypeError("tectonics config must be a mapping")
     for key, value in config.items():
-        if key in TECTONICS:
-            _validate_known_shape(value, TECTONICS[key], key)
+        if key in _CONFIG_SCHEMA:
+            _validate_known_shape(value, _CONFIG_SCHEMA[key], key)
     bounded_keys = _POSITIVE | _NON_NEGATIVE | _UNIT_INTERVAL | {
         "beltSpeedExponent",
         "beltSpeedFactorMin",

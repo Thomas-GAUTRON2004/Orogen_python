@@ -18,6 +18,7 @@ from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
 from ..core.sphere_geometry import random_point, tangent_basis
 from .crust import CrustFlag, CrustType, OrogenyType
+from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
 
 StartSeam = {"NONE": 0, "INNER": 1, "RING": 2, "MAJOR": 3}
@@ -167,49 +168,48 @@ def _seams(
 def _paint_old_ranges(
     world: TectonicWorld, plate, land_mask: np.ndarray, seams: np.ndarray
 ) -> None:
-    """Seed worn pre-history belts along the three seam classes."""
+    """Build the inherited pre-history ranges with the regular belt engine."""
     cfg = world.config
     ranges = cfg.get("startRanges", {})
-    max_hops = max(1, int(math.ceil(3000.0 / max(float(world.mesh.edge_km), 1.0))))
     for kind_name in ("inner", "ring", "major"):
         kind = StartSeam[kind_name.upper()]
         settings = ranges.get(kind_name) if isinstance(ranges, dict) else None
         if not settings or len(settings) < 4:
             continue
         width_km, work_km, age_myr, keep = (float(value) for value in settings[:4])
-        if work_km <= 0 or width_km <= 0:
+        sources = np.flatnonzero((seams == kind) & land_mask).tolist()
+        if not sources or width_km <= 0.0 or work_km <= 0.0:
             continue
-        sources = seams == kind
-        if not np.any(sources):
-            continue
-        hops = _distance_hops(
+
+        crust = plate.crust
+        before = {
+            "root": crust.rootKm.copy(),
+            "uplift": crust.upliftKm.copy(),
+            "rugged": crust.rugged.copy(),
+        }
+        spread_belt(
+            plate,
             world.mesh,
             sources,
-            can_enter=lambda cell: bool(land_mask[cell]),
-            max_hops=max_hops,
+            {
+                "type": OrogenyType["URAL"],
+                "time": -age_myr,
+                "widthKm": width_km,
+                "workKm": work_km,
+            },
+            cfg,
+            allow=lambda cell: bool(land_mask[cell]),
         )
-        reached = (
-            (hops >= 0)
-            & land_mask
-            & (hops.astype(np.float64) * world.mesh.edge_km <= 2.0 * width_km)
-        )
-        cells = np.flatnonzero(reached)
-        if not cells.size:
-            continue
-        distance = hops[cells].astype(np.float64) * world.mesh.edge_km
-        profile = np.clip(1.0 - distance / (2.0 * width_km), 0.0, 1.0)
-        strength = keep * profile
-        crust = plate.crust
-        crust.oroType[cells] = OrogenyType["URAL"]
-        crust.oroWork[cells] = (work_km * profile).astype(np.float32)
-        crust.oroStart[cells] = -age_myr
-        crust.oroLast[cells] = -age_myr
-        crust.thickKm[cells] += (
-            cfg.get("thickeningPerWorkKm", 0.05) * work_km * profile
-        ).astype(np.float32)
-        crust.rootKm[cells] += (0.9 * strength).astype(np.float32)
-        crust.upliftKm[cells] += (0.25 * strength).astype(np.float32)
-        crust.rugged[cells] += (0.15 * strength).astype(np.float32)
+        # The range was substantially worn down before recorded history. Keep
+        # the belt's geological records, but only the configured share of its
+        # newly-built relief, matching the upstream oldRanges pass.
+        crust.rootKm[:] = before["root"] + (crust.rootKm - before["root"]) * keep
+        crust.upliftKm[:] = before["uplift"] + (
+            crust.upliftKm - before["uplift"]
+        ) * keep
+        crust.rugged[:] = before["rugged"] + (
+            crust.rugged - before["rugged"]
+        ) * keep
 
 
 def build_start_world(

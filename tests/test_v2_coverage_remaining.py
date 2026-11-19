@@ -601,3 +601,49 @@ def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
     assert plate.crust.rootKm[0] == 0.0
     assert plate.crust.rootKm[1] == 0.0
     assert plate.crust.rootKm[2] == 0.0
+
+
+
+def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
+    mesh = build_sim_mesh(512, 971)
+    pushed = []
+    monkeypatch.setattr(initial_world, "spread_push", lambda *args: pushed.append(args))
+
+    def assign(_xyz, land_cells, centres, _share):
+        count = len(centres)
+        owners = np.arange(len(land_cells), dtype=np.uint16) % count + 1
+        return owners, np.zeros(len(land_cells), dtype=bool), np.zeros(
+            len(land_cells), dtype=np.int32
+        )
+
+    monkeypatch.setattr(initial_world, "_assign_cratons", assign)
+
+    def seams(_mesh, land_mask, land_cells, terrane_owner, _centre, _radius, groups):
+        result = np.zeros(len(land_mask), dtype=np.uint8)
+        for cell_value in land_cells:
+            cell = int(cell_value)
+            left = int(terrane_owner[np.flatnonzero(land_cells == cell)[0]]) - 1
+            lo, hi = int(mesh.adj_offset[cell]), int(mesh.adj_offset[cell + 1])
+            for neighbour_value in mesh.adj_list[lo:hi]:
+                neighbour = int(neighbour_value)
+                if not land_mask[neighbour]:
+                    continue
+                right = int(
+                    terrane_owner[np.flatnonzero(land_cells == neighbour)[0]]
+                ) - 1
+                if groups[left] != groups[right]:
+                    result[cell] = initial_world.StartSeam["MAJOR"]
+                    return result
+        return result
+
+    monkeypatch.setattr(initial_world, "_seams", seams)
+    initial_world.build_start_world(
+        mesh,
+        971,
+        {
+            "farStartWorkKm": 25.0,
+            "rimTrenchCoverage": 0.0,
+            "startRanges": {},
+        },
+    )
+    assert pushed

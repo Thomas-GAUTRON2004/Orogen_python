@@ -501,3 +501,76 @@ def test_config_validation_directly_covers_optional_and_numeric_guards(monkeypat
     with pytest.raises(TypeError, match="must be a mapping"):
         config.validate_tectonics_config({"belts": []})
     assert config.validate_tectonics_config({"belts": None}) is None
+
+
+
+def test_kinematics_skips_dead_plates_and_advances_world_clock():
+    from types import SimpleNamespace
+
+    from orogen.v2.tectonics.kinematics import advance_plates
+
+    class FakePlate:
+        def __init__(self, alive):
+            self.alive = alive
+            self.quat = [1.0, 0.0, 0.0, 0.0]
+            self.omega = [0.0, 0.0, 0.0]
+            self.calls = 0
+
+        def set_quat(self, value):
+            self.calls += 1
+            self.quat = value
+
+    active, retired = FakePlate(True), FakePlate(False)
+    world = SimpleNamespace(plates=[active, retired], time=2.0, step=4)
+    advance_plates(world, 0.5)
+    assert active.calls == 1
+    assert retired.calls == 0
+    assert world.time == 2.5
+    assert world.step == 5
+
+
+def test_spread_belt_front_update_guards_and_preserves_shear():
+    from orogen.v2.tectonics.spread_belt import _update_belt_front
+
+    crust = CrustRaster(1)
+    crust.create(0, CrustType["CONTINENT"], -10.0, 1)
+    crust.record_orogeny(0, 1, 1.0, 5.0, 0.0)
+    crust.beltReach[0] = 20.0
+    crust.beltAt[0] = 5.0
+    crust.beltU[0] = 0.4
+    crust.beltShear[0] = 17
+
+    belt = {"keepShear": True, "shear": -40.0}
+    _update_belt_front(crust, 0, belt, 0, 2, 1, 0.2, 50.0, 5.0)
+    assert crust.beltReach[0] == 20.0  # mismatched orogeny type is ignored
+
+    crust.oroType[0] = 2
+    _update_belt_front(crust, 0, belt, 0, 2, 1, 0.2, 50.0, 5.0)
+    assert crust.beltReach[0] == 50.0
+    assert crust.beltShear[0] == 17  # keepShear leaves the inherited value intact
+
+    belt["keepShear"] = False
+    _update_belt_front(crust, 0, belt, 0, 2, 1, 0.1, 60.0, 5.0)
+    assert crust.beltShear[0] == -40
+
+
+def test_backarc_band_skips_uncrusted_cells_and_ignores_empty_segments():
+    mesh = _line_graph()
+    world = SimpleNamespace(mesh=mesh, ownerCell=np.arange(mesh.num_cells))
+    plate = SimpleNamespace(crust=_crust([CrustType["CONTINENT"], 0, CrustType["CONTINENT"], 0, 0]))
+    band = backarc._band_behind(world, plate, [0], 500.0)
+    assert band.tolist() == [1, 0, 0, 0, 0]
+    assert not np.any(backarc._band_behind(world, plate, [], 500.0))
+
+
+def test_merge_hole_repair_stops_after_a_pass_without_fillable_holes():
+    from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
+
+    crust = _crust([CrustType["CONTINENT"]] * 5)
+    origin = np.ones(5, dtype=np.int8)
+    mesh = _line_graph()
+    _fill_inverse_warp_holes(
+        crust, origin, mesh.adj_offset, mesh.adj_list, mesh.num_cells
+    )
+    assert crust.count == 5
+    assert origin.tolist() == [1, 1, 1, 1, 1]

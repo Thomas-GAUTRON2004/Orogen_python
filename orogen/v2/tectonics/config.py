@@ -1,3 +1,4 @@
+# fmt: off
 """Shared V2 tectonic configuration defaults and mechanism controls.
 
 Directly ported from upstream v3.0.1 v2/js/tectonics/config.js.
@@ -556,7 +557,7 @@ TECTONICS: dict[str, Any] = {
         "minPlateAreaKm2": 1.5e5,           # smaller plates are absorbed by a neighbour
         "historyMyr": 600,                  # [WBP] 500–1000 Myr covers nearly all surviving geology
     },
-}  # fmt: skip
+}
 
 MECHANISMS: dict[str, dict[str, Any]] = {
     "wings":          { "wingGrowthCmYr": 0 },                                   # trench wings (step/wings.js)
@@ -773,3 +774,4 @@ def make_tectonics_config(
     config = _merge(TECTONICS, overrides or {})
     validate_tectonics_config(config)
     return config
+# fmt: on

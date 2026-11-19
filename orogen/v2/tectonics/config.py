@@ -646,13 +646,13 @@ _POSITIVE = frozenset(
         "maxSpeedOceanic",
         "maxSpeedContinental",
         "beltSpeedRefCmYr",
-        "beltSpeedExponent",
         "sutureStallMyr",
         "sutureContactMyr",
     }
 )
 _NON_NEGATIVE = frozenset(
     {
+        "beltSpeedExponent",
         "slowRulesEveryMyr",
         "boundaryActiveCmYr",
         "closingCmYr",

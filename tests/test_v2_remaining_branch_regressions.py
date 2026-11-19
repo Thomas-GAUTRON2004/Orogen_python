@@ -24,7 +24,9 @@ def test_spread_front_keeps_an_equal_or_worse_existing_front():
     crust.beltAt[0] = 10.0
     crust.beltU[0] = 0.5
     crust.beltShear[0] = 12
-    _update_belt_front(crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0)
+    _update_belt_front(
+        crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0
+    )
     assert crust.beltReach[0] == 100.0
     assert crust.beltShear[0] == 12
 

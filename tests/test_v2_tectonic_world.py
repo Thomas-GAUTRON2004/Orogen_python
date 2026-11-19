@@ -50,6 +50,27 @@ def test_world_plate_ids_terrane_ids_names_and_events():
     assert Provisional["LIKE_NEIGHBOUR"] == 2
 
 
-def test_world_requires_upstream_configuration_until_defaults_are_ported():
-    with pytest.raises(ValueError):
+def test_world_uses_validated_defaults_when_no_configuration_is_supplied():
+    world = TectonicWorld(build_sim_mesh(12, 1), 1)
+    assert world.config["maxStepMyr"] == 4.0
+    assert world.config["belts"]["andean"]["maxKm"] == 400.0
+
+
+def test_world_merges_overrides_into_an_explicit_partial_config():
+    config = {"nested": {"value": 1}}
+    world = TectonicWorld(
+        build_sim_mesh(12, 1),
+        1,
+        config,
+        {"nested": {"extra": 2}, "additional": True},
+    )
+    assert world.config == {
+        "nested": {"value": 1, "extra": 2},
+        "additional": True,
+    }
+    assert config == {"nested": {"value": 1}}
+
+
+def test_world_rejects_an_explicit_none_configuration():
+    with pytest.raises(ValueError, match="config must be a mapping"):
         TectonicWorld(build_sim_mesh(12, 1), 1, None)

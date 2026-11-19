@@ -25,7 +25,17 @@ from .collision import (
     track_collisions,
     underthrust,
 )
-from .config import CM_PER_YR_TO_KM_PER_MYR, CM_PER_YR_TO_RAD_PER_MYR
+from .config import (
+    CM_PER_YR_TO_KM_PER_MYR,
+    CM_PER_YR_TO_RAD_PER_MYR,
+    MECHANISMS,
+    TECTONICS,
+    make_tectonics_config,
+    mechanisms_off,
+    mechanisms_on,
+    only_mechanisms,
+    validate_tectonics_config,
+)
 from .contact import contact_at
 from .crust import (
     BeltSide,
@@ -54,7 +64,28 @@ from .far_field import (
 )
 from .forces import FORCE_KINDS, gather_boundary_loads
 from .gather import clear_world_view, for_each_claim
-from .geology import thicken_cover
+from .geology import (
+    GEO_FRAME_FIELDS,
+    GEOLOGY_READS,
+    GeoFlag,
+    decode_age,
+    decode_arc_myr,
+    decode_cover_km,
+    decode_exhum_km,
+    decode_facies,
+    decode_flood_age,
+    decode_flood_myr,
+    decode_unroof_km,
+    encode_age,
+    encode_arc_myr,
+    encode_cover_km,
+    encode_exhum_km,
+    encode_facies,
+    encode_flood_age,
+    encode_flood_myr,
+    encode_unroof_km,
+    thicken_cover,
+)
 from .heights import belt_relief_km, broad_profile, build_heights
 from .kinematics import (
     advance_plates,
@@ -135,6 +166,25 @@ __all__ = [
     "broad_profile",
     "build_heights",
     "thicken_cover",
+    "GeoFlag",
+    "GEO_FRAME_FIELDS",
+    "GEOLOGY_READS",
+    "encode_cover_km",
+    "decode_cover_km",
+    "encode_exhum_km",
+    "decode_exhum_km",
+    "encode_unroof_km",
+    "decode_unroof_km",
+    "encode_flood_myr",
+    "decode_flood_myr",
+    "encode_arc_myr",
+    "decode_arc_myr",
+    "encode_age",
+    "decode_age",
+    "encode_flood_age",
+    "decode_flood_age",
+    "encode_facies",
+    "decode_facies",
     "solve3",
     "drag_tensor",
     "balanced_rotation",
@@ -194,6 +244,13 @@ __all__ = [
     "advance_plates",
     "pose_at_constant_omega",
     "CM_PER_YR_TO_KM_PER_MYR",
+    "TECTONICS",
+    "MECHANISMS",
+    "mechanisms_off",
+    "mechanisms_on",
+    "only_mechanisms",
+    "make_tectonics_config",
+    "validate_tectonics_config",
     "CM_PER_YR_TO_RAD_PER_MYR",
     "SEGMENT_KM",
     "fracture_coordinate",

@@ -121,9 +121,7 @@ def test_backarc_bridge_fills_between_disconnected_crust_pieces():
 
 
 def test_craton_picker_falls_back_when_requested_count_exceeds_core():
-    points = np.asarray(
-        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float64
-    )
+    points = np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float64)
     picked = __import__(
         "orogen.v2.tectonics.initial_world", fromlist=["_pick_craton_centres"]
     )._pick_craton_centres(

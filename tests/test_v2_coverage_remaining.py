@@ -503,7 +503,6 @@ def test_config_validation_directly_covers_optional_and_numeric_guards(monkeypat
     assert config.validate_tectonics_config({"belts": None}) is None
 
 
-
 def test_kinematics_skips_dead_plates_and_advances_world_clock():
     from types import SimpleNamespace
 

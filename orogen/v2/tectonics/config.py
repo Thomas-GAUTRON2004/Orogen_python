@@ -15,7 +15,8 @@ from typing import Any
 CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
-# fmt: off  # Preserve the upstream config catalogue and its explanatory comments.
+# Preserve the upstream config catalogue and its explanatory comments.
+# fmt: off
 TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
@@ -690,13 +691,13 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
             raise TypeError(f"{key} must be a real number")
         if not isfinite(float(value)):
             raise ValueError(f"{key} must be finite")
-        if key in _POSITIVE and value <= 0:
+        if key in _POSITIVE and float(value) <= 0:
             raise ValueError(f"{key} must be positive")
-        if key in _NON_NEGATIVE and value < 0:
+        if key in _NON_NEGATIVE and float(value) < 0:
             raise ValueError(f"{key} must be non-negative")
-        if key in _UNIT_INTERVAL and not 0 <= value <= 1:
+        if key in _UNIT_INTERVAL and not 0 <= float(value) <= 1:
             raise ValueError(f"{key} must be in [0, 1]")
-        if key in {"beltSpeedFactorMin", "beltSpeedFactorMax"} and value < 0:
+        if key in {"beltSpeedFactorMin", "beltSpeedFactorMax"} and float(value) < 0:
             raise ValueError(f"{key} must be non-negative")
     if float(config.get("beltSpeedFactorMin", 0.6)) > float(
         config.get("beltSpeedFactorMax", 1.6)
@@ -715,9 +716,9 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
                     value = belt[field]
                     if isinstance(value, bool) or not isinstance(value, Real):
                         raise TypeError(f"belts.{name}.{field} must be a real number")
-                    if not isfinite(float(value)) or value < 0:
+                    if not isfinite(float(value)) or float(value) < 0:
                         raise ValueError(f"belts.{name}.{field} must be finite and non-negative")
-            if all(field in belt for field in ("baseKm", "maxKm")) and belt["baseKm"] > belt["maxKm"]:
+            if all(field in belt for field in ("baseKm", "maxKm")) and float(belt["baseKm"]) > float(belt["maxKm"]):
                 raise ValueError(f"belts.{name}.baseKm cannot exceed maxKm")
 
 

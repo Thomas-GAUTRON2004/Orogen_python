@@ -4,6 +4,7 @@ Directly ported from upstream v3.0.1 v2/js/tectonics/config.js.
 The upstream geology guide-rule dependency is resolved to its v3.0.1
 value (GEOLOGY.guideRules.coalByWetBelts == True).
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -560,6 +561,7 @@ TECTONICS: dict[str, Any] = {
 }
 # fmt: on
 
+# fmt: off
 MECHANISMS: dict[str, dict[str, Any]] = {
     "wings":          { "wingGrowthCmYr": 0 },                                   # trench wings (step/wings.js)
     "arcs":           { "arcMatureConsumedKm": 1e9 },                            # island arcs (step/wings.js)
@@ -582,6 +584,7 @@ MECHANISMS: dict[str, dict[str, Any]] = {
     "mantleFlow":     { "mantleOutflow": 0, "mantleInflow": 0, "dispersalRepulsion": 0, "disperseFounderFactor": 1 }, # the mantle's flow drags continents apart and together again (step/supercontinent.js)
     "farField":       { "farCollisionShare": 0, "farAndeanShare": 0, "farFlatShare": 0, "farStartWorkKm": 0, "farReactivate": 0 },     # a front's push felt far inland (step/far-field.js; records only)
 }
+# fmt: on
 
 # The mechanism catalogue also contributes known top-level config fields.
 # In particular, backgroundEndMyr is intentionally +inf when retirement is off.

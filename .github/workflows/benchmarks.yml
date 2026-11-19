@@ -10,6 +10,15 @@ on:
       - "benchmarks/**"
       - "docs/JS_PYTHON_BENCHMARK.md"
       - ".github/workflows/benchmarks.yml"
+  pull_request:
+    branches:
+      - "port/v3.0.1"
+    paths:
+      - "orogen/v2/**"
+      - "tests/reference/v2/**"
+      - "benchmarks/**"
+      - "docs/JS_PYTHON_BENCHMARK.md"
+      - ".github/workflows/benchmarks.yml"
   workflow_dispatch:
 
 permissions:

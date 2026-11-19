@@ -5,6 +5,7 @@ import pytest
 
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import choose_junction, split_plate
+from orogen.v2.tectonics.ops import rift as rift_module
 from orogen.v2.tectonics.world import TectonicWorld
 
 
@@ -251,3 +252,34 @@ def test_choose_junction_falls_back_to_last_candidate_if_rng_overshoots():
     world, plate = square_junction_fixture()
     candidates = [row * 7 + col for row in range(2, 5) for col in range(2, 5)]
     assert choose_junction(world, plate, lambda: 1.1) == candidates[-1]
+
+def test_split_plate_skips_empty_failed_arm_cells_and_unliftable_shoulders(monkeypatch):
+    world, plate = make_world()
+    plate.crust.remove(2)
+    plate.crust.remove(7)
+    side = np.zeros(world.mesh.num_cells, dtype=np.int8)
+    side[3] = 2
+    monkeypatch.setattr(
+        rift_module,
+        "partition",
+        lambda *_args: (side, np.zeros_like(side), np.zeros_like(side)),
+    )
+    monkeypatch.setattr(
+        rift_module,
+        "spread_belt",
+        lambda *_args, **_kwargs: pytest.fail("failed shoulders must not be uplifted"),
+    )
+
+    fresh = split_plate(
+        world,
+        plate,
+        [1, 2],
+        [1, 3, 7],
+        lambda _left, _right: ("west", "east"),
+        across=[0.0, 0.0, 1.0],
+    )
+
+    assert fresh.crust.mask[3]
+    assert not plate.crust.mask[2]
+    assert plate.crust.flags[1] & CrustFlag["FAILED_RIFT"]
+    assert fresh.crust.flags[3] & CrustFlag["FAILED_RIFT"]

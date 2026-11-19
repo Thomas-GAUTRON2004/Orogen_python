@@ -640,10 +640,44 @@ def _merge(base: dict[str, Any], values: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _validate_known_shape(value: Any, default: Any, path: str) -> None:
+    """Check types and finite numeric values against the upstream default schema."""
+    if isinstance(default, bool):
+        if not isinstance(value, bool):
+            raise TypeError(f"{path} must be a boolean")
+        return
+    if isinstance(default, Real):
+        if isinstance(value, bool) or not isinstance(value, Real):
+            raise TypeError(f"{path} must be a real number")
+        if not isfinite(float(value)):
+            raise ValueError(f"{path} must be finite")
+        return
+    if isinstance(default, list):
+        if not isinstance(value, list):
+            raise TypeError(f"{path} must be a list")
+        if len(value) != len(default):
+            raise ValueError(f"{path} must contain {len(default)} values")
+        for index, (item, expected) in enumerate(zip(value, default)):
+            _validate_known_shape(item, expected, f"{path}[{index}]")
+        return
+    if isinstance(default, dict):
+        if not isinstance(value, Mapping):
+            raise TypeError(f"{path} must be a mapping")
+        for key, item in value.items():
+            if key in default:
+                _validate_known_shape(item, default[key], f"{path}.{key}")
+        return
+    if not isinstance(value, type(default)):
+        raise TypeError(f"{path} must be {type(default).__name__}")
+
+
 def validate_tectonics_config(config: Mapping[str, Any]) -> None:
-    """Validate known constraints while allowing forward-compatible extra keys."""
+    """Validate upstream field types, numeric bounds and nested groups."""
     if not isinstance(config, Mapping):
         raise TypeError("tectonics config must be a mapping")
+    for key, value in config.items():
+        if key in TECTONICS:
+            _validate_known_shape(value, TECTONICS[key], key)
     for key in _POSITIVE | _NON_NEGATIVE | _UNIT_INTERVAL | {
         "beltSpeedExponent", "beltSpeedFactorMin", "beltSpeedFactorMax"
     }:

@@ -381,4 +381,4 @@ def build_start_world(sim_mesh: Any, seed: int, overrides: dict | None = None) -
 
 
 # Public spelling used by JavaScript-side callers ported mechanically.
-buildStartWorld = build_start_world
+buildStartWorld = build_start_world  # noqa: N816 -- preserve upstream V2 public spelling

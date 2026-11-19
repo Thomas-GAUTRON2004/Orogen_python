@@ -212,3 +212,5 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=99
+          # Enforce the threshold independently of pytest-cov's report output.
+          python -m coverage report --fail-under=99

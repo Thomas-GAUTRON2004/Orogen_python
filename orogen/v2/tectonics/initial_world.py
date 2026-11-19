@@ -269,6 +269,45 @@ def _paint_old_ranges(
             )
 
 
+
+def _distance_km(
+    sim_mesh: Any,
+    sources: np.ndarray,
+    *,
+    can_enter=None,
+    max_km: float = 3000.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return weighted geodesic distance and nearest-source strength."""
+    n = int(sim_mesh.num_cells)
+    source_mask = np.asarray(sources, dtype=bool)
+    if source_mask.shape != (n,):
+        raise ValueError("source mask must contain one value per mesh cell")
+    distance = np.full(n, np.inf, dtype=np.float64)
+    strength = np.zeros(n, dtype=np.float32)
+    queue: list[tuple[float, int]] = []
+    for cell_value in np.flatnonzero(source_mask):
+        cell = int(cell_value)
+        distance[cell] = 0.0
+        strength[cell] = 1.0
+        heapq.heappush(queue, (0.0, cell))
+    offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
+    while queue:
+        current, cell = heapq.heappop(queue)
+        if current > distance[cell] + 1e-9 or current > max_km:
+            continue
+        lo, hi = int(offsets[cell]), int(offsets[cell + 1])
+        for other_value in adjacency[lo:hi]:
+            other = int(other_value)
+            if can_enter is not None and not can_enter(other):
+                continue
+            candidate = current + cell_distance_km(sim_mesh.xyz, cell, other)
+            if candidate >= distance[other] or candidate > max_km:
+                continue
+            distance[other] = candidate
+            strength[other] = strength[cell]
+            heapq.heappush(queue, (candidate, other))
+    return distance.astype(np.float32), strength
+
 def build_start_world(
     sim_mesh: Any, seed: int, overrides: dict | None = None
 ) -> dict[str, Any]:
@@ -456,31 +495,19 @@ def build_start_world(
                 -float(cfg.get("startRanges", {}).get("major", [0, 0, 0])[2]),
             )
 
-    major_sources = seams == StartSeam["MAJOR"]
-    ring_sources = seams == StartSeam["RING"]
-    hop_limit = max(1, int(math.ceil(3000.0 / max(float(sim_mesh.edge_km), 1.0))))
-    major_hops = _distance_hops(
-        sim_mesh,
-        major_sources,
-        can_enter=lambda cell: bool(land_mask[cell]),
-        max_hops=hop_limit,
+    major_sources = (seams == StartSeam["MAJOR"]) & land_mask
+    ring_sources = (seams == StartSeam["RING"]) & land_mask
+    major_km, major_range = _distance_km(
+        sim_mesh, major_sources, can_enter=lambda cell: bool(land_mask[cell])
     )
-    ring_hops = _distance_hops(
-        sim_mesh,
-        ring_sources,
-        can_enter=lambda cell: bool(land_mask[cell]),
-        max_hops=hop_limit,
+    ring_km, _ = _distance_km(
+        sim_mesh, ring_sources, can_enter=lambda cell: bool(land_mask[cell])
     )
-    major_km = np.full(n, np.inf, dtype=np.float32)
-    ring_km = np.full(n, np.inf, dtype=np.float32)
-    major_valid, ring_valid = major_hops >= 0, ring_hops >= 0
-    major_km[major_valid] = (
-        major_hops[major_valid].astype(np.float32) * sim_mesh.edge_km
-    )
-    ring_km[ring_valid] = ring_hops[ring_valid].astype(np.float32) * sim_mesh.edge_km
-    major_range = np.zeros(n, dtype=np.float32)
-    major_range[major_sources] = 1.0
-    world.startSeamKm = {"major": major_km, "majorRange": major_range, "ring": ring_km}
+    world.startSeamKm = {
+        "major": major_km,
+        "majorRange": major_range,
+        "ring": ring_km,
+    }
 
     for plate in world.plates:
         plate.refresh_extent(sim_mesh.xyz)

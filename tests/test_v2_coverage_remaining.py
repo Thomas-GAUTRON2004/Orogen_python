@@ -216,7 +216,7 @@ def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypat
     )
     continent, _ocean = result["world"].plates
     assert result["start"]["apronCells"] == 0
-    assert result["start"]["trenchCells"] == 0
+    assert result["start"]["trench"].size == 0
     assert not np.any(continent.crust.flags & CrustFlag["TRENCH"])
 
 
@@ -401,8 +401,10 @@ def test_backarc_open_guards_and_orphan_strip_cleanup():
     strip = world.add_plate("Orphan Arc")
     strip.backArcOf = 99
     strip.born = 0.0
-    assert backarc.open_back_arcs(world, 1.0) == 1
+    assert backarc.open_back_arcs(world, 1.0) == 0
     assert strip.backArcOf == -1
+    assert world.events[-1]["kind"] == EventKind["BACKARC_CLOSE"]
+    assert world.events[-1]["data"]["rejoined"] is False
 
 
 def _boundary_world(seed=101):

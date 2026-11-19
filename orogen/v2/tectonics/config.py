@@ -603,7 +603,11 @@ _POSITIVE_INFINITY_SENTINELS = frozenset(
     key
     for mechanism in MECHANISMS.values()
     for key, value in mechanism.items()
-    if isinstance(value, Real) and isinf(float(value)) and value > 0
+    if (
+        isinstance(value, Real)
+        and isinf(float(value))
+        and float(value) > 0
+    )
 )
 
 

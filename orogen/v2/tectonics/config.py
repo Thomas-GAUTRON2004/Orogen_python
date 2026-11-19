@@ -767,11 +767,19 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
 
 def make_tectonics_config(
     overrides: Mapping[str, Any] | None = None,
+    *,
+    base: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Return an isolated config with recursive overrides and validated known fields."""
+    """Return an isolated config with recursive overrides and validated known fields.
+
+    By default, overrides are merged into the upstream defaults. Supplying a base
+    instead merges into that explicit configuration, preserving its partial shape.
+    """
     if overrides is not None and not isinstance(overrides, Mapping):
         raise TypeError("tectonics overrides must be a mapping")
-    config = _merge(TECTONICS, overrides or {})
+    if base is not None and not isinstance(base, Mapping):
+        raise TypeError("tectonics base config must be a mapping")
+    config = _merge(TECTONICS if base is None else dict(base), overrides or {})
     validate_tectonics_config(config)
     return config
 # fmt: on

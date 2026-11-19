@@ -10,6 +10,7 @@ describe the repository state and changes recorded during the V2 port.
 
 ### Added
 - Complete shared V2 tectonic configuration defaults and mechanism controls, with isolated per-world overrides and validation.
+- Added a deterministic initial supercontinent/apron/trench builder and minimal continental, oceanic and mixed scenario fixtures; the initial geometry is a documented numerical adaptation pending full upstream parity.
 - Shared geology flags and compact frame encoders/decoders matching upstream JavaScript rounding.
 - Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,

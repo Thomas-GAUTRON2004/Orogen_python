@@ -45,6 +45,16 @@ def test_start_world_is_a_complete_partition_with_initial_geology():
     assert world.events[-1]["kind"] == "start"
     assert world.startSeamKm["major"].shape == (mesh.num_cells,)
     assert world.startSeamKm["ring"].shape == (mesh.num_cells,)
+    land_mask = continent.crust.mask.astype(bool) & (
+        continent.crust.type != CrustType["OCEAN"]
+    )
+    major_distance = world.startSeamKm["major"]
+    ring_distance = world.startSeamKm["ring"]
+    assert np.all(np.isinf(major_distance[~land_mask]))
+    assert np.all(np.isinf(ring_distance[~land_mask]))
+    assert np.all(np.isfinite(major_distance[major_distance < np.inf]))
+    assert np.all(world.startSeamKm["majorRange"][major_distance < np.inf] == 1.0)
+    assert np.all(world.startSeamKm["majorRange"][major_distance == np.inf] == 0.0)
     # Pre-history seams must leave actual belt and far-field records, not only
     # labels in the initial-world metadata.
     assert np.count_nonzero(continent.crust.oroType) > 0

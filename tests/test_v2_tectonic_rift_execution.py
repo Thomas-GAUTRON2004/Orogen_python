@@ -11,9 +11,7 @@ from orogen.v2.tectonics.ops import (
     pull_axis_of,
     try_rift,
 )
-from orogen.v2.tectonics.ops import (
-    rift as rift_module,
-)
+import orogen.v2.tectonics.ops.rift as rift_module
 
 
 

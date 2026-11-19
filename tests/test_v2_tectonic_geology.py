@@ -106,6 +106,8 @@ def test_facies_packs_four_nibbles_and_can_reuse_output():
 def test_geology_encodings_match_upstream_javascript():
     node = shutil.which("node")
     if node is None:
+        if __import__("os").environ.get("GITHUB_ACTIONS") == "true":
+            pytest.fail("Node.js is required in CI for upstream JavaScript differential tests")
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     runner = Path(__file__).parent / "reference" / "v2" / "geology-encoding.mjs"
     result = subprocess.run(
@@ -124,7 +126,7 @@ def test_geology_encodings_match_upstream_javascript():
     for name, encode, decode in (
         ("cover", encode_cover_km, decode_cover_km),
         ("exhum", encode_exhum_km, decode_exhum_km),
-        ("unroof", encode_unroof_km, lambda x: x * 0.25),
+        ("unroof", encode_unroof_km, decode_unroof_km),
         ("flood", encode_flood_myr, decode_flood_myr),
         ("arc", encode_arc_myr, decode_arc_myr),
         ("age", encode_age, decode_age),

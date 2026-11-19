@@ -1,0 +1,28 @@
+# Shared V2 configuration and data models
+
+This document records the Python port boundary for issue #14. Each implementation is tied to its upstream v3.0.1 source at commit
+`ed466f9db71292e912d8d0160e689a67a994f2d9`.
+
+| Python API | Upstream JavaScript reference | Port contract |
+|---|---|---|
+| `orogen.v2.tectonics.config.TECTONICS` | `v2/js/tectonics/config.js` | Complete default configuration, including initial-world, boundaries, forces, belts, rifting, subduction, plumes, supercontinent, geology, far-field and reserved groups. |
+| `MECHANISMS`, `mechanisms_off`, `only_mechanisms`, `mechanisms_on` | `v2/js/tectonics/config.js` | Named mechanism switches and deterministic override helpers. |
+| `CrustRaster`, `CrustType`, `OrogenyType`, `VolcanicType`, `BeltSide`, `CrustFlag` | `v2/js/tectonics/model/crust.js` | Structure-of-arrays cell state, typed fields, count/mask invariants, create/copy/snapshot/restore/remove and history recording. |
+| `Plate`, `frame_rotation` | `v2/js/tectonics/model/plate.js` | Rigid plate pose, frame transforms, cap/extent bookkeeping and frame-to-frame vector rotation. |
+| `TectonicWorld`, `EventKind`, `BoundaryKind`, `Provisional` | `v2/js/tectonics/model/world.js` | World-frame ownership arrays, per-world isolated config, deterministic random streams, event log and unique terrane identifiers. |
+| `GeoFlag`, `GEO_FRAME_FIELDS`, `GEOLOGY_READS`, encode/decode helpers | `v2/js/tectonics/model/geology.js` | Bit flags and byte/nibble quantization for the geology fields stored on crust and written into compact frames. |
+| `SEGMENT_KM`, `fracture_coordinate` | `v2/js/tectonics/model/segments.js` | Fracture-zone coordinate measured in ridge-segment lengths. |
+
+## Compatibility notes
+
+- The upstream geology config imports `GEOLOGY.guideRules.coalByWetBelts`; the v3.0.1 source value is `true`, which is kept as the tectonic config default without introducing a dependency on the finish pipeline.
+- JavaScript's `Math.round` behavior is preserved by explicit half-up rounding in the quantization helpers.
+- Configuration overrides are deep-copied and recursively merged. Known fields are checked against the upstream schema (including nested group types and fixed-length parameter arrays); unknown keys are retained for forward compatibility.
+- The Python API uses snake_case function names while retaining upstream camelCase data-field names where those names are part of the shared state contract.
+- The geology encodings are lossy by design. Tests assert the upstream quantization behavior and sentinel values, not lossless floating-point round trips.
+
+## Validation
+
+- `tests/test_v2_tectonic_config.py`: upstream defaults, nested overrides, schema validation, and mechanism helpers.
+- `tests/test_v2_tectonic_geology.py`: model flags, frame field contract, scalar encodings, flood-age sentinel and facies packing.
+- Existing crust, plate, world and segment tests cover their state invariants and coordinate contracts.

@@ -576,3 +576,28 @@ def test_merge_hole_repair_stops_after_a_pass_without_fillable_holes():
     )
     assert crust.count == 5
     assert origin.tolist() == [1, 1, 1, 1, 1]
+
+
+
+def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
+    mesh = _line_graph()
+    world = SimpleNamespace(
+        mesh=mesh,
+        seed=17,
+        config={
+            "startRanges": {"inner": [500.0, 20.0, 50.0, 0.5]},
+            "startRangeVary": 0.0,
+            "startRangeVaryKm": 1600.0,
+        },
+    )
+    plate = SimpleNamespace(crust=_crust([CrustType["CONTINENT"]] * 5))
+    land = np.asarray([True, False, True, False, False])
+    seams = np.zeros(5, dtype=np.uint8)
+    seams[0] = initial_world.StartSeam["INNER"]
+    monkeypatch.setattr(initial_world, "spread_belt", lambda *_args, **_kwargs: None)
+
+    initial_world._paint_old_ranges(world, plate, land, seams)
+
+    assert plate.crust.rootKm[0] == 0.0
+    assert plate.crust.rootKm[1] == 0.0
+    assert plate.crust.rootKm[2] == 0.0

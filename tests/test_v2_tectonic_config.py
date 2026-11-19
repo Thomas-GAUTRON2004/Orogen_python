@@ -83,7 +83,7 @@ def test_complete_upstream_configuration_groups_are_present():
 def test_mechanism_helpers_match_upstream_disable_and_enable_semantics():
     assert len(MECHANISMS) == 20
     assert mechanisms_off("rifts") == {"riftRatePerMyr": 0}
-    assert only_mechanisms("rifts")["riftRatePerMyr"] == 0
+    assert "riftRatePerMyr" not in only_mechanisms("rifts")
     assert only_mechanisms("rifts")["plumeRatePerMyr"] == 0
     assert mechanisms_on("rifts")["riftRatePerMyr"] == TECTONICS["riftRatePerMyr"]
     with pytest.raises(ValueError, match="unknown mechanism"):
@@ -102,4 +102,4 @@ def test_full_schema_rejects_invalid_nested_types_and_array_shapes():
 def test_mechanism_disable_infinity_sentinel_is_accepted_by_world_config():
     config = make_tectonics_config(only_mechanisms("rifts"))
     assert config["backgroundEndMyr"] == float("inf")
-    assert config["riftRatePerMyr"] == 0
+    assert config["riftRatePerMyr"] == TECTONICS["riftRatePerMyr"]

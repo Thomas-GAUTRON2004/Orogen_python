@@ -21,6 +21,7 @@ def _world():
     return mesh, world
 
 
+
 def test_resolve_empty_world_and_refreshes_plates():
     mesh, world = _world()
     plate = world.add_plate("empty")
@@ -28,6 +29,7 @@ def test_resolve_empty_world_and_refreshes_plates():
     assert result == {"created": 0, "consumed": 0, "collisionCells": 0}
     assert np.all(world.owner == -1)
     assert plate.reshaped is False
+
 
 
 def test_resolve_preserves_land_collision_and_reports_it():
@@ -43,6 +45,7 @@ def test_resolve_preserves_land_collision_and_reports_it():
     assert a.crust.mask[0] and b.crust.mask[0]
     assert world.collider[0] == b.id
     assert world.claimCount[0] == 2
+
 
 
 def test_resolve_subducts_older_ocean_and_updates_budget():
@@ -61,6 +64,7 @@ def test_resolve_subducts_older_ocean_and_updates_budget():
     assert world.budget["consumed"] == 1
 
 
+
 def test_resolve_continent_overrides_ocean():
     mesh, world = _world()
     ocean, continent = world.add_plate("ocean"), world.add_plate("continent")
@@ -74,12 +78,14 @@ def test_resolve_continent_overrides_ocean():
     assert world.owner[0] == continent.id
 
 
+
 def test_decide_birth_rejects_grower_without_nearby_crust():
     mesh, world = _world()
     plate = world.add_plate("empty")
     result = decide_birth(world, plate, 0, [(plate, plate.cap_in_world(mesh))])
     assert result["born"] is False
     assert result["why"] == "not attached to this plate's crust"
+
 
 
 def test_nearest_crust_and_behind_helpers():
@@ -94,6 +100,7 @@ def test_nearest_crust_and_behind_helpers():
     assert _is_advancing_on(plate, plate, 0, mesh, point, 0.0) is False
 
 
+
 def test_candidate_cells_empty_when_no_gap_bins_marked():
     from orogen.v2.tectonics.resolve import candidate_cells
 
@@ -103,6 +110,7 @@ def test_candidate_cells_empty_when_no_gap_bins_marked():
     plate.refresh_extent(mesh.xyz)
     world.occupancyStamp = 1
     assert candidate_cells(world, plate, [mesh.num_cells - 1]) == []
+
 
 
 def test_resolve_incoming_older_ocean_is_subducted():
@@ -116,6 +124,7 @@ def test_resolve_incoming_older_ocean_is_subducted():
     assert result["consumed"] == 1
     assert young_holder.crust.mask[0]
     assert not old_arrival.crust.mask[0]
+
 
 
 def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
@@ -136,6 +145,7 @@ def test_resolve_clears_stale_owner_after_claim_pass(monkeypatch):
     assert world.owner[0] == -1
     assert world.claimCount[0] == 0
     assert world.landClaims[0] == 0
+
 
 
 def test_growth_creates_trench_apron(monkeypatch):
@@ -164,6 +174,7 @@ def test_growth_creates_trench_apron(monkeypatch):
     assert plate.crust.slabKm[1] == 80
 
 
+
 def test_is_advancing_on_handles_coincident_and_forward_points():
     from types import SimpleNamespace
 
@@ -176,6 +187,7 @@ def test_is_advancing_on_handles_coincident_and_forward_points():
     assert _is_advancing_on(x, y, 0, mesh, point, 0.0) is True
     y.to_world = lambda a, b, c: np.array([0.0, 1.0, 0.0])
     assert _is_advancing_on(x, y, 0, mesh, point, 0.0) is True
+
 
 
 def test_is_advancing_on_rejects_non_closing_and_slow_motion():
@@ -191,6 +203,7 @@ def test_is_advancing_on_rejects_non_closing_and_slow_motion():
     assert _is_advancing_on(moving, stationary, 0, mesh, point, 1000.0) is False
 
 
+
 def test_is_behind_skips_crust_neighbours_and_handles_fully_occupied_edge():
     mesh, world = _world()
     plate = world.add_plate("P")
@@ -199,6 +212,7 @@ def test_is_behind_skips_crust_neighbours_and_handles_fully_occupied_edge():
     for nb in mesh.adj_list[mesh.adj_offset[0] : mesh.adj_offset[1]]:
         plate.crust.create(int(nb), CrustType["OCEAN"], 0, 1)
     assert _is_behind(plate, 0, 0, mesh) is False
+
 
 
 def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
@@ -221,6 +235,7 @@ def test_decide_birth_rejects_existing_foreign_crust(monkeypatch):
     assert result["why"] == "not a gap: another plate has crust here"
 
 
+
 def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
     import importlib
 
@@ -240,6 +255,7 @@ def test_decide_birth_skips_rival_without_nearby_crust(monkeypatch):
     monkeypatch.setattr(module, "may_have_crust_near", lambda *args: True)
     result = module.decide_birth(world, grower, 1, [(rival, rival.cap_in_world(mesh))])
     assert result["born"] is True
+
 
 
 def test_decide_birth_closing_boundary_rejected(monkeypatch):
@@ -264,6 +280,7 @@ def test_decide_birth_closing_boundary_rejected(monkeypatch):
     result = module.decide_birth(world, grower, 2, [(rival, rival.cap_in_world(mesh))])
     assert result["born"] is False
     assert result["why"] == "closing boundary"
+
 
 
 def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
@@ -294,11 +311,13 @@ def test_decide_birth_trench_parent_respects_wing_direction(monkeypatch):
     assert result == {"born": True, "trenchParent": -1}
 
 
+
 def test_is_behind_open_edge_returns_direction_test():
     mesh, world = _world()
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["OCEAN"], 0, 1)
     assert isinstance(_is_behind(plate, 0, 1, mesh), bool)
+
 
 def test_resolve_skips_gap_assignment_when_the_world_view_has_no_gaps(monkeypatch):
     import importlib
@@ -319,6 +338,7 @@ def test_resolve_skips_gap_assignment_when_the_world_view_has_no_gaps(monkeypatc
     )
 
     assert module.resolve(world) == {"created": 0, "consumed": 0, "collisionCells": 0}
+
 
 
 def test_fracture_walk_runs_to_its_depth_limit_without_a_partner(monkeypatch):
@@ -361,6 +381,7 @@ def test_fracture_walk_runs_to_its_depth_limit_without_a_partner(monkeypatch):
     assert module._fracture_at(world, grower, 0, [1.0, 0.0, 0.0]) == 0.25
 
 
+
 def test_fracture_walk_keeps_the_leading_partner_when_a_later_owner_lags(monkeypatch):
     import importlib
     from types import SimpleNamespace
@@ -390,6 +411,7 @@ def test_fracture_walk_keeps_the_leading_partner_when_a_later_owner_lags(monkeyp
     assert module._fracture_at(world, grower, 0, [1.0, 0.0, 0.0]) == 0.5
 
 
+
 def test_candidate_cells_deduplicates_gaps_that_map_to_one_plate_cell(monkeypatch):
     import importlib
     from types import SimpleNamespace
@@ -412,6 +434,7 @@ def test_candidate_cells_deduplicates_gaps_that_map_to_one_plate_cell(monkeypatc
     candidates = module.candidate_cells(world, grower, [1, 2])
 
     assert len(candidates) == len(set(candidates))
+
 
 
 def test_gap_owner_assignment_skips_foreign_hits_without_a_crust_cell(monkeypatch):

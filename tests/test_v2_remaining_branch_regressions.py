@@ -4,6 +4,7 @@ from importlib import import_module
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from orogen.v2.tectonics import backarc, kinematics
 from orogen.v2.tectonics.crust import CrustRaster, CrustType

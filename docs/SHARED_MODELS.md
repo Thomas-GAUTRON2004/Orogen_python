@@ -17,7 +17,7 @@ This document records the Python port boundary for issue #14. Each implementatio
 
 - The upstream geology config imports `GEOLOGY.guideRules.coalByWetBelts`; the v3.0.1 source value is `true`, which is kept as the tectonic config default without introducing a dependency on the finish pipeline.
 - JavaScript's `Math.round` behavior is preserved by explicit half-up rounding in the quantization helpers.
-- Configuration overrides are deep-copied and recursively merged. Known fields are checked against the upstream schema (including nested group types and fixed-length parameter arrays); unknown keys are retained for forward compatibility.
+- With no explicit config, each world receives an isolated copy of the complete upstream defaults. An explicit config retains its supplied (possibly partial) shape; optional overrides are deep-copied and recursively merged into it. Known fields are checked against the upstream schema (including nested group types and fixed-length parameter arrays); unknown keys are retained for forward compatibility.
 - The Python API uses snake_case function names while retaining upstream camelCase data-field names where those names are part of the shared state contract.
 - The geology encodings are lossy by design. Tests assert the upstream quantization behavior and sentinel values, not lossless floating-point round trips.
 

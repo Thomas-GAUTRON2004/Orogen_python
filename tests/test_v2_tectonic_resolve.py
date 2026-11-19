@@ -433,8 +433,8 @@ def test_gap_owner_assignment_skips_foreign_hits_without_a_crust_cell(monkeypatc
             self.isBackground = False
             self.crust = __import__(
                 "orogen.v2.tectonics.crust", fromlist=["CrustRaster"]
-            ).CrustRaster(1)
-            self.crust.create(0, CrustType["CONTINENT"], -10.0)
+            ).CrustRaster(2)
+            self.crust.create(1, CrustType["CONTINENT"], -10.0)
             self.cell_at = lambda *_args: 0
 
     best, foreign = Candidate(0), Candidate(1)
@@ -459,7 +459,7 @@ def test_gap_owner_assignment_skips_foreign_hits_without_a_crust_cell(monkeypatc
         module,
         "_nearest_crust",
         lambda plate, *_args: (
-            {"cell": 0, "dot": 0.9} if plate is best else {"cell": -1, "dot": -2.0}
+            {"cell": 1, "dot": 0.9} if plate is best else {"cell": -1, "dot": -2.0}
         ),
     )
 

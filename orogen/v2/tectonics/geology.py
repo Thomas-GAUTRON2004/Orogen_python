@@ -7,6 +7,7 @@ The Python helpers intentionally preserve the upstream quantization rules.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import floor
 
 GeoFlag = {
     "WAS_ARC": 1,
@@ -33,7 +34,7 @@ _FLOOD_AGE_STEP_MYR = 5.0
 
 
 def _byte(value: float) -> int:
-    return min(255, max(0, int(round(value))))
+    return min(255, max(0, int(floor(value + 0.5))))
 
 
 def encode_cover_km(km: float) -> int:
@@ -53,7 +54,7 @@ def decode_exhum_km(value: int) -> float:
 
 
 def encode_unroof_km(km: float) -> int:
-    return max(-127, min(127, int(round(float(km) / _EXHUM_STEP_KM))))
+    return max(-127, min(127, int(floor(float(km) / _EXHUM_STEP_KM + 0.5))))
 
 
 def decode_unroof_km(value: int) -> float:
@@ -87,7 +88,7 @@ def decode_age(value: int) -> float:
 def encode_flood_age(last: float, time: float, ever: bool) -> int:
     if not ever:
         return 0
-    return 1 + min(254, max(0, int(round((float(time) - float(last)) / _FLOOD_AGE_STEP_MYR))))
+    return 1 + min(254, max(0, int(floor((float(time) - float(last)) / _FLOOD_AGE_STEP_MYR + 0.5))))
 
 
 def decode_flood_age(value: int) -> float:
@@ -96,7 +97,7 @@ def decode_flood_age(value: int) -> float:
 
 def encode_facies(carb: float, salt: float, coal: float, organic: float) -> int:
     def nibble(value: float) -> int:
-        return min(15, max(0, int(round(15.0 * float(value)))))
+        return min(15, max(0, int(floor(15.0 * float(value) + 0.5))))
 
     return nibble(carb) | (nibble(salt) << 4) | (nibble(coal) << 8) | (nibble(organic) << 12)
 

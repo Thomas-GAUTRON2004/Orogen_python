@@ -78,6 +78,9 @@ def _pick_craton_centres(
     core = land_cells[cosine >= math.cos(min(core_radius, math.pi))]
     if core.size < count:
         core = land_cells
+    count = min(int(count), int(core.size))
+    if count <= 0:
+        return np.empty(0, dtype=np.int32)
     random_order = np.argsort(
         np.fromiter((rng() for _ in range(core.size)), dtype=np.float64)
     )

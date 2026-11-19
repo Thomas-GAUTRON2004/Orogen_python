@@ -141,3 +141,37 @@ def test_plume_junctions_falls_back_from_a_craton_and_returns_small_set():
     assert 24 not in candidates
     assert candidates
     assert len(candidates) <= 12
+
+def test_try_rift_logs_clean_split_without_a_failed_arm(monkeypatch):
+    world, plate = make_world()
+    found = {
+        "path": [1, 2],
+        "failed_arm": [],
+        "across": [0.0, 0.0, 1.0],
+        "value": 0.25,
+    }
+    monkeypatch.setattr(rift_module, "pull_axis_of", lambda *_args: None)
+    monkeypatch.setattr(rift_module, "rift_context", lambda *_args: {})
+    monkeypatch.setattr(rift_module, "find_rift", lambda *_args: found)
+    monkeypatch.setattr(rift_module, "spread_belt", lambda *_args, **_kwargs: None)
+
+    assert try_rift(
+        world,
+        plate,
+        [4],
+        {"text": "clean split", "kind": "plume", "hotspot": 1},
+    )
+    assert "failed arm" not in world.events[-1]["text"]
+
+
+def test_plume_junctions_ignores_ocean_cells_in_expanding_candidate_ring():
+    world, plate = square_junction_fixture()
+    world.mesh.index = SimpleNamespace(nearest=lambda *_args: 24)
+    world.config["plumeJunctionKm"] = 200.0
+    ocean_neighbour = 17
+    plate.crust.type[ocean_neighbour] = CrustType["OCEAN"]
+
+    candidates = plume_junctions(world, plate, [1.0, 0.0, 0.0])
+
+    assert 24 in candidates
+    assert ocean_neighbour not in candidates

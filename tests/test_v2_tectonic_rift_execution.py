@@ -15,6 +15,7 @@ from orogen.v2.tectonics.ops import (
 
 rift_module = import_module("orogen.v2.tectonics.ops.rift")
 
+
 def test_pull_axis_requires_enough_trench_and_finds_principal_axis():
     world, plate = make_world()
     plate.capCenter = [1.0, 0.0, 0.0]
@@ -29,11 +30,13 @@ def test_pull_axis_requires_enough_trench_and_finds_principal_axis():
     assert np.linalg.norm(axis) == pytest.approx(1.0)
     assert abs(axis[1]) == pytest.approx(1.0, abs=1e-5)
 
+
 def test_pull_axis_rejects_a_degenerate_initial_power_vector():
     world, plate = make_world()
     plate.capCenter = [0.0, 0.0, 1.0]
     plate.crust.flags[4] |= CrustFlag["TRENCH"]
     assert pull_axis_of(plate, world.mesh) is None
+
 
 def test_names_after_split_use_craton_letters_when_distinct():
     world, plate = make_world()
@@ -43,6 +46,7 @@ def test_names_after_split_use_craton_letters_when_distinct():
     world.terraneLetters = {10: "A", 30: "B"}
     assert names_after_split(world, plate, fresh, "old") == ("A", "B")
 
+
 def test_names_after_split_allocate_unused_numbered_names():
     world, plate = make_world()
     plate.name = "Rift·1"
@@ -50,6 +54,7 @@ def test_names_after_split_allocate_unused_numbered_names():
     world.add_plate("Rift·4")
     left, right = names_after_split(world, plate, world.plates[-1], "Rift·1")
     assert (left, right) == ("Rift·3", "Rift·5")
+
 
 def test_try_rift_splits_plate_and_logs_event(monkeypatch):
     world, plate = make_world()
@@ -98,6 +103,7 @@ def test_try_rift_splits_plate_and_logs_event(monkeypatch):
     assert "the test plume" in event["text"]
     assert "failed arm" in event["text"]
 
+
 def test_try_rift_returns_false_when_no_junction_yields_a_cut(monkeypatch):
     world, plate = make_world()
     monkeypatch.setattr(rift_module, "pull_axis_of", lambda *_args: None)
@@ -115,6 +121,7 @@ def test_try_rift_returns_false_when_no_junction_yields_a_cut(monkeypatch):
     assert len(world.plates) == 1
     assert world.events == []
 
+
 def test_plume_junctions_samples_evenly_spaced_land_cells():
     world, plate = square_junction_fixture()
     world.mesh.index = SimpleNamespace(nearest=lambda *_args: 24)
@@ -126,6 +133,7 @@ def test_plume_junctions_samples_evenly_spaced_land_cells():
     assert all(plate.crust.mask[cell] for cell in candidates)
     assert all(plate.crust.type[cell] != CrustType["CRATON"] for cell in candidates)
 
+
 def test_plume_junctions_falls_back_from_a_craton_and_returns_small_set():
     world, plate = square_junction_fixture()
     world.mesh.index = SimpleNamespace(nearest=lambda *_args: 24)
@@ -135,6 +143,7 @@ def test_plume_junctions_falls_back_from_a_craton_and_returns_small_set():
     assert 24 not in candidates
     assert candidates
     assert len(candidates) <= 12
+
 
 def test_try_rift_logs_clean_split_without_a_failed_arm(monkeypatch):
     world, plate = make_world()
@@ -156,6 +165,7 @@ def test_try_rift_logs_clean_split_without_a_failed_arm(monkeypatch):
         {"text": "clean split", "kind": "plume", "hotspot": 1},
     )
     assert "failed arm" not in world.events[-1]["text"]
+
 
 def test_plume_junctions_ignores_ocean_cells_in_expanding_candidate_ring():
     world, plate = square_junction_fixture()

@@ -6,10 +6,11 @@ value (GEOLOGY.guideRules.coalByWetBelts == True).
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
 from math import isfinite
 from numbers import Real
-from typing import Any, Mapping
+from typing import Any
 
 CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
@@ -657,7 +658,7 @@ def _validate_known_shape(value: Any, default: Any, path: str) -> None:
             raise TypeError(f"{path} must be a list")
         if len(value) != len(default):
             raise ValueError(f"{path} must contain {len(default)} values")
-        for index, (item, expected) in enumerate(zip(value, default)):
+        for index, (item, expected) in enumerate(zip(value, default, strict=True)):
             _validate_known_shape(item, expected, f"{path}[{index}]")
         return
     if isinstance(default, dict):

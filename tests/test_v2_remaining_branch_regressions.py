@@ -16,9 +16,11 @@ from orogen.v2.tectonics.spread_belt import _update_belt_front
 resolve = import_module("orogen.v2.tectonics.resolve")
 
 
+
 def test_zero_rotation_returns_the_original_pose_without_normalizing():
     pose = [2.0, 0.0, 0.0, 0.0]
     assert kinematics.pose_at_constant_omega(pose, [0.0, 0.0, 0.0], 50.0) == pose
+
 
 
 def test_spread_front_keeps_an_equal_or_worse_existing_front():
@@ -34,6 +36,7 @@ def test_spread_front_keeps_an_equal_or_worse_existing_front():
     )
     assert crust.beltReach[0] == 100.0
     assert crust.beltShear[0] == 12
+
 
 
 def test_backarc_band_does_not_cross_unowned_crust_cells():
@@ -56,6 +59,7 @@ def test_backarc_band_does_not_cross_unowned_crust_cells():
     assert strip.tolist() == [1, 0, 0]
 
 
+
 def test_inverse_warp_hole_fill_uses_land_majority_and_ignores_sparse_gaps():
     output = CrustRaster(6)
     for cell in (1, 2, 3):
@@ -69,6 +73,7 @@ def test_inverse_warp_hole_fill_uses_land_majority_and_ignores_sparse_gaps():
     assert not output.mask[5]
 
 
+
 def test_landmass_walk_ignores_ocean_empty_and_duplicate_seeds():
     crust = CrustRaster(4)
     crust.create(0, CrustType["CONTINENT"], 0.0)
@@ -80,6 +85,7 @@ def test_landmass_walk_ignores_ocean_empty_and_duplicate_seeds():
     )
     plate = SimpleNamespace(crust=crust)
     assert landmass_of(plate, mesh, [1, 3, 0, 0]) == [0, 2]
+
 
 
 def test_fracture_coordinate_uses_zero_relative_rotation_without_a_partner():
@@ -98,6 +104,7 @@ def test_fracture_coordinate_uses_zero_relative_rotation_without_a_partner():
     world = SimpleNamespace(mesh=mesh, owner=np.asarray([0, 0]), plates=[grower])
     value = resolve._fracture_at(world, grower, 1, [1.0, 0.0, 0.0])
     assert np.isfinite(value)
+
 
 
 def test_backarc_bridge_fills_between_disconnected_crust_pieces():
@@ -124,6 +131,7 @@ def test_backarc_bridge_fills_between_disconnected_crust_pieces():
     assert crust.formedAt[3] == -5.0
 
 
+
 def test_craton_picker_falls_back_when_requested_count_exceeds_core():
     points = np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float64)
     picked = __import__(
@@ -140,17 +148,21 @@ def test_craton_picker_falls_back_when_requested_count_exceeds_core():
     )
     assert picked.tolist() == [0, 1]
 
+
 def test_surface_velocity_reuses_a_caller_owned_output_buffer():
     output = [9.0, 9.0, 9.0]
     result = kinematics.surface_velocity([1.0, 2.0, 3.0], 4.0, 5.0, 6.0, output)
     assert result is output
-    assert output == [ -3.0, 6.0, -3.0 ]
+    assert output == [-3.0, 6.0, -3.0]
+
 
 
 def test_backarc_band_skips_a_duplicate_world_to_plate_seed():
     mesh = SimpleNamespace(
         num_cells=2,
-        xyz=np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float32).reshape(-1),
+        xyz=np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float32).reshape(
+            -1
+        ),
         adj_offset=np.asarray([0, 1, 2], dtype=np.int32),
         adj_list=np.asarray([1, 0], dtype=np.int32),
     )
@@ -161,6 +173,7 @@ def test_backarc_band_skips_a_duplicate_world_to_plate_seed():
     strip = backarc._band_behind(world, SimpleNamespace(crust=crust), [0, 1], 1000.0)
 
     assert strip.tolist() == [1, 0]
+
 
 
 def test_backarc_bridge_skips_interior_cells_without_crust_neighbours_and_noop():
@@ -207,11 +220,14 @@ def test_backarc_bridge_skips_interior_cells_without_crust_neighbours_and_noop()
     assert unchanged == []
 
 
+
 def test_merged_crust_handles_zero_length_warp_and_empty_filtered_sources(monkeypatch):
     mesh = SimpleNamespace(
         num_cells=1,
         xyz=np.asarray([1.0, 0.0, 0.0], dtype=np.float32),
-        index=SimpleNamespace(nearest=lambda *_args: pytest.fail("zero vector must not locate")),
+        index=SimpleNamespace(
+            nearest=lambda *_args: pytest.fail("zero vector must not locate")
+        ),
         adj_offset=np.asarray([0, 0], dtype=np.int32),
         adj_list=np.asarray([], dtype=np.int32),
     )

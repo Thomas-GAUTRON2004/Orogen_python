@@ -579,7 +579,7 @@ MECHANISMS: dict[str, dict[str, Any]] = {
     "mantleHeatRifts": { "riftHeatGain": 0, "riftHeatFloor": 1, "dispersalRiftBoost": 1, "riftHeatTension": 0 },                  # continents rift readily over mantle they have insulated (step/rifting.js)
     "mantleFlow":     { "mantleOutflow": 0, "mantleInflow": 0, "dispersalRepulsion": 0, "disperseFounderFactor": 1 }, # the mantle's flow drags continents apart and together again (step/supercontinent.js)
     "farField":       { "farCollisionShare": 0, "farAndeanShare": 0, "farFlatShare": 0, "farStartWorkKm": 0, "farReactivate": 0 },     # a front's push felt far inland (step/far-field.js; records only)
-}
+}  # fmt: skip
 
 
 def mechanisms_off(*names: str) -> dict[str, Any]:

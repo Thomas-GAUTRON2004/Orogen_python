@@ -652,7 +652,9 @@ def _validate_known_shape(value: Any, default: Any, path: str) -> None:
     if isinstance(default, Real):
         if isinstance(value, bool) or not isinstance(value, Real):
             raise TypeError(f"{path} must be a real number")
-        if not isfinite(float(value)):
+        if not isfinite(float(value)) and not (
+            path == "backgroundEndMyr" and float(value) == float("inf")
+        ):
             raise ValueError(f"{path} must be finite")
         return
     if isinstance(default, list):

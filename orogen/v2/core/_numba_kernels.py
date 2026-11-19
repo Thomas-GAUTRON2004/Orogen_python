@@ -651,6 +651,40 @@ def _create_cells_kernel(fields, mask, cells, crust_types, formed_at, terranes):
     return added
 
 
+def _create_cells_blocks_kernel(
+    blocks,
+    mask,
+    cells,
+    crust_types,
+    formed_at,
+    terranes,
+    type_field,
+    formed_field,
+    terrane_field,
+):
+    """Create several cells in input order, zeroing one dtype block at a time.
+
+    ``blocks`` holds the per-dtype backing matrices whose rows are the crust
+    fields, so clearing a cell touches a handful of matrices instead of
+    unrolling over every heterogeneous field. Semantics match
+    ``_create_cells_kernel``: each occurrence of a repeated cell clears it
+    before the type, formation time and terrane are written.
+    """
+    added = 0
+    for row in range(cells.size):
+        cell = int(cells[row])
+        if not mask[cell]:
+            added += 1
+        mask[cell] = 1
+        for block in literal_unroll(blocks):
+            for field_row in range(block.shape[0]):
+                block[field_row, cell] = 0
+        type_field[cell] = crust_types[row]
+        formed_field[cell] = formed_at[row]
+        terrane_field[cell] = terranes[row]
+    return added
+
+
 def _snapshot_cells_kernel(fields, cells):
     """Materialize a batch of snapshots in row-major CELL_FIELDS order."""
     out = np.empty((cells.size, len(fields)), dtype=np.float64)
@@ -805,6 +839,7 @@ bearing_to_many_numba: Any
 zero_cell_fields_numba: Any
 snapshot_cell_fields_numba: Any
 create_cells_numba: Any
+create_cells_blocks_numba: Any
 snapshot_cells_numba: Any
 copy_cells_numba: Any
 remove_cells_numba: Any
@@ -836,6 +871,9 @@ if NUMBA_AVAILABLE:
         _snapshot_cell_fields_kernel
     )
     create_cells_numba = njit(cache=True, fastmath=False)(_create_cells_kernel)
+    create_cells_blocks_numba = njit(cache=True, fastmath=False)(
+        _create_cells_blocks_kernel
+    )
     snapshot_cells_numba = njit(cache=True, fastmath=False)(_snapshot_cells_kernel)
     copy_cells_numba = njit(cache=True, fastmath=False)(_copy_cells_kernel)
     remove_cells_numba = njit(cache=True, fastmath=False)(_remove_cells_kernel)
@@ -846,5 +884,5 @@ else:
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
-    create_cells_numba = snapshot_cells_numba = None
+    create_cells_numba = create_cells_blocks_numba = snapshot_cells_numba = None
     copy_cells_numba = remove_cells_numba = None

@@ -37,6 +37,11 @@ describe the repository state and changes recorded during the V2 port.
   accelerated kernels with pure-Python fallbacks.
 - The project documentation now distinguishes implemented components from
   incomplete end-to-end V2 functionality.
+- With Numba available, `CrustRaster.create_many` clears cells block by dtype
+  instead of unrolling over each of the 55 fields, with identical results. On the
+  single-core benchmark host the `crust_create_snapshot_ms` median went from
+  19.9 ms to 1.24 ms (6k cells, 10 rounds, 2 warm-ups). The pure-Python
+  fallback is unchanged.
 
 ### Removed
 - The experimental `shull` triangulation backend and the discarded cKDTree

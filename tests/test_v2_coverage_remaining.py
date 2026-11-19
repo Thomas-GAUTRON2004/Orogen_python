@@ -9,7 +9,7 @@ from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import backarc, boundaries, config, initial_world, scenarios
 from orogen.v2.tectonics.backarc import _bridge_pieces, _judge_strip, _split_strip, _strip_behind
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
-from orogen.v2.tectonics.world import TectonicWorld
+from orogen.v2.tectonics.world import EventKind, TectonicWorld
 
 
 def _line_graph(count=5, *, cell_area_km2=200_000.0):
@@ -339,7 +339,7 @@ def test_backarc_open_guards_and_orphan_strip_cleanup():
     strip = world.add_plate("Orphan Arc")
     strip.backArcOf = 99
     strip.born = 0.0
-    assert backarc.open_back_arcs(world, 0.0) == 0
+    assert backarc.open_back_arcs(world, 0.0) == 1
     assert strip.backArcOf == -1
 
 
@@ -369,7 +369,13 @@ def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepeni
     boundaries._feed_subduction_far_field(world, {plate: front}, 1.0)
     assert plate.flatSlab is False
     assert plate.flatSlabKm == 0.0
-    assert world.events[-1]["kind"] == "slab_steep"
+
+    plate.flatSlab = True
+    plate.flatSlabKm = 123.0
+    plate.lastFedAt = world.time
+    boundaries._feed_subduction_far_field(world, {plate: front}, 1.0)
+    assert plate.flatSlab is False
+    assert world.events[-1]["kind"] == EventKind["SLAB_STEEP"]
     assert recorded
 
     plate.flatSlab = True

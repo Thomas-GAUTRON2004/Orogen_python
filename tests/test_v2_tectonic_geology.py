@@ -24,8 +24,6 @@ from orogen.v2.tectonics.geology import (
     encode_unroof_km,
 )
 
-# fmt: off  # Keep compact reference vectors readable as source fixtures.
-
 
 def test_shared_geology_model_metadata_matches_upstream_contract():
     assert GeoFlag == {

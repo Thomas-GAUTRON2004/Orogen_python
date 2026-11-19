@@ -7,7 +7,12 @@ import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import backarc, boundaries, config, initial_world, scenarios
-from orogen.v2.tectonics.backarc import _bridge_pieces, _judge_strip, _split_strip, _strip_behind
+from orogen.v2.tectonics.backarc import (
+    _bridge_pieces,
+    _judge_strip,
+    _split_strip,
+    _strip_behind,
+)
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 from orogen.v2.tectonics.world import EventKind, TectonicWorld
 

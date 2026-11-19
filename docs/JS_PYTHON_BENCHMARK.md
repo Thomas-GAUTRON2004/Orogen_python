@@ -1,6 +1,64 @@
 # JavaScript / Python performance comparison
 
-## Baseline before Numba — 2026-11-17
+## Reproducible benchmark harness
+
+The current harness compares the vendored upstream JavaScript reference with
+three execution modes: JavaScript, Python with all Orogen Numba dispatch paths
+disabled, and Python with Numba enabled. It measures deterministic inputs on
+one GitHub Actions runner.
+
+Run locally after installing the optional speed extra:
+
+```bash
+python -m pip install -e ".[speed]"
+BENCH_ROUNDS=10 BENCH_WARMUPS=2 node benchmarks/bench.mjs > benchmark-results.json
+python benchmarks/render_report.py benchmark-results.json
+```
+
+The default protocol performs **10 measured repetitions after 2 warmups**.
+Each metric stores median, mean, sample standard deviation, 95th percentile,
+minimum, maximum and raw samples. Results are emitted as JSON, Markdown and
+CSV. CI publishes all three as a 90-day Actions artifact and adds the Markdown
+report to the workflow summary.
+
+Common paired workloads are FBM, batched spherical geometry, graph BFS,
+connected components, Dijkstra, crust creation/snapshot and crust batch copy.
+Python pure and Python + Numba are timed for every workload. Far-field
+diffusion is additionally compared within Python with and without Numba.
+
+### Tectonic step benchmark
+
+The harness also measures one real `step_world` call on a deterministic,
+prebuilt spherical mesh with four plates. It times independent worlds per
+repetition so every sample begins from the same initial state. Mesh generation
+and world construction are outside the timed region; the timing includes the
+actual step orchestration and its configured resolve/classification/tectonic
+stages.
+
+There is deliberately no JavaScript timing for `step_world`: the Python port
+does not yet have a complete equivalent JavaScript tectonic orchestrator in
+the vendored reference set. This is a Python pure-versus-Numba comparison,
+not a claim of whole-engine JavaScript parity.
+
+### Interpretation notes
+
+- A Python/JavaScript ratio below 1 means Python is faster; a Numba gain above
+  1 means the accelerated Python path is faster than the Python fallback.
+- BFS, connected components and Dijkstra use a synthetic degree-6 CSR ring,
+  not a production planet mesh. Dijkstra uses a 20,000 km cutoff.
+- Geometry and FBM use batched Python APIs while the upstream JavaScript
+  reference exercises scalar calls. Crust batch APIs also differ in call
+  granularity from the scalar JavaScript reference. These figures compare
+  actual implementation paths, not a language-only abstraction.
+- Shared hosted runners vary. Compare medians and dispersion across repeated
+  runs; do not interpret a single sample as a universal speed guarantee.
+- Python process launch, mesh construction and step-world preparation are
+  excluded from timed regions. Numba warmup/JIT compilation is also excluded.
+
+The sections below are historical measurements from earlier five-round runs
+and should not be compared directly with the newer ten-round protocol.
+
+## Historical measurements (2026-11-17)
 
 The first paired benchmark used the same GitHub Actions `ubuntu-latest` runner, Node.js 22.23.4 and Python 3.12.16. Five measured rounds followed one warm-up.
 

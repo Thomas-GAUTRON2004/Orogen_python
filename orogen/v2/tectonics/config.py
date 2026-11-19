@@ -16,7 +16,8 @@ CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
 # Preserve the upstream config catalogue and its explanatory comments.
-TECTONICS: dict[str, Any] = {  # fmt: skip
+# fmt: off
+TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
     "maxStepMyr": 4,
@@ -558,6 +559,7 @@ TECTONICS: dict[str, Any] = {  # fmt: skip
     },
 }
 
+# fmt: on
 MECHANISMS: dict[str, dict[str, Any]] = {
     "wings":          { "wingGrowthCmYr": 0 },                                   # trench wings (step/wings.js)
     "arcs":           { "arcMatureConsumedKm": 1e9 },                            # island arcs (step/wings.js)

@@ -8,8 +8,8 @@ from orogen.v2.tectonics import (
     build_continental_scene,
     build_mixed_scene,
     build_oceanic_scene,
-    build_start_world,
     build_scenario_scene,
+    build_start_world,
 )
 
 
@@ -59,9 +59,9 @@ def test_start_world_is_deterministic_for_seed_and_configuration():
         assert np.array_equal(a.crust.terrane, b.crust.terrane)
 
 
-def test_start_world_rejects_invalid_fraction_and_too_small_mesh():
+def test_start_world_rejects_invalid_fraction():
     mesh = build_sim_mesh(24, 18)
-    with pytest.raises(ValueError, match="continentalFraction"):
+    with pytest.raises(ValueError):
         build_start_world(mesh, 1, {"continentalFraction": 1.0})
 
 

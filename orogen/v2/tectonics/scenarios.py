@@ -134,7 +134,7 @@ def build_scenario_scene(
 
 
 # Public camel-case aliases for mechanically ported callers.
-buildContinentalScene = build_continental_scene
-buildOceanicScene = build_oceanic_scene
-buildMixedScene = build_mixed_scene
-buildScenarioScene = build_scenario_scene
+buildContinentalScene = build_continental_scene  # noqa: N816 -- preserve upstream V2 public spelling
+buildOceanicScene = build_oceanic_scene  # noqa: N816 -- preserve upstream V2 public spelling
+buildMixedScene = build_mixed_scene  # noqa: N816 -- preserve upstream V2 public spelling
+buildScenarioScene = build_scenario_scene  # noqa: N816 -- preserve upstream V2 public spelling

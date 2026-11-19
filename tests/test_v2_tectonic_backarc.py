@@ -13,6 +13,7 @@ from orogen.v2.tectonics.config import CM_PER_YR_TO_RAD_PER_MYR
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.world import BoundaryKind, EventKind, TectonicWorld
 
+
 class Index:
     def __init__(self, points):
         self.points = np.asarray(points, dtype=np.float64)
@@ -20,6 +21,7 @@ class Index:
     def nearest(self, x, y, z):
         point = np.asarray([x, y, z], dtype=np.float64)
         return int(np.argmax(self.points @ point))
+
 
 class Mesh:
     def __init__(self, points, neighbours, edge_km=100.0, cell_area_km2=10000.0):
@@ -36,6 +38,7 @@ class Mesh:
         self.adj_offset = np.asarray(offsets, dtype=np.int32)
         self.adj_list = np.asarray(adjacency, dtype=np.int32)
         self.index = Index(np.asarray(points, dtype=np.float64))
+
 
 def backarc_config():
     return {
@@ -54,6 +57,7 @@ def backarc_config():
         "riftPushMyr": 20.0,
     }
 
+
 def make_line_mesh(count=5, edge_km=100.0):
     step = edge_km / 6371.0
     points = [[math.cos(i * step), math.sin(i * step), 0.0] for i in range(count)]
@@ -66,6 +70,7 @@ def make_line_mesh(count=5, edge_km=100.0):
             row.append(cell + 1)
         neighbours.append(row)
     return Mesh(points, neighbours, edge_km=edge_km)
+
 
 def make_margin_world(*, patch_rng=True):
     rows, cols = 18, 15
@@ -120,6 +125,7 @@ def make_margin_world(*, patch_rng=True):
         world.rngBackArc = lambda: 0.0
     return world, parent, slab, other
 
+
 def test_rollback_rate_is_age_weighted_and_capped():
     config = backarc_config()
     assert rollback_cm_yr(60.0, config) == 0.0
@@ -128,11 +134,13 @@ def test_rollback_rate_is_age_weighted_and_capped():
     assert rollback_cm_yr(150.0, config) == pytest.approx(3.0)
     assert rollback_cm_yr(250.0, config) == pytest.approx(3.0)
 
+
 def test_rollback_rate_rejects_degenerate_age_interval():
     config = backarc_config()
     config["rollbackFullAgeMyr"] = config["rollbackMinAgeMyr"]
     with pytest.raises(ValueError, match="must exceed"):
         rollback_cm_yr(100.0, config)
+
 
 def test_open_back_arc_splits_a_coherent_continental_margin(monkeypatch):
     import orogen.v2.tectonics.backarc as backarc
@@ -178,6 +186,7 @@ def test_open_back_arc_ignores_young_slabs(monkeypatch, slab_age):
     assert open_back_arcs(world, 1.0) == 0
     assert len(world.plates) == 2
 
+
 def test_open_back_arc_requires_the_overriding_plate_to_lag_rollback(monkeypatch):
     import orogen.v2.tectonics.backarc as backarc
 
@@ -192,6 +201,7 @@ def test_open_back_arc_requires_the_overriding_plate_to_lag_rollback(monkeypatch
 
     assert open_back_arcs(world, 1.0) == 0
     assert len(world.plates) == 2
+
 
 def test_finished_back_arc_rejoins_and_bridges_its_empty_seam():
     mesh = make_line_mesh()
@@ -221,6 +231,7 @@ def test_finished_back_arc_rejoins_and_bridges_its_empty_seam():
     assert world.events[-1]["data"]["rejoined"] is True
     assert world.events[-1]["data"]["seamCells"] == 1
 
+
 def test_finished_back_arc_becomes_independent_when_parent_is_gone():
     mesh = make_line_mesh()
     world = TectonicWorld(mesh, 12, backarc_config())
@@ -237,6 +248,7 @@ def test_finished_back_arc_becomes_independent_when_parent_is_gone():
     assert strip.alive is True
     assert world.events[-1]["kind"] == EventKind["BACKARC_CLOSE"]
     assert world.events[-1]["data"]["rejoined"] is False
+
 
 def test_steer_back_arc_strip_adds_parent_velocity_and_rollback():
     mesh = make_line_mesh()
@@ -264,6 +276,7 @@ def test_steer_back_arc_strip_adds_parent_velocity_and_rollback():
 
     world.time = 30.0
     assert steer_back_arc_strips(world) == 0
+
 
 def test_rollback_fronts_skips_invalid_overriding_contacts(monkeypatch):
     import orogen.v2.tectonics.backarc as backarc
@@ -329,6 +342,7 @@ def test_rollback_fronts_skips_non_ocean_slab_cells(monkeypatch, invalid_slab):
 
     assert backarc._rollback_fronts(world) == {}
 
+
 def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contacts(
     monkeypatch,
 ):
@@ -358,6 +372,7 @@ def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contact
     assert front["cells"]
     assert front["ages"] == pytest.approx(100.0 * len(front["cells"]))
     assert front["direction"][1] == pytest.approx(float(len(front["cells"])))
+
 
 def test_open_back_arcs_handles_missing_config_nonpositive_dt_and_disabled_rate():
     mesh = make_line_mesh()
@@ -410,6 +425,7 @@ def test_try_open_back_arc_rejects_ineligible_fronts(monkeypatch, reason):
     assert backarc._try_open_back_arc(world, front, 1.0) is False
     assert len(world.plates) == 2
 
+
 def test_judge_strip_rejects_cratons_majority_slivers_and_disconnected_land():
     import orogen.v2.tectonics.backarc as backarc
 
@@ -429,6 +445,7 @@ def test_judge_strip_rejects_cratons_majority_slivers_and_disconnected_land():
     selected[np.arange(16, 256, 8)[:30]] = 1
     assert backarc._judge_strip(world, parent, selected) is None
 
+
 def test_judge_strip_rejects_a_disconnected_remainder_and_accepts_ocean_arc():
     import orogen.v2.tectonics.backarc as backarc
 
@@ -444,6 +461,7 @@ def test_judge_strip_rejects_a_disconnected_remainder_and_accepts_ocean_arc():
     result = backarc._judge_strip(world, parent, selected)
     assert result == {"cells": list(range(14)), "continental": False}
 
+
 def test_strip_name_is_unique_and_strips_existing_suffixes():
     import orogen.v2.tectonics.backarc as backarc
 
@@ -454,6 +472,7 @@ def test_strip_name_is_unique_and_strips_existing_suffixes():
     world.add_plate("West Isles 2")
     assert backarc._strip_name(world, parent, True) == "West Isles 3"
     assert backarc._strip_name(world, parent, False) == "West Arc 2"
+
 
 def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
     mesh = make_line_mesh()
@@ -476,6 +495,7 @@ def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
     parent.alive = False
     assert steer_back_arc_strips(world) == 0
 
+
 def test_open_back_arc_uses_real_world_rng_and_contact_geometry():
     import orogen.v2.tectonics.backarc as backarc
 
@@ -494,6 +514,7 @@ def test_open_back_arc_uses_real_world_rng_and_contact_geometry():
     assert len(fronts[(parent.id, slab.id)]["cells"]) >= 8
     assert open_back_arcs(world, 1.0) == 0
     assert len(world.plates) == 2
+
 
 def test_split_strip_clears_expired_reciprocal_partner():
     import orogen.v2.tectonics.backarc as backarc
@@ -518,6 +539,7 @@ def test_split_strip_clears_expired_reciprocal_partner():
     assert fresh.riftPartner == parent.id
     assert old_partner.riftPartner == -1
     assert old_partner.riftPushDir is None
+
 
 def test_finished_back_arc_rejoins_without_clearing_an_unrelated_rift_partner():
     mesh = make_line_mesh()

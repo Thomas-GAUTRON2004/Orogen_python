@@ -93,6 +93,10 @@ def numba_mode(enabled: bool):
                 module.NUMBA_AVAILABLE = value
 
 
+class MeshFixture:
+    """Weak-referenceable mesh container for synthetic graph workloads."""
+
+
 def make_core_inputs():
     """Build identical deterministic arrays and a synthetic CSR graph."""
     points = np.asarray(
@@ -134,12 +138,11 @@ def make_core_inputs():
             (index - step) % N_CELLS for step in (1, 2, 3)
         ]
 
-    mesh = SimpleNamespace(
-        num_cells=N_CELLS,
-        xyz=xyz,
-        adj_offset=offsets,
-        adj_list=adjacency,
-    )
+    mesh = MeshFixture()
+    mesh.num_cells = N_CELLS
+    mesh.xyz = xyz
+    mesh.adj_offset = offsets
+    mesh.adj_list = adjacency
     return points, vectors, mesh
 
 
@@ -161,12 +164,11 @@ def make_far_field_case():
             (cell - step) % N_CELLS for step in (1, 2, 3)
         ]
 
-    mesh = SimpleNamespace(
-        num_cells=N_CELLS,
-        xyz=xyz,
-        adj_offset=offsets,
-        adj_list=adjacency,
-    )
+    mesh = MeshFixture()
+    mesh.num_cells = N_CELLS
+    mesh.xyz = xyz
+    mesh.adj_offset = offsets
+    mesh.adj_list = adjacency
     crust = CrustRaster(N_CELLS)
     crust.mask.fill(1)
     crust.count = N_CELLS

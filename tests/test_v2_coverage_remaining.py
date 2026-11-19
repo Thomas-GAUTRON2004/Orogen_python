@@ -16,6 +16,7 @@ from orogen.v2.tectonics.backarc import (
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 from orogen.v2.tectonics.world import EventKind, TectonicWorld
 
+
 def _line_graph(count=5, *, cell_area_km2=200_000.0):
     points = np.column_stack(
         (
@@ -47,6 +48,7 @@ def _line_graph(count=5, *, cell_area_km2=200_000.0):
         cell_area_km2=cell_area_km2,
     )
 
+
 def _backarc_config():
     return {
         "backArcContinentalWidthKm": 650.0,
@@ -64,11 +66,13 @@ def _backarc_config():
         "riftPushMyr": 20.0,
     }
 
+
 def _crust(types):
     result = CrustRaster(len(types))
     for cell, crust_type in enumerate(types):
         result.create(cell, crust_type, -10.0, cell + 1)
     return result
+
 
 def test_initial_world_private_mesh_and_distance_helpers_validate_inputs():
     mesh = build_sim_mesh(48, 91)
@@ -96,6 +100,7 @@ def test_initial_world_private_mesh_and_distance_helpers_validate_inputs():
     assert np.all(np.isinf(distances[1:]))
     assert strengths[0] == 1
 
+
 def test_initial_world_craton_picker_falls_back_when_core_is_too_small():
     xyz = np.tile(np.asarray([[1.0, 0.0, 0.0]]), (5, 1))
     cells = np.arange(5, dtype=np.int32)
@@ -104,6 +109,7 @@ def test_initial_world_craton_picker_falls_back_when_core_is_too_small():
     )
     assert picked.shape == (4,)
     assert len(np.unique(picked)) == 4
+
 
 def test_initial_world_seams_distinguish_major_inner_and_ring_edges():
     mesh = build_sim_mesh(48, 92)
@@ -137,6 +143,7 @@ def test_initial_world_seams_distinguish_major_inner_and_ring_edges():
     )
     assert ring[first] == initial_world.StartSeam["RING"]
 
+
 def test_paint_old_ranges_skips_invalid_and_empty_range_definitions():
     mesh = build_sim_mesh(48, 93)
     world = TectonicWorld(mesh, 93)
@@ -157,6 +164,7 @@ def test_paint_old_ranges_skips_invalid_and_empty_range_definitions():
     initial_world._paint_old_ranges(world, plate, land, seams)
     assert np.count_nonzero(plate.crust.oroType) == 0
 
+
 def test_paint_old_ranges_spreads_a_real_inherited_seam():
     mesh = build_sim_mesh(96, 94)
     world = TectonicWorld(mesh, 94)
@@ -175,6 +183,7 @@ def test_paint_old_ranges_spreads_a_real_inherited_seam():
     initial_world._paint_old_ranges(world, plate, land, seams)
     assert plate.crust.oroType[0] != 0
     assert np.count_nonzero(plate.crust.beltReach) > 0
+
 
 def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypatch):
     tiny = SimpleNamespace(num_cells=3, xyz=np.zeros(9))
@@ -210,6 +219,7 @@ def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypat
     assert result["start"]["trench"].size == 0
     assert not np.any(continent.crust.flags & CrustFlag["TRENCH"])
 
+
 def test_scenario_validation_and_oceanic_empty_hemisphere_fallback(monkeypatch):
     with pytest.raises(ValueError, match="xyz does not match"):
         scenarios._xyz(SimpleNamespace(xyz=np.zeros(3), num_cells=2))
@@ -228,6 +238,7 @@ def test_scenario_validation_and_oceanic_empty_hemisphere_fallback(monkeypatch):
     )
     assert result["start"]["plateACells"] > 0
     assert result["start"]["plateBCells"] > 0
+
 
 def test_backarc_strip_judgement_covers_rejections_and_success():
     mesh = _line_graph()
@@ -311,6 +322,7 @@ def test_backarc_strip_judgement_covers_rejections_and_success():
     )
     assert accepted == {"cells": [0, 1], "continental": True}
 
+
 def test_strip_behind_retries_the_narrower_oceanic_band(monkeypatch):
     mesh = _line_graph()
     plate = SimpleNamespace(crust=_crust([CrustType["OCEAN"]] * 5))
@@ -329,6 +341,7 @@ def test_strip_behind_retries_the_narrower_oceanic_band(monkeypatch):
     monkeypatch.setattr(backarc, "_judge_strip", lambda *_args: accepted)
     assert _strip_behind(world, plate, [0]) is accepted
     assert widths == [650.0, 350.0]
+
 
 def test_bridge_pieces_handles_single_piece_and_fills_short_seam():
     mesh = _line_graph()
@@ -353,6 +366,7 @@ def test_bridge_pieces_handles_single_piece_and_fills_short_seam():
     single.mark_reshaped = lambda: pytest.fail("single piece should not be reshaped")
     assert _bridge_pieces(single, mesh, 400.0) == 0
 
+
 def test_split_strip_preserves_an_active_parent_rift_partnership():
     mesh = build_sim_mesh(48, 98)
     world = TectonicWorld(mesh, 98, _backarc_config())
@@ -373,6 +387,7 @@ def test_split_strip_preserves_an_active_parent_rift_partnership():
     assert parent.riftPartner == partner.id
     assert partner.riftPartner == parent.id
 
+
 def test_backarc_open_guards_and_orphan_strip_cleanup():
     mesh = build_sim_mesh(32, 99)
     world = TectonicWorld(mesh, 99, _backarc_config())
@@ -391,6 +406,7 @@ def test_backarc_open_guards_and_orphan_strip_cleanup():
     assert world.events[-1]["kind"] == EventKind["BACKARC_CLOSE"]
     assert world.events[-1]["data"]["rejoined"] is False
 
+
 def _boundary_world(seed=101):
     mesh = build_sim_mesh(64, seed)
     world = TectonicWorld(mesh, seed)
@@ -398,6 +414,7 @@ def _boundary_world(seed=101):
     plate.crust.create(0, CrustType["CONTINENT"], -100.0, 1)
     plate.crust.create(1, CrustType["ARC"], -50.0, 1)
     return mesh, world, plate
+
 
 def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepening(
     monkeypatch,
@@ -437,6 +454,7 @@ def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepeni
     boundaries._feed_subduction_far_field(world, {plate: ocean_only}, 1.0)
     assert plate.flatSlabKm == 0.0
 
+
 def test_boundary_belt_spreaders_cover_filtered_and_arc_paths(monkeypatch):
     mesh, world, plate = _boundary_world(102)
     calls = []
@@ -472,6 +490,7 @@ def test_boundary_belt_spreaders_cover_filtered_and_arc_paths(monkeypatch):
     )
     assert calls[-1][2] == [0]
 
+
 def test_config_validation_directly_covers_optional_and_numeric_guards(monkeypatch):
     assert config.validate_tectonics_config({}) is None
     monkeypatch.setattr(config, "_CONFIG_SCHEMA", {})
@@ -482,6 +501,7 @@ def test_config_validation_directly_covers_optional_and_numeric_guards(monkeypat
     with pytest.raises(TypeError, match="must be a mapping"):
         config.validate_tectonics_config({"belts": []})
     assert config.validate_tectonics_config({"belts": None}) is None
+
 
 def test_kinematics_skips_dead_plates_and_advances_world_clock():
     from types import SimpleNamespace
@@ -507,6 +527,7 @@ def test_kinematics_skips_dead_plates_and_advances_world_clock():
     assert world.time == 2.5
     assert world.step == 5
 
+
 def test_spread_belt_front_update_guards_and_preserves_shear():
     from orogen.v2.tectonics.spread_belt import _update_belt_front
 
@@ -530,6 +551,7 @@ def test_spread_belt_front_update_guards_and_preserves_shear():
     _update_belt_front(crust, 0, belt, 0, 2, 1, 0.1, 60.0, 5.0)
     assert crust.beltShear[0] == -40
 
+
 def test_backarc_band_skips_uncrusted_cells_and_ignores_empty_segments():
     mesh = _line_graph()
     world = SimpleNamespace(mesh=mesh, ownerCell=np.arange(mesh.num_cells))
@@ -540,6 +562,7 @@ def test_backarc_band_skips_uncrusted_cells_and_ignores_empty_segments():
     band = backarc._band_behind(world, plate, [0], 500.0)
     assert band.tolist() == [1, 0, 0, 0, 0]
     assert not np.any(backarc._band_behind(world, plate, [], 500.0))
+
 
 def test_merge_hole_repair_stops_after_a_pass_without_fillable_holes():
     from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
@@ -552,6 +575,7 @@ def test_merge_hole_repair_stops_after_a_pass_without_fillable_holes():
     )
     assert crust.count == 5
     assert origin.tolist() == [1, 1, 1, 1, 1]
+
 
 def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
     mesh = _line_graph()
@@ -575,6 +599,7 @@ def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
     assert plate.crust.rootKm[0] == 0.0
     assert plate.crust.rootKm[1] == 0.0
     assert plate.crust.rootKm[2] == 0.0
+
 
 def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
     mesh = build_sim_mesh(512, 971)
@@ -622,6 +647,7 @@ def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
     )
     assert pushed
 
+
 def test_initial_world_craton_picker_returns_empty_for_zero_requested_centres():
     xyz = np.asarray([[1.0, 0.0, 0.0]], dtype=np.float64)
     picked = initial_world._pick_craton_centres(
@@ -629,6 +655,7 @@ def test_initial_world_craton_picker_returns_empty_for_zero_requested_centres():
     )
     assert picked.dtype == np.int32
     assert picked.size == 0
+
 
 def test_paint_old_ranges_discards_a_stale_long_distance_queue_entry(monkeypatch):
     mesh = SimpleNamespace(
@@ -663,6 +690,7 @@ def test_paint_old_ranges_discards_a_stale_long_distance_queue_entry(monkeypatch
 
     assert np.all(np.isfinite(plate.crust.rootKm))
 
+
 def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(monkeypatch):
     mesh = build_sim_mesh(64, 98)
     monkeypatch.setattr(initial_world, "make_rng", lambda _seed: lambda: 0.5)
@@ -687,6 +715,7 @@ def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(mon
     trench = result["start"]["trench"]
     assert rim.size > 0
     assert trench.tolist() == rim.tolist()
+
 
 def test_start_world_skips_unassigned_terrane_cells_in_far_field_fans(monkeypatch):
     mesh = build_sim_mesh(64, 99)

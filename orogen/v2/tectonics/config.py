@@ -603,11 +603,7 @@ _POSITIVE_INFINITY_SENTINELS = frozenset(
     key
     for mechanism in MECHANISMS.values()
     for key, value in mechanism.items()
-    if (
-        isinstance(value, Real)
-        and isinf(float(value))
-        and float(value) > 0
-    )
+    if (isinstance(value, Real) and isinf(float(value)) and float(value) > 0)
 )
 
 
@@ -717,10 +713,7 @@ def _validate_known_shape(value: Any, default: Any, path: str) -> None:
             raise TypeError(f"{path} must be a real number")
         if not isfinite(float(value)) and not (
             float(value) == float("inf")
-            and (
-                isinf(float(default))
-                or path in _POSITIVE_INFINITY_SENTINELS
-            )
+            and (isinf(float(default)) or path in _POSITIVE_INFINITY_SENTINELS)
         ):
             raise ValueError(f"{path} must be finite")
         return

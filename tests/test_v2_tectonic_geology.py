@@ -1,4 +1,8 @@
+import json
 import math
+import shutil
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -97,3 +101,54 @@ def test_facies_packs_four_nibbles_and_can_reuse_output():
         "coal": 4 / 15,
         "organic": 0.0,
     }
+
+
+def test_geology_encodings_match_upstream_javascript():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required for upstream JavaScript differential tests")
+    runner = Path(__file__).parent / "reference" / "v2" / "geology-encoding.mjs"
+    result = subprocess.run(
+        [node, str(runner)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    expected = json.loads(result.stdout)
+
+    assert expected["flags"] == GeoFlag
+    assert expected["fields"] == GEO_FRAME_FIELDS
+    assert expected["reads"] == GEOLOGY_READS
+    values = [-1, 0, 0.125, 0.25, 1, 2, 3.25, 8, 16, 32, 1000]
+    for name, encode, decode in (
+        ("cover", encode_cover_km, decode_cover_km),
+        ("exhum", encode_exhum_km, decode_exhum_km),
+        ("unroof", encode_unroof_km, lambda x: x * 0.25),
+        ("flood", encode_flood_myr, decode_flood_myr),
+        ("arc", encode_arc_myr, decode_arc_myr),
+        ("age", encode_age, decode_age),
+    ):
+        actual = [[encode(value), decode(encode(value))] for value in values]
+        assert actual == expected[name]
+
+    times = [(0, 100, False), (90, 100, True), (0, 1275, True), (100, 0, True)]
+    actual_flood_age = [
+        [
+            encode_flood_age(last, time, ever),
+            (
+                "Infinity"
+                if math.isinf(decode_flood_age(encode_flood_age(last, time, ever)))
+                else decode_flood_age(encode_flood_age(last, time, ever))
+            ),
+        ]
+        for last, time, ever in times
+    ]
+    assert actual_flood_age == expected["floodAge"]
+
+    facies_values = [(0, 0, 0, 0), (1, 0.5, 0.25, 0), (0.1, 0.3, 0.7, 1), (2, -1, 0.5, 0.5)]
+    actual_facies = [
+        [encode_facies(*values), decode_facies(encode_facies(*values))]
+        for values in facies_values
+    ]
+    assert actual_facies == expected["facies"]

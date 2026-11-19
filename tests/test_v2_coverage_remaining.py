@@ -130,9 +130,11 @@ def test_initial_world_seams_distinguish_major_inner_and_ring_edges():
     )
     assert inner[first] == initial_world.StartSeam["INNER"]
 
+    ring_mask = np.zeros(mesh.num_cells, dtype=bool)
+    ring_mask[first] = True
     ring = initial_world._seams(
         mesh,
-        mask,
+        ring_mask,
         np.asarray([first], dtype=np.int32),
         np.asarray([1]),
         centre,
@@ -184,9 +186,17 @@ def test_paint_old_ranges_spreads_a_real_inherited_seam():
 
 
 def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypatch):
-    tiny = build_sim_mesh(3, 95)
+    tiny = SimpleNamespace(num_cells=3, xyz=np.zeros(9))
+    monkeypatch.setattr(
+        initial_world,
+        "TectonicWorld",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            config={"continentalFraction": 0.29}
+        ),
+    )
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(tiny, 95)
+    monkeypatch.undo()
 
     mesh = build_sim_mesh(64, 96)
 
@@ -346,6 +356,7 @@ def test_bridge_pieces_handles_single_piece_and_fills_short_seam():
             CrustType["CONTINENT"],
         ]
     )
+    crust.remove(2)
     plate = SimpleNamespace(crust=crust, reshaped=False)
     plate.mark_reshaped = lambda: setattr(plate, "reshaped", True)
     assert _bridge_pieces(plate, mesh, 400.0) > 0
@@ -388,10 +399,11 @@ def test_backarc_open_guards_and_orphan_strip_cleanup():
 
     world = TectonicWorld(mesh, 100, _backarc_config())
     world.time = 100.0
+    world.config["backArcRatePerMyr"] = 0.0
     strip = world.add_plate("Orphan Arc")
     strip.backArcOf = 99
     strip.born = 0.0
-    assert backarc.open_back_arcs(world, 0.0) == 1
+    assert backarc.open_back_arcs(world, 1.0) == 1
     assert strip.backArcOf == -1
 
 

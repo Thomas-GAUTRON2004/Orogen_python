@@ -101,9 +101,7 @@ def test_scenario_builders_apply_configuration_overrides():
     continental = build_continental_scene(
         mesh, 17, fraction=0.25, overrides={"initialLandAgeMyr": 1234.0}
     )
-    oceanic = build_oceanic_scene(
-        mesh, 18, overrides={"initialOceanAgeMyr": 87.0}
-    )
+    oceanic = build_oceanic_scene(mesh, 18, overrides={"initialOceanAgeMyr": 87.0})
     dispatched = build_scenario_scene(
         mesh,
         19,

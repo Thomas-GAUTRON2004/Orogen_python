@@ -18,6 +18,7 @@ from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
 from ..core.sphere_geometry import random_point, tangent_basis
 from .crust import CrustFlag, CrustType, OrogenyType
+from .far_field import spread_push
 from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
 
@@ -362,6 +363,20 @@ def build_start_world(
     weak = (seams == StartSeam["INNER"]) | (seams == StartSeam["MAJOR"])
     continent.crust.flags[weak] |= CrustFlag["SUTURE"]
     _paint_old_ranges(world, continent, land_mask, seams)
+
+    # The proto-continents' collision fronts also left a long-lived shortening
+    # grain. Seed the far-field record from the major sutures at their inherited
+    # age; later history steps can reactivate the same weak corridors.
+    far_start_work = float(cfg.get("farStartWorkKm", 0.0))
+    major_cells = np.flatnonzero(major_sources & land_mask)
+    if far_start_work > 0.0 and major_cells.size:
+        spread_push(
+            world,
+            continent,
+            {int(cell): far_start_work for cell in major_cells},
+            float(major_cells.size) * float(sim_mesh.edge_km),
+            -float(cfg.get("startRanges", {}).get("major", [0, 0, 0])[2]),
+        )
 
     major_sources = seams == StartSeam["MAJOR"]
     ring_sources = seams == StartSeam["RING"]

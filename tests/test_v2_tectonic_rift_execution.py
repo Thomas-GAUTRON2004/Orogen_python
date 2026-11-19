@@ -1,10 +1,10 @@
+from importlib import import_module
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
-import orogen.v2.tectonics.ops.rift as rift_module
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import (
     names_after_split,
@@ -13,6 +13,7 @@ from orogen.v2.tectonics.ops import (
     try_rift,
 )
 
+rift_module = import_module("orogen.v2.tectonics.ops.rift")
 
 
 def test_pull_axis_requires_enough_trench_and_finds_principal_axis():

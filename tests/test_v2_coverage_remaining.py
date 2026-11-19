@@ -534,7 +534,6 @@ def test_spread_belt_front_update_guards_and_preserves_shear():
 
     crust = CrustRaster(1)
     crust.create(0, CrustType["CONTINENT"], -10.0, 1)
-    crust.record_orogeny(0, 1, 1.0, 5.0, 0.0)
     crust.beltReach[0] = 20.0
     crust.beltAt[0] = 5.0
     crust.beltU[0] = 0.4
@@ -557,7 +556,10 @@ def test_spread_belt_front_update_guards_and_preserves_shear():
 def test_backarc_band_skips_uncrusted_cells_and_ignores_empty_segments():
     mesh = _line_graph()
     world = SimpleNamespace(mesh=mesh, ownerCell=np.arange(mesh.num_cells))
-    plate = SimpleNamespace(crust=_crust([CrustType["CONTINENT"], 0, CrustType["CONTINENT"], 0, 0]))
+    crust = CrustRaster(5)
+    crust.create(0, CrustType["CONTINENT"], -10.0, 1)
+    crust.create(2, CrustType["CONTINENT"], -10.0, 3)
+    plate = SimpleNamespace(crust=crust)
     band = backarc._band_behind(world, plate, [0], 500.0)
     assert band.tolist() == [1, 0, 0, 0, 0]
     assert not np.any(backarc._band_behind(world, plate, [], 500.0))

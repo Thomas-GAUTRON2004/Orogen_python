@@ -26,14 +26,21 @@ def _xyz(sim_mesh: Any) -> np.ndarray:
     return values
 
 
-def build_continental_scene(sim_mesh: Any, seed: int = 0, fraction: float = 0.30) -> dict[str, Any]:
+def build_continental_scene(
+    sim_mesh: Any, seed: int = 0, fraction: float = 0.30
+) -> dict[str, Any]:
     """Build a single continental plate against the passive background ocean."""
     if not math.isfinite(float(fraction)) or not 0.0 < float(fraction) < 1.0:
         raise ValueError("fraction must be finite and strictly between 0 and 1")
     world = TectonicWorld(sim_mesh, seed)
     xyz = _xyz(sim_mesh)
     centre = np.asarray(random_point(make_rng(seed * 31 + 211)), dtype=np.float64)
-    count = max(1, min(sim_mesh.num_cells - 1, int(math.floor(sim_mesh.num_cells * fraction + 0.5))))
+    count = max(
+        1,
+        min(
+            sim_mesh.num_cells - 1, int(math.floor(sim_mesh.num_cells * fraction + 0.5))
+        ),
+    )
     cosine = xyz @ centre
     land = np.argpartition(cosine, -count)[-count:]
     land = land[np.argsort(-cosine[land], kind="stable")].astype(np.int32)
@@ -44,7 +51,10 @@ def build_continental_scene(sim_mesh: Any, seed: int = 0, fraction: float = 0.30
     ocean = world.add_plate("Background ocean")
     ocean.isBackground = True
     continent.crust.create_many(
-        land, CrustType["CONTINENT"], -float(world.config.get("initialLandAgeMyr", 2000.0)), 1
+        land,
+        CrustType["CONTINENT"],
+        -float(world.config.get("initialLandAgeMyr", 2000.0)),
+        1
     )
     water = np.flatnonzero(~land_mask)
     ocean.crust.create_many(
@@ -82,7 +92,10 @@ def build_oceanic_scene(sim_mesh: Any, seed: int = 0) -> dict[str, Any]:
     if not first.size or not second.size:
         order = np.argsort(signed, kind="stable")
         midpoint = max(1, len(order) // 2)
-        second, first = order[:midpoint].astype(np.int32), order[midpoint:].astype(np.int32)
+        second, first = (
+            order[:midpoint].astype(np.int32),
+            order[midpoint:].astype(np.int32),
+        )
 
     age = -float(world.config.get("initialOceanAgeMyr", 150.0))
     plate_a = world.add_plate("Oceanic plate A")
@@ -109,7 +122,9 @@ def build_oceanic_scene(sim_mesh: Any, seed: int = 0) -> dict[str, Any]:
     }
 
 
-def build_mixed_scene(sim_mesh: Any, seed: int = 0, overrides: dict | None = None) -> dict[str, Any]:
+def build_mixed_scene(
+    sim_mesh: Any, seed: int = 0, overrides: dict | None = None
+) -> dict[str, Any]:
     """Build the full mixed supercontinent, apron and background-ocean fixture."""
     result = build_start_world(sim_mesh, seed, overrides)
     result["start"]["scenario"] = "mixed"

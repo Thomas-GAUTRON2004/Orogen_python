@@ -1,10 +1,13 @@
 """Regression tests for remaining tectonic decision branches."""
 
+from importlib import import_module
 from types import SimpleNamespace
 
 import numpy as np
 
-from orogen.v2.tectonics import backarc, kinematics, resolve
+from orogen.v2.tectonics import backarc, kinematics
+
+resolve = import_module("orogen.v2.tectonics.resolve")
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
 from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
 from orogen.v2.tectonics.ops.plate_accretion import landmass_of

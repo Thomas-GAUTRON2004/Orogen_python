@@ -794,4 +794,4 @@ def make_tectonics_config(
     config = _merge(TECTONICS if base is None else dict(base), overrides or {})
     validate_tectonics_config(config)
     return config
-# fmt: on
+

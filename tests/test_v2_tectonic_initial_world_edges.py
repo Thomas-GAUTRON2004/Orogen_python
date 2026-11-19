@@ -109,9 +109,8 @@ def test_start_world_without_trench_coverage_and_without_old_ranges():
 
 
 def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):
-    mesh = build_sim_mesh(12, 908)
+    mesh = SimpleNamespace(num_cells=3)
     monkeypatch.setattr(initial_world, "TectonicWorld", lambda *args, **kwargs: SimpleNamespace(config={}))
-    mesh.num_cells = 3
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(mesh, 1)
 
@@ -126,20 +125,12 @@ def test_scenario_builders_reject_invalid_fraction_and_normalize_dispatch():
 
 def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatch):
     mesh = build_sim_mesh(48, 910)
-    xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
-    pole = xyz[0]
-    monkeypatch.setattr(scenarios, "random_point", lambda _rng: pole.tolist())
-    monkeypatch.setattr(scenarios.np, "asarray", np.asarray)
-    # A pole aligned with a mesh vertex can still split the sphere; force the
-    # signed classification to one side to exercise the deterministic fallback.
-    original_dot = np.ndarray.__matmul__
-
-    class OneSide:
-        def __array__(self, dtype=None):
-            return np.ones(mesh.num_cells, dtype=dtype)
-
-    monkeypatch.setattr(scenarios, "_xyz", lambda _mesh: OneSide())
-    monkeypatch.setattr(scenarios.np, "flatnonzero", lambda values: np.arange(mesh.num_cells) if np.all(values >= 0) else np.array([], dtype=int))
+    monkeypatch.setattr(scenarios, "random_point", lambda _rng: [0.0, 0.0, 1.0])
+    monkeypatch.setattr(
+        scenarios,
+        "_xyz",
+        lambda _mesh: np.tile([0.0, 0.0, 1.0], (mesh.num_cells, 1)),
+    )
     result = scenarios.build_oceanic_scene(mesh, 5)
     assert result["start"]["plateACells"] + result["start"]["plateBCells"] == mesh.num_cells
     assert result["start"]["plateACells"] > 0

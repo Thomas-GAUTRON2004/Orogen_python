@@ -263,9 +263,10 @@ def _paint_old_ranges(
             (crust.upliftKm, before["uplift"]),
             (crust.rugged, before["rugged"]),
         ):
-            field[affected] = previous[affected] + (
-                field[affected] - previous[affected]
-            ) * relief_keep[affected]
+            field[affected] = (
+                previous[affected]
+                + (field[affected] - previous[affected]) * relief_keep[affected]
+            )
 
 
 def build_start_world(
@@ -434,7 +435,10 @@ def build_start_world(
                 if other_group != cell_group:
                     neighbours.add(other_group)
             for other_group in neighbours:
-                pair = tuple(sorted((cell_group, other_group)))
+                pair = (
+                    min(cell_group, other_group),
+                    max(cell_group, other_group),
+                )
                 by_pair.setdefault(pair, {})[int(cell)] = far_start_work
         for pair in sorted(by_pair):
             sources = by_pair[pair]

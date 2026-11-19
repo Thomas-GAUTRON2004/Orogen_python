@@ -205,12 +205,10 @@ def _paint_old_ranges(
         # the belt's geological records, but only the configured share of its
         # newly-built relief, matching the upstream oldRanges pass.
         crust.rootKm[:] = before["root"] + (crust.rootKm - before["root"]) * keep
-        crust.upliftKm[:] = before["uplift"] + (
-            crust.upliftKm - before["uplift"]
-        ) * keep
-        crust.rugged[:] = before["rugged"] + (
-            crust.rugged - before["rugged"]
-        ) * keep
+        crust.upliftKm[:] = (
+            before["uplift"] + (crust.upliftKm - before["uplift"]) * keep
+        )
+        crust.rugged[:] = before["rugged"] + (crust.rugged - before["rugged"]) * keep
 
 
 def build_start_world(
@@ -295,9 +293,7 @@ def build_start_world(
         sim_mesh, land_mask, max_hops=apron_hops + smooth_hops
     )
     grown = grown_distance >= 0
-    from_outside = _distance_hops(
-        sim_mesh, ~grown, max_hops=smooth_hops
-    )
+    from_outside = _distance_hops(sim_mesh, ~grown, max_hops=smooth_hops)
     in_plate = grown & (from_outside < 0)
     apron_mask = in_plate & ~land_mask
 
@@ -336,9 +332,7 @@ def build_start_world(
     passive_from = passive_rng() * 360.0 - 180.0
     passive_span = 360.0 * (1.0 - coverage)
     if rim_cells.size and coverage > 0:
-        angles = np.degrees(
-            np.arctan2(xyz[rim_cells] @ north, xyz[rim_cells] @ east)
-        )
+        angles = np.degrees(np.arctan2(xyz[rim_cells] @ north, xyz[rim_cells] @ east))
         offset_angles = np.mod(angles - passive_from, 360.0)
         trench_cells = rim_cells[offset_angles >= passive_span]
         if not trench_cells.size and coverage >= 0.5:

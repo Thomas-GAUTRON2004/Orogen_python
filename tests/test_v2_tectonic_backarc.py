@@ -457,6 +457,7 @@ def test_judge_strip_rejects_a_disconnected_remainder_and_accepts_ocean_arc():
 
     selected[:] = 0
     selected[:14] = 1
+    parent.crust.type[:14] = CrustType["ARC"]
     result = backarc._judge_strip(world, parent, selected)
     assert result == {"cells": list(range(14)), "continental": False}
 

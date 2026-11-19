@@ -26,8 +26,13 @@ from orogen.v2.tectonics.geology import (
 
 def test_shared_geology_model_metadata_matches_upstream_contract():
     assert GeoFlag == {
-        "WAS_ARC": 1, "FORELAND": 2, "RIFT_BASIN": 4, "OPHIOLITE": 8,
-        "SLAB_CHANGE": 16, "SHELF": 32, "EPEIRIC": 64,
+        "WAS_ARC": 1,
+        "FORELAND": 2,
+        "RIFT_BASIN": 4,
+        "OPHIOLITE": 8,
+        "SLAB_CHANGE": 16,
+        "SHELF": 32,
+        "EPEIRIC": 64,
     }
     assert GEO_FRAME_FIELDS == [
         "geoFlags", "coverKm", "coverMaxKm", "coverMaxAge", "facies",
@@ -46,7 +51,9 @@ def test_shared_geology_model_metadata_matches_upstream_contract():
         (encode_age, decode_age, 120.0, None),
     ],
 )
-def test_geology_scalar_encodings_round_trip_with_quantization(encode, decode, value, upper):
+def test_geology_scalar_encodings_round_trip_with_quantization(
+    encode, decode, value, upper
+):
     packed = encode(value)
     assert 0 <= packed <= 255
     restored = decode(packed)
@@ -77,5 +84,8 @@ def test_facies_packs_four_nibbles_and_can_reuse_output():
     out = {"carb": 0.0, "salt": 0.0, "coal": 0.0, "organic": 1.0}
     assert decode_facies(packed, out) is out
     assert out == {
-        "carb": 1.0, "salt": 8 / 15, "coal": 4 / 15, "organic": 0.0,
+        "carb": 1.0,
+        "salt": 8 / 15,
+        "coal": 4 / 15,
+        "organic": 0.0,
     }

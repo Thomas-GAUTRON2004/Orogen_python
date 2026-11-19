@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import numpy as np
 
 from orogen.v2.tectonics import backarc, kinematics
-
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
 from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
 from orogen.v2.tectonics.ops.plate_accretion import landmass_of

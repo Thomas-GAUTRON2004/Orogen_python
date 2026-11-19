@@ -646,3 +646,121 @@ def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
         },
     )
     assert pushed
+
+def test_initial_world_craton_picker_returns_empty_for_zero_requested_centres():
+    xyz = np.asarray([[1.0, 0.0, 0.0]], dtype=np.float64)
+    picked = initial_world._pick_craton_centres(
+        xyz, np.asarray([0], dtype=np.int32), xyz[0], 0.0, 0, 100.0, 10.0, lambda: 0.5
+    )
+    assert picked.dtype == np.int32
+    assert picked.size == 0
+
+
+def test_paint_old_ranges_discards_a_stale_long_distance_queue_entry(monkeypatch):
+    mesh = SimpleNamespace(
+        num_cells=3,
+        xyz=np.tile(np.asarray([1.0, 0.0, 0.0]), 3),
+        adj_offset=np.asarray([0, 2, 3, 3], dtype=np.int32),
+        adj_list=np.asarray([1, 2, 2], dtype=np.int32),
+    )
+    world = SimpleNamespace(
+        config={"startRanges": {"inner": [100.0, 10.0, 20.0, 0.5]}},
+        seed=101,
+        mesh=mesh,
+    )
+    plate = SimpleNamespace(crust=CrustRaster(3))
+    plate.crust.create_many(
+        np.arange(3, dtype=np.int32), CrustType["CONTINENT"], -100.0
+    )
+    distances = {(0, 1): 1.0, (0, 2): 10.0, (1, 2): 1.0}
+    monkeypatch.setattr(
+        initial_world,
+        "cell_distance_km",
+        lambda _xyz, a, b: distances[(a, b)],
+    )
+    monkeypatch.setattr(initial_world, "spread_belt", lambda *_args, **_kwargs: None)
+
+    initial_world._paint_old_ranges(
+        world,
+        plate,
+        np.ones(3, dtype=bool),
+        np.asarray([initial_world.StartSeam["INNER"], 0, 0], dtype=np.uint8),
+    )
+
+    assert np.all(np.isfinite(plate.crust.rootKm))
+
+
+def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(monkeypatch):
+    mesh = build_sim_mesh(64, 98)
+    monkeypatch.setattr(initial_world, "make_rng", lambda _seed: (lambda: 0.5))
+    monkeypatch.setattr(initial_world, "random_point", lambda _rng: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(
+        initial_world.np,
+        "arctan2",
+        lambda _y, x: np.zeros_like(x, dtype=np.float64),
+    )
+
+    result = initial_world.build_start_world(
+        mesh,
+        98,
+        {
+            "rimTrenchCoverage": 0.5,
+            "farStartWorkKm": 0.0,
+            "startRanges": {},
+        },
+    )
+
+    rim = result["start"]["rim"]
+    trench = result["start"]["trench"]
+    assert rim.size > 0
+    assert trench.tolist() == rim.tolist()
+
+
+def test_start_world_skips_unassigned_terrane_cells_in_far_field_fans(monkeypatch):
+    mesh = build_sim_mesh(64, 99)
+    first = 0
+    second = int(mesh.adj_list[mesh.adj_offset[first]])
+    land_cells = np.asarray([first, second], dtype=np.int32)
+
+    monkeypatch.setattr(initial_world, "random_point", lambda _rng: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(
+        initial_world,
+        "_land_cells",
+        lambda _mesh, _centre, _count: (land_cells, float(mesh.edge_rad)),
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_distance_hops",
+        lambda _mesh, sources, **_kwargs: (
+            np.where(np.asarray(sources, dtype=bool), 0, -1).astype(np.int16)
+        ),
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_assign_cratons",
+        lambda _xyz, _cells, _centres, _share: (
+            np.asarray([1, 0], dtype=np.int32),
+            np.zeros(2, dtype=bool),
+            np.zeros(2, dtype=np.int32),
+        ),
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_seams",
+        lambda sim_mesh, _mask, cells, *_args: np.isin(
+            np.arange(sim_mesh.num_cells), cells
+        ).astype(np.uint8)
+        * initial_world.StartSeam["MAJOR"],
+    )
+
+    result = initial_world.build_start_world(
+        mesh,
+        99,
+        {
+            "farStartWorkKm": 100.0,
+            "rimTrenchCoverage": 0.0,
+            "startRanges": {},
+        },
+    )
+
+    assert result["world"].startSeamKm["major"].shape == (mesh.num_cells,)

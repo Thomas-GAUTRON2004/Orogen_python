@@ -221,6 +221,23 @@ jobs:
               coverage = json.load(report_file)["totals"]["percent_covered"]
 
           print(f"Exact total test coverage: {coverage:.4f}% (required: 99.0000%)")
+          failures = []
           if coverage < 99.0:
+              failures.append(f"project total: {coverage:.4f}%")
+          files = json.load(open("coverage.json", encoding="utf-8"))["files"]
+          python_files = {
+              path: record["summary"]["percent_covered"]
+              for path, record in files.items()
+              if path.startswith("orogen/") and path.endswith(".py")
+          }
+          for path, percentage in sorted(python_files.items()):
+              print(f"{path}: {percentage:.4f}% (required: 99.0000%)")
+              if percentage < 99.0:
+                  failures.append(f"{path}: {percentage:.4f}%")
+          if not python_files:
+              failures.append("coverage report contains no Python package files")
+          if failures:
+              print("Coverage threshold failures:")
+              print("\\n".join(failures))
               raise SystemExit(1)
           PY

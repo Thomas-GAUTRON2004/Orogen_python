@@ -589,12 +589,12 @@ MECHANISMS: dict[str, dict[str, Any]] = {
 # The mechanism catalogue also contributes known top-level config fields.
 # In particular, backgroundEndMyr is intentionally +inf when retirement is off.
 _CONFIG_SCHEMA: dict[str, Any] = {
-    **TECTONICS,
     **{
         key: value
         for mechanism in MECHANISMS.values()
         for key, value in mechanism.items()
     },
+    **TECTONICS,
 }
 
 
@@ -646,6 +646,7 @@ _POSITIVE = frozenset(
         "maxSpeedOceanic",
         "maxSpeedContinental",
         "beltSpeedRefCmYr",
+        "beltSpeedExponent",
         "sutureStallMyr",
         "sutureContactMyr",
     }

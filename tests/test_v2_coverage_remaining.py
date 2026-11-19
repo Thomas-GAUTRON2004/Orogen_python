@@ -131,8 +131,13 @@ def test_initial_world_seams_distinguish_major_inner_and_ring_edges():
     assert inner[first] == initial_world.StartSeam["INNER"]
 
     ring = initial_world._seams(
-        mesh, mask, np.asarray([first], dtype=np.int32), np.asarray([1]), centre,
-        0.0, np.asarray([0])
+        mesh,
+        mask,
+        np.asarray([first], dtype=np.int32),
+        np.asarray([1]),
+        centre,
+        0.0,
+        np.asarray([0]),
     )
     assert ring[first] == initial_world.StartSeam["RING"]
 
@@ -213,12 +218,16 @@ def test_scenario_validation_and_oceanic_empty_hemisphere_fallback(monkeypatch):
 
     mesh = build_sim_mesh(48, 97)
     monkeypatch.setattr(
-        scenarios, "_xyz",
+        scenarios,
+        "_xyz",
         lambda sim_mesh: np.tile([[1.0, 0.0, 0.0]], (sim_mesh.num_cells, 1)),
     )
     monkeypatch.setattr(scenarios, "random_point", lambda _rng: [1.0, 0.0, 0.0])
     result = scenarios.build_oceanic_scene(mesh, 97)
-    assert result["start"]["plateACells"] + result["start"]["plateBCells"] == mesh.num_cells
+    assert (
+        result["start"]["plateACells"] + result["start"]["plateBCells"]
+        == mesh.num_cells
+    )
     assert result["start"]["plateACells"] > 0
     assert result["start"]["plateBCells"] > 0
 
@@ -230,14 +239,23 @@ def test_backarc_strip_judgement_covers_rejections_and_success():
 
     all_land = _crust([CrustType["CONTINENT"]] * 5)
     assert _judge_strip(world, SimpleNamespace(crust=all_land), np.zeros(5)) is None
-    assert _judge_strip(
-        world, SimpleNamespace(crust=all_land),
-        np.asarray([1, 1, 1, 1, 1], dtype=np.uint8)
-    ) is None
+    assert (
+        _judge_strip(
+            world,
+            SimpleNamespace(crust=all_land),
+            np.asarray([1, 1, 1, 1, 1], dtype=np.uint8),
+        )
+        is None
+    )
 
     craton = _crust(
-        [CrustType["CONTINENT"], CrustType["CRATON"], CrustType["CONTINENT"],
-         CrustType["CONTINENT"], CrustType["CONTINENT"]]
+        [
+            CrustType["CONTINENT"],
+            CrustType["CRATON"],
+            CrustType["CONTINENT"],
+            CrustType["CONTINENT"],
+            CrustType["CONTINENT"],
+        ]
     )
     assert (
         _judge_strip(

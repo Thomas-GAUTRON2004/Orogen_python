@@ -38,7 +38,9 @@ def test_start_world_is_a_complete_partition_with_initial_geology():
     assert np.all(continent.crust.type[apron] == CrustType["OCEAN"])
     assert np.all(apron[trench])
     assert np.all(start["seams"] <= 3)
-    assert start["landCells"] == round(mesh.num_cells * world.config["continentalFraction"])
+    assert start["landCells"] == round(
+        mesh.num_cells * world.config["continentalFraction"]
+    )
     assert len(start["cratons"]) >= 1
     assert world.events[-1]["kind"] == "start"
     assert world.startSeamKm["major"].shape == (mesh.num_cells,)
@@ -77,12 +79,17 @@ def test_continental_oceanic_and_mixed_scenario_contracts():
     assert oceanic["start"]["scenario"] == "oceanic"
     assert mixed["start"]["scenario"] == "mixed"
     for plate in oceanic["world"].plates:
-        assert np.all(plate.crust.type[plate.crust.mask.astype(bool)] == CrustType["OCEAN"])
+        assert np.all(
+            plate.crust.type[plate.crust.mask.astype(bool)] == CrustType["OCEAN"]
+        )
 
 
 def test_scenario_dispatcher_and_invalid_name():
     mesh = build_sim_mesh(96, 23)
-    assert build_scenario_scene(mesh, 3, "continental")["start"]["scenario"] == "continental"
+    assert (
+        build_scenario_scene(mesh, 3, "continental")["start"]["scenario"]
+        == "continental"
+    )
     assert build_scenario_scene(mesh, 3, "oceanic")["start"]["scenario"] == "oceanic"
     assert build_scenario_scene(mesh, 3, "mixed")["start"]["scenario"] == "mixed"
     with pytest.raises(ValueError, match="scenario must be one of"):

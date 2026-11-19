@@ -50,6 +50,12 @@ def test_world_plate_ids_terrane_ids_names_and_events():
     assert Provisional["LIKE_NEIGHBOUR"] == 2
 
 
-def test_world_requires_upstream_configuration_until_defaults_are_ported():
-    with pytest.raises(ValueError):
-        TectonicWorld(build_sim_mesh(12, 1), 1, None)
+def test_world_uses_validated_defaults_when_no_configuration_is_supplied():
+    world = TectonicWorld(build_sim_mesh(12, 1), 1)
+    assert world.config["maxStepMyr"] == 4.0
+    assert world.config["belts"]["andean"]["maxKm"] == 400.0
+
+
+def test_world_rejects_conflicting_configuration_arguments():
+    with pytest.raises(ValueError, match="either as config or overrides"):
+        TectonicWorld(build_sim_mesh(12, 1), 1, {}, {})

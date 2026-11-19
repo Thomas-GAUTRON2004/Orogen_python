@@ -103,3 +103,13 @@ def test_mechanism_disable_infinity_sentinel_is_accepted_by_world_config():
     config = make_tectonics_config(only_mechanisms("rifts"))
     assert config["backgroundEndMyr"] == float("inf")
     assert config["riftRatePerMyr"] == TECTONICS["riftRatePerMyr"]
+
+
+
+def test_mechanism_retirement_infinity_is_validated_from_schema():
+    from orogen.v2.tectonics.config import mechanisms_off
+
+    config = make_tectonics_config(mechanisms_off("backgroundRetires"))
+    assert config["backgroundEndMyr"] == float("inf")
+    with pytest.raises(ValueError, match="must be finite"):
+        make_tectonics_config({"backgroundEndMyr": float("-inf")})

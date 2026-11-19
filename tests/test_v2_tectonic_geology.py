@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -106,7 +107,7 @@ def test_facies_packs_four_nibbles_and_can_reuse_output():
 def test_geology_encodings_match_upstream_javascript():
     node = shutil.which("node")
     if node is None:
-        if __import__("os").environ.get("GITHUB_ACTIONS") == "true":
+        if os.environ.get("GITHUB_ACTIONS") == "true":
             pytest.fail("Node.js is required in CI for upstream JavaScript differential tests")
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     runner = Path(__file__).parent / "reference" / "v2" / "geology-encoding.mjs"

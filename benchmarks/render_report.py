@@ -5,7 +5,6 @@ import csv
 import json
 from pathlib import Path
 
-
 CORE_LABELS = {
     "noise_fbm_ms": "3-D simplex FBM (40k points x 5 octaves)",
     "spherical_geometry_ms": "Spherical geometry (80k points)",

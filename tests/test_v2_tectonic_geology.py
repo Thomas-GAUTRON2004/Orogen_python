@@ -109,7 +109,9 @@ def test_geology_encodings_match_upstream_javascript():
     node = shutil.which("node")
     if node is None:
         if os.environ.get("GITHUB_ACTIONS") == "true":
-            pytest.fail("Node.js is required in CI for upstream JavaScript differential tests")
+            pytest.fail(
+                "Node.js is required in CI for upstream JavaScript differential tests"
+            )
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     runner = Path(__file__).parent / "reference" / "v2" / "geology-encoding.mjs"
     result = subprocess.run(

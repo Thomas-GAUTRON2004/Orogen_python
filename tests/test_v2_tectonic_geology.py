@@ -146,7 +146,12 @@ def test_geology_encodings_match_upstream_javascript():
     ]
     assert actual_flood_age == expected["floodAge"]
 
-    facies_values = [(0, 0, 0, 0), (1, 0.5, 0.25, 0), (0.1, 0.3, 0.7, 1), (2, -1, 0.5, 0.5)]
+    facies_values = [
+        (0, 0, 0, 0),
+        (1, 0.5, 0.25, 0),
+        (0.1, 0.3, 0.7, 1),
+        (2, -1, 0.5, 0.5),
+    ]
     actual_facies = [
         [encode_facies(*values), decode_facies(encode_facies(*values))]
         for values in facies_values

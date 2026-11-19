@@ -2,7 +2,6 @@ import math
 
 import pytest
 
-# fmt: off  # Keep compact reference vectors readable as source fixtures.
 
 from orogen.v2.tectonics.geology import (
     GEO_FRAME_FIELDS,
@@ -24,6 +23,8 @@ from orogen.v2.tectonics.geology import (
     encode_flood_myr,
     encode_unroof_km,
 )
+
+# fmt: off  # Keep compact reference vectors readable as source fixtures.
 
 
 def test_shared_geology_model_metadata_matches_upstream_contract():

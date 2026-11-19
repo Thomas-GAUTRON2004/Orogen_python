@@ -94,3 +94,31 @@ def test_scenario_dispatcher_and_invalid_name():
     assert build_scenario_scene(mesh, 3, "mixed")["start"]["scenario"] == "mixed"
     with pytest.raises(ValueError, match="scenario must be one of"):
         build_scenario_scene(mesh, 3, "unknown")
+
+
+def test_scenario_builders_apply_configuration_overrides():
+    mesh = build_sim_mesh(160, 42)
+    continental = build_continental_scene(
+        mesh, 17, fraction=0.25, overrides={"initialLandAgeMyr": 1234.0}
+    )
+    oceanic = build_oceanic_scene(
+        mesh, 18, overrides={"initialOceanAgeMyr": 87.0}
+    )
+    dispatched = build_scenario_scene(
+        mesh,
+        19,
+        scenario="oceanic",
+        overrides={"initialOceanAgeMyr": 63.0},
+    )
+
+    continent = continental["world"].plates[0]
+    land = continent.crust.mask.astype(bool) & (
+        continent.crust.type != CrustType["OCEAN"]
+    )
+    assert np.all(continent.crust.formedAt[land] == -1234.0)
+    assert continental["start"]["landCells"] == round(mesh.num_cells * 0.25)
+
+    for result, expected_age in ((oceanic, -87.0), (dispatched, -63.0)):
+        for plate in result["world"].plates:
+            mask = plate.crust.mask.astype(bool)
+            assert np.all(plate.crust.formedAt[mask] == expected_age)

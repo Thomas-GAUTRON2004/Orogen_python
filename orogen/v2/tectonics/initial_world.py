@@ -424,14 +424,20 @@ def build_start_world(
         offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
         by_pair: dict[tuple[int, int], dict[int, float]] = {}
         for cell in np.flatnonzero((seams == StartSeam["MAJOR"]) & land_mask):
-            cell_group = int(group_for_terrane[terrane_owner[cell] - 1])
+            cell_terrane = int(terrane_for_cell[cell])
+            if cell_terrane <= 0:
+                continue
+            cell_group = int(group_for_terrane[cell_terrane - 1])
             neighbours = set()
             lo, hi = int(offsets[cell]), int(offsets[cell + 1])
             for other_value in adjacency[lo:hi]:
                 other = int(other_value)
                 if not land_mask[other]:
                     continue
-                other_group = int(group_for_terrane[terrane_owner[other] - 1])
+                other_terrane = int(terrane_for_cell[other])
+                if other_terrane <= 0:
+                    continue
+                other_group = int(group_for_terrane[other_terrane - 1])
                 if other_group != cell_group:
                     neighbours.add(other_group)
             for other_group in neighbours:

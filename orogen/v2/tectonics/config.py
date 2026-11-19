@@ -597,6 +597,15 @@ _CONFIG_SCHEMA: dict[str, Any] = {
     **TECTONICS,
 }
 
+# Some mechanism switches use +inf as an intentional disabled sentinel even
+# when the main tectonics catalogue supplies a finite operational default.
+_POSITIVE_INFINITY_SENTINELS = frozenset(
+    key
+    for mechanism in MECHANISMS.values()
+    for key, value in mechanism.items()
+    if isinstance(value, Real) and isinf(float(value)) and value > 0
+)
+
 
 def mechanisms_off(*names: str) -> dict[str, Any]:
     """Return overrides that disable the named upstream mechanisms."""
@@ -703,7 +712,11 @@ def _validate_known_shape(value: Any, default: Any, path: str) -> None:
         if isinstance(value, bool) or not isinstance(value, Real):
             raise TypeError(f"{path} must be a real number")
         if not isfinite(float(value)) and not (
-            isinf(float(default)) and float(value) == float(default)
+            float(value) == float("inf")
+            and (
+                isinf(float(default))
+                or path in _POSITIVE_INFINITY_SENTINELS
+            )
         ):
             raise ValueError(f"{path} must be finite")
         return

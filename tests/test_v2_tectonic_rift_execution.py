@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from test_v2_tectonic_rift_operations import make_world, square_junction_fixture
 
+import orogen.v2.tectonics.ops.rift as rift_module
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 from orogen.v2.tectonics.ops import (
     names_after_split,

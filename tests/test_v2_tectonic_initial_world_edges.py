@@ -88,7 +88,10 @@ def test_paint_old_ranges_ignores_invalid_and_incomplete_settings():
     world.config["startRanges"] = None
     initial_world._paint_old_ranges(world, continent, land, result["start"]["seams"])
     assert np.array_equal(continent.crust.rootKm, before)
-    world.config["startRanges"] = {"inner": [100.0, 50.0], "ring": [0.0, 10.0, 20.0, 0.5]}
+    world.config["startRanges"] = {
+        "inner": [100.0, 50.0],
+        "ring": [0.0, 10.0, 20.0, 0.5],
+    }
     initial_world._paint_old_ranges(world, continent, land, result["start"]["seams"])
     assert np.array_equal(continent.crust.rootKm, before)
 
@@ -110,7 +113,11 @@ def test_start_world_without_trench_coverage_and_without_old_ranges():
 
 def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):
     mesh = SimpleNamespace(num_cells=3)
-    monkeypatch.setattr(initial_world, "TectonicWorld", lambda *args, **kwargs: SimpleNamespace(config={}))
+    monkeypatch.setattr(
+        initial_world,
+        "TectonicWorld",
+        lambda *args, **kwargs: SimpleNamespace(config={}),
+    )
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(mesh, 1)
 
@@ -120,7 +127,10 @@ def test_scenario_builders_reject_invalid_fraction_and_normalize_dispatch():
     for fraction in (0.0, 1.0, float("nan"), float("inf")):
         with pytest.raises(ValueError, match="fraction must be finite"):
             scenarios.build_continental_scene(mesh, fraction=fraction)
-    assert scenarios.build_scenario_scene(mesh, 4, "  CONTINENTAL ")["start"]["scenario"] == "continental"
+    assert (
+        scenarios.build_scenario_scene(mesh, 4, "  CONTINENTAL ")["start"]["scenario"]
+        == "continental"
+    )
 
 
 def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatch):
@@ -132,6 +142,9 @@ def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatc
         lambda _mesh: np.tile([0.0, 0.0, 1.0], (mesh.num_cells, 1)),
     )
     result = scenarios.build_oceanic_scene(mesh, 5)
-    assert result["start"]["plateACells"] + result["start"]["plateBCells"] == mesh.num_cells
+    assert (
+        result["start"]["plateACells"] + result["start"]["plateBCells"]
+        == mesh.num_cells
+    )
     assert result["start"]["plateACells"] > 0
     assert result["start"]["plateBCells"] > 0

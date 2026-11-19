@@ -212,5 +212,15 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=99
-          # Enforce the threshold independently of pytest-cov's report output.
-          python -m coverage report --fail-under=99
+          # Compare the unrounded percentage: "coverage report" rounds 98.64% to 99%.
+          python -m coverage json -o coverage.json
+          python - <<'PY'
+          import json
+
+          with open("coverage.json", encoding="utf-8") as report_file:
+              coverage = json.load(report_file)["totals"]["percent_covered"]
+
+          print(f"Exact total test coverage: {coverage:.4f}% (required: 99.0000%)")
+          if coverage < 99.0:
+              raise SystemExit(1)
+          PY

@@ -133,6 +133,7 @@ jobs:
       - name: Lint all Python files with Ruff
         run: |
           python -m ruff check .
+          python -m ruff format --diff orogen/v2/tectonics/config.py || true
           python -m ruff format --check scripts/check_mypy_regressions.py
           python -m ruff format --check orogen scripts tests
 

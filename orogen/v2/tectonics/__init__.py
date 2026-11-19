@@ -87,6 +87,7 @@ from .geology import (
     thicken_cover,
 )
 from .heights import belt_relief_km, broad_profile, build_heights
+from .initial_world import StartSeam, buildStartWorld, build_start_world
 from .kinematics import (
     advance_plates,
     lat_lon_to_xyz,
@@ -106,6 +107,16 @@ from .polarity import overrides
 from .reconstruct import reconstruct
 from .resolve import candidate_cells, decide_birth, resolve
 from .rifting import pace_of, rift_continents, search_junctions
+from .scenarios import (
+    buildContinentalScene,
+    buildMixedScene,
+    buildOceanicScene,
+    buildScenarioScene,
+    build_continental_scene,
+    build_mixed_scene,
+    build_oceanic_scene,
+    build_scenario_scene,
+)
 from .segments import SEGMENT_KM, fracture_coordinate
 from .simulation import choose_step, closing_rate, fastest_speed
 from .spread_belt import spread_belt
@@ -119,17 +130,6 @@ from .thermal import (
     update_mantle_heat,
 )
 from .world import BoundaryKind, EventKind, Provisional, TectonicWorld
-from .initial_world import StartSeam, buildStartWorld, build_start_world
-from .scenarios import (
-    buildContinentalScene,
-    buildMixedScene,
-    buildOceanicScene,
-    buildScenarioScene,
-    build_continental_scene,
-    build_mixed_scene,
-    build_oceanic_scene,
-    build_scenario_scene,
-)
 
 __all__ = [
     "ENDINGS",

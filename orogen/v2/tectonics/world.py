@@ -37,6 +37,7 @@ EventKind = {
     "DISPERSED": "dispersed",
 }
 _EVENT_KINDS = frozenset(EventKind.values())
+_DEFAULT_CONFIG = object()
 
 BoundaryKind = {
     "NONE": 0,
@@ -59,16 +60,17 @@ class TectonicWorld:
         self,
         sim_mesh,
         seed: int,
-        config: dict | None = None,
+        config: Any = _DEFAULT_CONFIG,
         overrides: dict | None = None,
     ):
         self.mesh = sim_mesh
         self.seed = int(seed)
-        if config is not None and overrides is not None:
-            raise ValueError(
-                "pass config overrides either as config or overrides, not both"
-            )
-        self.config = make_tectonics_config(config if config is not None else overrides)
+        if config is _DEFAULT_CONFIG:
+            self.config = make_tectonics_config(overrides)
+        elif config is None:
+            raise ValueError("tectonics config must be a mapping")
+        else:
+            self.config = make_tectonics_config(overrides, base=config)
         # Independent deterministic streams: adding draws to one mechanism must not
         # perturb the random sequence of any other mechanism.
         self.rng = make_rng((self.seed ^ 0x5EED) & 0xFFFFFFFF)

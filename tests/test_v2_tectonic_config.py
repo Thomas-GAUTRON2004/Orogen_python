@@ -4,6 +4,10 @@ from orogen.v2.tectonics.config import (
     CM_PER_YR_TO_KM_PER_MYR,
     CM_PER_YR_TO_RAD_PER_MYR,
     TECTONICS,
+    MECHANISMS,
+    mechanisms_off,
+    mechanisms_on,
+    only_mechanisms,
     make_tectonics_config,
     validate_tectonics_config,
 )
@@ -59,3 +63,36 @@ def test_boolean_is_not_accepted_as_numeric_configuration():
 
 def test_missing_optional_fields_and_empty_overrides_use_defaults():
     assert make_tectonics_config({}) == make_tectonics_config()
+
+
+
+def test_complete_upstream_configuration_groups_are_present():
+    config = make_tectonics_config()
+    for group in (
+        "initial", "belts", "geology", "farField", "reserved"
+    ):
+        if group in TECTONICS:
+            assert config[group] == TECTONICS[group]
+    assert config["simCells"] == 40000
+    assert config["cratonCount"] == 14
+    assert config["geology"]["records"] is True
+    assert config["farField"]["farReachKm"] == 1100
+
+
+def test_mechanism_helpers_match_upstream_disable_and_enable_semantics():
+    assert len(MECHANISMS) == 20
+    assert mechanisms_off("rifts") == {"riftRatePerMyr": 0}
+    assert only_mechanisms("rifts")["riftRatePerMyr"] == 0
+    assert only_mechanisms("rifts")["plumeRatePerMyr"] == 0
+    assert mechanisms_on("rifts")["riftRatePerMyr"] == TECTONICS["riftRatePerMyr"]
+    with pytest.raises(ValueError, match="unknown mechanism"):
+        mechanisms_off("unknown")
+
+
+def test_full_schema_rejects_invalid_nested_types_and_array_shapes():
+    with pytest.raises(TypeError, match="geology.records"):
+        make_tectonics_config({"geology": {"records": 1}})
+    with pytest.raises(ValueError, match="cratonRiftEdges"):
+        make_tectonics_config({"cratonRiftEdges": [1]})
+    with pytest.raises(ValueError, match="farReachKm"):
+        make_tectonics_config({"farReachKm": float("inf")})

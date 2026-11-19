@@ -9,6 +9,7 @@ bit-for-bit geometric parity with the JavaScript layout search.
 
 from __future__ import annotations
 
+import heapq
 import math
 from typing import Any
 
@@ -16,7 +17,8 @@ import numpy as np
 
 from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
-from ..core.sphere_geometry import random_point, tangent_basis
+from ..core.fast_noise import FastNoise
+from ..core.sphere_geometry import cell_distance_km, random_point, tangent_basis
 from .crust import CrustFlag, CrustType, OrogenyType
 from .far_field import spread_push
 from .spread_belt import spread_belt
@@ -169,20 +171,43 @@ def _seams(
 def _paint_old_ranges(
     world: TectonicWorld, plate, land_mask: np.ndarray, seams: np.ndarray
 ) -> None:
-    """Build the inherited pre-history ranges with the regular belt engine."""
-    cfg = world.config
+    """Build inherited ranges with spatially varying source strength."""
+    cfg, mesh, crust = world.config, world.mesh, plate.crust
     ranges = cfg.get("startRanges", {})
+    if not isinstance(ranges, dict):
+        return
+    xyz = _mesh_xyz(mesh)
+    noise = FastNoise((int(world.seed) ^ 0x5A7E) & 0xFFFFFFFF)
+    vary = max(0.0, float(cfg.get("startRangeVary", 0.5)))
+    scale_km = max(1.0, float(cfg.get("startRangeVaryKm", 1600.0)))
+    frequency = 6371.0 / scale_km
+    offsets, adjacency = mesh.adj_offset, mesh.adj_list
+
     for kind_name in ("inner", "ring", "major"):
         kind = StartSeam[kind_name.upper()]
-        settings = ranges.get(kind_name) if isinstance(ranges, dict) else None
+        settings = ranges.get(kind_name)
         if not settings or len(settings) < 4:
             continue
         width_km, work_km, age_myr, keep = (float(value) for value in settings[:4])
-        sources = np.flatnonzero((seams == kind) & land_mask).tolist()
-        if not sources or width_km <= 0.0 or work_km <= 0.0:
+        if width_km <= 0.0 or work_km <= 0.0:
+            continue
+        sources = np.flatnonzero((seams == kind) & land_mask)
+        if not sources.size:
             continue
 
-        crust = plate.crust
+        strength = np.empty(sources.size, dtype=np.float64)
+        for index, cell_value in enumerate(sources):
+            cell = int(cell_value)
+            x, y, z = xyz[cell]
+            value = noise.noise3d(
+                x * frequency + 7.1 * kind, y * frequency, z * frequency
+            ) + 0.4 * noise.noise3d(
+                x * 2.7 * frequency + 3.3,
+                y * 2.7 * frequency + 8.1 * kind,
+                z * 2.7 * frequency + 1.9,
+            )
+            strength[index] = 1.0 - vary * np.clip(0.5 + 0.6 * value, 0.0, 1.0)
+
         before = {
             "root": crust.rootKm.copy(),
             "uplift": crust.upliftKm.copy(),
@@ -190,25 +215,57 @@ def _paint_old_ranges(
         }
         spread_belt(
             plate,
-            world.mesh,
-            sources,
+            mesh,
+            sources.tolist(),
             {
                 "type": OrogenyType["URAL"],
                 "time": -age_myr,
                 "widthKm": width_km,
                 "workKm": work_km,
+                "works": (work_km * strength).tolist(),
+                "widths": (width_km * (0.7 + 0.3 * strength)).tolist(),
             },
             cfg,
             allow=lambda cell: bool(land_mask[cell]),
         )
-        # The range was substantially worn down before recorded history. Keep
-        # the belt's geological records, but only the configured share of its
-        # newly-built relief, matching the upstream oldRanges pass.
-        crust.rootKm[:] = before["root"] + (crust.rootKm - before["root"]) * keep
-        crust.upliftKm[:] = (
-            before["uplift"] + (crust.upliftKm - before["uplift"]) * keep
-        )
-        crust.rugged[:] = before["rugged"] + (crust.rugged - before["rugged"]) * keep
+
+        # Carry the nearest source's strength inland, as the reference does
+        # when it scales the worn relief left by each inherited seam.
+        nearest = np.full(int(mesh.num_cells), np.inf, dtype=np.float64)
+        nearest_strength = np.ones(int(mesh.num_cells), dtype=np.float64)
+        queue: list[tuple[float, int]] = []
+        for cell_value, value in zip(sources, strength, strict=True):
+            cell = int(cell_value)
+            nearest[cell] = 0.0
+            nearest_strength[cell] = float(value)
+            heapq.heappush(queue, (0.0, cell))
+        limit = 2.0 * width_km
+        while queue:
+            distance, cell = heapq.heappop(queue)
+            if distance > nearest[cell] + 1e-9 or distance > limit:
+                continue
+            lo, hi = int(offsets[cell]), int(offsets[cell + 1])
+            for other_value in adjacency[lo:hi]:
+                other = int(other_value)
+                if not land_mask[other]:
+                    continue
+                candidate = distance + cell_distance_km(mesh.xyz, cell, other)
+                if candidate >= nearest[other] or candidate > limit:
+                    continue
+                nearest[other] = candidate
+                nearest_strength[other] = nearest_strength[cell]
+                heapq.heappush(queue, (candidate, other))
+
+        affected = np.isfinite(nearest)
+        relief_keep = keep * nearest_strength
+        for field, previous in (
+            (crust.rootKm, before["root"]),
+            (crust.upliftKm, before["uplift"]),
+            (crust.rugged, before["rugged"]),
+        ):
+            field[affected] = previous[affected] + (
+                field[affected] - previous[affected]
+            ) * relief_keep[affected]
 
 
 def build_start_world(

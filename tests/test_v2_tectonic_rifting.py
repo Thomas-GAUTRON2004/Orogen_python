@@ -73,12 +73,14 @@ def make_world(*, time=100.0, config=None, dynamics=None, cells=4):
     )
 
 
+
 def test_pace_of_clamps_before_min_gap_and_smoothly_rises():
     config = base_config()
     assert pace_of(10.0, config) == 0.0
     assert 0.0 < pace_of(45.0, config) < 1.0
     assert pace_of(100.0, config) == 1.0
     assert pace_of(150.0, config) > 1.0
+
 
 
 def test_search_junctions_preserves_order_and_skips_negative_cells(monkeypatch):
@@ -104,6 +106,7 @@ def test_search_junctions_preserves_order_and_skips_negative_cells(monkeypatch):
     assert all(call[2] is False and call[3] is request["ctx"] for call in calls)
 
 
+
 def test_heat_under_continents_averages_only_owned_continental_cells():
     world = make_world(cells=3)
     world.owner = np.asarray([0, 0, -1], dtype=np.int16)
@@ -111,6 +114,7 @@ def test_heat_under_continents_averages_only_owned_continental_cells():
     world.plates[0].crust.type[1] = CrustType["OCEAN"]
     world.mantleHeat = np.asarray([0.2, 0.9, 0.7], dtype=np.float32)
     assert _heat_under_continents(world) == {0: pytest.approx(0.2)}
+
 
 
 def test_pending_plume_rift_executes_and_clears_request(monkeypatch):
@@ -137,6 +141,7 @@ def test_pending_plume_rift_executes_and_clears_request(monkeypatch):
     assert calls[0][2] is False
 
 
+
 def test_pending_plume_rift_waits_while_piece_is_too_young():
     config = base_config(
         riftMinGapMyr=30.0,
@@ -155,6 +160,7 @@ def test_pending_plume_rift_waits_while_piece_is_too_young():
     ]
     assert rift_continents(world, 1.0) == 0
     assert len(world.pendingPlumeRifts) == 1
+
 
 
 def test_pending_plume_rift_expires_after_wait_window():
@@ -176,6 +182,7 @@ def test_pending_plume_rift_expires_after_wait_window():
     ]
     assert rift_continents(world, 1.0) == 0
     assert world.pendingPlumeRifts == []
+
 
 
 def test_pending_plume_rift_retries_with_loose_shape_and_restores_config(monkeypatch):
@@ -212,6 +219,7 @@ def test_pending_plume_rift_retries_with_loose_shape_and_restores_config(monkeyp
     assert world.config["riftMinChordKm"] == 700.0
 
 
+
 def test_world_global_gap_keeps_plume_request_waiting():
     config = base_config(riftGlobalGapMyr=30.0, plumeRiftWaitMyr=20.0)
     world = make_world(time=5.0, config=config)
@@ -229,6 +237,7 @@ def test_world_global_gap_keeps_plume_request_waiting():
     assert len(world.pendingPlumeRifts) == 1
 
 
+
 def test_due_plate_gets_forced_rift_before_spontaneous_pass(monkeypatch):
     world = make_world(
         time=200.0, config=base_config(riftMaxGapMyr=150.0), dynamics={"tension": 0.4}
@@ -242,6 +251,7 @@ def test_due_plate_gets_forced_rift_before_spontaneous_pass(monkeypatch):
     )
     assert rift_continents(world, 1.0) == 1
     assert calls == [(0, 200.0)]
+
 
 
 def test_spontaneous_rift_uses_tension_size_and_seeded_junctions(monkeypatch):
@@ -267,6 +277,7 @@ def test_spontaneous_rift_uses_tension_size_and_seeded_junctions(monkeypatch):
     assert rift_continents(world, 1.0) == 1
     assert selected[0][0] == [7] * 12
     assert selected[0][1]["kind"] == "tension"
+
 
 
 def test_spontaneous_rift_uses_mantle_heat_gather_and_dispersal(monkeypatch):
@@ -308,6 +319,7 @@ def test_spontaneous_rift_uses_mantle_heat_gather_and_dispersal(monkeypatch):
     assert "mantle heat 0.90" in seen[0]["text"]
 
 
+
 def test_force_rift_tries_craton_free_and_loose_shapes_then_restores(monkeypatch):
     world = make_world(config=base_config())
     monkeypatch.setattr(rifting, "choose_junction", lambda *_args: 1)
@@ -329,6 +341,7 @@ def test_force_rift_tries_craton_free_and_loose_shapes_then_restores(monkeypatch
     assert world.config["riftTortuosityMax"] == 5.0
 
 
+
 def test_loose_shape_restores_configuration_even_when_action_raises():
     config = base_config()
     with pytest.raises(RuntimeError):
@@ -340,9 +353,11 @@ def test_loose_shape_restores_configuration_even_when_action_raises():
     assert config["riftMinChordKm"] == 500.0
 
 
+
 def test_rift_continents_short_circuits_when_disabled_and_no_pending():
     world = make_world(config=base_config(riftRatePerMyr=0.0))
     assert rift_continents(world, 1.0) == 0
+
 
 
 def test_dead_plate_is_skipped_for_lifecycle_and_pending_requests():
@@ -359,6 +374,7 @@ def test_dead_plate_is_skipped_for_lifecycle_and_pending_requests():
     ]
     assert rift_continents(world, 1.0) == 0
     assert world.pendingPlumeRifts == []
+
 
 
 def test_assembled_supercontinent_holds_plume_rift_until_tenure_expires():
@@ -387,6 +403,7 @@ def test_assembled_supercontinent_holds_plume_rift_until_tenure_expires():
     assert len(world.pendingPlumeRifts) == 1
 
 
+
 def test_second_paced_plume_request_waits_after_first_split(monkeypatch):
     config = base_config(riftMinGapMyr=1.0, plumeRiftWaitMyr=30.0)
     world = make_world(time=50.0, config=config)
@@ -409,6 +426,7 @@ def test_second_paced_plume_request_waits_after_first_split(monkeypatch):
     assert len(world.pendingPlumeRifts) == 1
 
 
+
 def test_unpaced_recently_clumped_piece_uses_hot_tenure():
     config = base_config(
         riftRatePerMyr=1.0,
@@ -418,6 +436,7 @@ def test_unpaced_recently_clumped_piece_uses_hot_tenure():
     world = make_world(time=10.0, config=config, dynamics={"tension": 1.0})
     world.cycle = {"clump": [0]}
     assert rift_continents(world, 1.0) == 0
+
 
 
 def test_unpaced_hot_rift_born_piece_uses_interpolated_tenure(monkeypatch):
@@ -434,6 +453,7 @@ def test_unpaced_hot_rift_born_piece_uses_interpolated_tenure(monkeypatch):
     assert rift_continents(world, 1.0) == 0
 
 
+
 def test_unpaced_cool_piece_uses_base_tenure(monkeypatch):
     config = base_config(
         riftRatePerMyr=1.0,
@@ -444,6 +464,7 @@ def test_unpaced_cool_piece_uses_base_tenure(monkeypatch):
     world = make_world(time=10.0, config=config, dynamics={"tension": 1.0})
     monkeypatch.setattr(rifting, "_heat_under_continents", lambda _w: None)
     assert rift_continents(world, 1.0) == 0
+
 
 
 def test_spontaneous_rift_is_skipped_when_random_draw_exceeds_chance(monkeypatch):
@@ -464,6 +485,7 @@ def test_spontaneous_rift_is_skipped_when_random_draw_exceeds_chance(monkeypatch
     assert rift_continents(world, 1.0) == 0
 
 
+
 def test_disabled_rifting_keeps_updating_big_continent_clock():
     world = make_world(
         time=40.0,
@@ -473,9 +495,11 @@ def test_disabled_rifting_keeps_updating_big_continent_clock():
     assert world.plates[0].bigSince == 40.0
 
 
+
 def test_rifting_stage_short_circuits_only_without_rate_configuration():
     world = make_world(config={})
     assert rift_continents(world, 1.0) == 0
+
 
 def test_pending_plume_request_is_discarded_when_both_rift_attempts_fail(monkeypatch):
     world = make_world(time=100.0, config=base_config())
@@ -493,6 +517,7 @@ def test_pending_plume_request_is_discarded_when_both_rift_attempts_fail(monkeyp
 
     assert rift_continents(world, 1.0) == 0
     assert world.pendingPlumeRifts == []
+
 
 
 def test_unpaced_spontaneous_rift_continues_after_a_failed_attempt(monkeypatch):

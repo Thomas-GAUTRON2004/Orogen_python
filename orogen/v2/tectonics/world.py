@@ -65,7 +65,9 @@ class TectonicWorld:
         self.mesh = sim_mesh
         self.seed = int(seed)
         if config is not None and overrides is not None:
-            raise ValueError("pass config overrides either as config or overrides, not both")
+            raise ValueError(
+                "pass config overrides either as config or overrides, not both"
+            )
         self.config = make_tectonics_config(config if config is not None else overrides)
         # Independent deterministic streams: adding draws to one mechanism must not
         # perturb the random sequence of any other mechanism.

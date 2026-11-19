@@ -92,6 +92,7 @@ def accretion_fixture():
     return world, host, donor
 
 
+
 def test_close_seas_between_fills_a_narrow_strait_and_marks_suture():
     mesh, crust, origin, upper, cfg = close_fixture(
         [[1, 0, 0], [0, 1, 0], [-1, 0, 0]],
@@ -107,6 +108,7 @@ def test_close_seas_between_fills_a_narrow_strait_and_marks_suture():
     assert crust.flags[1] == CrustFlag["SUTURE"]
     assert crust.slabKm[1] == 0.0
     assert origin[1] == 3
+
 
 
 def test_close_seas_between_keeps_wide_open_water_and_large_inland_seas():
@@ -132,6 +134,7 @@ def test_close_seas_between_keeps_wide_open_water_and_large_inland_seas():
     assert close_seas_between(crust, origin, mesh, upper, cfg, 5.0) == 0
 
 
+
 def test_close_seas_between_fills_a_small_enclosed_sea():
     mesh, crust, origin, upper, cfg = close_fixture(
         [
@@ -154,6 +157,7 @@ def test_close_seas_between_fills_a_small_enclosed_sea():
     assert sealed == 3
     assert all(crust.type[cell] == CrustType["CONTINENT"] for cell in (1, 2, 3))
     assert all(origin[cell] == 3 for cell in (1, 2, 3))
+
 
 
 def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
@@ -186,6 +190,7 @@ def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     ]
     assert host.stats["cells"] == 3
     assert donor.stats["cells"] == 0
+
 
 
 def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
@@ -222,6 +227,7 @@ def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
     assert host.crust.terrane[0] == 10
 
 
+
 def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
     world, host, donor = accretion_fixture()
     world.config["terraneMinAreaKm2"] = 101.0
@@ -240,6 +246,7 @@ def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
     assert host.crust.mask[2] == 1
 
 
+
 def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     world, host, _donor = accretion_fixture()
     host.crust.create(1, CrustType["CONTINENT"], -50.0, 11)
@@ -247,6 +254,7 @@ def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     result = landmass_of(host, world.mesh, [0])
 
     assert result == [0, 1, 2]
+
 
 
 def test_close_seas_between_converts_craton_source_when_sealing_two_cell_strait():
@@ -272,6 +280,7 @@ def test_close_seas_between_converts_craton_source_when_sealing_two_cell_strait(
     assert crust.terrane[2] == 30
     assert crust.flags[2] == CrustFlag["SUTURE"]
     assert origin.tolist() == [1, 3, 3, 2]
+
 
 
 def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeypatch):
@@ -310,6 +319,7 @@ def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeyp
 
     assert result["cells"] == 1
     assert host.crust.type[3] == CrustType["OCEAN"]
+
 
 def test_accretion_leaves_unclaimed_donor_crust_and_skips_occupied_forearc(monkeypatch):
     world, host, donor = accretion_fixture()

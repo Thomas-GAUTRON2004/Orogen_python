@@ -423,6 +423,7 @@ def test_gap_owner_assignment_skips_foreign_hits_without_a_crust_cell(monkeypatc
     mesh = SimpleNamespace(
         num_cells=1,
         xyz=np.asarray([1.0, 0.0, 0.0], dtype=np.float32),
+        index=SimpleNamespace(),
     )
 
     class Candidate:

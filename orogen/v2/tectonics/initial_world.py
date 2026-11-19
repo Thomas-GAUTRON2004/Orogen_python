@@ -358,19 +358,36 @@ def build_start_world(
     continent.crust.flags[weak] |= CrustFlag["SUTURE"]
     _paint_old_ranges(world, continent, land_mask, seams)
 
-    # The proto-continents' collision fronts also left a long-lived shortening
-    # grain. Seed the far-field record from the major sutures at their inherited
-    # age; later history steps can reactivate the same weak corridors.
+    # Each pair of proto-continents leaves its own far-field shortening fan.
+    # Grouping fronts independently preserves the source strength and length
+    # scaling used by the upstream startPushes pass.
     far_start_work = float(cfg.get("farStartWorkKm", 0.0))
-    major_cells = np.flatnonzero((seams == StartSeam["MAJOR"]) & land_mask)
-    if far_start_work > 0.0 and major_cells.size:
-        spread_push(
-            world,
-            continent,
-            {int(cell): far_start_work for cell in major_cells},
-            float(major_cells.size) * float(sim_mesh.edge_km),
-            -float(cfg.get("startRanges", {}).get("major", [0, 0, 0])[2]),
-        )
+    if far_start_work > 0.0:
+        offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
+        by_pair: dict[tuple[int, int], dict[int, float]] = {}
+        for cell in np.flatnonzero((seams == StartSeam["MAJOR"]) & land_mask):
+            cell_group = int(group_for_terrane[terrane_owner[cell] - 1])
+            neighbours = set()
+            lo, hi = int(offsets[cell]), int(offsets[cell + 1])
+            for other_value in adjacency[lo:hi]:
+                other = int(other_value)
+                if not land_mask[other]:
+                    continue
+                other_group = int(group_for_terrane[terrane_owner[other] - 1])
+                if other_group != cell_group:
+                    neighbours.add(other_group)
+            for other_group in neighbours:
+                pair = tuple(sorted((cell_group, other_group)))
+                by_pair.setdefault(pair, {})[int(cell)] = far_start_work
+        for pair in sorted(by_pair):
+            sources = by_pair[pair]
+            spread_push(
+                world,
+                continent,
+                sources,
+                float(len(sources)) * float(sim_mesh.edge_km),
+                -float(cfg.get("startRanges", {}).get("major", [0, 0, 0])[2]),
+            )
 
     major_sources = seams == StartSeam["MAJOR"]
     ring_sources = seams == StartSeam["RING"]

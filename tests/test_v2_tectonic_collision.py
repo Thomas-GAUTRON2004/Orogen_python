@@ -363,6 +363,8 @@ def test_track_collisions_records_front_shortening_and_contact_age(monkeypatch):
     assert record["cells"] == 1
     assert record["contactMyr"] == 1.0
     assert record["closingCmYr"] > 0.0
+    # Fixture expectation from max(0, dot(cross(relative_omega, centre), normal)) * dt * PLANET_RADIUS_KM.
+    # The centroid and tangent are fixed above, so this guards the known 63.71 km result for this fixture.
     assert record["shorteningKm"] == pytest.approx(63.71)
     assert record["frontKm"] == pytest.approx(100.0 * math.sqrt(3.0) / 2.0)
     assert record["meanRateCmYr"] == pytest.approx(6.371)

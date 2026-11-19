@@ -8,7 +8,7 @@ from orogen.v2.tectonics import backarc, kinematics, resolve
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
 from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
 from orogen.v2.tectonics.ops.plate_accretion import landmass_of
-from orogen.v2.tectonics.spread_belt import _store_front
+from orogen.v2.tectonics.spread_belt import _update_belt_front
 
 
 def test_zero_rotation_returns_the_original_pose_without_normalizing():
@@ -24,7 +24,7 @@ def test_spread_front_keeps_an_equal_or_worse_existing_front():
     crust.beltAt[0] = 10.0
     crust.beltU[0] = 0.5
     crust.beltShear[0] = 12
-    _store_front(crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0)
+    _update_belt_front(crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0)
     assert crust.beltReach[0] == 100.0
     assert crust.beltShear[0] == 12
 

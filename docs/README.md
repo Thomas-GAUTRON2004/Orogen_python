@@ -13,6 +13,7 @@ This documentation describes the Python code currently present in this repositor
 5. Read [Testing and compatibility](TESTING.md) before relying on numerical equivalence with upstream.
 6. Read [SciPy backend](SCIPY_BACKEND.md) for production triangulation and mesh compatibility.
 7. Consult [Porting status](PORTING_STATUS.md) for the current implementation boundary.
+8. Read [Porting issue roadmap](PORTING_ROADMAP.md) for the remaining work packages, blocking dependencies and parallel work streams.
 
 ## Scope and terminology
 

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Any
 
 import numpy as np
 
 from ..core.seed import make_rng
+from .config import make_tectonics_config
 from .crust import CrustType
 from .plate import Plate
 
@@ -52,22 +52,17 @@ Provisional = {"NO": 0, "NEWBORN": 1, "LIKE_NEIGHBOUR": 2}
 class TectonicWorld:
     """World-frame ownership and per-plate crust state at one simulation instant.
 
-    The upstream world deep-copies the global TECTONICS configuration. Until that
-    full config module is ported, callers must pass the matching config mapping.
+    Each instance owns a validated deep copy of the upstream defaults and overrides.
     """
 
     def __init__(
-        self, sim_mesh, seed: int, config: dict, overrides: dict | None = None
+        self, sim_mesh, seed: int, config: dict | None = None, overrides: dict | None = None
     ):
-        if config is None:
-            raise ValueError(
-                "config must be supplied; upstream TECTONICS defaults are not yet ported"
-            )
         self.mesh = sim_mesh
         self.seed = int(seed)
-        self.config = deepcopy(config)
-        if overrides:
-            self.config.update(overrides)
+        if config is not None and overrides is not None:
+            raise ValueError("pass config overrides either as config or overrides, not both")
+        self.config = make_tectonics_config(config if config is not None else overrides)
         # Independent deterministic streams: adding draws to one mechanism must not
         # perturb the random sequence of any other mechanism.
         self.rng = make_rng((self.seed ^ 0x5EED) & 0xFFFFFFFF)

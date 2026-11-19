@@ -20,14 +20,18 @@ def test_upstream_unit_conversions_and_default_values():
     assert config["maxStepMyr"] == 4.0
     assert config["snapshotEveryMyr"] == 10.0
     assert config["belts"]["andean"] == {
-        "baseKm": 120.0, "perKm": 1.0, "maxKm": 400.0
+        "baseKm": 120.0,
+        "perKm": 1.0,
+        "maxKm": 400.0,
     }
 
 
 def test_nested_overrides_are_merged_without_mutating_defaults():
     config = make_tectonics_config({"belts": {"andean": {"maxKm": 450.0}}})
     assert config["belts"]["andean"] == {
-        "baseKm": 120.0, "perKm": 1.0, "maxKm": 450.0
+        "baseKm": 120.0,
+        "perKm": 1.0,
+        "maxKm": 450.0,
     }
     assert config["belts"]["himalayan"]["maxKm"] == 1000.0
     config["belts"]["andean"]["baseKm"] = 1.0
@@ -65,12 +69,9 @@ def test_missing_optional_fields_and_empty_overrides_use_defaults():
     assert make_tectonics_config({}) == make_tectonics_config()
 
 
-
 def test_complete_upstream_configuration_groups_are_present():
     config = make_tectonics_config()
-    for group in (
-        "initial", "belts", "geology", "farField", "reserved"
-    ):
+    for group in ("initial", "belts", "geology", "farField", "reserved"):
         if group in TECTONICS:
             assert config[group] == TECTONICS[group]
     assert config["simCells"] == 40000

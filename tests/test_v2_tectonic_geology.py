@@ -1,12 +1,10 @@
-# ruff: noqa: I001
 import math
 
 import pytest
 
-
 from orogen.v2.tectonics.geology import (
-    GEOLOGY_READS,
     GEO_FRAME_FIELDS,
+    GEOLOGY_READS,
     GeoFlag,
     decode_age,
     decode_arc_myr,
@@ -37,8 +35,16 @@ def test_shared_geology_model_metadata_matches_upstream_contract():
         "EPEIRIC": 64,
     }
     assert GEO_FRAME_FIELDS == [
-        "geoFlags", "coverKm", "coverMaxKm", "coverMaxAge", "facies",
-        "exhumKm", "unroofKm", "floodMyr", "floodAge", "arcMyr",
+        "geoFlags",
+        "coverKm",
+        "coverMaxKm",
+        "coverMaxAge",
+        "facies",
+        "exhumKm",
+        "unroofKm",
+        "floodMyr",
+        "floodAge",
+        "arcMyr",
     ]
     assert GEOLOGY_READS == ["oroStart"]
 

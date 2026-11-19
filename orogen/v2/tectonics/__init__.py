@@ -25,7 +25,13 @@ from .collision import (
     track_collisions,
     underthrust,
 )
-from .config import CM_PER_YR_TO_KM_PER_MYR, CM_PER_YR_TO_RAD_PER_MYR
+from .config import (
+    CM_PER_YR_TO_KM_PER_MYR,
+    CM_PER_YR_TO_RAD_PER_MYR,
+    TECTONICS,
+    make_tectonics_config,
+    validate_tectonics_config,
+)
 from .contact import contact_at
 from .crust import (
     BeltSide,
@@ -194,6 +200,9 @@ __all__ = [
     "advance_plates",
     "pose_at_constant_omega",
     "CM_PER_YR_TO_KM_PER_MYR",
+    "TECTONICS",
+    "make_tectonics_config",
+    "validate_tectonics_config",
     "CM_PER_YR_TO_RAD_PER_MYR",
     "SEGMENT_KM",
     "fracture_coordinate",

@@ -8,11 +8,11 @@ import pytest
 
 from orogen.v2.tectonics import backarc, kinematics
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
-from orogen.v2.tectonics.ops import merge_plates as merge_ops
 from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
 from orogen.v2.tectonics.ops.plate_accretion import landmass_of
 from orogen.v2.tectonics.spread_belt import _update_belt_front
 
+merge_ops = import_module("orogen.v2.tectonics.ops.merge_plates")
 resolve = import_module("orogen.v2.tectonics.resolve")
 
 
@@ -166,7 +166,7 @@ def test_backarc_band_skips_a_duplicate_world_to_plate_seed():
     assert strip.tolist() == [1, 0]
 
 
-def test_backarc_bridge_skips_interior_cells_without_crust_neighbours_and_noop():
+def test_backarc_bridge_fills_short_seam_and_noops_when_too_far():
     def line_mesh(count):
         rows = []
         for cell in range(count):
@@ -194,9 +194,8 @@ def test_backarc_bridge_skips_interior_cells_without_crust_neighbours_and_noop()
     changed = []
     plate = SimpleNamespace(crust=crust, mark_reshaped=lambda: changed.append(True))
 
-    assert backarc._bridge_pieces(plate, mesh, 700.0) == 2
-    assert crust.mask[1] and crust.mask[5]
-    assert not crust.mask[2] and not crust.mask[3] and not crust.mask[4]
+    assert backarc._bridge_pieces(plate, mesh, 700.0) == 5
+    assert np.all(crust.mask)
     assert changed == [True]
 
     far_crust = CrustRaster(7)

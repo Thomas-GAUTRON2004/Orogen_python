@@ -76,7 +76,7 @@ def test_complete_upstream_configuration_groups_are_present():
     assert config["simCells"] == 40000
     assert config["cratonCount"] == 14
     assert config["geology"]["records"] is True
-    assert config["farField"]["farReachKm"] == 1100
+    assert config["farReachKm"] == 1100
 
 
 def test_mechanism_helpers_match_upstream_disable_and_enable_semantics():

@@ -56,7 +56,11 @@ class TectonicWorld:
     """
 
     def __init__(
-        self, sim_mesh, seed: int, config: dict | None = None, overrides: dict | None = None
+        self,
+        sim_mesh,
+        seed: int,
+        config: dict | None = None,
+        overrides: dict | None = None,
     ):
         self.mesh = sim_mesh
         self.seed = int(seed)

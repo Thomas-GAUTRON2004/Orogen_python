@@ -97,3 +97,9 @@ def test_full_schema_rejects_invalid_nested_types_and_array_shapes():
         make_tectonics_config({"cratonRiftEdges": [1]})
     with pytest.raises(ValueError, match="farReachKm"):
         make_tectonics_config({"farReachKm": float("inf")})
+
+
+def test_mechanism_disable_infinity_sentinel_is_accepted_by_world_config():
+    config = make_tectonics_config(only_mechanisms("rifts"))
+    assert config["backgroundEndMyr"] == float("inf")
+    assert config["riftRatePerMyr"] == 0

@@ -691,7 +691,9 @@ def test_paint_old_ranges_discards_a_stale_long_distance_queue_entry(monkeypatch
     assert np.all(np.isfinite(plate.crust.rootKm))
 
 
-def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(monkeypatch):
+def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(
+    monkeypatch,
+):
     mesh = build_sim_mesh(64, 98)
     monkeypatch.setattr(initial_world, "make_rng", lambda _seed: lambda: 0.5)
     monkeypatch.setattr(initial_world, "random_point", lambda _rng: [1.0, 0.0, 0.0])

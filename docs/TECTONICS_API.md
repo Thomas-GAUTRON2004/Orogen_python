@@ -412,3 +412,31 @@ settings does not mutate the plates. Far-field collision forcing, full
 collision-history parity and the complete upstream `simulate.js` cadence
 remain outstanding. A `sutureCandidate` or `weldCandidate` by itself does
 not imply that a plate merge has happened.
+
+
+## Initial-world generation and scenario fixtures
+
+`build_start_world(sim_mesh, seed, overrides=None)` returns a mapping with a
+`TectonicWorld` and start-layout metadata. It creates a single supercontinent
+with CRATON and CONTINENT cells, terrane identifiers, old inner/ring/major
+seams, a captured oceanic apron, a mature active trench along most of the rim,
+and a passive background-ocean plate. The target continental fraction is
+exact at the mesh's cell resolution. Separate seeded streams are used for the
+layout and passive-margin selection.
+
+The first Python implementation is a **numerical adaptation** of upstream
+`v2/js/tectonics/init/start-world.js`: it uses spherical-cap cell selection
+and graph-hop distances rather than the upstream craton packing, noise-shaped
+landmass assembly and smoothed rim construction. It preserves the initial
+world state contract and deterministic behaviour, but is not bit-for-bit
+geometric parity. Full layout-search parity and multi-seed JavaScript
+differential fixtures remain open.
+
+Three minimal fixture builders are available:
+- `build_continental_scene`: a continental cap and background ocean.
+- `build_oceanic_scene`: two oceanic plates divided by a great-circle boundary.
+- `build_mixed_scene`: the generated supercontinent with apron and background ocean.
+
+`build_scenario_scene` dispatches by `continental`, `oceanic` or `mixed`.
+These are controlled test fixtures, not ports of the complete interactive
+scenario catalogue under upstream `v2/js/tectonics/scenarios/`.

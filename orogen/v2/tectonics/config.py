@@ -16,7 +16,7 @@ CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
 # Preserve the upstream config catalogue and its explanatory comments.
-# fmt: off
+# fmt: skip
 TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
@@ -731,4 +731,3 @@ def make_tectonics_config(overrides: Mapping[str, Any] | None = None) -> dict[st
     config = _merge(TECTONICS, overrides or {})
     validate_tectonics_config(config)
     return config
-# fmt: on

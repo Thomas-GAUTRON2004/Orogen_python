@@ -282,7 +282,7 @@ def benchmark_step_world(mesh):
 
 def run_mode(points, vectors, mesh, far_field_case, step_mesh, enabled: bool):
     """Run common and tectonic workloads under one Numba dispatch mode."""
-    with numba_mode(enabled) as active:
+    with numba_mode(enabled):
         noise = FastNoise(9876)
         selected_cells = np.asarray(
             [

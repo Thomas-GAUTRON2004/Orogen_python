@@ -368,7 +368,7 @@ def build_start_world(
     # grain. Seed the far-field record from the major sutures at their inherited
     # age; later history steps can reactivate the same weak corridors.
     far_start_work = float(cfg.get("farStartWorkKm", 0.0))
-    major_cells = np.flatnonzero(major_sources & land_mask)
+    major_cells = np.flatnonzero((seams == StartSeam["MAJOR"]) & land_mask)
     if far_start_work > 0.0 and major_cells.size:
         spread_push(
             world,

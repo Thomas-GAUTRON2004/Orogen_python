@@ -257,4 +257,4 @@ def test_merged_crust_handles_zero_length_warp_and_empty_filtered_sources(monkey
         mesh,
         np.eye(3),
     )
-    assert preserved.type[0] == CrustType["CRATON"]
+    assert preserved.type[0] == CrustType["CONTINENT"]

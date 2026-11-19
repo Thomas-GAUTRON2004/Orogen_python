@@ -741,7 +741,7 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
     if not isinstance(config, Mapping):
         raise TypeError("tectonics config must be a mapping")
     for key, value in config.items():
-        if key in _CONFIG_SCHEMA:
+        if key in _CONFIG_SCHEMA and not (key == "belts" and value is None):
             _validate_known_shape(value, _CONFIG_SCHEMA[key], key)
     bounded_keys = (
         _POSITIVE

@@ -2,6 +2,8 @@ import math
 
 import pytest
 
+# fmt: off  # Keep compact reference vectors readable as source fixtures.
+
 from orogen.v2.tectonics.geology import (
     GEO_FRAME_FIELDS,
     GEOLOGY_READS,

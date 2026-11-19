@@ -9,9 +9,9 @@ from orogen.v2.tectonics.ops import (
     names_after_split,
     plume_junctions,
     pull_axis_of,
+    rift as rift_module,
     try_rift,
 )
-from orogen.v2.tectonics.ops import rift as rift_module
 
 
 

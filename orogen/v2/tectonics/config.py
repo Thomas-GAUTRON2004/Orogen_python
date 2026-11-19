@@ -15,7 +15,7 @@ from typing import Any
 CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
-# fmt: off
+# fmt: off  # Preserve the upstream config catalogue and its explanatory comments.
 TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
@@ -580,7 +580,6 @@ MECHANISMS: dict[str, dict[str, Any]] = {
     "mantleFlow":     { "mantleOutflow": 0, "mantleInflow": 0, "dispersalRepulsion": 0, "disperseFounderFactor": 1 }, # the mantle's flow drags continents apart and together again (step/supercontinent.js)
     "farField":       { "farCollisionShare": 0, "farAndeanShare": 0, "farFlatShare": 0, "farStartWorkKm": 0, "farReactivate": 0 },     # a front's push felt far inland (step/far-field.js; records only)
 }
-# fmt: on
 
 
 def mechanisms_off(*names: str) -> dict[str, Any]:

@@ -133,3 +133,138 @@ def test_belt_speed_exponent_may_be_zero_but_not_negative():
     assert make_tectonics_config({"beltSpeedExponent": 0})["beltSpeedExponent"] == 0
     with pytest.raises(ValueError, match="beltSpeedExponent must be non-negative"):
         make_tectonics_config({"beltSpeedExponent": -0.1})
+
+
+
+def test_merge_replaces_non_mapping_values_and_keeps_unknown_nested_values():
+    from orogen.v2.tectonics.config import _merge
+
+    source = {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
+    result = _merge(
+        source,
+        {"scalar": {"new": True}, "nested": {"extra": 3}, "list": {"replace": 4}},
+    )
+    assert result == {
+        "scalar": {"new": True},
+        "nested": {"keep": [1, 2], "extra": 3},
+        "list": {"replace": 4},
+    }
+    assert source == {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "error", "message"),
+    [
+        (1, True, TypeError, "enabled must be a boolean"),
+        (True, 1.0, TypeError, "rate must be a real number"),
+        (float("-inf"), 1.0, ValueError, "rate must be finite"),
+        ("wrong", [1, 2], TypeError, "range must be a list"),
+        ([1], [1, 2], ValueError, "range must contain 2 values"),
+        ([], {"enabled": True}, TypeError, "group must be a mapping"),
+        (1, "text", TypeError, "label must be str"),
+    ],
+)
+def test_known_shape_validation_rejects_invalid_scalar_and_container_shapes(
+    value, default, error, message
+):
+    from orogen.v2.tectonics.config import _validate_known_shape
+
+    with pytest.raises(error, match=message):
+        _validate_known_shape(value, default, message.split()[0])
+
+
+def test_known_shape_validation_ignores_unknown_nested_keys():
+    from orogen.v2.tectonics.config import _validate_known_shape
+
+    _validate_known_shape(
+        {"known": True, "future": object()},
+        {"known": True},
+        "group",
+    )
+
+
+def test_validate_config_rejects_non_mapping_input():
+    with pytest.raises(TypeError, match="must be a mapping"):
+        validate_tectonics_config([])
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "error", "message"),
+    [
+        ("maxStepMyr", True, TypeError, "real number"),
+        ("maxStepMyr", float("inf"), ValueError, "finite"),
+        ("maxStepMyr", 0, ValueError, "positive"),
+        ("slabPull", -0.1, ValueError, "non-negative"),
+        ("obliqueLimit", 1.1, ValueError, "in [0, 1]"),
+        ("beltSpeedFactorMin", -0.1, ValueError, "non-negative"),
+    ],
+)
+def test_validate_config_enforces_numeric_bounds(key, value, error, message):
+    with pytest.raises(error, match=message):
+        validate_tectonics_config({key: value})
+
+
+def test_validate_config_accepts_boundaries_and_omits_optional_belts():
+    validate_tectonics_config(
+        {
+            "beltSpeedExponent": 0,
+            "beltSpeedFactorMin": 0,
+            "beltSpeedFactorMax": 0,
+            "belts": None,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("belts", "error", "message"),
+    [
+        ([], TypeError, "belts must be a mapping"),
+        ({"custom": 1}, TypeError, "belts.custom must be a mapping"),
+        ({"custom": {"baseKm": True}}, TypeError, "real number"),
+        ({"custom": {"perKm": float("inf")}}, ValueError, "finite and non-negative"),
+        ({"custom": {"maxKm": -1}}, ValueError, "finite and non-negative"),
+        (
+            {"custom": {"baseKm": 2, "maxKm": 1}},
+            ValueError,
+            "cannot exceed maxKm",
+        ),
+    ],
+)
+def test_validate_config_checks_belt_shapes_and_bounds(belts, error, message):
+    with pytest.raises(error, match=message):
+        validate_tectonics_config({"belts": belts})
+
+
+def test_validate_config_accepts_partial_belt_records():
+    validate_tectonics_config({"belts": {"custom": {"perKm": 0.5}}})
+
+
+def test_make_config_rejects_non_mapping_overrides_and_base():
+    with pytest.raises(TypeError, match="overrides must be a mapping"):
+        make_tectonics_config([])
+    with pytest.raises(TypeError, match="base config must be a mapping"):
+        make_tectonics_config(base=[])
+
+
+def test_make_config_merges_into_an_explicit_partial_base():
+    base = {"custom": {"nested": [1]}, "simCells": 10}
+    config = make_tectonics_config(
+        {"custom": {"extra": True}, "simCells": 20},
+        base=base,
+    )
+    assert config == {
+        "custom": {"nested": [1], "extra": True},
+        "simCells": 20,
+    }
+    assert base == {"custom": {"nested": [1]}, "simCells": 10}
+
+
+def test_mechanism_helpers_reject_unknown_names_and_copy_nested_values():
+    with pytest.raises(ValueError, match="unknown mechanism"):
+        mechanisms_on("not-a-mechanism")
+    with pytest.raises(ValueError, match="unknown mechanism"):
+        only_mechanisms("not-a-mechanism")
+
+    disabled = mechanisms_off("mantleHeatRifts")
+    disabled["riftHeatGain"] = 999
+    assert MECHANISMS["mantleHeatRifts"]["riftHeatGain"] == 0

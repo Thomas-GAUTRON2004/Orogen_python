@@ -27,12 +27,15 @@ def _xyz(sim_mesh: Any) -> np.ndarray:
 
 
 def build_continental_scene(
-    sim_mesh: Any, seed: int = 0, fraction: float = 0.30
+    sim_mesh: Any,
+    seed: int = 0,
+    fraction: float = 0.30,
+    overrides: dict | None = None,
 ) -> dict[str, Any]:
     """Build a single continental plate against the passive background ocean."""
     if not math.isfinite(float(fraction)) or not 0.0 < float(fraction) < 1.0:
         raise ValueError("fraction must be finite and strictly between 0 and 1")
-    world = TectonicWorld(sim_mesh, seed)
+    world = TectonicWorld(sim_mesh, seed, overrides=overrides)
     xyz = _xyz(sim_mesh)
     centre = np.asarray(random_point(make_rng(seed * 31 + 211)), dtype=np.float64)
     count = max(
@@ -81,9 +84,11 @@ def build_continental_scene(
     }
 
 
-def build_oceanic_scene(sim_mesh: Any, seed: int = 0) -> dict[str, Any]:
+def build_oceanic_scene(
+    sim_mesh: Any, seed: int = 0, overrides: dict | None = None
+) -> dict[str, Any]:
     """Build two oceanic plates separated by a deterministic great-circle boundary."""
-    world = TectonicWorld(sim_mesh, seed)
+    world = TectonicWorld(sim_mesh, seed, overrides=overrides)
     xyz = _xyz(sim_mesh)
     pole = np.asarray(random_point(make_rng(seed * 31 + 307)), dtype=np.float64)
     signed = xyz @ pole
@@ -140,9 +145,9 @@ def build_scenario_scene(
     """Dispatch one of the three supported deterministic fixture builders."""
     key = str(scenario).strip().lower()
     if key == "continental":
-        return build_continental_scene(sim_mesh, seed)
+        return build_continental_scene(sim_mesh, seed, overrides=overrides)
     if key == "oceanic":
-        return build_oceanic_scene(sim_mesh, seed)
+        return build_oceanic_scene(sim_mesh, seed, overrides=overrides)
     if key == "mixed":
         return build_mixed_scene(sim_mesh, seed, overrides)
     raise ValueError("scenario must be one of: continental, oceanic, mixed")

@@ -269,7 +269,6 @@ def _paint_old_ranges(
             )
 
 
-
 def _distance_km(
     sim_mesh: Any,
     sources: np.ndarray,
@@ -307,6 +306,7 @@ def _distance_km(
             strength[other] = strength[cell]
             heapq.heappush(queue, (candidate, other))
     return distance.astype(np.float32), strength
+
 
 def build_start_world(
     sim_mesh: Any, seed: int, overrides: dict | None = None

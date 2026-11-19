@@ -96,3 +96,26 @@ def test_fracture_coordinate_uses_zero_relative_rotation_without_a_partner():
     world = SimpleNamespace(mesh=mesh, owner=np.asarray([0, 0]), plates=[grower])
     value = resolve._fracture_at(world, grower, 1, [1.0, 0.0, 0.0])
     assert np.isfinite(value)
+
+
+
+def test_backarc_bridge_fills_between_disconnected_crust_pieces():
+    mesh = SimpleNamespace(
+        num_cells=5,
+        edge_km=100.0,
+        adj_offset=np.asarray([0, 1, 3, 5, 7, 8], dtype=np.int32),
+        adj_list=np.asarray([1, 0, 2, 1, 3, 2, 4, 3], dtype=np.int32),
+    )
+    crust = CrustRaster(5)
+    crust.create(0, CrustType["CONTINENT"], -20.0, 10)
+    crust.create(4, CrustType["OCEAN"], -5.0, 20)
+    plate = SimpleNamespace(crust=crust, mark_reshaped=lambda: None)
+
+    filled = backarc._bridge_pieces(plate, mesh, 300.0)
+
+    assert filled == 2
+    assert crust.mask[1] and crust.mask[3]
+    assert crust.type[1] == CrustType["OCEAN"]
+    assert crust.type[3] == CrustType["OCEAN"]
+    assert crust.formedAt[1] == -20.0
+    assert crust.formedAt[3] == -5.0

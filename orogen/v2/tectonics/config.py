@@ -31,7 +31,7 @@ TECTONICS: dict[str, Any] = {
     "snapshotEveryMyr": 10,
 
     // ── Initial supercontinent [WBP] (init/) ──
-    "cratonCount": 14,            // [WBP: 8–12] more, smaller cores than that: a supercontinent reads as an assembly of many
+    "cratonCount": 14,            // ["WBP": 8–12] more, smaller cores than that: a supercontinent reads as an assembly of many
                                 // old pieces, and there are more seams for a later rift to choose between (developer)
     "continentalFraction": 0.29,  // continental crust (incl. shelves) as a share of the surface; never > 0.4. HONOURED FIRST:
                                 // if the spacing rules need more room, cratons get smaller, not the land bigger
@@ -64,7 +64,7 @@ TECTONICS: dict[str, Any] = {
     "clusterLooseness": 0.15,     // randomness in where the next craton settles (rad-ish): 0 packs them like a honeycomb
     "clusterElongation": 0.5,     // 0 = round supercontinents only, → 1 = may be strongly stretched
     "startMaxLatitudeDeg": 12,    // a ~150°-wide supercontinent centred higher than this drapes over a pole
-    "spanAllowanceDeg": 19,       // [WBP: not much more than half-way round] extent allowed beyond a perfectly round landmass
+    "spanAllowanceDeg": 19,       // ["WBP": not much more than half-way round] extent allowed beyond a perfectly round landmass
     "coastReliefKm": 350,         // broad bays and peninsulas left to chance (continent-scale noise; the rest of the coast's
                                 // shape comes from the assembly and the margin below)
     "coastUnionSoftnessKm": 450,  // rounds the notches between neighbouring proto-continents out of the coastline
@@ -115,7 +115,7 @@ TECTONICS: dict[str, Any] = {
     "slabMatureKm": 600,          // a trench pulls in proportion to the slab hanging from it: full strength only once
                                 // this much crust has gone down (≈ the depth of the upper mantle)
     "slabSuction": 0.25,          // on the overriding plate, toward its own trench — what moves an active-margin continent
-    "ridgePush": 0.05,            // on both plates at a young ridge, away from it [WBP: secondary]
+    "ridgePush": 0.05,            // on both plates at a young ridge, away from it ["WBP": secondary]
     "ridgeMaxAgeMyr": 40,         // crust younger than this on both sides of a contact = an active ridge
     "collisionResistance": 100,   // viscous coupling per 10⁴ km² of land-on-land overlap: colliding plates lock together —
                                 // across the front, against their closing (Phase 11; developer: collisions "more fluid, more
@@ -145,17 +145,17 @@ TECTONICS: dict[str, Any] = {
     // with the current rate: base + perKm × work, capped; × a speed factor (see beltSpeed…). Caps are [WBP]'s
     // belt widths: Andean a few hundred km, a continental plateau 1000+ km, its foreland narrow.
     "belts": {
-        "andean":    { baseKm: 120, perKm: 1.0, maxKm: 400 },     // work = andeanWorkShare × slab gone down: a young margin starts narrow
+        "andean":    { "baseKm": 120, "perKm": 1.0, "maxKm": 400 },     // work = andeanWorkShare × slab gone down: a young margin starts narrow
                                                                 // (700 → 400 after Phase 13: the Andes are mostly 200–500 km wide, and long-lived
                                                                 // margins at the cap made 11–16 % of all land an active Andean belt)
-        "himalayan": { baseKm: 220, perKm: 0.6, maxKm: 1000 },    // plateau side of a continent–continent collision (Tibet ≈ 1000 km after ~2500 km;
+        "himalayan": { "baseKm": 220, "perKm": 0.6, "maxKm": 1000 },    // plateau side of a continent–continent collision (Tibet ≈ 1000 km after ~2500 km;
                                                                 // 1300 → 1000 after Phase 13: a reassembly's many plateaus covered a fifth of the land)
-        "foreland":  { baseKm: 120, perKm: 0.2, maxKm: 350 },     // the lower plate's side: fold-and-thrust belt, then a basin
-        "ural":      { baseKm: 150, perKm: 0.3, maxKm: 400 },     // a short front: simple collision or terrane accretion, both sides
-        "laramide":  { baseKm: 200, perKm: 0.6, maxKm: 1800 },    // over a FLAT slab: work = slab gone down FLAT, so the belt migrates inland
+        "foreland":  { "baseKm": 120, "perKm": 0.2, "maxKm": 350 },     // the lower plate's side: fold-and-thrust belt, then a basin
+        "ural":      { "baseKm": 150, "perKm": 0.3, "maxKm": 400 },     // a short front: simple collision or terrane accretion, both sides
+        "laramide":  { "baseKm": 200, "perKm": 0.6, "maxKm": 1800 },    // over a FLAT slab: work = slab gone down FLAT, so the belt migrates inland
                                                                 // as the flat slab lengthens — the Laramide Rockies stand 1000–1500 km from
                                                                 // the old trench after ~20 Myr, the Andes a few hundred
-        "transpression": { baseKm: 40, perKm: 0.3, maxKm: 150 },  // along a transform pressed together: a narrow ridge (work = the front's own record)
+        "transpression": { "baseKm": 40, "perKm": 0.3, "maxKm": 150 },  // along a transform pressed together: a narrow ridge (work = the front's own record)
     },
     "beltSpeedRefCmYr": 5,        // at this convergence rate the speed factor is 1
     "beltSpeedExponent": 0.5,     // factor = (rate ÷ ref)^exponent, clamped below — fast convergence carries deformation further inland (flat slabs)
@@ -358,7 +358,7 @@ TECTONICS: dict[str, Any] = {
     "riftWeaknessCost": 0.8,      // a rift path costs this much per km along old sutures / failed rifts (1 elsewhere): a real
                                 // preference, but a mild one — at 0.45 a continent reopened the very same suture almost
                                 // every time it broke (developer); over a long history about half the length of the rifts
-                                // follows old weak lines (Phase 13, developer: "maybe 50%… not having it follow it perfectly
+                                // follows old weak lines (Phase 13, "developer": "maybe 50%… not having it follow it perfectly
                                 // will help make more interesting worlds"; 0.75 made it ~70 %; 0.9 → 0.8 with the
                                 // crust's grain below, which the paths now also follow: ~50 %)
     "riftCurveAmp": 0.9,          // the grain of the crust a rift follows (ops/rift-path.js): the cost of breaking ground × 1 ± this
@@ -467,7 +467,7 @@ TECTONICS: dict[str, Any] = {
         "oceanDepthYoungKm": 4.75,    // …and highest
         "floodShareMin": 0.02,        // share of the land beyond its shelves under shallow sea at the lowest stand (the lowest
         "floodShareMax": 0.3,         // land joined to the sea), and at the highest (Earth's Cretaceous: ~35 % of today's land)
-        "shelfKm": { passive: 150, active: 20, other: 60 },   // the continental shelf's width by the coast's kind (a rifted margin's wide)…
+        "shelfKm": { "passive": 150, "active": 20, "other": 60 },   // the continental shelf's width by the coast's kind (a rifted margin's wide)…
         "shelfMaxKm": 0.5,            // …where the land there is no higher than this (a range meeting the sea has none)
         // Sediment laid on the crust (km per Myr), and what kind by the latitude it lay at then (a zonal palaeoclimate)
         "shelfRateKmPerMyr": 0.03,    // on a shelf (a passive margin's wedge)…

@@ -5,8 +5,8 @@ import pytest
 
 from orogen.v2.tectonics.geology import (
     GEO_FRAME_FIELDS,
-    GEOLOGY_READS,
     GeoFlag,
+    GEOLOGY_READS,
     decode_age,
     decode_arc_myr,
     decode_cover_km,

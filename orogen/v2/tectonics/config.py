@@ -15,8 +15,7 @@ from typing import Any
 CM_PER_YR_TO_KM_PER_MYR = 10.0
 CM_PER_YR_TO_RAD_PER_MYR = 10.0 / 6371.0
 
-# Preserve the upstream config catalogue and its explanatory comments.
-# fmt: off
+ # Preserve the upstream config catalogue and its explanatory comments.
 TECTONICS: dict[str, Any] = {
     # ── Simulation grid & clock ──
     "simCells": 40000,            # ≈125 km between cell centres; independent of render detail
@@ -557,9 +556,8 @@ TECTONICS: dict[str, Any] = {
         "minPlateAreaKm2": 1.5e5,           # smaller plates are absorbed by a neighbour
         "historyMyr": 600,                  # [WBP] 500–1000 Myr covers nearly all surviving geology
     },
-}
+}  # fmt: skip
 
-# fmt: on
 MECHANISMS: dict[str, dict[str, Any]] = {
     "wings":          { "wingGrowthCmYr": 0 },                                   # trench wings (step/wings.js)
     "arcs":           { "arcMatureConsumedKm": 1e9 },                            # island arcs (step/wings.js)

@@ -119,6 +119,17 @@ from .thermal import (
     update_mantle_heat,
 )
 from .world import BoundaryKind, EventKind, Provisional, TectonicWorld
+from .initial_world import StartSeam, buildStartWorld, build_start_world
+from .scenarios import (
+    buildContinentalScene,
+    buildMixedScene,
+    buildOceanicScene,
+    buildScenarioScene,
+    build_continental_scene,
+    build_mixed_scene,
+    build_oceanic_scene,
+    build_scenario_scene,
+)
 
 __all__ = [
     "ENDINGS",
@@ -254,4 +265,15 @@ __all__ = [
     "CM_PER_YR_TO_RAD_PER_MYR",
     "SEGMENT_KM",
     "fracture_coordinate",
+    "StartSeam",
+    "build_start_world",
+    "buildStartWorld",
+    "build_continental_scene",
+    "build_oceanic_scene",
+    "build_mixed_scene",
+    "build_scenario_scene",
+    "buildContinentalScene",
+    "buildOceanicScene",
+    "buildMixedScene",
+    "buildScenarioScene",
 ]

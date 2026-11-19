@@ -326,6 +326,7 @@ def build_start_world(
     # azimuthal sector. The sector is sampled before any rim cells are visited.
     east, north = tangent_basis(centre.tolist())
     rim_mask = np.zeros(n, dtype=bool)
+    offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     for cell in np.flatnonzero(in_plate):
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
         rim_mask[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])

@@ -731,3 +731,4 @@ def make_tectonics_config(overrides: Mapping[str, Any] | None = None) -> dict[st
     config = _merge(TECTONICS, overrides or {})
     validate_tectonics_config(config)
     return config
+# fmt: on

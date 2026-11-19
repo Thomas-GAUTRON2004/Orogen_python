@@ -310,3 +310,21 @@ def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeyp
 
     assert result["cells"] == 1
     assert host.crust.type[3] == CrustType["OCEAN"]
+
+def test_accretion_leaves_unclaimed_donor_crust_and_skips_occupied_forearc(monkeypatch):
+    world, host, donor = accretion_fixture()
+    donor.crust.create(0, CrustType["OCEAN"], -60.0, 20)
+    host.cell_at = lambda *_args: 0
+    monkeypatch.setattr(
+        plate_accretion,
+        "free_cell_beside",
+        lambda *_args: 1,
+    )
+    monkeypatch.setattr(plate_accretion, "spread_belt", lambda *_args, **_kwargs: None)
+
+    result = accrete_terrane(world, host, donor, [2], rate_cm_yr=5.0)
+
+    assert result["cells"] == 1
+    assert donor.crust.mask[0]
+    assert donor.alive is True
+    assert host.crust.type[1] == CrustType["CONTINENT"]

@@ -45,6 +45,11 @@ def test_start_world_is_a_complete_partition_with_initial_geology():
     assert world.events[-1]["kind"] == "start"
     assert world.startSeamKm["major"].shape == (mesh.num_cells,)
     assert world.startSeamKm["ring"].shape == (mesh.num_cells,)
+    # Pre-history seams must leave actual belt and far-field records, not only
+    # labels in the initial-world metadata.
+    assert np.count_nonzero(continent.crust.oroType) > 0
+    assert np.count_nonzero(continent.crust.farWork > 0) > 0
+    assert np.all(continent.crust.farAt[continent.crust.farWork > 0] <= 0)
 
 
 def test_start_world_is_deterministic_for_seed_and_configuration():

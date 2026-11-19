@@ -10,7 +10,7 @@ import numpy as np
 from ..core._numba_kernels import (
     NUMBA_AVAILABLE,
     copy_cells_numba,
-    create_cells_numba,
+    create_cells_blocks_numba,
     remove_cells_numba,
     snapshot_cell_fields_numba,
     snapshot_cells_numba,
@@ -222,6 +222,7 @@ class CrustRaster:
     count: int
     fields: list[np.ndarray]
     _numba_fields: tuple[np.ndarray, ...]
+    _numba_blocks: tuple[np.ndarray, ...]
 
     def __init__(self, num_cells: int):
         if num_cells < 1:
@@ -232,18 +233,21 @@ class CrustRaster:
         # Allocate one backing matrix per dtype instead of one allocation per
         # field. Each field remains a contiguous, independently writable 1-D
         # view with exactly the same dtype and values as before.
+        blocks: list[np.ndarray] = []
         fields_by_dtype: dict[np.dtype[Any], list[str]] = {}
         for name in CELL_FIELDS:
             dtype = np.dtype(_DTYPES[name])
             fields_by_dtype.setdefault(dtype, []).append(name)
         for dtype, names in fields_by_dtype.items():
             storage = np.zeros((len(names), num_cells), dtype=dtype)
+            blocks.append(storage)
             for row, name in enumerate(names):
                 setattr(self, name, storage[row])
 
         self.count = 0
         self.fields = [getattr(self, name) for name in CELL_FIELDS]
         self._numba_fields = tuple(self.fields)
+        self._numba_blocks = tuple(blocks)
 
     def _cell_indices(self, cells) -> np.ndarray:
         raw = np.asarray(cells)
@@ -288,13 +292,16 @@ class CrustRaster:
         terranes = self._batch_values(terrane, count, "terrane", np.uint16)
         if NUMBA_AVAILABLE:
             self.count += int(
-                create_cells_numba(
-                    self._numba_fields,
+                create_cells_blocks_numba(
+                    self._numba_blocks,
                     self.mask,
                     indices,
                     types,
                     times,
                     terranes,
+                    self.type,
+                    self.formedAt,
+                    self.terrane,
                 )
             )
         else:

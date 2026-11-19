@@ -194,7 +194,7 @@ def test_validate_config_rejects_non_mapping_input():
         ("maxStepMyr", float("inf"), ValueError, "finite"),
         ("maxStepMyr", 0, ValueError, "positive"),
         ("slabPull", -0.1, ValueError, "non-negative"),
-        ("obliqueLimit", 1.1, ValueError, "in [0, 1]"),
+        ("obliqueLimit", 1.1, ValueError, r"in \[0, 1\]"),
         ("beltSpeedFactorMin", -0.1, ValueError, "non-negative"),
     ],
 )

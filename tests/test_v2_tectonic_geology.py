@@ -13,7 +13,6 @@ from orogen.v2.tectonics.geology import (
     decode_facies,
     decode_flood_age,
     decode_flood_myr,
-    decode_unroof_km,
     encode_age,
     encode_arc_myr,
     encode_cover_km,

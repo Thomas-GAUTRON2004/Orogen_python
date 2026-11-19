@@ -8,6 +8,7 @@ from orogen.v2.tectonics.ops import choose_junction, split_plate
 from orogen.v2.tectonics.ops import rift as rift_module
 from orogen.v2.tectonics.world import TectonicWorld
 
+
 class Mesh:
     def __init__(self, points, neighbours, edge_km=1000.0, edge_rad=0.01):
         self.num_cells = len(points)
@@ -21,6 +22,7 @@ class Mesh:
             offsets.append(len(adjacency))
         self.adj_offset = np.asarray(offsets, dtype=np.int32)
         self.adj_list = np.asarray(adjacency, dtype=np.int32)
+
 
 def partition_mesh(extra_right=0):
     c, s = math.cos, math.sin
@@ -59,6 +61,7 @@ def partition_mesh(extra_right=0):
             neighbours[cell + 1].append(cell)
     return Mesh(points, neighbours)
 
+
 def make_world(extra_right=0):
     mesh = partition_mesh(extra_right)
     world = TectonicWorld(
@@ -80,6 +83,7 @@ def make_world(extra_right=0):
     for cell in range(8, 8 + extra_right):
         crust.create(cell, CrustType["CONTINENT"], 0.0, 40 + cell)
     return world, plate
+
 
 def square_junction_fixture():
     points = []
@@ -118,6 +122,7 @@ def square_junction_fixture():
             cell = row * 7 + col
             plate.crust.create(cell, CrustType["CONTINENT"], 0.0, cell)
     return world, plate
+
 
 def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(
     monkeypatch,
@@ -194,6 +199,7 @@ def test_split_plate_moves_crust_wings_sets_rift_records_and_spreads_shoulders(
     assert plate.stats["cells"] == 5
     assert fresh.stats["cells"] == 3
 
+
 def test_split_plate_larger_new_half_keeps_parent_hue_and_default_push(monkeypatch):
     world, plate = make_world(extra_right=3)
     plate.hue = 55
@@ -215,6 +221,7 @@ def test_split_plate_larger_new_half_keeps_parent_hue_and_default_push(monkeypat
     assert np.isfinite(plate.riftPushDir).all()
     assert np.isfinite(fresh.riftPushDir).all()
 
+
 def test_choose_junction_weights_weak_interior_and_skips_cratons():
     world, plate = square_junction_fixture()
     plate.crust.type[2 * 7 + 2] = CrustType["CRATON"]
@@ -222,6 +229,7 @@ def test_choose_junction_weights_weak_interior_and_skips_cratons():
     plate.crust.flags[selected] |= CrustFlag["SUTURE"]
 
     assert choose_junction(world, plate, lambda: 0.45) == selected
+
 
 def test_choose_junction_returns_minus_one_without_interior():
     world, plate = square_junction_fixture()
@@ -232,16 +240,19 @@ def test_choose_junction_returns_minus_one_without_interior():
                 plate.crust.remove(cell)
     assert choose_junction(world, plate, lambda: 0.0) == -1
 
+
 def test_choose_junction_failed_rift_is_also_a_weak_seed():
     world, plate = square_junction_fixture()
     selected = 3 * 7 + 3
     plate.crust.flags[selected] |= CrustFlag["FAILED_RIFT"]
     assert choose_junction(world, plate, lambda: 0.45) == selected
 
+
 def test_choose_junction_falls_back_to_last_candidate_if_rng_overshoots():
     world, plate = square_junction_fixture()
     candidates = [row * 7 + col for row in range(2, 5) for col in range(2, 5)]
     assert choose_junction(world, plate, lambda: 1.1) == candidates[-1]
+
 
 def test_split_plate_skips_empty_failed_arm_cells_and_unliftable_shoulders(monkeypatch):
     world, plate = make_world()

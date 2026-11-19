@@ -115,6 +115,14 @@ def test_mechanism_retirement_infinity_is_validated_from_schema():
         make_tectonics_config({"backgroundEndMyr": float("-inf")})
 
 
+def test_positive_infinity_is_only_allowed_for_mechanism_sentinels():
+    assert make_tectonics_config({"backgroundEndMyr": float("inf")})[
+        "backgroundEndMyr"
+    ] == float("inf")
+    with pytest.raises(ValueError, match="must be finite"):
+        make_tectonics_config({"farReachKm": float("inf")})
+
+
 def test_config_schema_keeps_tectonics_defaults_for_overlapping_mechanism_keys():
     from orogen.v2.tectonics.config import _CONFIG_SCHEMA
 

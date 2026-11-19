@@ -1,6 +1,7 @@
 """Tests for the tectonic convergence/divergence resolver."""
 
 import numpy as np
+import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.crust import CrustType
@@ -298,3 +299,169 @@ def test_is_behind_open_edge_returns_direction_test():
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["OCEAN"], 0, 1)
     assert isinstance(_is_behind(plate, 0, 1, mesh), bool)
+
+def test_resolve_skips_gap_assignment_when_the_world_view_has_no_gaps(monkeypatch):
+    import importlib
+    from types import SimpleNamespace
+
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
+    world = SimpleNamespace(
+        occupancyStamp=0,
+        owner=np.asarray([0, 0], dtype=np.int32),
+        budget={"created": 0, "consumed": 0},
+        landClaims=np.zeros(2, dtype=np.int32),
+        plates=[],
+        mesh=SimpleNamespace(xyz=np.zeros(6, dtype=np.float32)),
+    )
+    monkeypatch.setattr(module, "_gather_and_subduct", lambda _world: 0)
+    monkeypatch.setattr(
+        module, "_assign_gap_owners", lambda *_args: pytest.fail("no gaps to assign")
+    )
+
+    assert module.resolve(world) == {"created": 0, "consumed": 0, "collisionCells": 0}
+
+
+def test_fracture_walk_runs_to_its_depth_limit_without_a_partner(monkeypatch):
+    import importlib
+    from types import SimpleNamespace
+
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
+    count = 10
+    rows = []
+    for cell in range(count):
+        row = []
+        if cell:
+            row.append(cell - 1)
+        if cell + 1 < count:
+            row.append(cell + 1)
+        rows.append(row)
+    offsets, adjacency = [0], []
+    for row in rows:
+        adjacency.extend(row)
+        offsets.append(len(adjacency))
+    mesh = SimpleNamespace(
+        num_cells=count,
+        xyz=np.tile(np.asarray([1.0, 0.0, 0.0]), count),
+        index=SimpleNamespace(nearest=lambda *_args: 0),
+        adj_offset=np.asarray(offsets, dtype=np.int32),
+        adj_list=np.asarray(adjacency, dtype=np.int32),
+    )
+    grower = SimpleNamespace(
+        id=0,
+        omega=[0.0, 0.0, 0.0],
+        to_plate_frame=lambda *values: list(values),
+    )
+    world = SimpleNamespace(
+        mesh=mesh,
+        owner=np.full(count, -1, dtype=np.int32),
+        plates=[grower],
+    )
+    monkeypatch.setattr(module, "fracture_coordinate", lambda *_args: 0.25)
+
+    assert module._fracture_at(world, grower, 0, [1.0, 0.0, 0.0]) == 0.25
+
+
+def test_fracture_walk_keeps_the_leading_partner_when_a_later_owner_lags(monkeypatch):
+    import importlib
+    from types import SimpleNamespace
+
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
+    mesh = SimpleNamespace(
+        num_cells=4,
+        xyz=np.tile(np.asarray([1.0, 0.0, 0.0]), 4),
+        index=SimpleNamespace(nearest=lambda *_args: 0),
+        adj_offset=np.asarray([0, 3, 3, 3, 3], dtype=np.int32),
+        adj_list=np.asarray([1, 2, 3], dtype=np.int32),
+    )
+    grower = SimpleNamespace(
+        id=0,
+        omega=[0.0, 0.0, 0.0],
+        to_plate_frame=lambda *values: list(values),
+    )
+    first = SimpleNamespace(isBackground=False, omega=[0.0, 0.0, 0.0])
+    second = SimpleNamespace(isBackground=False, omega=[0.0, 0.0, 0.0])
+    world = SimpleNamespace(
+        mesh=mesh,
+        owner=np.asarray([-1, 1, 1, 2], dtype=np.int32),
+        plates=[grower, first, second],
+    )
+    monkeypatch.setattr(module, "fracture_coordinate", lambda *_args: 0.5)
+
+    assert module._fracture_at(world, grower, 0, [1.0, 0.0, 0.0]) == 0.5
+
+
+def test_candidate_cells_deduplicates_gaps_that_map_to_one_plate_cell(monkeypatch):
+    import importlib
+    from types import SimpleNamespace
+
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
+    mesh, world = _world()
+    grower = world.add_plate("grower")
+    grower.crust.create(0, CrustType["OCEAN"], 0.0, 1)
+    grower.cap_in_world = lambda _mesh: [1.0, 0.0, 0.0, -1.0]
+    grower.cell_at = lambda *_args: 0
+    monkeypatch.setattr(
+        module,
+        "bin_index",
+        lambda _mesh: SimpleNamespace(
+            bin_of=np.zeros(mesh.num_cells, dtype=np.int32), count=1
+        ),
+    )
+    monkeypatch.setattr(module, "may_have_crust_near", lambda *_args: True)
+
+    candidates = module.candidate_cells(world, grower, [1, 2])
+
+    assert len(candidates) == len(set(candidates))
+
+
+def test_gap_owner_assignment_skips_foreign_hits_without_a_crust_cell(monkeypatch):
+    import importlib
+    from types import SimpleNamespace
+
+    module = importlib.import_module("orogen.v2.tectonics.resolve")
+    mesh = SimpleNamespace(
+        num_cells=1,
+        xyz=np.asarray([1.0, 0.0, 0.0], dtype=np.float32),
+    )
+
+    class Candidate:
+        def __init__(self, identifier):
+            self.id = identifier
+            self.alive = True
+            self.isBackground = False
+            self.crust = __import__(
+                "orogen.v2.tectonics.crust", fromlist=["CrustRaster"]
+            ).CrustRaster(1)
+            self.crust.create(0, CrustType["CONTINENT"], -10.0)
+            self.cell_at = lambda *_args: 0
+
+    best, foreign = Candidate(0), Candidate(1)
+    world = SimpleNamespace(
+        mesh=mesh,
+        owner=np.asarray([-1], dtype=np.int32),
+        ownerCell=np.asarray([-1], dtype=np.int32),
+        plates=[best, foreign],
+        occupancyStamp=1,
+        claimCount=np.zeros(1, dtype=np.int32),
+        provisional=np.zeros(1, dtype=np.int8),
+        provisionalLike=np.full(1, -1, dtype=np.int32),
+        config={},
+    )
+    monkeypatch.setattr(
+        module,
+        "bin_index",
+        lambda _mesh: SimpleNamespace(bin_of=np.zeros(1, dtype=np.int32)),
+    )
+    monkeypatch.setattr(module, "may_have_crust_near", lambda *_args: True)
+    monkeypatch.setattr(
+        module,
+        "_nearest_crust",
+        lambda plate, *_args: (
+            {"cell": 0, "dot": 0.9} if plate is best else {"cell": -1, "dot": -2.0}
+        ),
+    )
+
+    module._assign_gap_owners(world, [0])
+
+    assert world.owner.tolist() == [0]
+    assert world.provisional.tolist() == [1]

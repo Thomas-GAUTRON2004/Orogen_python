@@ -52,6 +52,7 @@ def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
         {"obliqueLimit": 1.1},
         {"collisionShearShare": -0.1},
         {"beltSpeedFactorMin": 2.0, "beltSpeedFactorMax": 1.0},
+        {"beltSpeedExponent": -0.1},
         {"belts": {"andean": {"baseKm": 500, "maxKm": 400}}},
     ],
 )
@@ -112,3 +113,15 @@ def test_mechanism_retirement_infinity_is_validated_from_schema():
     assert config["backgroundEndMyr"] == float("inf")
     with pytest.raises(ValueError, match="must be finite"):
         make_tectonics_config({"backgroundEndMyr": float("-inf")})
+
+
+def test_config_schema_keeps_tectonics_defaults_for_overlapping_mechanism_keys():
+    from orogen.v2.tectonics.config import _CONFIG_SCHEMA
+
+    assert _CONFIG_SCHEMA["riftRatePerMyr"] == TECTONICS["riftRatePerMyr"] == 0.08
+
+
+def test_belt_speed_exponent_may_be_zero_but_not_negative():
+    assert make_tectonics_config({"beltSpeedExponent": 0})["beltSpeedExponent"] == 0
+    with pytest.raises(ValueError, match="beltSpeedExponent must be non-negative"):
+        make_tectonics_config({"beltSpeedExponent": -0.1})

@@ -1,8 +1,5 @@
 """Render the paired benchmark JSON into Markdown and CSV reports."""
 
-from __future__ import annotations
-
-
 import argparse
 import csv
 import json

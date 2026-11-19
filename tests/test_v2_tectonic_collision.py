@@ -363,6 +363,8 @@ def test_track_collisions_records_front_shortening_and_contact_age(monkeypatch):
     assert record["cells"] == 1
     assert record["contactMyr"] == 1.0
     assert record["closingCmYr"] > 0.0
+    # Fixture expectation from max(0, dot(cross(relative_omega, centre), normal)) * dt * PLANET_RADIUS_KM.
+    # The centroid and tangent are fixed above, so this guards the known 63.71 km result for this fixture.
     assert record["shorteningKm"] == pytest.approx(63.71)
     assert record["frontKm"] == pytest.approx(100.0 * math.sqrt(3.0) / 2.0)
     assert record["meanRateCmYr"] == pytest.approx(6.371)
@@ -1353,3 +1355,84 @@ def test_collision_front_cells_returns_unique_valid_land_contacts():
     world.landClaims[1] = 2
     world.landClaims[3] = 2
     assert _collision_front_cells(world, upper, lower, [2]) == ([], [])
+
+
+def test_step_world_runs_real_collision_tracker_on_deterministic_contact(monkeypatch):
+    """Exercise the stepper-to-collision seam without replacing the tracker."""
+    from orogen.v2.tectonics import boundaries, collision, stepper
+    from orogen.v2.tectonics.world import BoundaryKind
+
+    world, upper, lower = collision_tracking_world()
+    world.step = 0
+    world.boundaryKind = np.zeros(5, dtype=np.uint8)
+    world.convergence = np.zeros(5, dtype=np.float32)
+    world.provisional = np.zeros(5, dtype=np.uint8)
+    world.oceanOverrider = np.full(5, -1, dtype=np.int16)
+    world.consumedAt = np.zeros(5, dtype=np.uint8)
+    world.config.update(
+        {
+            "boundaryActiveCmYr": 0.3,
+            "obliqueLimit": 0.35,
+            "segmentPolarity": False,
+            "sutureMinContactKm": 0.0,
+            "belts": {
+                "himalayan": {"baseKm": 100.0, "perKm": 0.5, "maxKm": 500.0},
+                "foreland": {"baseKm": 80.0, "perKm": 0.2, "maxKm": 300.0},
+                "ural": {"baseKm": 50.0, "perKm": 0.2, "maxKm": 200.0},
+            },
+            "beltSpeedFactorMin": 0.6,
+            "beltSpeedFactorMax": 1.6,
+            "beltSpeedRefCmYr": 5.0,
+            "beltSpeedExponent": 0.5,
+            "beltObliqueMin": 0.35,
+            "apronKm": 100.0,
+            "orogenyQuietMyr": 10.0,
+            "beltWorkShare": 0.5,
+            "thickeningPerWorkKm": 0.1,
+            "weakCellCost": 0.5,
+            "cratonRimKm": 200.0,
+            "cratonRimCost": 2.0,
+            "cratonRimShare": 0.25,
+        }
+    )
+
+    # Keep unrelated stages inert: the contact geometry and collision tracker
+    # remain real, while this test isolates their integration in step_world.
+    monkeypatch.setattr(stepper, "closing_rate", lambda _world: 0.0)
+    monkeypatch.setattr(stepper, "advance_plates", lambda *_args: None)
+    monkeypatch.setattr(stepper, "resolve", lambda _world: {})
+    monkeypatch.setattr(boundaries, "contact_at", lambda _world, _cell, _normal: -1)
+    monkeypatch.setattr(stepper, "update_plumes", lambda _world, _dt: None)
+    monkeypatch.setattr(stepper, "open_back_arcs", lambda _world, _dt: 0)
+    monkeypatch.setattr(
+        collision,
+        "centroid_of_cells",
+        lambda _xyz, _cells: [1.0, 0.0, 0.0],
+    )
+    monkeypatch.setattr(collision, "tangent_toward", lambda *_args: [0.0, 1.0, 0.0])
+
+    result = stepper.step_world(
+        world,
+        1.0,
+        update_motion=False,
+        update_cycle=False,
+    )
+
+    record = world.collisions["0:1"]
+    assert result["classifiedBoundaries"] == 1
+    assert world.boundaryKind[2] == BoundaryKind["COLLISION"]
+    assert result["collisions"] == {
+        "tracked": 1,
+        "started": 1,
+        "underthrustCells": 0,
+        "changed": False,
+    }
+    assert record["upper"] == upper.id
+    assert record["lower"] == lower.id
+    assert record["shorteningKm"] == pytest.approx(63.71)
+    # The real collision stage must propagate shortening into both margins.
+    assert upper.crust.oroType[2] != 0
+    assert lower.crust.oroType[2] != 0
+    assert upper.crust.thickKm[2] > 0.0
+    assert lower.crust.thickKm[2] > 0.0
+    assert [event["kind"] for event in world.events] == ["collision"]

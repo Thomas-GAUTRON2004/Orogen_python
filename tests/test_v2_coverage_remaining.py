@@ -577,7 +577,6 @@ def test_merge_hole_repair_stops_after_a_pass_without_fillable_holes():
     assert origin.tolist() == [1, 1, 1, 1, 1]
 
 
-
 def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
     mesh = _line_graph()
     world = SimpleNamespace(
@@ -611,8 +610,10 @@ def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
     def assign(_xyz, land_cells, centres, _share):
         count = len(centres)
         owners = np.arange(len(land_cells), dtype=np.uint16) % count + 1
-        return owners, np.zeros(len(land_cells), dtype=bool), np.zeros(
-            len(land_cells), dtype=np.int32
+        return (
+            owners,
+            np.zeros(len(land_cells), dtype=bool),
+            np.zeros(len(land_cells), dtype=np.int32),
         )
 
     monkeypatch.setattr(initial_world, "_assign_cratons", assign)
@@ -627,9 +628,9 @@ def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
                 neighbour = int(neighbour_value)
                 if not land_mask[neighbour]:
                     continue
-                right = int(
-                    terrane_owner[np.flatnonzero(land_cells == neighbour)[0]]
-                ) - 1
+                right = (
+                    int(terrane_owner[np.flatnonzero(land_cells == neighbour)[0]]) - 1
+                )
                 if groups[left] != groups[right]:
                     result[cell] = initial_world.StartSeam["MAJOR"]
                     return result

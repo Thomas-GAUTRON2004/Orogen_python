@@ -601,7 +601,6 @@ def test_old_range_strength_propagation_respects_land_mask(monkeypatch):
     assert plate.crust.rootKm[2] == 0.0
 
 
-
 def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
     mesh = build_sim_mesh(512, 971)
     pushed = []

@@ -12,6 +12,7 @@ from orogen.v2.tectonics.ops.plate_accretion import (
 )
 from orogen.v2.tectonics.plate import Plate
 
+
 class Index:
     def __init__(self, points, far_index=0):
         self.points = np.asarray(points, dtype=float)
@@ -22,6 +23,7 @@ class Index:
         distance = np.sum((self.points - point) ** 2, axis=1)
         nearest = int(np.argmin(distance))
         return nearest if distance[nearest] < 1e-6 else self.far_index
+
 
 class Mesh:
     def __init__(self, points, neighbours, edge_km=100.0, cell_area=100.0):
@@ -38,6 +40,7 @@ class Mesh:
             offsets.append(len(adjacency))
         self.adj_offset = np.asarray(offsets, dtype=np.int32)
         self.adj_list = np.asarray(adjacency, dtype=np.int32)
+
 
 def close_fixture(points, neighbours):
     mesh = Mesh(points, neighbours)
@@ -56,6 +59,7 @@ def close_fixture(points, neighbours):
         "inlandSeaMaxKm2": 0.0,
     }
     return mesh, crust, origin, upper, cfg
+
 
 def accretion_fixture():
     points = [
@@ -87,6 +91,7 @@ def accretion_fixture():
     )
     return world, host, donor
 
+
 def test_close_seas_between_fills_a_narrow_strait_and_marks_suture():
     mesh, crust, origin, upper, cfg = close_fixture(
         [[1, 0, 0], [0, 1, 0], [-1, 0, 0]],
@@ -102,6 +107,7 @@ def test_close_seas_between_fills_a_narrow_strait_and_marks_suture():
     assert crust.flags[1] == CrustFlag["SUTURE"]
     assert crust.slabKm[1] == 0.0
     assert origin[1] == 3
+
 
 def test_close_seas_between_keeps_wide_open_water_and_large_inland_seas():
     mesh, crust, origin, upper, cfg = close_fixture(
@@ -125,6 +131,7 @@ def test_close_seas_between_keeps_wide_open_water_and_large_inland_seas():
     upper.capCenter = [-0.5, -0.866, 0.0]
     assert close_seas_between(crust, origin, mesh, upper, cfg, 5.0) == 0
 
+
 def test_close_seas_between_fills_a_small_enclosed_sea():
     mesh, crust, origin, upper, cfg = close_fixture(
         [
@@ -147,6 +154,7 @@ def test_close_seas_between_fills_a_small_enclosed_sea():
     assert sealed == 3
     assert all(crust.type[cell] == CrustType["CONTINENT"] for cell in (1, 2, 3))
     assert all(origin[cell] == 3 for cell in (1, 2, 3))
+
 
 def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     world, host, donor = accretion_fixture()
@@ -178,6 +186,7 @@ def test_accrete_terrane_moves_land_and_forearc_closes_the_sea(monkeypatch):
     ]
     assert host.stats["cells"] == 3
     assert donor.stats["cells"] == 0
+
 
 def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
     mesh = Mesh(
@@ -212,6 +221,7 @@ def test_accrete_terrane_absorbs_land_when_no_neighbour_is_free(monkeypatch):
     assert donor.alive is False
     assert host.crust.terrane[0] == 10
 
+
 def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
     world, host, donor = accretion_fixture()
     world.config["terraneMinAreaKm2"] = 101.0
@@ -229,6 +239,7 @@ def test_accrete_terrane_marks_small_fragment_as_scrap(monkeypatch):
     assert result["sealed"] == 0
     assert host.crust.mask[2] == 1
 
+
 def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     world, host, _donor = accretion_fixture()
     host.crust.create(1, CrustType["CONTINENT"], -50.0, 11)
@@ -236,6 +247,7 @@ def test_landmass_of_returns_connected_land_containing_all_land_seeds():
     result = landmass_of(host, world.mesh, [0])
 
     assert result == [0, 1, 2]
+
 
 def test_close_seas_between_converts_craton_source_when_sealing_two_cell_strait():
     points = [
@@ -260,6 +272,7 @@ def test_close_seas_between_converts_craton_source_when_sealing_two_cell_strait(
     assert crust.terrane[2] == 30
     assert crust.flags[2] == CrustFlag["SUTURE"]
     assert origin.tolist() == [1, 3, 3, 2]
+
 
 def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeypatch):
     points = [
@@ -297,6 +310,7 @@ def test_accrete_terrane_skips_an_isolated_ocean_cell_when_building_seam(monkeyp
 
     assert result["cells"] == 1
     assert host.crust.type[3] == CrustType["OCEAN"]
+
 
 def test_accretion_leaves_unclaimed_donor_crust_and_skips_occupied_forearc(monkeypatch):
     world, host, donor = accretion_fixture()

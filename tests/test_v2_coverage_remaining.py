@@ -239,38 +239,60 @@ def test_backarc_strip_judgement_covers_rejections_and_success():
         [CrustType["CONTINENT"], CrustType["CRATON"], CrustType["CONTINENT"],
          CrustType["CONTINENT"], CrustType["CONTINENT"]]
     )
-    assert _judge_strip(
-        world, SimpleNamespace(crust=craton),
-        np.asarray([0, 1, 0, 0, 0], dtype=np.uint8)
-    ) is None
+    assert (
+        _judge_strip(
+            world,
+            SimpleNamespace(crust=craton),
+            np.asarray([0, 1, 0, 0, 0], dtype=np.uint8),
+        )
+        is None
+    )
 
     small = _crust([CrustType["CONTINENT"]] * 5)
     low_area_world = SimpleNamespace(
         mesh=_line_graph(cell_area_km2=100.0), config=config_values
     )
-    assert _judge_strip(
-        low_area_world, SimpleNamespace(crust=small),
-        np.asarray([1, 0, 0, 0, 0], dtype=np.uint8)
-    ) is None
+    assert (
+        _judge_strip(
+            low_area_world,
+            SimpleNamespace(crust=small),
+            np.asarray([1, 0, 0, 0, 0], dtype=np.uint8),
+        )
+        is None
+    )
 
     detached_land = _crust([CrustType["CONTINENT"]] * 5)
-    assert _judge_strip(
-        world, SimpleNamespace(crust=detached_land),
-        np.asarray([1, 0, 1, 0, 0], dtype=np.uint8)
-    ) is None
+    assert (
+        _judge_strip(
+            world,
+            SimpleNamespace(crust=detached_land),
+            np.asarray([1, 0, 1, 0, 0], dtype=np.uint8),
+        )
+        is None
+    )
 
     split_remainder = _crust(
-        [CrustType["CONTINENT"], CrustType["OCEAN"], CrustType["OCEAN"],
-         CrustType["OCEAN"], CrustType["CONTINENT"]]
+        [
+            CrustType["CONTINENT"],
+            CrustType["OCEAN"],
+            CrustType["OCEAN"],
+            CrustType["OCEAN"],
+            CrustType["CONTINENT"],
+        ]
     )
-    assert _judge_strip(
-        world, SimpleNamespace(crust=split_remainder),
-        np.asarray([0, 1, 0, 0, 0], dtype=np.uint8)
-    ) is None
+    assert (
+        _judge_strip(
+            world,
+            SimpleNamespace(crust=split_remainder),
+            np.asarray([0, 1, 0, 0, 0], dtype=np.uint8),
+        )
+        is None
+    )
 
     accepted = _judge_strip(
-        world, SimpleNamespace(crust=all_land),
-        np.asarray([1, 1, 0, 0, 0], dtype=np.uint8)
+        world,
+        SimpleNamespace(crust=all_land),
+        np.asarray([1, 1, 0, 0, 0], dtype=np.uint8),
     )
     assert accepted == {"cells": [0, 1], "continental": True}
 
@@ -285,7 +307,8 @@ def test_strip_behind_retries_the_narrower_oceanic_band(monkeypatch):
         np.asarray([1, 1, 0, 0, 0], dtype=np.uint8),
     ]
     monkeypatch.setattr(
-        backarc, "_band_behind",
+        backarc,
+        "_band_behind",
         lambda _world, _plate, _segment, width: (widths.append(width), bands.pop(0))[1],
     )
     accepted = {"cells": [0], "continental": False}
@@ -296,9 +319,15 @@ def test_strip_behind_retries_the_narrower_oceanic_band(monkeypatch):
 
 def test_bridge_pieces_handles_single_piece_and_fills_short_seam():
     mesh = _line_graph()
-    crust = _crust([CrustType["CONTINENT"], CrustType["CONTINENT"],
-                    CrustType["OCEAN"], CrustType["CONTINENT"],
-                    CrustType["CONTINENT"]])
+    crust = _crust(
+        [
+            CrustType["CONTINENT"],
+            CrustType["CONTINENT"],
+            CrustType["OCEAN"],
+            CrustType["CONTINENT"],
+            CrustType["CONTINENT"],
+        ]
+    )
     plate = SimpleNamespace(crust=crust, reshaped=False)
     plate.mark_reshaped = lambda: setattr(plate, "reshaped", True)
     assert _bridge_pieces(plate, mesh, 400.0) > 0
@@ -357,7 +386,9 @@ def _boundary_world(seed=101):
     return mesh, world, plate
 
 
-def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepening(monkeypatch):
+def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepening(
+    monkeypatch,
+):
     mesh, world, plate = _boundary_world()
     world.time = 100.0
     plate.lastFedAt = 0.0
@@ -365,7 +396,9 @@ def test_boundary_far_field_feeding_handles_quiet_reset_empty_front_and_steepeni
     plate.flatSlabKm = 500.0
     monkeypatch.setattr(boundaries, "near_land", lambda *_args: False)
     recorded = []
-    monkeypatch.setattr(boundaries, "feed_far_field", lambda *args: recorded.append(args))
+    monkeypatch.setattr(
+        boundaries, "feed_far_field", lambda *args: recorded.append(args)
+    )
 
     boundaries._feed_subduction_far_field(world, {}, 1.0)
     assert plate.flatSlab is True
@@ -398,20 +431,30 @@ def test_boundary_belt_spreaders_cover_filtered_and_arc_paths(monkeypatch):
     monkeypatch.setattr(boundaries, "near_land", lambda *_args: False)
     monkeypatch.setattr(boundaries, "spread_belt", lambda *args: calls.append(args))
     empty_source = {
-        "cells": [2], "kms": [20.0], "headOn": [1.0], "ages": [100.0], "shears": [0.0]
+        "cells": [2],
+        "kms": [20.0],
+        "headOn": [1.0],
+        "ages": [100.0],
+        "shears": [0.0],
     }
     plate.crust.create(2, CrustType["OCEAN"], -100.0, 1)
     boundaries._spread_subduction_belts(world, {plate: empty_source}, 1.0)
     assert not calls
 
     arc_front = {
-        "cells": [1], "kms": [20.0], "headOn": [1.0], "ages": [100.0], "shears": [5.0]
+        "cells": [1],
+        "kms": [20.0],
+        "headOn": [1.0],
+        "ages": [100.0],
+        "shears": [5.0],
     }
     boundaries._spread_subduction_belts(world, {plate: arc_front}, 1.0)
     assert calls[-1][2] == [1]
     assert calls[-1][3]["type"] != 0
 
-    boundaries._spread_transpression_belts(world, {plate: {"cells": [], "kms": [], "shears": []}}, 1.0)
+    boundaries._spread_transpression_belts(
+        world, {plate: {"cells": [], "kms": [], "shears": []}}, 1.0
+    )
     boundaries._spread_transpression_belts(
         world, {plate: {"cells": [0], "kms": [25.0], "shears": [10.0]}}, 1.0
     )

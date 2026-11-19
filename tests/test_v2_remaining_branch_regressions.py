@@ -24,9 +24,7 @@ def test_spread_front_keeps_an_equal_or_worse_existing_front():
     crust.beltAt[0] = 10.0
     crust.beltU[0] = 0.5
     crust.beltShear[0] = 12
-    _store_front(
-        crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0
-    )
+    _store_front(crust, 0, {"keepShear": False, "shear": 30}, 0, 7, 1, 0.5, 200.0, 10.0)
     assert crust.beltReach[0] == 100.0
     assert crust.beltShear[0] == 12
 
@@ -58,9 +56,7 @@ def test_inverse_warp_hole_fill_uses_land_majority_and_ignores_sparse_gaps():
     output.create(4, CrustType["OCEAN"], -20.0, 4)
     offsets = np.asarray([0, 4, 4, 4, 4, 4, 4], dtype=np.int32)
     adjacency = np.asarray([1, 2, 3, 4], dtype=np.int32)
-    _fill_inverse_warp_holes(
-        output, np.zeros(6, dtype=np.int8), offsets, adjacency, 6
-    )
+    _fill_inverse_warp_holes(output, np.zeros(6, dtype=np.int8), offsets, adjacency, 6)
     assert output.mask[0]
     assert output.type[0] == CrustType["CONTINENT"]
     assert not output.mask[5]

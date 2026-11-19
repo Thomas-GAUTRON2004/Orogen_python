@@ -1,7 +1,6 @@
 """Regression tests for remaining tectonic decision branches."""
 
 from importlib import import_module
-from importlib import import_module
 from types import SimpleNamespace
 
 import numpy as np
@@ -100,7 +99,6 @@ def test_fracture_coordinate_uses_zero_relative_rotation_without_a_partner():
     assert np.isfinite(value)
 
 
-
 def test_backarc_bridge_fills_between_disconnected_crust_pieces():
     mesh = SimpleNamespace(
         num_cells=5,
@@ -121,7 +119,6 @@ def test_backarc_bridge_fills_between_disconnected_crust_pieces():
     assert crust.type[3] == CrustType["OCEAN"]
     assert crust.formedAt[1] == -20.0
     assert crust.formedAt[3] == -5.0
-
 
 
 def test_craton_picker_falls_back_when_requested_count_exceeds_core():

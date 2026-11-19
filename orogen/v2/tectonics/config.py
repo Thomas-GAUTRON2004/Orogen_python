@@ -732,11 +732,16 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
     for key, value in config.items():
         if key in _CONFIG_SCHEMA:
             _validate_known_shape(value, _CONFIG_SCHEMA[key], key)
-    bounded_keys = _POSITIVE | _NON_NEGATIVE | _UNIT_INTERVAL | {
-        "beltSpeedExponent",
-        "beltSpeedFactorMin",
-        "beltSpeedFactorMax",
-    }
+    bounded_keys = (
+        _POSITIVE
+        | _NON_NEGATIVE
+        | _UNIT_INTERVAL
+        | {
+            "beltSpeedExponent",
+            "beltSpeedFactorMin",
+            "beltSpeedFactorMax",
+        }
+    )
     for key in bounded_keys:
         if key not in config:
             continue
@@ -797,4 +802,3 @@ def make_tectonics_config(
     config = _merge(TECTONICS if base is None else dict(base), overrides or {})
     validate_tectonics_config(config)
     return config
-

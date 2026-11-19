@@ -112,11 +112,13 @@ def test_backarc_bridge_fills_between_disconnected_crust_pieces():
 
     filled = backarc._bridge_pieces(plate, mesh, 300.0)
 
-    assert filled == 2
-    assert crust.mask[1] and crust.mask[3]
+    assert filled == 3
+    assert crust.mask[1] and crust.mask[2] and crust.mask[3]
     assert crust.type[1] == CrustType["OCEAN"]
+    assert crust.type[2] == CrustType["OCEAN"]
     assert crust.type[3] == CrustType["OCEAN"]
     assert crust.formedAt[1] == -20.0
+    assert crust.formedAt[2] == -5.0
     assert crust.formedAt[3] == -5.0
 
 

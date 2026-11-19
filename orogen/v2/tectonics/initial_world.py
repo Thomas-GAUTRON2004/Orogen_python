@@ -279,17 +279,26 @@ def build_start_world(
         group_for_terrane,
     )
 
-    # Expand the continent's plate a short distance offshore. Distances are
-    # graph hops on the same mesh used by the simulation.
-    land_hops = _distance_hops(sim_mesh, land_mask)
+    # Reproduce the upstream morphological closing: grow land by apron + smoothing,
+    # then erode the grown mask by the smoothing radius. This fills narrow bays and
+    # leaves a smoother offshore plate rim than a simple apron dilation.
     apron_km = max(0.0, float(cfg.get("apronKm", 250.0)))
-    apron_hops = (
-        0
-        if apron_km <= 0
-        else max(1, int(math.floor(apron_km / max(float(sim_mesh.edge_km), 1.0) + 0.5)))
+    smooth_km = max(0.0, float(cfg.get("apronSmoothKm", 1400.0)))
+    apron_hops = max(
+        1, int(math.floor(apron_km / max(float(sim_mesh.edge_km), 1.0) + 0.5))
     )
-    apron_mask = (~land_mask) & (land_hops >= 1) & (land_hops <= apron_hops)
-    in_plate = land_mask | apron_mask
+    smooth_hops = max(
+        1, int(math.floor(smooth_km / max(float(sim_mesh.edge_km), 1.0) + 0.5))
+    )
+    grown_distance = _distance_hops(
+        sim_mesh, land_mask, max_hops=apron_hops + smooth_hops
+    )
+    grown = grown_distance >= 0
+    from_outside = _distance_hops(
+        sim_mesh, ~grown, max_hops=smooth_hops
+    )
+    in_plate = grown & (from_outside < 0)
+    apron_mask = in_plate & ~land_mask
 
     continent = world.add_plate("".join(chr(65 + i) for i in range(craton_count)))
     ocean = world.add_plate("Pre-history ocean")
@@ -313,25 +322,25 @@ def build_start_world(
         )
         continent.crust.flags[apron_cells] |= CrustFlag["APRON"]
 
-    # One passive sector is left without a trench; the remaining rim starts
-    # with a mature slab, matching the initial state consumed by stepper.py.
+    # The active trench follows the smoothed outer rim, leaving one passive
+    # azimuthal sector. The sector is sampled before any rim cells are visited.
     east, north = tangent_basis(centre.tolist())
-    rim_cells: list[int] = []
-    offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
-    for cell in apron_cells:
+    rim_mask = np.zeros(n, dtype=bool)
+    for cell in np.flatnonzero(in_plate):
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
-        if any(not in_plate[int(other)] for other in adjacency[lo:hi]):
-            rim_cells.append(int(cell))
+        rim_mask[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])
+    rim_cells = np.flatnonzero(rim_mask).astype(np.int32)
     coverage = max(0.0, min(1.0, float(cfg.get("rimTrenchCoverage", 0.85))))
-    passive_from = passive_rng() * 2.0 * math.pi
-    passive_span = (1.0 - coverage) * 2.0 * math.pi
-    if rim_cells and coverage > 0:
-        rim = np.asarray(rim_cells, dtype=np.int32)
-        angles = np.arctan2(xyz[rim] @ north, xyz[rim] @ east) % (2.0 * math.pi)
-        passive = ((angles - passive_from) % (2.0 * math.pi)) < passive_span
-        trench_cells = rim[~passive]
+    passive_from = passive_rng() * 360.0 - 180.0
+    passive_span = 360.0 * (1.0 - coverage)
+    if rim_cells.size and coverage > 0:
+        angles = np.degrees(
+            np.arctan2(xyz[rim_cells] @ north, xyz[rim_cells] @ east)
+        )
+        offset_angles = np.mod(angles - passive_from, 360.0)
+        trench_cells = rim_cells[offset_angles >= passive_span]
         if not trench_cells.size and coverage >= 0.5:
-            trench_cells = rim
+            trench_cells = rim_cells
         continent.crust.flags[trench_cells] |= CrustFlag["TRENCH"]
         continent.crust.slabKm[trench_cells] = np.maximum(
             continent.crust.slabKm[trench_cells],
@@ -416,7 +425,7 @@ def build_start_world(
         "rim": np.asarray(rim_cells, dtype=np.int32),
         "trench": trench_cells,
         "passiveFrom": passive_from,
-        "passiveTo": (passive_from + passive_span) % (2.0 * math.pi),
+        "passiveTo": passive_from + passive_span,
         "attempts": 1,
         "cratonAreaScale": 1.0,
         "fractionMet": True,

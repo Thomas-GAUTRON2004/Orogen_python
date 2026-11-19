@@ -119,3 +119,23 @@ def test_backarc_bridge_fills_between_disconnected_crust_pieces():
     assert crust.type[3] == CrustType["OCEAN"]
     assert crust.formedAt[1] == -20.0
     assert crust.formedAt[3] == -5.0
+
+
+
+def test_craton_picker_falls_back_when_requested_count_exceeds_core():
+    points = np.asarray(
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float64
+    )
+    picked = __import__(
+        "orogen.v2.tectonics.initial_world", fromlist=["_pick_craton_centres"]
+    )._pick_craton_centres(
+        points,
+        np.asarray([0, 1], dtype=np.int32),
+        points[0],
+        0.0,
+        3,
+        1.0e9,
+        100.0,
+        lambda: 0.5,
+    )
+    assert picked.tolist() == [0, 1]

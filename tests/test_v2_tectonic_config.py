@@ -135,7 +135,6 @@ def test_belt_speed_exponent_may_be_zero_but_not_negative():
         make_tectonics_config({"beltSpeedExponent": -0.1})
 
 
-
 def test_merge_replaces_non_mapping_values_and_keeps_unknown_nested_values():
     from orogen.v2.tectonics.config import _merge
 

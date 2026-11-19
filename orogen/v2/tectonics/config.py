@@ -587,7 +587,11 @@ def mechanisms_off(*names: str) -> dict[str, Any]:
     unknown = [name for name in names if name not in MECHANISMS]
     if unknown:
         raise ValueError(f"unknown mechanism: {unknown[0]}")
-    return {key: deepcopy(value) for name in names for key, value in MECHANISMS[name].items()}
+    return {
+        key: deepcopy(value)
+        for name in names
+        for key, value in MECHANISMS[name].items()
+    }
 
 
 def only_mechanisms(*keep: str) -> dict[str, Any]:
@@ -611,25 +615,55 @@ def mechanisms_on(*names: str) -> dict[str, Any]:
     }
 
 
-_POSITIVE = frozenset({
-    "simCells", "maxStepMyr", "stepGridMyr", "maxCellsPerStep",
-    "snapshotEveryMyr", "slabPullAgeRefMyr", "slabMatureKm",
-    "ridgeMaxAgeMyr", "mobility", "relaxMyr", "maxSpeedOceanic",
-    "maxSpeedContinental", "beltSpeedRefCmYr", "sutureStallMyr",
-    "sutureContactMyr",
-})
-_NON_NEGATIVE = frozenset({
-    "slowRulesEveryMyr", "boundaryActiveCmYr", "closingCmYr",
-    "orogenyQuietMyr", "slabPull", "slabResistance", "slabSuction",
-    "ridgePush", "collisionResistance", "dragOcean", "dragContinent",
-    "dragCraton", "continentalSoftCmYr", "oceanicSoftCmYr",
-    "sutureShorteningKm", "sutureStallCmYr", "sutureStallMinKm",
-    "sutureOverlapKm2",
-})
-_UNIT_INTERVAL = frozenset({
-    "obliqueLimit", "collisionShearShare", "collisionSeparateShare",
-    "continentalPlateShare",
-})
+_POSITIVE = frozenset(
+    {
+        "simCells",
+        "maxStepMyr",
+        "stepGridMyr",
+        "maxCellsPerStep",
+        "snapshotEveryMyr",
+        "slabPullAgeRefMyr",
+        "slabMatureKm",
+        "ridgeMaxAgeMyr",
+        "mobility",
+        "relaxMyr",
+        "maxSpeedOceanic",
+        "maxSpeedContinental",
+        "beltSpeedRefCmYr",
+        "sutureStallMyr",
+        "sutureContactMyr",
+    }
+)
+_NON_NEGATIVE = frozenset(
+    {
+        "slowRulesEveryMyr",
+        "boundaryActiveCmYr",
+        "closingCmYr",
+        "orogenyQuietMyr",
+        "slabPull",
+        "slabResistance",
+        "slabSuction",
+        "ridgePush",
+        "collisionResistance",
+        "dragOcean",
+        "dragContinent",
+        "dragCraton",
+        "continentalSoftCmYr",
+        "oceanicSoftCmYr",
+        "sutureShorteningKm",
+        "sutureStallCmYr",
+        "sutureStallMinKm",
+        "sutureOverlapKm2",
+    }
+)
+_UNIT_INTERVAL = frozenset(
+    {
+        "obliqueLimit",
+        "collisionShearShare",
+        "collisionSeparateShare",
+        "continentalPlateShare",
+    }
+)
 
 
 def _merge(base: dict[str, Any], values: Mapping[str, Any]) -> dict[str, Any]:
@@ -682,9 +716,12 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
     for key, value in config.items():
         if key in TECTONICS:
             _validate_known_shape(value, TECTONICS[key], key)
-    for key in _POSITIVE | _NON_NEGATIVE | _UNIT_INTERVAL | {
-        "beltSpeedExponent", "beltSpeedFactorMin", "beltSpeedFactorMax"
-    }:
+    bounded_keys = _POSITIVE | _NON_NEGATIVE | _UNIT_INTERVAL | {
+        "beltSpeedExponent",
+        "beltSpeedFactorMin",
+        "beltSpeedFactorMax",
+    }
+    for key in bounded_keys:
         if key not in config:
             continue
         value = config[key]
@@ -718,12 +755,18 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
                     if isinstance(value, bool) or not isinstance(value, Real):
                         raise TypeError(f"belts.{name}.{field} must be a real number")
                     if not isfinite(float(value)) or float(value) < 0:
-                        raise ValueError(f"belts.{name}.{field} must be finite and non-negative")
-            if all(field in belt for field in ("baseKm", "maxKm")) and float(belt["baseKm"]) > float(belt["maxKm"]):
+                        raise ValueError(
+                            f"belts.{name}.{field} must be finite and non-negative"
+                        )
+            if all(field in belt for field in ("baseKm", "maxKm")) and float(
+                belt["baseKm"]
+            ) > float(belt["maxKm"]):
                 raise ValueError(f"belts.{name}.baseKm cannot exceed maxKm")
 
 
-def make_tectonics_config(overrides: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def make_tectonics_config(
+    overrides: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Return an isolated config with recursive overrides and validated known fields."""
     if overrides is not None and not isinstance(overrides, Mapping):
         raise TypeError("tectonics overrides must be a mapping")

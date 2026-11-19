@@ -15,9 +15,9 @@ from typing import Any
 
 import numpy as np
 
+from ..core.fast_noise import FastNoise
 from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
-from ..core.fast_noise import FastNoise
 from ..core.sphere_geometry import cell_distance_km, random_point, tangent_basis
 from .crust import CrustFlag, CrustType, OrogenyType
 from .far_field import spread_push

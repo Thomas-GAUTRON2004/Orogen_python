@@ -190,9 +190,7 @@ def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypat
     monkeypatch.setattr(
         initial_world,
         "TectonicWorld",
-        lambda *_args, **_kwargs: SimpleNamespace(
-            config={"continentalFraction": 0.29}
-        ),
+        lambda *_args, **_kwargs: SimpleNamespace(config={"continentalFraction": 0.29}),
     )
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(tiny, 95)

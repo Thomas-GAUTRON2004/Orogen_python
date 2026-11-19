@@ -10,7 +10,7 @@ const output = {
   flood: values.map(x => [g.encodeFloodMyr(x), g.decodeFloodMyr(g.encodeFloodMyr(x))]),
   arc: values.map(x => [g.encodeArcMyr(x), g.decodeArcMyr(g.encodeArcMyr(x))]),
   age: values.map(x => [g.encodeAge(x), g.decodeAge(g.encodeAge(x))]),
-  floodAge: times.map(x => [g.encodeFloodAge(...x), g.decodeFloodAge(g.encodeFloodAge(...x))]),
+  floodAge: times.map(x => { const code = g.encodeFloodAge(...x), decoded = g.decodeFloodAge(code); return [code, Number.isFinite(decoded) ? decoded : "Infinity"]; }),
   facies: facies.map(x => [g.encodeFacies(...x), g.decodeFacies(g.encodeFacies(...x))]),
 };
 console.log(JSON.stringify(output));

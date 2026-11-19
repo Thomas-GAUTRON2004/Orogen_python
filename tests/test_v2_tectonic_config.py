@@ -3,19 +3,19 @@ import pytest
 from orogen.v2.tectonics.config import (
     CM_PER_YR_TO_KM_PER_MYR,
     CM_PER_YR_TO_RAD_PER_MYR,
-    TECTONICS,
     MECHANISMS,
+    TECTONICS,
+    make_tectonics_config,
     mechanisms_off,
     mechanisms_on,
     only_mechanisms,
-    make_tectonics_config,
     validate_tectonics_config,
 )
 
 
 def test_upstream_unit_conversions_and_default_values():
     assert CM_PER_YR_TO_KM_PER_MYR == 10.0
-    assert CM_PER_YR_TO_RAD_PER_MYR == pytest.approx(10.0 / 6371.0)
+    assert pytest.approx(10.0 / 6371.0) == CM_PER_YR_TO_RAD_PER_MYR
     config = make_tectonics_config()
     assert config["maxStepMyr"] == 4.0
     assert config["snapshotEveryMyr"] == 10.0

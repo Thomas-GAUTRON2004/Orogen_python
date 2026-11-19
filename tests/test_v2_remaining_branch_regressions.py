@@ -7,6 +7,7 @@ import numpy as np
 
 from orogen.v2.tectonics import backarc, kinematics
 from orogen.v2.tectonics.crust import CrustRaster, CrustType
+from orogen.v2.tectonics.ops import merge_plates as merge_ops
 from orogen.v2.tectonics.ops.merge_plates import _fill_inverse_warp_holes
 from orogen.v2.tectonics.ops.plate_accretion import landmass_of
 from orogen.v2.tectonics.spread_belt import _update_belt_front
@@ -137,3 +138,118 @@ def test_craton_picker_falls_back_when_requested_count_exceeds_core():
         lambda: 0.5,
     )
     assert picked.tolist() == [0, 1]
+
+def test_surface_velocity_reuses_a_caller_owned_output_buffer():
+    output = [9.0, 9.0, 9.0]
+    result = kinematics.surface_velocity([1.0, 2.0, 3.0], 4.0, 5.0, 6.0, output)
+    assert result is output
+    assert output == [ -3.0, 6.0, -3.0 ]
+
+
+def test_backarc_band_skips_a_duplicate_world_to_plate_seed():
+    mesh = SimpleNamespace(
+        num_cells=2,
+        xyz=np.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]], dtype=np.float32).reshape(-1),
+        adj_offset=np.asarray([0, 1, 2], dtype=np.int32),
+        adj_list=np.asarray([1, 0], dtype=np.int32),
+    )
+    crust = CrustRaster(2)
+    crust.create(0, CrustType["CONTINENT"], -10.0)
+    world = SimpleNamespace(mesh=mesh, ownerCell=np.asarray([0, 0], dtype=np.int32))
+
+    strip = backarc._band_behind(world, SimpleNamespace(crust=crust), [0, 1], 1000.0)
+
+    assert strip.tolist() == [1, 0]
+
+
+def test_backarc_bridge_skips_interior_cells_without_crust_neighbours_and_noop():
+    def line_mesh(count):
+        rows = []
+        for cell in range(count):
+            row = []
+            if cell:
+                row.append(cell - 1)
+            if cell + 1 < count:
+                row.append(cell + 1)
+            rows.append(row)
+        offsets, adjacency = [0], []
+        for row in rows:
+            adjacency.extend(row)
+            offsets.append(len(adjacency))
+        return SimpleNamespace(
+            num_cells=count,
+            edge_km=100.0,
+            adj_offset=np.asarray(offsets, dtype=np.int32),
+            adj_list=np.asarray(adjacency, dtype=np.int32),
+        )
+
+    mesh = line_mesh(7)
+    crust = CrustRaster(7)
+    crust.create(0, CrustType["CONTINENT"], -20.0)
+    crust.create(6, CrustType["OCEAN"], -5.0)
+    changed = []
+    plate = SimpleNamespace(crust=crust, mark_reshaped=lambda: changed.append(True))
+
+    assert backarc._bridge_pieces(plate, mesh, 700.0) == 2
+    assert crust.mask[1] and crust.mask[5]
+    assert not crust.mask[2] and not crust.mask[3] and not crust.mask[4]
+    assert changed == [True]
+
+    far_crust = CrustRaster(7)
+    far_crust.create(0, CrustType["CONTINENT"], -20.0)
+    far_crust.create(6, CrustType["OCEAN"], -5.0)
+    unchanged = []
+    far_plate = SimpleNamespace(
+        crust=far_crust, mark_reshaped=lambda: unchanged.append(True)
+    )
+    assert backarc._bridge_pieces(far_plate, mesh, 100.0) == 0
+    assert unchanged == []
+
+
+def test_merged_crust_handles_zero_length_warp_and_empty_filtered_sources(monkeypatch):
+    mesh = SimpleNamespace(
+        num_cells=1,
+        xyz=np.asarray([1.0, 0.0, 0.0], dtype=np.float32),
+        index=SimpleNamespace(nearest=lambda *_args: pytest.fail("zero vector must not locate")),
+        adj_offset=np.asarray([0, 0], dtype=np.int32),
+        adj_list=np.asarray([], dtype=np.int32),
+    )
+    monkeypatch.setattr(merge_ops, "_stamp_cratons_rigidly", lambda *_args: None)
+
+    upper = CrustRaster(1)
+    upper.create(0, CrustType["CONTINENT"], -10.0)
+    empty_lower = CrustRaster(1)
+    merged, _origin = merge_ops._build_merged_crust(
+        upper,
+        empty_lower,
+        np.asarray([-1], dtype=np.int32),
+        np.asarray([[6371.0, 0.0, 0.0]], dtype=np.float64),
+        mesh,
+        np.eye(3),
+    )
+    assert merged.mask[0]
+
+    empty_upper = CrustRaster(1)
+    empty, _origin = merge_ops._build_merged_crust(
+        empty_upper,
+        empty_lower,
+        np.asarray([-1], dtype=np.int32),
+        np.zeros((1, 3), dtype=np.float64),
+        mesh,
+        np.eye(3),
+    )
+    assert empty.count == 0
+
+    craton_upper = CrustRaster(1)
+    craton_upper.create(0, CrustType["CRATON"], -100.0)
+    ocean_lower = CrustRaster(1)
+    ocean_lower.create(0, CrustType["OCEAN"], -5.0)
+    preserved, _origin = merge_ops._build_merged_crust(
+        craton_upper,
+        ocean_lower,
+        np.asarray([0], dtype=np.int32),
+        np.zeros((1, 3), dtype=np.float64),
+        mesh,
+        np.eye(3),
+    )
+    assert preserved.type[0] == CrustType["CRATON"]

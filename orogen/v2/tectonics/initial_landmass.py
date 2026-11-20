@@ -6,6 +6,7 @@ Port of v2/js/tectonics/init/landmass.js at upstream v3.0.1.
 from __future__ import annotations
 
 import math
+from bisect import bisect_right
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -103,27 +104,33 @@ def _margin_profile(
         bulge = 0.0
         step_offset = 0.0
         if position >= span:
-            for arc in arcs:
-                if arc["from"] <= position < arc["to"]:
-                    ratio = (position - arc["from"]) / (arc["to"] - arc["from"])
-                    bulge = arc["height"] * (1.0 - (2.0 * ratio - 1.0) ** 2) * active
-                    break
+            # Arc intervals tile [span, 360); the index is therefore defined.
+            arc_index = bisect_right([arc["from"] for arc in arcs], position) - 1
+            arc = arcs[arc_index]
+            ratio = (position - arc["from"]) / (arc["to"] - arc["from"])
+            bulge = arc["height"] * (1.0 - (2.0 * ratio - 1.0) ** 2) * active
         else:
-            for index, segment in enumerate(steps):
-                if segment["from"] <= position < segment["to"]:
-                    following = steps[index + 1] if index + 1 < len(steps) else None
-                    blend = (
-                        _smoothstep((position - (segment["to"] - 0.5)) / 0.5)
-                        if following is not None
-                        else 0.0
-                    )
-                    next_offset = float(following["offset"]) if following else 0.0
-                    step_offset = (
-                        (float(segment["offset"]) * (1.0 - blend) + next_offset * blend)
-                        * (1.0 - active)
-                        * _smoothstep(min(position, span - position) / 4.0)
-                    )
-                    break
+            # Step intervals tile [0, span) whenever this branch is reachable.
+            segment_index = bisect_right(
+                [segment["from"] for segment in steps], position
+            ) - 1
+            segment = steps[segment_index]
+            following = (
+                steps[segment_index + 1]
+                if segment_index + 1 < len(steps)
+                else None
+            )
+            blend = (
+                _smoothstep((position - (segment["to"] - 0.5)) / 0.5)
+                if following is not None
+                else 0.0
+            )
+            next_offset = float(following["offset"]) if following else 0.0
+            step_offset = (
+                (float(segment["offset"]) * (1.0 - blend) + next_offset * blend)
+                * (1.0 - active)
+                * _smoothstep(min(position, span - position) / 4.0)
+            )
         return {"bulgeKm": bulge, "stepKm": step_offset, "active": active}
 
     return at
@@ -142,7 +149,15 @@ def _bridges(
     in_tree[0] = True
     edges = []
     for _ in range(1, count):
-        best: tuple[int, int, float] | None = None
+        # The complete craton graph always has an edge from the current tree
+        # to an unvisited node, so seed the minimum with a valid candidate.
+        first = next(index for index, included in enumerate(in_tree) if included)
+        second = next(index for index, included in enumerate(in_tree) if not included)
+        best = (
+            first,
+            second,
+            angle_between(centres[first].tolist(), centres[second].tolist()),
+        )
         for i in range(count):
             if not in_tree[i]:
                 continue
@@ -150,10 +165,8 @@ def _bridges(
                 if in_tree[j]:
                     continue
                 distance = angle_between(centres[i].tolist(), centres[j].tolist())
-                if best is None or distance < best[2]:
+                if distance < best[2]:
                     best = (i, j, distance)
-        if best is None:
-            break
         in_tree[best[1]] = True
         edges.append(best)
 

@@ -656,3 +656,142 @@ def test_build_start_world_raises_when_production_layout_cannot_fit(monkeypatch)
     monkeypatch.setattr(initial_world, "_find_layout", lambda *_args: None)
     with pytest.raises(ValueError, match="do not fit the planet"):
         initial_world.build_start_world(mesh, 1)
+
+
+def test_pick_craton_centres_does_not_enter_fill_loop_when_count_is_one():
+    mesh = build_sim_mesh(48, 950)
+    xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
+    picked = initial_world._pick_craton_centres(
+        xyz,
+        np.asarray([0, 1], dtype=np.int32),
+        xyz[0],
+        0.0,
+        1,
+        1000.0,
+        float(mesh.edge_km),
+        lambda: 0.5,
+    )
+    assert picked.shape == (1,)
+
+
+def test_find_layout_continues_after_an_attempt_without_a_candidate(monkeypatch):
+    mesh = build_sim_mesh(48, 951)
+    land_type = np.full(mesh.num_cells, CrustType["OCEAN"], dtype=np.uint8)
+    land_type[0] = CrustType["CONTINENT"]
+    candidate = {
+        "land": {"type": land_type},
+        "excess": 0.02,
+        "attempts": 2,
+    }
+    attempts = []
+
+    def evaluate(_mesh, _seed, _config, attempt):
+        attempts.append(attempt)
+        return ([], None) if attempt == 0 else ([candidate], candidate)
+
+    monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 2)
+    monkeypatch.setattr(initial_world, "_evaluate_layout_attempt", evaluate)
+    monkeypatch.setattr(initial_world, "_land_centroid", lambda *_args: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(initial_world, "_half_span_deg", lambda *_args: 0.0)
+
+    result = initial_world._find_layout(
+        mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 180.0}
+    )
+    assert result is candidate or result == {
+        **candidate,
+        "middle": [1.0, 0.0, 0.0],
+        "fractionMet": True,
+    }
+    assert attempts == [0, 1]
+
+
+def test_record_start_pushes_returns_without_land_access_when_work_is_zero():
+    world = SimpleNamespace(config={"farStartWorkKm": 0.0})
+    initial_world._record_start_pushes(world, object(), {})
+
+
+def test_paint_old_ranges_ignores_out_of_range_major_pair_id(monkeypatch):
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(48, 952)
+    world = TectonicWorld(mesh, 953)
+    world.config["startRanges"] = {"major": [1000.0, 100.0, 50.0, 0.5]}
+    world.config["startRangeVary"] = 0.5
+    world.config["startRangeVaryKm"] = 1600.0
+    plate = world.add_plate("Invalid pair")
+    seams = np.zeros(mesh.num_cells, dtype=np.uint8)
+    seams[0] = initial_world.StartSeam["MAJOR"]
+    pairs = np.zeros(mesh.num_cells, dtype=np.uint16)
+    pairs[0] = 9
+    pair_range = np.asarray([0.25], dtype=np.float32)
+    captured = []
+
+    monkeypatch.setattr(
+        initial_world,
+        "FastNoise",
+        lambda _seed: SimpleNamespace(noise3d=lambda *_args: 0.0),
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "spread_belt",
+        lambda _plate, _mesh, _sources, settings, _cfg, allow=None: captured.append(
+            settings
+        ),
+    )
+    initial_world._paint_old_ranges(
+        world,
+        plate,
+        np.ones(mesh.num_cells, dtype=bool),
+        seams,
+        pairs,
+        pair_range,
+    )
+
+    assert len(captured) == 1
+    assert captured[0]["works"] == pytest.approx([75.0])
+
+
+def test_upstream_assembly_handles_land_without_major_sutures(monkeypatch):
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(48, 954)
+    world = TectonicWorld(mesh, 955)
+    world.config["startRanges"] = {}
+    world.config["farStartWorkKm"] = 0.0
+    count = mesh.num_cells
+    monkeypatch.setattr(
+        initial_world,
+        "_plate_outline_with_apron",
+        lambda _mesh, is_land, _config: (
+            np.ones(len(is_land), dtype=bool),
+            np.asarray([0], dtype=np.int32),
+        ),
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_choose_active_rim",
+        lambda *_args: (np.zeros(count, dtype=bool), 0.0, 0.0),
+    )
+    land = {
+        "type": np.full(count, CrustType["CONTINENT"], dtype=np.uint8),
+        "suture": np.zeros(count, dtype=np.uint8),
+        "pair": np.zeros(count, dtype=np.uint8),
+        "pairRange": np.zeros(1, dtype=np.float32),
+        "rimCentre": [1.0, 0.0, 0.0],
+        "passive": {"from": 0.0, "span": 0.0},
+        "terrane": np.ones(count, dtype=np.uint16),
+        "owner": np.zeros(count, dtype=np.int8),
+        "skirtKm": 0.0,
+    }
+    found = {
+        "land": land,
+        "layout": {"cratons": [{"id": 1, "letter": "A"}], "elongation": 0.0},
+        "middle": [1.0, 0.0, 0.0],
+        "attempts": 1,
+        "areaScale": 1.0,
+        "fractionMet": True,
+    }
+
+    result = initial_world._assemble_upstream_start_world(world, 955, found)
+    assert np.all(np.isinf(result["world"].startSeamKm["major"]))
+

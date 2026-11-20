@@ -229,7 +229,6 @@ def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
     assert np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) > 0
 
 
-
 def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
     from orogen.v2.core.fast_noise import FastNoise
     from orogen.v2.tectonics.scenarios import add_continent, scene_canvas
@@ -244,7 +243,12 @@ def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
         add_continent(canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=0)
     with pytest.raises(ValueError, match="wobble"):
         add_continent(
-            canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=1000, wobble=-1
+            canvas,
+            FastNoise(922),
+            plate=plate,
+            centre=(0, 0),
+            radius_km=1000,
+            wobble=-1,
         )
     with pytest.raises(ValueError, match="craton_km"):
         add_continent(

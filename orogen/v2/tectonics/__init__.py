@@ -2,11 +2,6 @@
 
 from .arc_maturation import mature_arcs
 from .backarc import open_back_arcs, rollback_cm_yr, steer_back_arc_strips
-from .budget_scenes import (
-    BUDGET_SCENES,
-    build_budget_scene,
-    buildBudgetScene,
-)
 from .boundaries import (
     Motion,
     classify_contact_boundaries,
@@ -14,6 +9,11 @@ from .boundaries import (
     feed_trench,
     near_land,
     vote_segments,
+)
+from .budget_scenes import (
+    BUDGET_SCENES,
+    build_budget_scene,
+    buildBudgetScene,
 )
 from .collision import (
     accrete_arcs,

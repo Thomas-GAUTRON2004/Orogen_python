@@ -16,13 +16,10 @@ from typing import Any
 import numpy as np
 
 from ..core.fast_noise import FastNoise
-from ..core.mesh_bfs import flood_from, hop_distance
+from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
 from ..core.sim_mesh import km_to_hops
 from ..core.sphere_geometry import (
-    PLANET_RADIUS_KM,
-    angle_between,
-    bearing_to,
     cell_distance_km,
     polar_frame,
     random_point,
@@ -585,7 +582,6 @@ def _build_coarse_start_world(
 
 
 # The public builder is replaced below after retaining the fixture implementation.
-_build_start_world_alias = build_start_world
 
 
 

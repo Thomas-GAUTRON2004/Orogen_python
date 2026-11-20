@@ -11,6 +11,7 @@ from .dynamics import update_plate_motion
 from .force_scenes import _begin
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
+from .scenario_geometry import heading, omega_for
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -18,7 +19,6 @@ from .scenarios import (
     fill_background,
 )
 from .world import TectonicWorld
-from .scenario_geometry import heading, omega_for
 
 
 HAWAII: dict[str, Any] = {

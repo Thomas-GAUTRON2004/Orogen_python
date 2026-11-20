@@ -3,6 +3,7 @@ import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import mechanisms_on, only_mechanisms
+from orogen.v2.tectonics.config import TECTONICS
 from orogen.v2.tectonics.budget_scenes import BUDGET_SCENES, build_budget_scene
 
 
@@ -35,8 +36,9 @@ def test_budget_scene_history_and_mechanism_overrides():
 
     enabled = only_mechanisms("underthrust")
     restored = mechanisms_on("underthrust")
-    assert all(enabled[key] is False for key in restored)
-    assert all(restored[key] is True for key in restored)
+    assert enabled["riftRatePerMyr"] == 0
+    assert "underthrustShare" not in enabled
+    assert restored == {"underthrustShare": TECTONICS["underthrustShare"]}
 
 
 def test_budget_scene_dispatcher_normalizes_names_and_rejects_unknown_scene():

@@ -33,7 +33,9 @@ def test_event_scene_catalogue_has_expected_ids_and_arc_material():
     assert oceanic_arc.plates[1].name == "Oceanica"
     assert np.count_nonzero(oceanic_arc.plates[1].crust.type == CrustType["ARC"]) > 0
 
-    collision = build_event_scene(mesh, 1504, "arc-collision")
+    # The pre-grown 700 km ridge is thinner than one cell at 512-cell resolution.
+    collision_mesh = build_sim_mesh(4096, 1503)
+    collision = build_event_scene(collision_mesh, 1504, "arc-collision")
     assert all(
         np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) > 0
         for plate in collision.plates[:2]

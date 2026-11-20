@@ -21,7 +21,6 @@ from .scenarios import (
 )
 from .world import TectonicWorld
 
-
 HAWAII: dict[str, Any] = {
     "plume": (19.0, -155.0),
     "speedCmYr": 8.0,

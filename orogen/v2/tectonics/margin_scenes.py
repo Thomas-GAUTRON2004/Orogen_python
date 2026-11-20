@@ -22,7 +22,6 @@ from .scenarios import (
     omega_for,
 )
 
-
 ROLLBACK_ONLY = {
     **only_mechanisms("backArcs", "flatSlabs"),
     "backArcRatePerMyr": 0.5,

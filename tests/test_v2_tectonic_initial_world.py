@@ -145,10 +145,7 @@ def test_production_resolution_start_world_uses_packed_landmass_path():
     assert start["attempts"] >= 1
     assert len(start["cratons"]) == world.config["cratonCount"]
     assert start["fractionMet"]
-    assert (
-        abs(start["continentalFraction"] - world.config["continentalFraction"])
-        <= 0.004
-    )
+    assert abs(start["continentalFraction"] - world.config["continentalFraction"]) <= 0.004
     assert len(world.plates) == 2
     assert np.all(_coverage(world) == 1)
     assert np.any(world.plates[0].crust.type == CrustType["CRATON"])

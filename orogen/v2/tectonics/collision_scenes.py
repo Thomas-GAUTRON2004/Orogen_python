@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 from typing import Any
+
+import numpy as np
 
 from ..core.sphere_geometry import normalize
 from .force_scenes import _add_ocean_between, _begin

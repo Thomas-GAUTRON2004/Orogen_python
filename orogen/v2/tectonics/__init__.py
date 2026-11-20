@@ -54,7 +54,6 @@ from .dynamics import (
     update_plate_motion,
 )
 from .ending import ENDINGS, frames_ending, history_ending, in_stage
-from .force_scenes import FORCE_SCENES, build_force_scene, buildForceScene
 from .far_field import (
     evolve_far_field,
     far_take,
@@ -63,6 +62,7 @@ from .far_field import (
     record_push,
     spread_push,
 )
+from .force_scenes import FORCE_SCENES, build_force_scene, buildForceScene
 from .forces import FORCE_KINDS, gather_boundary_loads
 from .gather import clear_world_view, for_each_claim
 from .geology import (

@@ -142,7 +142,7 @@ function assembleWorldSummary(layout, land) {
         oceanFormedAt,
         born: -Number(config.riftTenureMyr),
         rim,
-        trench: Array.from(trench.active, (value, cell) => value ? cell : -1).filter(cell => cell >= 0),
+        trench: Array.from(trench.active, (value, cell) => value && land.type[cell] === 0 ? cell : -1).filter(cell => cell >= 0),
         passiveFrom: trench.passiveFrom,
         passiveTo: trench.passiveTo,
         reference,

@@ -181,7 +181,12 @@ def _seams(
 
 
 def _paint_old_ranges(
-    world: TectonicWorld, plate, land_mask: np.ndarray, seams: np.ndarray
+    world: TectonicWorld,
+    plate,
+    land_mask: np.ndarray,
+    seams: np.ndarray,
+    pairs: np.ndarray | None = None,
+    pair_range: np.ndarray | None = None,
 ) -> None:
     """Build inherited ranges with spatially varying source strength."""
     cfg, mesh, crust = world.config, world.mesh, plate.crust
@@ -219,6 +224,10 @@ def _paint_old_ranges(
                 z * 2.7 * frequency + 1.9,
             )
             strength[index] = 1.0 - vary * np.clip(0.5 + 0.6 * value, 0.0, 1.0)
+            if kind == StartSeam["MAJOR"] and pairs is not None and pair_range is not None:
+                pair_id = int(pairs[cell])
+                if 0 <= pair_id < len(pair_range):
+                    strength[index] *= float(pair_range[pair_id])
 
         before = {
             "root": crust.rootKm.copy(),
@@ -287,6 +296,7 @@ def _distance_km(
     *,
     can_enter=None,
     max_km: float = 3000.0,
+    source_strength: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return weighted geodesic distance and nearest-source strength."""
     n = int(sim_mesh.num_cells)
@@ -299,7 +309,9 @@ def _distance_km(
     for cell_value in np.flatnonzero(source_mask):
         cell = int(cell_value)
         distance[cell] = 0.0
-        strength[cell] = 1.0
+        strength[cell] = (
+            float(source_strength[cell]) if source_strength is not None else 1.0
+        )
         heapq.heappush(queue, (0.0, cell))
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     while queue:
@@ -570,6 +582,334 @@ def _build_coarse_start_world(
         "apronCells": int(apron_cells.size),
     }
     return {"world": world, "start": start}
+
+
+# The public builder is replaced below after retaining the fixture implementation.
+_build_start_world_alias = build_start_world
+
+
+
+_MAX_LAYOUT_ATTEMPTS = 24
+_LAYOUT_RELAX_SPAN_AFTER = 18
+_LAYOUT_FRACTION_TOLERANCE = 0.004
+
+
+def _passive_stretch(coverage: float, rng) -> dict[str, float]:
+    """Choose the passive azimuthal sector before drawing the continental coast."""
+    return {
+        "from": rng() * 360.0 - 180.0,
+        "span": 360.0 * (1.0 - min(1.0, max(0.0, coverage))),
+    }
+
+
+def _plate_outline_with_apron(
+    sim_mesh: Any, is_land: np.ndarray, config: dict
+) -> tuple[np.ndarray, np.ndarray]:
+    """Morphologically close the continental mask and return its outer rim."""
+    count = int(sim_mesh.num_cells)
+    apron = km_to_hops(sim_mesh, float(config["apronKm"]))
+    smooth = km_to_hops(sim_mesh, float(config["apronSmoothKm"]))
+    from_land = hop_distance(
+        sim_mesh, lambda cell: bool(is_land[cell]), max_hops=apron + smooth
+    )
+    grown = from_land >= 0
+    from_outside = hop_distance(
+        sim_mesh, lambda cell: not bool(grown[cell]), max_hops=smooth
+    )
+    in_plate = grown & (from_outside < 0)
+    rim = np.zeros(count, dtype=bool)
+    offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
+    for cell in np.flatnonzero(in_plate):
+        lo, hi = int(offsets[cell]), int(offsets[cell + 1])
+        rim[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])
+    return in_plate, np.flatnonzero(rim).astype(np.int32)
+
+
+def _choose_active_rim(
+    sim_mesh: Any,
+    rim: np.ndarray,
+    centre: list[float],
+    reference: list[float],
+    passive: dict[str, float],
+) -> tuple[np.ndarray, float, float]:
+    """Choose mature trench cells outside the passive azimuthal sector."""
+    xyz = _mesh_xyz(sim_mesh)
+    to_polar = polar_frame(centre, reference)
+    active = np.zeros(int(sim_mesh.num_cells), dtype=bool)
+    for cell_value in rim:
+        cell = int(cell_value)
+        azimuth = to_polar(*xyz[cell])["azimuth"]
+        offset = ((azimuth - passive["from"]) % 360.0 + 360.0) % 360.0
+        if offset >= passive["span"]:
+            active[cell] = True
+    return active, passive["from"], passive["from"] + passive["span"]
+
+
+def _shrink_steps(floor: float) -> list[float]:
+    lowest = max(0.05, min(1.0, float(floor)))
+    steps = []
+    value = 1.0
+    while value > lowest:
+        steps.append(value)
+        value *= 0.85
+    steps.append(lowest)
+    return steps
+
+
+def _shape_attempt(
+    sim_mesh: Any, seed: int, config: dict, attempt: int, layout: dict, stretch: float
+):
+    from .initial_landmass import shape_landmass
+
+    passive = _passive_stretch(
+        float(config["rimTrenchCoverage"]),
+        make_rng(seed * 31 + attempt * 7919 + 29),
+    )
+    noise = FastNoise(seed + attempt * 101)
+    rng = make_rng(seed * 31 + attempt * 7919 + 41)
+    land = shape_landmass(sim_mesh, layout, noise, rng, config, stretch, passive)
+    return land
+
+
+def _evaluate_layout_attempt(
+    sim_mesh: Any, seed: int, config: dict, attempt: int
+) -> tuple[list[dict], dict | None]:
+    from .initial_cratons import place_cratons
+
+    tried: list[dict] = []
+    stretch = 1.0 - attempt / _MAX_LAYOUT_ATTEMPTS
+    for area_scale in _shrink_steps(config["cratonMinAreaScale"]):
+        rng = make_rng(seed * 31 + attempt * 7919 + 17)
+        layout = place_cratons(rng, config, stretch, area_scale)
+        if layout is None:
+            continue
+        land = _shape_attempt(sim_mesh, seed, config, attempt, layout, stretch)
+        if land is None:
+            continue
+        land_count = int(np.count_nonzero(land["type"] != CrustType["OCEAN"]))
+        excess = land_count / int(sim_mesh.num_cells) - float(config["continentalFraction"])
+        candidate = {
+            "layout": layout,
+            "land": land,
+            "areaScale": area_scale,
+            "excess": excess,
+            "attempts": attempt + 1,
+        }
+        tried.append(candidate)
+        if abs(excess) <= _LAYOUT_FRACTION_TOLERANCE:
+            return tried, candidate
+    return tried, None
+
+
+def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
+    xyz = _mesh_xyz(sim_mesh)
+    selected = land_type != CrustType["OCEAN"]
+    total = np.sum(xyz[selected], axis=0, dtype=np.float64)
+    length = float(np.linalg.norm(total)) or 1.0
+    return (total / length).tolist()
+
+
+def _half_span_deg(
+    sim_mesh: Any, land_type: np.ndarray, centre: list[float]
+) -> float:
+    xyz = _mesh_xyz(sim_mesh)
+    selected = land_type != CrustType["OCEAN"]
+    if not np.any(selected):
+        return 0.0
+    farthest_dot = float(np.min(xyz[selected] @ np.asarray(centre, dtype=np.float64)))
+    return math.degrees(math.acos(max(-1.0, min(1.0, farthest_dot))))
+
+
+def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
+    """Search layouts in deterministic upstream attempt order."""
+    round_span = math.degrees(
+        math.acos(1.0 - 2.0 * float(config["continentalFraction"]))
+    )
+    closest: dict | None = None
+    for attempt in range(_MAX_LAYOUT_ATTEMPTS):
+        tried, fit = _evaluate_layout_attempt(sim_mesh, seed, config, attempt)
+        for candidate in tried:
+            if closest is None or abs(candidate["excess"]) < abs(closest["excess"]):
+                closest = candidate
+        chosen = fit
+        if chosen is None and attempt == _MAX_LAYOUT_ATTEMPTS - 1:
+            chosen = closest
+        if chosen is None:
+            continue
+        middle = _land_centroid(sim_mesh, chosen["land"]["type"])
+        too_wide = (
+            _half_span_deg(sim_mesh, chosen["land"]["type"], middle)
+            > round_span + float(config["spanAllowanceDeg"])
+        )
+        if fit is not None and too_wide and attempt < _LAYOUT_RELAX_SPAN_AFTER:
+            continue
+        return {
+            **chosen,
+            "middle": middle,
+            "fractionMet": fit is not None,
+        }
+    return None
+
+
+def _record_start_pushes(
+    world: TectonicWorld, continent, land: dict
+) -> None:
+    config = world.config
+    work = float(config["farStartWorkKm"])
+    if work <= 0.0:
+        return
+    pair_ids = land["pair"]
+    pair_range = land["pairRange"]
+    major = (land["suture"] == StartSeam["MAJOR"]) & (
+        land["type"] != CrustType["OCEAN"]
+    )
+    for pair_id in sorted(int(value) for value in np.unique(pair_ids[major]) if value):
+        cells = np.flatnonzero(major & (pair_ids == pair_id))
+        amount = work * float(pair_range[pair_id])
+        sources = {int(cell): amount for cell in cells}
+        spread_push(
+            world,
+            continent,
+            sources,
+            float(len(sources)) * float(world.mesh.edge_km),
+            -float(config["startRanges"]["major"][2]),
+        )
+
+
+def _assemble_upstream_start_world(
+    world: TectonicWorld, seed: int, found: dict
+) -> dict[str, Any]:
+    from .initial_landmass import Seam
+
+    mesh, config = world.mesh, world.config
+    land, layout = found["land"], found["layout"]
+    is_land = land["type"] != CrustType["OCEAN"]
+    in_plate, rim = _plate_outline_with_apron(mesh, is_land, config)
+    reference = tangent_basis(land["rimCentre"])[0]
+    active, passive_from, passive_to = _choose_active_rim(
+        mesh, rim, land["rimCentre"], reference, land["passive"]
+    )
+    continent_name = "".join(item["letter"] for item in layout["cratons"])
+    continent = world.add_plate(continent_name)
+    ocean = world.add_plate("Pre-history ocean")
+    ocean.isBackground = True
+
+    ocean_age = -float(config["initialOceanAgeMyr"])
+    land_age = -float(config["initialLandAgeMyr"])
+    slab_mature = float(config["slabMatureKm"])
+    apron_cells = []
+    trench_cells = []
+    weak_sutures = (land["suture"] == Seam["MAJOR"]) | (
+        land["suture"] == Seam["INNER"]
+    )
+    for cell in range(int(mesh.num_cells)):
+        if not in_plate[cell]:
+            ocean.crust.create(cell, CrustType["OCEAN"], ocean_age)
+            continue
+        if land["type"][cell] == CrustType["OCEAN"]:
+            continent.crust.create(cell, CrustType["OCEAN"], ocean_age)
+            continent.crust.flags[cell] |= CrustFlag["APRON"]
+            apron_cells.append(cell)
+            if active[cell]:
+                continent.crust.arm_trench(cell, slab_mature)
+                trench_cells.append(cell)
+        else:
+            continent.crust.create(
+                cell,
+                int(land["type"][cell]),
+                land_age,
+                int(land["terrane"][cell]),
+            )
+            if weak_sutures[cell]:
+                continent.crust.flags[cell] |= CrustFlag["SUTURE"]
+
+    _paint_old_ranges(
+        world,
+        continent,
+        is_land,
+        land["suture"],
+        land["pair"],
+        land["pairRange"],
+    )
+    major_sources = land["suture"] == Seam["MAJOR"]
+    ring_sources = land["suture"] == Seam["RING"]
+    major_strength = np.zeros(int(mesh.num_cells), dtype=np.float32)
+    major_cells = np.flatnonzero(major_sources)
+    if major_cells.size:
+        major_strength[major_cells] = land["pairRange"][land["pair"][major_cells]]
+    major_km, major_range = _distance_km(
+        mesh,
+        major_sources,
+        can_enter=lambda cell: bool(is_land[cell]),
+        source_strength=major_strength,
+    )
+    ring_km, _ = _distance_km(
+        mesh,
+        ring_sources,
+        can_enter=lambda cell: bool(is_land[cell]),
+    )
+    world.startSeamKm = {
+        "major": major_km,
+        "majorRange": major_range,
+        "ring": ring_km,
+    }
+    _record_start_pushes(world, continent, land)
+
+    for plate in world.plates:
+        plate.refresh_extent(mesh.xyz)
+    world.terraneLetters = {
+        int(item["id"]): str(item["letter"]) for item in layout["cratons"]
+    }
+    continent.born = -float(config["riftTenureMyr"])
+    world.log(
+        EventKind["START"],
+        f"Supercontinent {continent.name}: {len(layout['cratons'])} cratons, ringed by subduction",
+        {"plate": continent.id, "cratons": len(layout["cratons"])},
+    )
+    start = {
+        "cratons": layout["cratons"],
+        "centre": found["middle"],
+        "rimCentre": land["rimCentre"],
+        "reference": reference,
+        "elongation": layout["elongation"],
+        "seams": land["suture"],
+        "owner": land["owner"],
+        "skirtKm": land["skirtKm"],
+        "rim": rim,
+        "passiveFrom": passive_from,
+        "passiveTo": passive_to,
+        "attempts": found["attempts"],
+        "cratonAreaScale": found["areaScale"],
+        "fractionMet": found["fractionMet"],
+        "config": config,
+        "continentId": continent.id,
+        "oceanId": ocean.id,
+        "landCells": int(np.count_nonzero(is_land)),
+        "continentalFraction": float(np.count_nonzero(is_land)) / int(mesh.num_cells),
+        "apronCells": len(apron_cells),
+        "trench": np.asarray(trench_cells, dtype=np.int32),
+    }
+    return {"world": world, "start": start}
+
+
+def build_start_world(
+    sim_mesh: Any, seed: int, overrides: dict | None = None
+) -> dict[str, Any]:
+    """Build the upstream craton-assembled initial supercontinent.
+
+    Meshes below 512 cells retain the small deterministic fixture builder:
+    the upstream geometric packing has no meaningful spatial resolution there.
+    """
+    if int(sim_mesh.num_cells) < 512:
+        return _build_coarse_start_world(sim_mesh, seed, overrides)
+    world = TectonicWorld(sim_mesh, seed, overrides=overrides)
+    found = _find_layout(sim_mesh, int(seed), world.config)
+    if found is None:
+        raise ValueError(
+            "Initial-world settings do not fit the planet: craton spacing, coast "
+            "margins and connected land cannot satisfy continentalFraction."
+        )
+    return _assemble_upstream_start_world(world, int(seed), found)
 
 
 # Public spelling used by JavaScript-side callers ported mechanically.

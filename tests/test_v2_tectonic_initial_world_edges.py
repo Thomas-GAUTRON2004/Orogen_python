@@ -514,3 +514,132 @@ def test_record_start_pushes_spreads_major_pair(monkeypatch):
     initial_world._record_start_pushes(world, object(), land)
     assert len(calls) == 1
     assert calls[0][2] == {0: 1.0, 1: 1.0}
+
+
+def test_margin_profile_covers_arc_and_step_segments():
+    from orogen.v2.tectonics.initial_landmass import _margin_profile
+
+    cfg = {
+        "continentalFraction": 0.5,
+        "startArcKm": (6000.0, 6000.0),
+        "startArcRadiusKm": (1000.0, 1000.0),
+        "startStepKm": (6000.0, 6000.0),
+        "startStepOffsetKm": (1000.0, 1000.0),
+    }
+    profile = _margin_profile(lambda: 0.5, cfg, {"from": 0.0, "span": 120.0})
+    step = profile(10.0)
+    step_blend = profile(53.9)
+    arc = profile(147.0)
+    outside = profile(250.0)
+
+    assert step["stepKm"] > 0.0
+    assert step_blend["stepKm"] < step["stepKm"]
+    assert arc["bulgeKm"] > 0.0
+    assert outside["bulgeKm"] == 0.0
+
+
+def test_shape_landmass_rejects_craton_at_antipode_and_disconnected_final_land(
+    monkeypatch,
+):
+    from orogen.v2.tectonics import initial_landmass
+
+    mesh = build_sim_mesh(48, 940)
+    xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
+    layout = {
+        "centre": xyz[0].tolist(),
+        "clusters": 1,
+        "cratons": [
+            {
+                "id": 1,
+                "cluster": 0,
+                "centre": xyz[0].tolist(),
+                "radius": 0.2,
+            }
+        ],
+    }
+    cfg = {
+        "cratonEdgeNoiseKm": 0.0,
+        "coastUnionSoftnessKm": 1000.0,
+        "terraneBorderWanderKm": 0.0,
+        "cratonGrainNoiseKm": (1000.0, 1000.0),
+        "sutureHalfWidthKm": 10.0,
+        "startCoreKm": 1000.0,
+        "startSeamWanderKm": 0.0,
+        "cratonMinGapKm": 1000.0,
+        "startGrowthBias": 0.0,
+        "startRingKm": (2000.0, 2000.0),
+        "continentalFraction": 0.5,
+        "cratonRiftNoise": 0.0,
+        "startCoastDetailKm": 0.0,
+        "coastReliefKm": 0.0,
+        "cratonMinCoastKm": 0.0,
+        "bridgeHalfWidthKm": 100.0,
+        "startArcKm": (1000.0, 1000.0),
+        "startArcRadiusKm": (1000.0, 1000.0),
+        "startStepKm": (1000.0, 1000.0),
+        "startStepOffsetKm": (100.0, 100.0),
+    }
+    noise = SimpleNamespace(noise3d=lambda *_args: 0.0, fbm=lambda *_args: 0.0)
+    monkeypatch.setattr(initial_landmass, "within_km", lambda *_args: np.zeros(mesh.num_cells))
+    monkeypatch.setattr(initial_landmass, "_bridges", lambda *_args: np.zeros(mesh.num_cells))
+
+    monkeypatch.setattr(
+        initial_landmass,
+        "craton_edge",
+        lambda *_args: {"d": -1.0, "rift": 0.0, "along": 0.0, "across": 0.0},
+    )
+    assert initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+
+    def edge(point, *_args):
+        return {
+            "d": -1.0 if np.allclose(point, xyz[0]) else 1.0,
+            "rift": 0.0,
+            "along": 0.0,
+            "across": 0.0,
+        }
+
+    monkeypatch.setattr(initial_landmass, "craton_edge", edge)
+    flood_calls = 0
+
+    def flood(_mesh, _source, _predicate):
+        nonlocal flood_calls
+        flood_calls += 1
+        if flood_calls == 50:
+            return np.zeros(mesh.num_cells, dtype=np.uint8)
+        return np.ones(mesh.num_cells, dtype=np.uint8)
+
+    monkeypatch.setattr(initial_landmass, "flood_from", flood)
+    assert initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+
+
+def test_find_layout_returns_none_after_all_wide_attempts(monkeypatch):
+    mesh = build_sim_mesh(48, 941)
+    land_type = np.full(mesh.num_cells, CrustType["OCEAN"], dtype=np.uint8)
+    land_type[0] = CrustType["CONTINENT"]
+    candidate = {"land": {"type": land_type}, "excess": 0.0}
+    monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 2)
+    monkeypatch.setattr(initial_world, "_LAYOUT_RELAX_SPAN_AFTER", 2)
+    monkeypatch.setattr(
+        initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], candidate)
+    )
+    monkeypatch.setattr(initial_world, "_land_centroid", lambda *_args: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(initial_world, "_half_span_deg", lambda *_args: 180.0)
+    assert (
+        initial_world._find_layout(
+            mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 0.0}
+        )
+        is None
+    )
+
+
+def test_build_start_world_raises_when_production_layout_cannot_fit(monkeypatch):
+    mesh = SimpleNamespace(num_cells=512)
+    monkeypatch.setattr(
+        initial_world,
+        "TectonicWorld",
+        lambda *_args, **_kwargs: SimpleNamespace(config={}),
+    )
+    monkeypatch.setattr(initial_world, "_find_layout", lambda *_args: None)
+    with pytest.raises(ValueError, match="do not fit the planet"):
+        initial_world.build_start_world(mesh, 1)
+\n

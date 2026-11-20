@@ -50,7 +50,6 @@ class Plate:
         self.rollbackCmYr = 0.0
         self.lastBackArcAt = -math.inf
         self.isOceanBorn = False
-        self.scene: dict[str, object] = {}
 
     def set_quat(self, quaternion) -> None:
         self.quat = list(quaternion)

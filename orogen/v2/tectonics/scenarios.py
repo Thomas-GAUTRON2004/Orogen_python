@@ -341,7 +341,6 @@ def fill_background(canvas: dict[str, Any], world: TectonicWorld, config: dict):
     for plate in world.plates:
         plate.refresh_extent(mesh.xyz)
     return ocean
-
 # Mechanical camel-case aliases matching upstream scene-kit.js.
 sceneCanvas = scene_canvas  # noqa: N816
 sceneTerrane = scene_terrane  # noqa: N816

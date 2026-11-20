@@ -216,12 +216,8 @@ def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
         centre=(0.0, 26.0),
         radius_km=2300.0,
     )
-    add_apron_and_trench(
-        canvas, west, west_land, [[240.0, 300.0]], world.config
-    )
-    add_apron_and_trench(
-        canvas, east, east_land, [[60.0, 120.0]], world.config
-    )
+    add_apron_and_trench(canvas, west, west_land, [[240.0, 300.0]], world.config)
+    add_apron_and_trench(canvas, east, east_land, [[60.0, 120.0]], world.config)
     _add_ocean_between(
         canvas, west, west_land["centre"], east_land["centre"], 400.0, 2200.0
     )

@@ -37,9 +37,7 @@ def _zipper(sim_mesh: Any, seed: int):
         ).tolist()
     )
     borea_land = {"centre": middle, "isLand": is_land}
-    add_apron_and_trench(
-        canvas, borea, borea_land, [[180.0, 360.0]], world.config
-    )
+    add_apron_and_trench(canvas, borea, borea_land, [[180.0, 360.0]], world.config)
 
     parts = [
         add_continent(
@@ -83,9 +81,7 @@ COLLISION_SCENES: list[dict[str, Any]] = [
 ]
 
 
-def build_collision_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "zipper"
-):
+def build_collision_scene(sim_mesh: Any, seed: int = 0, scenario: str = "zipper"):
     """Build a named deterministic collision-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in COLLISION_SCENES:

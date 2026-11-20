@@ -186,9 +186,12 @@ def test_scene_kit_builds_continent_apron_and_background_partition():
 
 
 def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
+    from orogen.v2.core.fast_noise import FastNoise
     from orogen.v2.tectonics.scenarios import (
         _in_sectors,
+        add_continent,
         add_ocean,
+        fill_background,
         flag_coast_trench,
         scene_canvas,
         scene_terrane,
@@ -204,9 +207,18 @@ def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
     plate = world.add_plate("Scene land")
     canvas = scene_canvas(mesh, world.config)
     assert scene_terrane(canvas) == 1
-    centre = np.asarray(mesh.xyz[:3], dtype=np.float64)
-    plate.crust.create_many(np.arange(mesh.num_cells // 2), CrustType["CONTINENT"], -1000.0, 1)
-    flag_coast_trench(mesh, plate, centre, "all", world.config)
+    continent = add_continent(
+        canvas,
+        FastNoise(916),
+        plate=plate,
+        centre=(0.0, 0.0),
+        radius_km=9000.0,
+    )
+    flag_coast_trench(mesh, plate, continent["centre"], "all", world.config)
     add_ocean(canvas, plate, lambda x, y, z: z > 0.0, -150.0)
-    assert np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) >= 0
-    assert np.all(canvas["taken"] == 0)
+    ocean = fill_background(canvas, world, world.config)
+
+    assert ocean.isBackground
+    assert np.all(_coverage(world) == 1)
+    assert np.all(canvas["taken"] == 1)
+    assert np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) > 0

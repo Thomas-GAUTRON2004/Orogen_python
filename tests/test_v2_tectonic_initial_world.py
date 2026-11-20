@@ -12,9 +12,11 @@ from orogen.v2.tectonics import (
     build_start_world,
 )
 
+
 def _coverage(world):
     masks = np.stack([plate.crust.mask.astype(bool) for plate in world.plates])
     return masks.sum(axis=0)
+
 
 def test_start_world_is_a_complete_partition_with_initial_geology():
     mesh = build_sim_mesh(320, 712)
@@ -59,6 +61,7 @@ def test_start_world_is_a_complete_partition_with_initial_geology():
     assert np.count_nonzero(continent.crust.farWork > 0) > 0
     assert np.all(continent.crust.farAt[continent.crust.farWork > 0] <= 0)
 
+
 def test_start_world_is_deterministic_for_seed_and_configuration():
     mesh = build_sim_mesh(192, 81)
     left = build_start_world(mesh, 5501)
@@ -72,10 +75,12 @@ def test_start_world_is_deterministic_for_seed_and_configuration():
         assert np.array_equal(a.crust.flags, b.crust.flags)
         assert np.array_equal(a.crust.terrane, b.crust.terrane)
 
+
 def test_start_world_rejects_invalid_fraction():
     mesh = build_sim_mesh(24, 18)
     with pytest.raises(ValueError):
         build_start_world(mesh, 1, {"continentalFraction": 1.0})
+
 
 def test_continental_oceanic_and_mixed_scenario_contracts():
     mesh = build_sim_mesh(160, 42)
@@ -93,6 +98,7 @@ def test_continental_oceanic_and_mixed_scenario_contracts():
             plate.crust.type[plate.crust.mask.astype(bool)] == CrustType["OCEAN"]
         )
 
+
 def test_scenario_dispatcher_and_invalid_name():
     mesh = build_sim_mesh(96, 23)
     assert (
@@ -103,6 +109,7 @@ def test_scenario_dispatcher_and_invalid_name():
     assert build_scenario_scene(mesh, 3, "mixed")["start"]["scenario"] == "mixed"
     with pytest.raises(ValueError, match="scenario must be one of"):
         build_scenario_scene(mesh, 3, "unknown")
+
 
 def test_scenario_builders_apply_configuration_overrides():
     mesh = build_sim_mesh(160, 42)
@@ -129,6 +136,7 @@ def test_scenario_builders_apply_configuration_overrides():
             mask = plate.crust.mask.astype(bool)
             assert np.all(plate.crust.formedAt[mask] == expected_age)
 
+
 def test_production_resolution_start_world_uses_packed_landmass_path():
     mesh = build_sim_mesh(512, 911)
     result = build_start_world(mesh, 912)
@@ -143,6 +151,7 @@ def test_production_resolution_start_world_uses_packed_landmass_path():
     assert len(world.plates) == 2
     assert np.all(_coverage(world) == 1)
     assert np.any(world.plates[0].crust.type == CrustType["CRATON"])
+
 
 def test_rigid_drift_scenario_builds_four_moving_continents_and_ocean():
     from orogen.v2.tectonics import build_rigid_drift_world, set_rigid_drift_time
@@ -161,6 +170,7 @@ def test_rigid_drift_scenario_builds_four_moving_continents_and_ocean():
         not np.allclose(before, plate.quat)
         for before, plate in zip(initial, world.plates, strict=True)
     )
+
 
 def test_wilson_scenario_reverses_western_plate_at_configured_time():
     from orogen.v2.tectonics import build_wilson_world, drive_wilson
@@ -181,6 +191,7 @@ def test_wilson_scenario_reverses_western_plate_at_configured_time():
     drive_wilson(world)
     assert float(np.dot(world.plates[0].omega, west_pole)) > 0.0
     assert float(np.dot(world.plates[1].omega, west_pole)) > 0.0
+
 
 def test_nudge_scenario_returns_normalized_heading_and_drive_callback():
     from orogen.v2.tectonics import build_nudge_scene

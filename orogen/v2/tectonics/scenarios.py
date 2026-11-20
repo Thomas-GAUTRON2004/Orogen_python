@@ -176,7 +176,6 @@ buildMixedScene = build_mixed_scene  # noqa: N816 -- preserve upstream V2 public
 buildScenarioScene = build_scenario_scene  # noqa: N816 -- preserve upstream V2 public spelling
 
 
-
 def scene_canvas(sim_mesh: Any, config: dict) -> dict[str, Any]:
     """Create the cell-ownership canvas used by hand-built tectonic scenes."""
     return {
@@ -350,7 +349,6 @@ addApronAndTrench = add_apron_and_trench  # noqa: N816
 flagCoastTrench = flag_coast_trench  # noqa: N816
 addOcean = add_ocean  # noqa: N816
 fillBackground = fill_background  # noqa: N816
-
 
 RIGID_DRIFT_MAX_MYR = 300.0
 WILSON_MAX_MYR = 150.0

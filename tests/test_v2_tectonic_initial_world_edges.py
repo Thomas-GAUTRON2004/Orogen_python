@@ -7,9 +7,11 @@ from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import initial_world, scenarios
 from orogen.v2.tectonics.crust import CrustFlag, CrustType
 
+
 def _coverage(world):
     masks = np.stack([plate.crust.mask.astype(bool) for plate in world.plates])
     return masks.sum(axis=0)
+
 
 def test_mesh_xyz_rejects_inconsistent_cell_count():
     mesh = SimpleNamespace(xyz=np.zeros((4, 3)), num_cells=3)
@@ -18,12 +20,14 @@ def test_mesh_xyz_rejects_inconsistent_cell_count():
     with pytest.raises(ValueError, match="does not match num_cells"):
         scenarios._xyz(mesh)
 
+
 def test_distance_hops_empty_sources_and_invalid_shape():
     mesh = build_sim_mesh(48, 901)
     empty = initial_world._distance_hops(mesh, np.zeros(mesh.num_cells, dtype=bool))
     assert np.all(empty == -1)
     with pytest.raises(ValueError, match="one value per mesh cell"):
         initial_world._distance_hops(mesh, np.zeros(mesh.num_cells - 1, dtype=bool))
+
 
 def test_land_cells_clamps_requested_count():
     mesh = build_sim_mesh(48, 902)
@@ -33,6 +37,7 @@ def test_land_cells_clamps_requested_count():
     assert np.isfinite(radius)
     one, _ = initial_world._land_cells(mesh, centre, 0)
     assert one.size == 1
+
 
 def test_pick_craton_centres_falls_back_to_full_land_candidate_set():
     mesh = build_sim_mesh(48, 903)
@@ -45,6 +50,7 @@ def test_pick_craton_centres_falls_back_to_full_land_candidate_set():
     assert picked.shape == (2,)
     assert set(picked.tolist()).issubset(set(land.tolist()))
 
+
 def test_assign_cratons_clamps_share_and_always_selects_centres():
     mesh = build_sim_mesh(48, 904)
     xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
@@ -55,6 +61,7 @@ def test_assign_cratons_clamps_share_and_always_selects_centres():
     assert selected[0] and selected[3]
     _, all_selected, _ = initial_world._assign_cratons(xyz, land, centres, 2.0)
     assert np.all(all_selected)
+
 
 def test_distance_km_handles_empty_sources_limits_and_entry_filter():
     mesh = build_sim_mesh(48, 905)
@@ -76,6 +83,7 @@ def test_distance_km_handles_empty_sources_limits_and_entry_filter():
     assert np.count_nonzero(np.isfinite(restricted)) <= 2
     assert restricted_strength[0] == 1.0
 
+
 def test_paint_old_ranges_ignores_invalid_and_incomplete_settings():
     mesh = build_sim_mesh(48, 906)
     result = initial_world.build_start_world(mesh, 19)
@@ -93,6 +101,7 @@ def test_paint_old_ranges_ignores_invalid_and_incomplete_settings():
     initial_world._paint_old_ranges(world, continent, land, result["start"]["seams"])
     assert np.array_equal(continent.crust.rootKm, before)
 
+
 def test_start_world_without_trench_coverage_and_without_old_ranges():
     mesh = build_sim_mesh(96, 907)
     result = initial_world.build_start_world(
@@ -107,6 +116,7 @@ def test_start_world_without_trench_coverage_and_without_old_ranges():
     assert result["start"]["trench"].size == 0
     assert np.count_nonzero(result["world"].plates[0].crust.flags) >= 0
 
+
 def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):
     mesh = SimpleNamespace(num_cells=3)
     monkeypatch.setattr(
@@ -117,6 +127,7 @@ def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(mesh, 1)
 
+
 def test_scenario_builders_reject_invalid_fraction_and_normalize_dispatch():
     mesh = build_sim_mesh(48, 909)
     for fraction in (0.0, 1.0, float("nan"), float("inf")):
@@ -126,6 +137,7 @@ def test_scenario_builders_reject_invalid_fraction_and_normalize_dispatch():
         scenarios.build_scenario_scene(mesh, 4, "  CONTINENTAL ")["start"]["scenario"]
         == "continental"
     )
+
 
 def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatch):
     mesh = build_sim_mesh(48, 910)
@@ -142,6 +154,7 @@ def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatc
     )
     assert result["start"]["plateACells"] > 0
     assert result["start"]["plateBCells"] > 0
+
 
 def test_scene_kit_builds_continent_apron_and_background_partition():
     from orogen.v2.core.fast_noise import FastNoise
@@ -175,6 +188,7 @@ def test_scene_kit_builds_continent_apron_and_background_partition():
     assert np.count_nonzero(continent_plate.crust.type == CrustType["CRATON"]) > 0
     assert np.count_nonzero(continent_plate.crust.flags & CrustFlag["APRON"]) > 0
     assert np.count_nonzero(continent_plate.crust.flags & CrustFlag["TRENCH"]) > 0
+
 
 def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
     from orogen.v2.core.fast_noise import FastNoise

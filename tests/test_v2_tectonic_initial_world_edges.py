@@ -148,3 +148,65 @@ def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatc
     )
     assert result["start"]["plateACells"] > 0
     assert result["start"]["plateBCells"] > 0
+
+
+
+def test_scene_kit_builds_continent_apron_and_background_partition():
+    from orogen.v2.core.fast_noise import FastNoise
+    from orogen.v2.tectonics.scenarios import (
+        add_apron_and_trench,
+        add_continent,
+        fill_background,
+        scene_canvas,
+    )
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(192, 911)
+    world = TectonicWorld(mesh, 912)
+    continent_plate = world.add_plate("Scene continent")
+    canvas = scene_canvas(mesh, world.config)
+    continent = add_continent(
+        canvas,
+        FastNoise(913),
+        plate=continent_plate,
+        centre=(12.0, 25.0),
+        radius_km=8500.0,
+        craton_km=2800.0,
+    )
+    assert np.count_nonzero(continent["isLand"]) > 0
+    assert np.count_nonzero(continent["isLand"]) < mesh.num_cells
+    add_apron_and_trench(canvas, continent_plate, continent, "all", world.config)
+    ocean = fill_background(canvas, world, world.config)
+
+    assert ocean.isBackground
+    assert np.all(_coverage(world) == 1)
+    assert np.count_nonzero(continent_plate.crust.type == CrustType["CRATON"]) > 0
+    assert np.count_nonzero(continent_plate.crust.flags & CrustFlag["APRON"]) > 0
+    assert np.count_nonzero(continent_plate.crust.flags & CrustFlag["TRENCH"]) > 0
+
+
+def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
+    from orogen.v2.tectonics.scenarios import (
+        _in_sectors,
+        add_ocean,
+        flag_coast_trench,
+        scene_canvas,
+        scene_terrane,
+    )
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    assert _in_sectors(5.0, "all")
+    assert _in_sectors(355.0, [[350.0, 20.0]])
+    assert not _in_sectors(180.0, [[350.0, 20.0]])
+
+    mesh = build_sim_mesh(96, 914)
+    world = TectonicWorld(mesh, 915)
+    plate = world.add_plate("Scene land")
+    canvas = scene_canvas(mesh, world.config)
+    assert scene_terrane(canvas) == 1
+    centre = np.asarray(mesh.xyz[:3], dtype=np.float64)
+    plate.crust.create_many(np.arange(mesh.num_cells // 2), CrustType["CONTINENT"], -1000.0, 1)
+    flag_coast_trench(mesh, plate, centre, "all", world.config)
+    add_ocean(canvas, plate, lambda x, y, z: z > 0.0, -150.0)
+    assert np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) >= 0
+    assert np.all(canvas["taken"] == 0)

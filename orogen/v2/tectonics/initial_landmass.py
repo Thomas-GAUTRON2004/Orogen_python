@@ -189,7 +189,9 @@ def shape_landmass(
     cluster_count = int(layout.get("clusters", 1))
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     num_cells = int(sim_mesh.num_cells)
-    km = lambda value: float(value) / PLANET_RADIUS_KM
+    def km(value: float) -> float:
+        return float(value) / PLANET_RADIUS_KM
+
     edge_noise = km(cfg["cratonEdgeNoiseKm"])
     soft = km(cfg["coastUnionSoftnessKm"])
     wander = km(cfg["terraneBorderWanderKm"])

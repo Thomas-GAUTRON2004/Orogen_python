@@ -20,6 +20,7 @@ from .scenarios import (
     add_ocean,
     fill_background,
 )
+from .world import TectonicWorld
 
 
 ROLLBACK_ONLY = {

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
-from typing import Any, Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import numpy as np
 
@@ -15,7 +15,6 @@ from .crust import CrustFlag, CrustType
 from .dynamics import update_plate_motion
 from .force_scenes import _begin
 from .hotspot_scenes import HOTSPOT_SCENES
-from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz, xyz_to_lat_lon
 from .margin_scenes import MARGIN_SCENES, heading, omega_for
 from .rift_scenes import RIFT_SCENES
@@ -24,7 +23,6 @@ from .scenarios import (
     add_continent,
     add_ocean,
     fill_background,
-    scene_canvas,
 )
 from .world import TectonicWorld
 

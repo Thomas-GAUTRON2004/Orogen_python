@@ -392,7 +392,7 @@ def test_production_resolution_start_world_matches_javascript_reference(
             "farDz",
         }
         for field in initial_record_fields:
-            actual = getattr(continent, field)
+            actual = getattr(continent.crust, field)
             reference = reference_world["initialRecords"][field]
             if field in integer_record_fields:
                 np.testing.assert_array_equal(actual, reference, err_msg=field)

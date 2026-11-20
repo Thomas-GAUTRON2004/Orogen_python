@@ -233,10 +233,14 @@ def add_continent(
         if taken[cell]:
             continue
         x, y, z = (float(value) for value in xyz[cell])
-        dot = max(-1.0, min(1.0, x * centre_xyz[0] + y * centre_xyz[1] + z * centre_xyz[2]))
+        dot = max(
+            -1.0, min(1.0, x * centre_xyz[0] + y * centre_xyz[1] + z * centre_xyz[2])
+        )
         distance = math.acos(dot) * 6371.0
         shaped = distance * (
-            1.0 + wobble * noise.fbm(x * 2.3 + offset, y * 2.3 + offset, z * 2.3 + offset, 5)
+            1.0
+            + wobble
+            * noise.fbm(x * 2.3 + offset, y * 2.3 + offset, z * 2.3 + offset, 5)
         )
         if shaped > radius_km:
             continue
@@ -258,11 +262,15 @@ def add_apron_and_trench(
     mesh = canvas["mesh"]
     xyz = _xyz(mesh)
     taken = canvas["taken"]
-    in_plate, rim = _plate_outline_with_apron(mesh, continent["isLand"].astype(bool), config)
+    in_plate, rim = _plate_outline_with_apron(
+        mesh, continent["isLand"].astype(bool), config
+    )
     for cell in range(int(mesh.num_cells)):
         if not in_plate[cell] or taken[cell]:
             continue
-        plate.crust.create(cell, CrustType["OCEAN"], -float(config["initialOceanAgeMyr"]))
+        plate.crust.create(
+            cell, CrustType["OCEAN"], -float(config["initialOceanAgeMyr"])
+        )
         plate.crust.flags[cell] |= CrustFlag["APRON"]
         taken[cell] = 1
     reference = tangent_basis(continent["centre"])[0]
@@ -334,7 +342,6 @@ def fill_background(canvas: dict[str, Any], world: TectonicWorld, config: dict):
         plate.refresh_extent(mesh.xyz)
     return ocean
 
-
 # Mechanical camel-case aliases matching upstream scene-kit.js.
 sceneCanvas = scene_canvas  # noqa: N816
 sceneTerrane = scene_terrane  # noqa: N816
@@ -343,7 +350,6 @@ addApronAndTrench = add_apron_and_trench  # noqa: N816
 flagCoastTrench = flag_coast_trench  # noqa: N816
 addOcean = add_ocean  # noqa: N816
 fillBackground = fill_background  # noqa: N816
-
 
 
 RIGID_DRIFT_MAX_MYR = 300.0
@@ -355,12 +361,42 @@ NUDGE_MAX_MYR = 60.0
 NUDGE_CM_YR = 2.0
 
 _RIGID_PLATES = (
-    {"name": "Drifter", "centre": (20.0, -60.0), "poleOffsetDeg": 90.0, "speedCmYr": 5.0, "note": "translates at 5 cm/yr"},
-    {"name": "Spinner", "centre": (-25.0, 40.0), "poleOffsetDeg": 0.0, "speedCmYr": 4.0, "note": "spins in place"},
-    {"name": "Hinge", "centre": (45.0, 140.0), "poleOffsetDeg": 35.0, "speedCmYr": 3.0, "note": "swings like a hinge"},
-    {"name": "Anchor", "centre": (-50.0, -150.0), "poleOffsetDeg": 90.0, "speedCmYr": 0.0, "note": "stationary reference continent"},
+    {
+        "name": "Drifter",
+        "centre": (20.0, -60.0),
+        "poleOffsetDeg": 90.0,
+        "speedCmYr": 5.0,
+        "note": "translates at 5 cm/yr",
+    },
+    {
+        "name": "Spinner",
+        "centre": (-25.0, 40.0),
+        "poleOffsetDeg": 0.0,
+        "speedCmYr": 4.0,
+        "note": "spins in place",
+    },
+    {
+        "name": "Hinge",
+        "centre": (45.0, 140.0),
+        "poleOffsetDeg": 35.0,
+        "speedCmYr": 3.0,
+        "note": "swings like a hinge",
+    },
+    {
+        "name": "Anchor",
+        "centre": (-50.0, -150.0),
+        "poleOffsetDeg": 90.0,
+        "speedCmYr": 0.0,
+        "note": "stationary reference continent",
+    },
 )
-_RIGID_OCEAN = {"name": "Pre-history ocean", "centre": (90.0, 0.0), "poleOffsetDeg": 90.0, "speedCmYr": 0.0, "note": "passive background"}
+_RIGID_OCEAN = {
+    "name": "Pre-history ocean",
+    "centre": (90.0, 0.0),
+    "poleOffsetDeg": 90.0,
+    "speedCmYr": 0.0,
+    "note": "passive background",
+}
 _WILSON_HOME = (8.0, -40.0)
 _WILSON_HINGE_POLE = (72.0, -40.0)
 _WILSON_FAR_CENTRE = (2.0, 72.0)
@@ -378,10 +414,7 @@ def _pole_for(centre: list[float], offset_deg: float) -> list[float]:
     tangent = normalize([up[i] - projection * centre[i] for i in range(3)])
     angle = math.radians(offset_deg)
     return normalize(
-        [
-            centre[i] * math.cos(angle) + tangent[i] * math.sin(angle)
-            for i in range(3)
-        ]
+        [centre[i] * math.cos(angle) + tangent[i] * math.sin(angle) for i in range(3)]
     )
 
 
@@ -481,8 +514,12 @@ def build_wilson_world(
             "note": f"hinges east at {EAST_CM_YR:g} cm/yr toward Far",
         }
     }
-    far.scene = {"motion": {"pole": pole, "speedCmYr": 0.0, "note": "stationary continent"}}
-    ocean.scene = {"motion": {"pole": pole, "speedCmYr": 0.0, "note": "passive background"}}
+    far.scene = {
+        "motion": {"pole": pole, "speedCmYr": 0.0, "note": "stationary continent"}
+    }
+    ocean.scene = {
+        "motion": {"pole": pole, "speedCmYr": 0.0, "note": "passive background"}
+    }
     home = lat_lon_to_xyz(*_WILSON_HOME)
     far_xyz = lat_lon_to_xyz(*far_centre)
     east_axis = normalize(cross([0.0, 0.0, 1.0], home))
@@ -549,8 +586,7 @@ def build_nudge_scene(
     transverse = cross(start["centre"], reference)
     heading = normalize(
         [
-            math.cos(azimuth) * reference[index]
-            + math.sin(azimuth) * transverse[index]
+            math.cos(azimuth) * reference[index] + math.sin(azimuth) * transverse[index]
             for index in range(3)
         ]
     )

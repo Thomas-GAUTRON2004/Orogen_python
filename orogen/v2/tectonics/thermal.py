@@ -74,6 +74,31 @@ def plume_heat_factor(world, plate) -> float:
     return (floor + gain * mean_heat**power) / denominator
 
 
+# Dot products farther than this from the spacing threshold are decided by a
+# vectorised product; closer ones are re-checked with the exact scalar form.
+_PLUME_BAND = 1e-9
+
+
+def _cells_near_plumes(xyz: np.ndarray, live: list, near: float) -> np.ndarray:
+    """Return a mask of cells whose dot with any live plume exceeds ``near``.
+
+    The decision matches ``any(float(np.dot(p, plume)) > near)`` exactly: the
+    vectorised product differs from ``np.dot`` by about 1e-15, far below the
+    band, so only cells inside the band fall back to the scalar comparison.
+    """
+    count = xyz.shape[0]
+    if not live:
+        return np.zeros(count, dtype=bool)
+    plumes = np.stack(live)
+    approx = xyz @ plumes.T
+    excluded = (approx > near + _PLUME_BAND).any(axis=1)
+    unsure = ~excluded & (approx >= near - _PLUME_BAND).any(axis=1)
+    for cell in np.flatnonzero(unsure):
+        position = xyz[cell]
+        excluded[cell] = any(float(np.dot(position, plume)) > near for plume in live)
+    return excluded
+
+
 def pick_plume_site(world, rng) -> int:
     """Choose a plume origin weighted by ocean allowance plus retained mantle heat.
 
@@ -95,11 +120,11 @@ def pick_plume_site(world, rng) -> int:
         for h in getattr(world, "hotspots", ())
         if (h.get("alive", True) if isinstance(h, dict) else getattr(h, "alive", True))
     ]
+    excluded = _cells_near_plumes(xyz, live, near).tolist()
     weights = np.zeros(count, dtype=np.float32)
     total = 0.0
     for cell in range(count):
-        position = xyz[cell]
-        if any(float(np.dot(position, plume)) > near for plume in live):
+        if excluded[cell]:
             continue
         weight = ocean_weight + (1.0 - ocean_weight) * float(mantle_heat[cell])
         weights[cell] = weight

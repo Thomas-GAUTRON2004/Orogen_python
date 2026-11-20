@@ -1,0 +1,9 @@
+{
+  "name": "orogen-python-reference-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Pinned JavaScript reference dependencies for Orogen Python differential tests",
+  "devDependencies": {
+    "delaunator": "5.0.1"
+  }
+}

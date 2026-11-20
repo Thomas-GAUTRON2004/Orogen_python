@@ -1,0 +1,61 @@
+name: JS vs Python benchmarks
+
+on:
+  push:
+    branches:
+      - "port/**"
+    paths:
+      - "orogen/v2/**"
+      - "tests/reference/v2/**"
+      - "benchmarks/**"
+      - "docs/JS_PYTHON_BENCHMARK.md"
+      - ".github/workflows/benchmarks.yml"
+  pull_request:
+    branches:
+      - "port/v3.0.1"
+    paths:
+      - "orogen/v2/**"
+      - "tests/reference/v2/**"
+      - "benchmarks/**"
+      - "docs/JS_PYTHON_BENCHMARK.md"
+      - ".github/workflows/benchmarks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BENCH_ROUNDS: "10"
+      BENCH_WARMUPS: "2"
+      BENCH_STEP_CELLS: "512"
+      NUMBA_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python package with Numba
+        run: python -m pip install -e ".[speed]"
+      - name: Run paired JavaScript, Python and Numba benchmarks
+        run: node benchmarks/bench.mjs > benchmark-results.json
+      - name: Generate Markdown and CSV reports
+        run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload benchmark reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-python-benchmark-results
+          path: |
+            benchmark-results.json
+            benchmark-results.md
+            benchmark-results.csv
+          retention-days: 90

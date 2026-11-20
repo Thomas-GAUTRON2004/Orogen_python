@@ -642,4 +642,4 @@ def test_build_start_world_raises_when_production_layout_cannot_fit(monkeypatch)
     monkeypatch.setattr(initial_world, "_find_layout", lambda *_args: None)
     with pytest.raises(ValueError, match="do not fit the planet"):
         initial_world.build_start_world(mesh, 1)
-\n
+

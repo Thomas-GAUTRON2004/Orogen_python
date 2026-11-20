@@ -6,6 +6,7 @@ import { placeCratons } from "./tectonics/init/cratons.mjs";
 import { shapeLandmass } from "./tectonics/init/landmass.mjs";
 import { plateOutlineWithApron, chooseActiveRim } from "./tectonics/init/rim-trench.mjs";
 import { tangentBasis, cellDistanceKm } from "./core/sphere-geom.mjs";
+import { hopDistance } from "./core/mesh-bfs.mjs";
 
 const payload = JSON.parse(readFileSync(0, "utf8"));
 const { seed, config } = payload;

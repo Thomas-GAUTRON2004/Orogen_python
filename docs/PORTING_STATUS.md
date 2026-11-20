@@ -1,6 +1,6 @@
 # Orogen 3.0.1 Porting Status
 
-Last updated: 2026-11-19
+Last updated: 2026-11-20
 
 ## Latest porting batch
 
@@ -105,7 +105,7 @@ all seeds, resolutions or simulation histories.
 
 ## Next implementation priorities
 
-1. Complete the initial-world port with upstream craton packing, noise-shaped landmass assembly, smoothed rim/trench geometry and multi-seed JavaScript differential fixtures; then validate local Andean/Laramide/transpression belts against complete collision/suture histories and finish subduction/arc scheduling.
+1. Finish issue #15 validation: add multi-seed JavaScript reference fixtures for the production initial-world path, validate production-resolution runtime and geometry, and port the remaining interactive scenario catalogue. The craton packing and noise-shaped landmass assembly are now present; then continue local Andean/Laramide/transpression and subduction/arc history parity.
 2. Port ocean-plate evolution and splitting, then assemble the complete
    `simulate.js` orchestration and snapshots.
 3. Port terrain, general geology, climate, finishing and agriculture as

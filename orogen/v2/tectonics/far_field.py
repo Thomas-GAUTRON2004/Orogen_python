@@ -14,7 +14,11 @@ from typing import Any, cast
 
 import numpy as np
 
-from ..core._numba_kernels import NUMBA_AVAILABLE, far_field_distance_numba
+from ..core._numba_kernels import (
+    NUMBA_AVAILABLE,
+    emit_far_pushes_numba,
+    far_field_distance_numba,
+)
 from ..core.min_heap import MinHeap
 from ..core.sphere_geometry import cell_distance_km
 from .crust import CrustFlag, CrustType, OrogenyType
@@ -170,7 +174,7 @@ def spread_push(
             float(config["farCratonCost"]),
             float(config["farWeakCost"]),
         )
-        reached = reached_buffer[:reached_count].tolist()
+        reached = reached_buffer[:reached_count]
     else:
         distance = np.full(count, np.inf, dtype=np.float64)
         source_of = np.full(count, -1, dtype=np.int32)
@@ -208,6 +212,19 @@ def spread_push(
                 distance[neighbour] = candidate
                 source_of[neighbour] = int(source_of[cell])
                 heap.push(candidate, neighbour)
+
+    if NUMBA_AVAILABLE:
+        return _emit_pushes_numba(
+            world,
+            crust,
+            xyz,
+            reached,
+            distance,
+            source_of,
+            strongest,
+            reach_length,
+            time,
+        )
 
     output_cells: list[int] = []
     increments: list[float] = []
@@ -276,7 +293,7 @@ def record_push(
     qx, qy, qz = (float(v) for v in xyz[source_offset : source_offset + 3])
     cosine = px * qx + py * qy + pz * qz
     ax, ay, az = cosine * px - qx, cosine * py - qy, cosine * pz - qz
-    length = math.hypot(ax, ay, az)
+    length = _norm3(ax, ay, az)
     if length < 1e-9:
         return
     ax, ay, az = ax / length, ay / length, az / length
@@ -289,10 +306,62 @@ def record_push(
     x = vx * old_work + ax * float(felt)
     y = vy * old_work + ay * float(felt)
     z = vz * old_work + az * float(felt)
-    norm = math.hypot(x, y, z) or 1.0
+    norm = _norm3(x, y, z) or 1.0
     crust.farDx[cell] = max(-127, min(127, math.floor(127.0 * x / norm + 0.5)))
     crust.farDy[cell] = max(-127, min(127, math.floor(127.0 * y / norm + 0.5)))
     crust.farDz[cell] = max(-127, min(127, math.floor(127.0 * z / norm + 0.5)))
+
+
+def _emit_pushes_numba(
+    world, crust, xyz, reached, distance, source_of, strongest, reach_length, time
+) -> dict:
+    """Run the compiled emission loop and wrap its arrays like the Python path."""
+    config = world.config
+    reached_array = np.ascontiguousarray(reached, dtype=np.int32)
+    size = reached_array.size
+    out_cells = np.empty(size, dtype=np.int32)
+    out_inc = np.empty(size, dtype=np.float32)
+    out_from = np.empty(size, dtype=np.int32)
+    out_dist = np.empty(size, dtype=np.float64)
+    written = emit_far_pushes_numba(
+        reached_array,
+        distance,
+        source_of,
+        crust.type,
+        crust.flags,
+        np.ascontiguousarray(xyz, dtype=np.float64),
+        crust.farWork,
+        crust.farDist,
+        crust.farFold,
+        crust.farAt,
+        crust.farDx,
+        crust.farDy,
+        crust.farDz,
+        float(strongest),
+        float(reach_length),
+        float(time),
+        float(config["farFoldMyr"]),
+        float(config["farCratonTake"]),
+        float(config["farWeakTake"]),
+        CrustType["CRATON"],
+        _WEAK,
+        CrustType["OCEAN"],
+        out_cells,
+        out_inc,
+        out_from,
+        out_dist,
+    )
+    return {
+        "cells": out_cells[:written].tolist(),
+        "inc": out_inc[:written].copy(),
+        "from": out_from[:written].copy(),
+        "dist": out_dist[:written].copy(),
+    }
+
+
+def _norm3(x: float, y: float, z: float) -> float:
+    """Euclidean length, computed exactly as the compiled kernel does."""
+    return math.sqrt(x * x + y * y + z * z)
 
 
 def far_take(config: Mapping, crust_type: int, flags: int) -> float:

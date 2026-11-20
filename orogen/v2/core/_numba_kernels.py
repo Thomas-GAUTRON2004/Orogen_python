@@ -825,6 +825,177 @@ def _snapshot_cell_fields_kernel(fields, cell):
     return values
 
 
+def _record_push_kernel(
+    far_work,
+    far_dist,
+    far_fold,
+    far_at,
+    far_dx,
+    far_dy,
+    far_dz,
+    xyz,
+    cell,
+    felt,
+    distance_km,
+    source,
+    time,
+    fold_myr,
+):
+    """Numba twin of ``far_field.record_push`` for one cell.
+
+    Storage reads go through ``np.float64``: in Numba ``float()`` of a float32
+    scalar stays float32, which would round products like ``far_dist * work``
+    in single precision and diverge from the Python path.
+    """
+    old_work = np.float64(far_work[cell])
+    total_work = old_work + felt
+    far_work[cell] = total_work
+    far_dist[cell] = (
+        np.float64(far_dist[cell]) * old_work + distance_km * felt
+    ) / total_work
+    elapsed = max(0.0, time - np.float64(far_at[cell]))
+    previous_fold = np.float64(far_fold[cell])
+    far_fold[cell] = previous_fold * math.exp(-elapsed / fold_myr) + felt
+    far_at[cell] = time
+
+    if source < 0 or source == cell:
+        return
+    offset = 3 * cell
+    source_offset = 3 * source
+    px = float(xyz[offset])
+    py = float(xyz[offset + 1])
+    pz = float(xyz[offset + 2])
+    qx = float(xyz[source_offset])
+    qy = float(xyz[source_offset + 1])
+    qz = float(xyz[source_offset + 2])
+    cosine = px * qx + py * qy + pz * qz
+    ax = cosine * px - qx
+    ay = cosine * py - qy
+    az = cosine * pz - qz
+    length = math.sqrt(ax * ax + ay * ay + az * az)
+    if length < 1e-9:
+        return
+    ax = ax / length
+    ay = ay / length
+    az = az / length
+
+    vx = float(far_dx[cell]) / 127.0
+    vy = float(far_dy[cell]) / 127.0
+    vz = float(far_dz[cell]) / 127.0
+    if vx * ax + vy * ay + vz * az < 0.0:
+        vx = -vx
+        vy = -vy
+        vz = -vz
+    x = vx * old_work + ax * felt
+    y = vy * old_work + ay * felt
+    z = vz * old_work + az * felt
+    norm = math.sqrt(x * x + y * y + z * z)
+    if norm == 0.0:
+        norm = 1.0
+    far_dx[cell] = max(-127, min(127, math.floor(127.0 * x / norm + 0.5)))
+    far_dy[cell] = max(-127, min(127, math.floor(127.0 * y / norm + 0.5)))
+    far_dz[cell] = max(-127, min(127, math.floor(127.0 * z / norm + 0.5)))
+
+
+def _emit_far_pushes_kernel(
+    reached,
+    distance,
+    source_of,
+    crust_type,
+    crust_flags,
+    xyz,
+    far_work,
+    far_dist,
+    far_fold,
+    far_at,
+    far_dx,
+    far_dy,
+    far_dz,
+    strongest,
+    reach_length,
+    time,
+    fold_myr,
+    craton_take,
+    weak_take,
+    craton_type,
+    weak_mask,
+    ocean_type,
+    out_cells,
+    out_inc,
+    out_from,
+    out_dist,
+):
+    """Apply arrivals to reached cells in order; return how many were written.
+
+    Mirrors the Python emission loop of ``far_field.spread_push``: ocean cells
+    and arrivals at or below 1e-4 are skipped, every other arrival is recorded
+    and appended to the output arrays.
+    """
+    written = 0
+    for index in range(reached.size):
+        cell = reached[index]
+        if crust_type[cell] == ocean_type:
+            continue
+        dist = distance[cell]
+        arrived = strongest * math.exp(-dist / reach_length)
+        if not arrived > 1e-4:
+            continue
+        if crust_type[cell] == craton_type:
+            take = craton_take
+        elif (int(crust_flags[cell]) & weak_mask) != 0:
+            take = weak_take
+        else:
+            take = 1.0
+        source = source_of[cell]
+        _record_push_kernel(
+            far_work,
+            far_dist,
+            far_fold,
+            far_at,
+            far_dx,
+            far_dy,
+            far_dz,
+            xyz,
+            cell,
+            arrived,
+            dist,
+            source,
+            time,
+            fold_myr,
+        )
+        out_cells[written] = cell
+        out_inc[written] = arrived * take
+        out_from[written] = source
+        out_dist[written] = dist
+        written += 1
+    return written
+
+
+def _walk_kernel(xyz, offsets, adjacency, current, x, y, z):
+    """Greedy walk toward a direction; numerically identical to SphereIndex.walk.
+
+    The neighbour range of the current cell is read once per pass, as in the
+    Python loop, so a move during a pass does not change which neighbours are
+    scanned in that pass.
+    """
+    offset = 3 * current
+    best = x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
+    improved = True
+    while improved:
+        improved = False
+        low = offsets[current]
+        high = offsets[current + 1]
+        for k in range(low, high):
+            neighbour = adjacency[k]
+            offset = 3 * neighbour
+            candidate = x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
+            if candidate > best:
+                best = candidate
+                current = neighbour
+                improved = True
+    return current
+
+
 # Dispatcher globals are intentionally optional when Numba is not installed.
 noise3d_numba: Any
 fbm_numba: Any
@@ -832,6 +1003,8 @@ fbm_many_numba: Any
 hop_distance_numba: Any
 spread_km_numba: Any
 far_field_distance_numba: Any
+emit_far_pushes_numba: Any
+walk_numba: Any
 pieces_of_numba: Any
 largest_piece_numba: Any
 destination_many_numba: Any
@@ -857,6 +1030,10 @@ if NUMBA_AVAILABLE:
     far_field_distance_numba = njit(cache=True, fastmath=False)(
         _far_field_distance_kernel
     )
+    # Helper dispatchers must exist before the kernel that calls them is compiled.
+    _record_push_kernel = njit(cache=True, fastmath=False)(_record_push_kernel)
+    emit_far_pushes_numba = njit(cache=True, fastmath=False)(_emit_far_pushes_kernel)
+    walk_numba = njit(cache=True, fastmath=False)(_walk_kernel)
     pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
     _pieces_of_kernel = pieces_of_numba
     largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
@@ -880,7 +1057,7 @@ if NUMBA_AVAILABLE:
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = (
         spread_km_numba
-    ) = far_field_distance_numba = None
+    ) = far_field_distance_numba = walk_numba = emit_far_pushes_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None

@@ -11,6 +11,8 @@ from typing import Any
 
 import numpy as np
 
+from ._numba_kernels import NUMBA_AVAILABLE, walk_numba
+
 
 class SphereIndex:
     """Nearest-cell lookup on a spherical Delaunay mesh."""
@@ -90,7 +92,20 @@ class SphereIndex:
 
     def walk(self, current: int, x: float, y: float, z: float) -> int:
         """Greedily walk to the nearest cell from current."""
-        xyz, offsets, adjacency = self.xyz, self.adj_offset, self.adj_list
+        xyz = self.xyz
+        if NUMBA_AVAILABLE and xyz.dtype == np.float64 and xyz.ndim == 1:
+            return int(
+                walk_numba(
+                    np.ascontiguousarray(xyz),
+                    np.ascontiguousarray(self.adj_offset, dtype=np.int32),
+                    np.ascontiguousarray(self.adj_list, dtype=np.int32),
+                    int(current),
+                    float(x),
+                    float(y),
+                    float(z),
+                )
+            )
+        offsets, adjacency = self.adj_offset, self.adj_list
         offset = 3 * current
         best = x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
         improved = True

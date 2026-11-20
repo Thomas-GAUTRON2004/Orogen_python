@@ -13,14 +13,14 @@ from .crust import CrustType
 from .dynamics import update_plate_motion
 from .force_scenes import _begin
 from .initial_world import build_start_world
-from .kinematics import lat_lon_to_xyz, omega_from_euler_pole
+from .kinematics import lat_lon_to_xyz
+from .scenario_geometry import heading, omega_for
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
     add_ocean,
     fill_background,
 )
-from .world import TectonicWorld
 
 
 ROLLBACK_ONLY = {
@@ -30,37 +30,6 @@ ROLLBACK_ONLY = {
 }
 QUIET = only_mechanisms("flatSlabs", "marginIsles")
 LARAMIDE = {"speedCmYr": 5.0, "trenchLon": -118.0}
-
-
-def heading(point: list[float] | np.ndarray, bearing_deg: float) -> list[float]:
-    """Return the unit tangent at a point toward a compass bearing."""
-    p = np.asarray(point, dtype=np.float64)
-    north = normalize(
-        [-p[2] * p[0], -p[2] * p[1], 1.0 - p[2] * p[2]]
-    )
-    east = cross(north, p.tolist())
-    bearing = math.radians(bearing_deg)
-    return normalize(
-        [
-            north[index] * math.cos(bearing) + east[index] * math.sin(bearing)
-            for index in range(3)
-        ]
-    )
-
-
-def omega_for(
-    point: list[float] | np.ndarray,
-    direction: list[float] | np.ndarray,
-    speed_cm_yr: float,
-) -> list[float]:
-    """Angular velocity for moving a point along a tangent at a given speed."""
-    pole = normalize(
-        cross(
-            np.asarray(point, dtype=np.float64).tolist(),
-            np.asarray(direction, dtype=np.float64).tolist(),
-        )
-    )
-    return omega_from_euler_pole(pole, speed_cm_yr)
 
 
 def _set_motion(
@@ -248,13 +217,13 @@ def _mariana(sim_mesh: Any, seed: int):
     return world
 
 
-def _drive_mariana(world: TectonicWorld) -> None:
+def _drive_mariana(world: Any) -> None:
     point = lat_lon_to_xyz(15.0, 150.0)
     _set_motion(world, "Philippina", point, -90.0, 3.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)
 
 
-def _drive_japan(world: TectonicWorld) -> None:
+def _drive_japan(world: Any) -> None:
     point = lat_lon_to_xyz(35.0, 140.0)
     _set_motion(world, "Asiana", point, 90.0, 1.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)

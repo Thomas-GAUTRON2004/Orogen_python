@@ -123,8 +123,6 @@ from .margin_scenes import (
     buildMarginScene,
     headingForMargin,
     omegaForMargin,
-    heading,
-    omega_for,
 )
 from .occupancy import BinIndex, bin_index, mark_bin, may_have_crust_near
 from .ops.merge_plates import merge_plates
@@ -136,6 +134,7 @@ from .reconstruct import reconstruct
 from .resolve import candidate_cells, decide_birth, resolve
 from .rift_scenes import RIFT_SCENES, build_rift_scene, buildRiftScene
 from .rifting import pace_of, rift_continents, search_junctions
+from .scenario_geometry import heading, omega_for
 from .scenarios import (
     EAST_CM_YR,
     NUDGE_CM_YR,
@@ -284,8 +283,8 @@ __all__ = [
     "build_margin_scene",
     "buildMarginScene",
     "heading",
-    "headingForMargin",
     "omega_for",
+    "headingForMargin",
     "omegaForMargin",
     "is_continental",
     "landmasses",

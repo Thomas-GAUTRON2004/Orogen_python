@@ -16,9 +16,18 @@ from typing import Any
 import numpy as np
 
 from ..core.fast_noise import FastNoise
-from ..core.mesh_bfs import hop_distance
+from ..core.mesh_bfs import flood_from, hop_distance
 from ..core.seed import make_rng
-from ..core.sphere_geometry import cell_distance_km, random_point, tangent_basis
+from ..core.sim_mesh import km_to_hops
+from ..core.sphere_geometry import (
+    PLANET_RADIUS_KM,
+    angle_between,
+    bearing_to,
+    cell_distance_km,
+    polar_frame,
+    random_point,
+    tangent_basis,
+)
 from .crust import CrustFlag, CrustType, OrogenyType
 from .far_field import spread_push
 from .spread_belt import spread_belt
@@ -311,7 +320,7 @@ def _distance_km(
     return distance.astype(np.float32), strength
 
 
-def build_start_world(
+def _build_coarse_start_world(
     sim_mesh: Any, seed: int, overrides: dict | None = None
 ) -> dict[str, Any]:
     """Build a deterministic supercontinent and passive pre-history ocean.

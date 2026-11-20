@@ -99,6 +99,13 @@ from .geology import (
     thicken_cover,
 )
 from .heights import belt_relief_km, broad_profile, build_heights
+from .hotspot_scenes import (
+    DECCAN,
+    HAWAII,
+    HOTSPOT_SCENES,
+    build_hotspot_scene,
+    buildHotspotScene,
+)
 from .initial_world import StartSeam, build_start_world, buildStartWorld
 from .kinematics import (
     advance_plates,
@@ -226,6 +233,11 @@ __all__ = [
     "belt_relief_km",
     "broad_profile",
     "build_heights",
+    "DECCAN",
+    "HAWAII",
+    "HOTSPOT_SCENES",
+    "build_hotspot_scene",
+    "buildHotspotScene",
     "thicken_cover",
     "GeoFlag",
     "GEO_FRAME_FIELDS",

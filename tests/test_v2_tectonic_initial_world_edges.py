@@ -530,7 +530,7 @@ def test_margin_profile_covers_arc_and_step_segments():
     step = profile(10.0)
     step_blend = profile(53.9)
     arc = profile(147.0)
-    outside = profile(250.0)
+    outside = profile(120.0)
 
     assert step["stepKm"] > 0.0
     assert step_blend["stepKm"] < step["stepKm"]

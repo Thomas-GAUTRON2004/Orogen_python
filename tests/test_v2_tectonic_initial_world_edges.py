@@ -332,6 +332,7 @@ def test_craton_block_rejects_degenerate_outline(monkeypatch):
         "cratonMaxAspect": 1.0,
         "cratonLobes": 0.0,
         "cratonRiftEdges": (0, 0),
+        "cratonRiftDepth": (0.0, 0.0),
         "cratonMinCompact": 0.0,
     }
     with pytest.raises(ValueError, match="degenerate outline"):
@@ -402,7 +403,7 @@ def test_landmass_bridge_shortcut_and_empty_corridor():
     from orogen.v2.tectonics import initial_landmass
 
     mesh = build_sim_mesh(48, 930)
-    xyz = np.asarray(mesh.xyz, dtype=np.float64)
+    xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
     single = [{"centre": xyz[0].tolist()}]
     assert not np.any(initial_landmass._bridges(mesh, single, 0.1))
 

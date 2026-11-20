@@ -39,11 +39,7 @@ def _set_motion(
     speed_cm_yr: float,
 ) -> None:
     plate = next(
-        (
-            item
-            for item in world.plates
-            if item.name == name and item.alive
-        ),
+        (item for item in world.plates if item.name == name and item.alive),
         None,
     )
     if plate is not None:
@@ -92,8 +88,7 @@ def _arm_facing(
         if (
             rim
             and length > 0.0
-            and float(np.dot(normal, direction)) / length
-            > math.cos(math.radians(50.0))
+            and float(np.dot(normal, direction)) / length > math.cos(math.radians(50.0))
         ):
             plate.crust.arm_trench(cell, float(config["slabMatureKm"]))
 
@@ -201,9 +196,7 @@ def _mariana(sim_mesh: Any, seed: int):
         canvas,
         pacifica,
         lambda x, y, z: (
-            x * pacifica_centre[0]
-            + y * pacifica_centre[1]
-            + z * pacifica_centre[2]
+            x * pacifica_centre[0] + y * pacifica_centre[1] + z * pacifica_centre[2]
             >= pacifica_reach
         ),
         -150.0,
@@ -248,9 +241,7 @@ def _japan(sim_mesh: Any, seed: int):
         canvas,
         pacifica,
         lambda x, y, z: (
-            x * pacifica_centre[0]
-            + y * pacifica_centre[1]
-            + z * pacifica_centre[2]
+            x * pacifica_centre[0] + y * pacifica_centre[1] + z * pacifica_centre[2]
             >= reach
         ),
         -150.0,

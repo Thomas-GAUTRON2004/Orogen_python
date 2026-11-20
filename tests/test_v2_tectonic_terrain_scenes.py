@@ -62,7 +62,9 @@ def test_flagged_focus_returns_centroid_or_none_and_scene_dispatch_rejects_unkno
     mesh = build_sim_mesh(48, 2107)
     frame = {
         "owner": np.asarray([0] + [-1] * (mesh.num_cells - 1)),
-        "type": np.asarray([CrustType["CONTINENT"]] + [CrustType["OCEAN"]] * (mesh.num_cells - 1)),
+        "type": np.asarray(
+            [CrustType["CONTINENT"]] + [CrustType["OCEAN"]] * (mesh.num_cells - 1)
+        ),
         "flags": np.asarray([CrustFlag["LIP"]] + [0] * (mesh.num_cells - 1)),
     }
     focus = flagged(CrustFlag["LIP"])

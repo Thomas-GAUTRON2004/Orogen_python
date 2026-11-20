@@ -17,9 +17,7 @@ def _erosion(sim_mesh: Any, seed: int) -> TectonicWorld:
     world = build_margin_scene(sim_mesh, seed, "margins")
     world.config.update(only_mechanisms("marginIsles", "marginErosion"))
     world.config.update(mechanisms_on("marginIsles", "marginErosion"))
-    world.config.update(
-        {"marginErosionPatchKm": 1500.0, "marginErosionRateBias": 0.0}
-    )
+    world.config.update({"marginErosionPatchKm": 1500.0, "marginErosionRateBias": 0.0})
     return world
 
 

@@ -36,15 +36,19 @@ FAR_TERRANES = {
 WHOLE_PLANET_PACE = {"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3}
 
 
-def flagged(flag: int) -> Callable[[Mapping[str, Any], Any], tuple[float, float] | None]:
+def flagged(
+    flag: int,
+) -> Callable[[Mapping[str, Any], Any], tuple[float, float] | None]:
     """Return a focus callback for the centroid of land carrying a crust flag."""
 
     def focus(frame: Mapping[str, Any], sim_mesh: Any) -> tuple[float, float] | None:
         owner = np.asarray(frame["owner"])
         cell_type = np.asarray(frame["type"])
         flags = np.asarray(frame["flags"])
-        selected = (owner >= 0) & (cell_type != CrustType["OCEAN"]) & (
-            (flags & int(flag)) != 0
+        selected = (
+            (owner >= 0)
+            & (cell_type != CrustType["OCEAN"])
+            & ((flags & int(flag)) != 0)
         )
         if not np.any(selected):
             return None
@@ -82,9 +86,9 @@ def _ocean_corridor(
         distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
         if distance * PLANET_RADIUS_KM < skirt_km:
             return True
-        off_track = abs(
-            math.asin(max(-1.0, min(1.0, dot(point, axis))))
-        ) * PLANET_RADIUS_KM
+        off_track = (
+            abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
+        )
         along = math.atan2(dot(cross(first, point), axis), dot(first, point))
         return off_track < half_width_km and 0.0 < along < span
 
@@ -145,14 +149,14 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
         centre = lat_lon_to_xyz(latitude, longitude)
 
         def contains(cell: int) -> bool:
-            distance = math.acos(
-                max(-1.0, min(1.0, float(np.dot(xyz[cell], centre))))
-            )
+            distance = math.acos(max(-1.0, min(1.0, float(np.dot(xyz[cell], centre)))))
             return distance * PLANET_RADIUS_KM < radius_km
 
         return contains
 
-    def band(first_ll: tuple[float, float], second_ll: tuple[float, float], half_km: float):
+    def band(
+        first_ll: tuple[float, float], second_ll: tuple[float, float], half_km: float
+    ):
         first = lat_lon_to_xyz(*first_ll)
         second = lat_lon_to_xyz(*second_ll)
         axis = normalize(cross(first, second))
@@ -161,9 +165,9 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
 
         def contains(cell: int) -> bool:
             point = xyz[cell].tolist()
-            lateral = abs(
-                math.asin(max(-1.0, min(1.0, dot(point, axis))))
-            ) * PLANET_RADIUS_KM
+            lateral = (
+                abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
+            )
             if lateral > half_km:
                 return False
             along = math.atan2(dot(cross(first, point), axis), dot(first, point))
@@ -222,9 +226,9 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _build_traps(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world = next(
-        scene for scene in HOTSPOT_SCENES if scene["id"] == "deccan"
-    )["build"](sim_mesh, seed)
+    world = next(scene for scene in HOTSPOT_SCENES if scene["id"] == "deccan")["build"](
+        sim_mesh, seed
+    )
     for plume in world.plumes:
         plume["lifeMyr"] = 15.0
     return world

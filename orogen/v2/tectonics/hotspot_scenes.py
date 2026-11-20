@@ -91,22 +91,14 @@ def _history(sim_mesh: Any, seed: int) -> TectonicWorld:
 def _drive_hawaii(world: TectonicWorld) -> None:
     pacifica = next(plate for plate in world.plates if plate.name == "Pacifica")
     point = lat_lon_to_xyz(*HAWAII["plume"])
-    bearing = (
-        HAWAII["legs"][0]
-        if world.time < HAWAII["bendMyr"]
-        else HAWAII["legs"][1]
-    )
-    pacifica.omega = omega_for(
-        point, heading(point, bearing), HAWAII["speedCmYr"]
-    )
+    bearing = HAWAII["legs"][0] if world.time < HAWAII["bendMyr"] else HAWAII["legs"][1]
+    pacifica.omega = omega_for(point, heading(point, bearing), HAWAII["speedCmYr"])
 
 
 def _drive_deccan(world: TectonicWorld) -> None:
     indica = next(plate for plate in world.plates if plate.name == "Indica")
     point = lat_lon_to_xyz(*DECCAN["plume"])
-    indica.omega = omega_for(
-        point, heading(point, 0.0), DECCAN["speedCmYr"]
-    )
+    indica.omega = omega_for(point, heading(point, 0.0), DECCAN["speedCmYr"])
 
 
 HOTSPOT_SCENES: list[dict[str, Any]] = [

@@ -105,6 +105,15 @@ from .kinematics import (
     xyz_to_lat_lon,
 )
 from .mantle import dispersal_field, flow_of_cycle, mantle_flow_at, repel_at
+from .margin_scenes import (
+    MARGIN_SCENES,
+    build_margin_scene,
+    buildMarginScene,
+    headingForMargin,
+    omegaForMargin,
+    heading,
+    omega_for,
+)
 from .occupancy import BinIndex, bin_index, mark_bin, may_have_crust_near
 from .ops.merge_plates import merge_plates
 from .orogeny import belt_shape, belt_width_km, obliquity_deg
@@ -241,6 +250,13 @@ __all__ = [
     "mantle_flow_at",
     "dispersal_field",
     "repel_at",
+    "MARGIN_SCENES",
+    "build_margin_scene",
+    "buildMarginScene",
+    "headingForMargin",
+    "omegaForMargin",
+    "heading",
+    "omega_for",
     "is_continental",
     "landmasses",
     "track_cycle",

@@ -119,8 +119,10 @@ def _margin_profile(
                     )
                     next_offset = float(following["offset"]) if following else 0.0
                     step_offset = (
-                        float(segment["offset"]) * (1.0 - blend) + next_offset * blend
-                    ) * (1.0 - active) * _smoothstep(min(position, span - position) / 4.0)
+                        (float(segment["offset"]) * (1.0 - blend) + next_offset * blend)
+                        * (1.0 - active)
+                        * _smoothstep(min(position, span - position) / 4.0)
+                    )
                     break
         return {"bulgeKm": bulge, "stepKm": step_offset, "active": active}
 
@@ -168,7 +170,9 @@ def _bridges(
         points = xyz[eligible]
         along_a = np.arccos(np.clip(points @ a, -1.0, 1.0))
         along_b = np.arccos(np.clip(points @ b, -1.0, 1.0))
-        accepted = eligible[(along_a <= distance + half_width) & (along_b <= distance + half_width)]
+        accepted = eligible[
+            (along_a <= distance + half_width) & (along_b <= distance + half_width)
+        ]
         result[accepted] = 1
     return result
 
@@ -273,7 +277,11 @@ def shape_landmass(
                     theta - float(frame["towards"])
                 )
             value = growth[cluster] + seam_wander * (
-                noise.noise3d(x * 1.5 + 11.3 * cluster, y * 1.5 - 5.1 * cluster, z * 1.5 + 2.9 * cluster)
+                noise.noise3d(
+                    x * 1.5 + 11.3 * cluster,
+                    y * 1.5 - 5.1 * cluster,
+                    z * 1.5 + 2.9 * cluster,
+                )
                 + 0.2
                 * noise.noise3d(
                     x * 4.5 - 3.7 * cluster,
@@ -310,12 +318,16 @@ def shape_landmass(
                 elif border < nearest_two:
                     nearest_two = border
             terrane[cell] = who
-            if suture[cell] == Seam["NONE"] and nearest_two - nearest_one < 2.0 * seam_half:
+            if (
+                suture[cell] == Seam["NONE"]
+                and nearest_two - nearest_one < 2.0 * seam_half
+            ):
                 suture[cell] = Seam["INNER"]
         else:
             ring = 1 + math.floor(
                 (true_distance[first] - core) / km(clusters[first]["ringKm"])
-                + 0.35 * noise.noise3d(
+                + 0.35
+                * noise.noise3d(
                     x * 3.0 + 4.4 * first, y * 3.0 + 1.7, z * 3.0 - 2.2 * first
                 )
             )
@@ -392,11 +404,11 @@ def shape_landmass(
         lambda cell: types[cell] == CrustType["CRATON"],
         float(cfg["cratonMinCoastKm"]) + float(sim_mesh.edge_km),
     )
-    bridge = _bridges(
-        sim_mesh, cratons, km(float(cfg["bridgeHalfWidthKm"]))
-    )
+    bridge = _bridges(sim_mesh, cratons, km(float(cfg["bridgeHalfWidthKm"])))
     antipode = int(np.argmax(xyz @ -np.asarray(layout["centre"], dtype=np.float64)))
-    heart_cell = int(np.argmax(xyz @ np.asarray(cratons[0]["centre"], dtype=np.float64)))
+    heart_cell = int(
+        np.argmax(xyz @ np.asarray(cratons[0]["centre"], dtype=np.float64))
+    )
 
     def landmass(skirt: float) -> tuple[np.ndarray, int] | None:
         made = types.copy()

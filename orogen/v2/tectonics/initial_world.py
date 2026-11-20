@@ -1,10 +1,11 @@
-"""Deterministic initial-world construction for the V2 tectonic model.
+"""Deterministic V2 initial-world construction.
 
-The upstream V2 generator is a coupled geological layout search. This Python
-port keeps its public state contract and seeded stream separation while using
-mesh-native spherical caps and graph distances for a reproducible, resolution-
-aware construction. It is an explicit numerical adaptation, not a claim of
-bit-for-bit geometric parity with the JavaScript layout search.
+Production meshes use the seeded craton-packing and noise-shaped landmass
+pipeline ported from the upstream V2 initializer. The implementation preserves
+the Python world/raster contracts and uses mesh-native sampling for coastline,
+apron and trench assignment. Numerical output is not claimed to be bit-for-bit
+identical to the JavaScript engine; differential fixtures define the supported
+compatibility envelope.
 """
 
 from __future__ import annotations

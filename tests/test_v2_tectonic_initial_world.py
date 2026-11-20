@@ -381,8 +381,15 @@ def test_production_resolution_start_world_matches_javascript_reference(
             "farDz",
         )
         integer_record_fields = {
-            "oroType", "beltSide", "beltShear", "prevType", "prevSide",
-            "prevShear", "farDx", "farDy", "farDz",
+            "oroType",
+            "beltSide",
+            "beltShear",
+            "prevType",
+            "prevSide",
+            "prevShear",
+            "farDx",
+            "farDy",
+            "farDz",
         }
         for field in initial_record_fields:
             actual = getattr(continent, field)

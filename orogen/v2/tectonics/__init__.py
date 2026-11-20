@@ -134,6 +134,7 @@ from .plumes import birth_plume, update_plumes
 from .polarity import overrides
 from .reconstruct import reconstruct
 from .resolve import candidate_cells, decide_birth, resolve
+from .rift_scenes import RIFT_SCENES, build_rift_scene, buildRiftScene
 from .rifting import pace_of, rift_continents, search_junctions
 from .scenarios import (
     EAST_CM_YR,
@@ -215,6 +216,9 @@ __all__ = [
     "reconstruct",
     "contact_at",
     "resolve",
+    "RIFT_SCENES",
+    "build_rift_scene",
+    "buildRiftScene",
     "candidate_cells",
     "decide_birth",
     "Motion",

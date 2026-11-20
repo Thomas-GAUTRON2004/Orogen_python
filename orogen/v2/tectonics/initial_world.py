@@ -270,7 +270,7 @@ def _paint_old_ranges(
             lo, hi = int(offsets[cell]), int(offsets[cell + 1])
             for other_value in adjacency[lo:hi]:
                 other = int(other_value)
-                if not land_mask[other]:
+                if not crust.mask[other]:
                     continue
                 candidate = distance + cell_distance_km(mesh.xyz, cell, other)
                 if candidate >= nearest[other] or candidate > limit:

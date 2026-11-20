@@ -421,7 +421,7 @@ function buildInitialInheritedRecords(land, crust, config, seed) {
             if (current > nearest[cell] + 1e-9 || current > 2 * widthKm) continue;
             for (let edge = mesh.adjOffset[cell]; edge < mesh.adjOffset[cell + 1]; edge++) {
                 const neighbour = mesh.adjList[edge];
-                if (!crust.mask[neighbour] || crust.type[neighbour] === 0) continue;
+                if (!crust.mask[neighbour]) continue;
                 const candidate = current + cellDistanceKm(mesh.xyz, cell, neighbour);
                 if (candidate >= nearest[neighbour] || candidate > 2 * widthKm) continue;
                 nearest[neighbour] = candidate;
@@ -431,7 +431,6 @@ function buildInitialInheritedRecords(land, crust, config, seed) {
         }
         for (let cell = 0; cell < mesh.numCells; cell++) {
             const factor = keep * (Number.isFinite(nearest[cell]) ? nearestStrength[cell] : 1);
-            if (factor === keep && !Number.isFinite(nearest[cell])) continue;
             crust.rootKm[cell] = before.root[cell] + (crust.rootKm[cell] - before.root[cell]) * factor;
             crust.upliftKm[cell] = before.uplift[cell] + (crust.upliftKm[cell] - before.uplift[cell]) * factor;
             crust.rugged[cell] = before.rugged[cell] + (crust.rugged[cell] - before.rugged[cell]) * factor;

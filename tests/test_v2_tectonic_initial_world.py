@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import (
     CrustFlag,
@@ -17,7 +18,6 @@ from orogen.v2.tectonics import (
     build_start_world,
 )
 from orogen.v2.tectonics.config import TECTONICS
-
 
 _CONFIG_KEYS = (
     "cratonCount",

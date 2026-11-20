@@ -8,7 +8,7 @@ and mixed states while preserving the TectonicWorld and Plate contracts.
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -193,8 +193,8 @@ def scene_terrane(canvas: dict[str, Any]) -> int:
 
 
 def _in_sectors(azimuth: float, sectors: str | list[list[float]]) -> bool:
-    if sectors == "all":
-        return True
+    if isinstance(sectors, str):
+        return sectors == "all"
     position = float(azimuth) % 360.0
     return any(
         (position - float(start)) % 360.0 <= (float(end) - float(start)) % 360.0
@@ -293,8 +293,9 @@ def flag_coast_trench(
 ) -> None:
     """Arm exposed continental coast cells as mature trench in selected sectors."""
     xyz = _xyz(sim_mesh)
-    reference = tangent_basis(centre_xyz)[0]
-    to_polar = polar_frame(centre_xyz, reference)
+    centre = tuple(float(value) for value in centre_xyz)
+    reference = tangent_basis(centre)[0]
+    to_polar = polar_frame(centre, reference)
     crust = plate.crust
     for cell in range(int(sim_mesh.num_cells)):
         if not crust.mask[cell] or not touches(
@@ -358,7 +359,7 @@ WEST_REVERSES_MYR = 100.0
 NUDGE_MAX_MYR = 60.0
 NUDGE_CM_YR = 2.0
 
-_RIGID_PLATES = (
+_RIGID_PLATES: tuple[dict[str, Any], ...] = (
     {
         "name": "Drifter",
         "centre": (20.0, -60.0),
@@ -388,7 +389,7 @@ _RIGID_PLATES = (
         "note": "stationary reference continent",
     },
 )
-_RIGID_OCEAN = {
+_RIGID_OCEAN: dict[str, Any] = {
     "name": "Pre-history ocean",
     "centre": (90.0, 0.0),
     "poleOffsetDeg": 90.0,
@@ -421,7 +422,7 @@ def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
     world = TectonicWorld(sim_mesh, seed)
     noise = FastNoise(seed)
     xyz = _xyz(sim_mesh)
-    centres = [lat_lon_to_xyz(*definition["centre"]) for definition in _RIGID_PLATES]
+    centres = [\n        lat_lon_to_xyz(*cast(tuple[float, float], definition["centre"]))\n        for definition in _RIGID_PLATES\n    ]
     plates = []
     for definition, centre in zip(_RIGID_PLATES, centres, strict=True):
         plate = world.add_plate(str(definition["name"]))

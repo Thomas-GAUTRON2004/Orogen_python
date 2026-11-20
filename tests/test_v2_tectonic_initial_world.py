@@ -152,3 +152,57 @@ def test_production_resolution_start_world_uses_packed_landmass_path():
     assert np.all(_coverage(world) == 1)
     assert np.any(world.plates[0].crust.type == CrustType["CRATON"])
 
+
+
+
+def test_rigid_drift_scenario_builds_four_moving_continents_and_ocean():
+    from orogen.v2.tectonics import build_rigid_drift_world, set_rigid_drift_time
+
+    mesh = build_sim_mesh(128, 1201)
+    world = build_rigid_drift_world(mesh, 1202)
+
+    assert len(world.plates) == 5
+    assert np.all(_coverage(world) == 1)
+    assert world.plates[-1].isBackground
+    assert all(hasattr(plate, "scene") for plate in world.plates)
+    initial = [plate.quat.copy() for plate in world.plates]
+    set_rigid_drift_time(world, 25.0)
+    assert world.time == 25.0
+    assert any(
+        not np.allclose(before, plate.quat)
+        for before, plate in zip(initial, world.plates, strict=True)
+    )
+
+
+def test_wilson_scenario_reverses_western_plate_at_configured_time():
+    from orogen.v2.tectonics import build_wilson_world, drive_wilson
+
+    mesh = build_sim_mesh(128, 1203)
+    world = build_wilson_world(mesh, 1204)
+
+    assert len(world.plates) == 4
+    assert np.all(_coverage(world) == 1)
+    assert world.plates[0].name == "West"
+    assert world.plates[1].name == "East"
+    assert np.count_nonzero(world.plates[0].crust.flags & CrustFlag["RIFT_MARGIN"]) > 0
+
+    drive_wilson(world)
+    west_pole = np.asarray(world.plates[0].scene["motion"]["pole"])
+    assert float(np.dot(world.plates[0].omega, west_pole)) < 0.0
+    world.time = 100.0
+    drive_wilson(world)
+    assert float(np.dot(world.plates[0].omega, west_pole)) > 0.0
+    assert float(np.dot(world.plates[1].omega, west_pole)) > 0.0
+
+
+def test_nudge_scenario_returns_normalized_heading_and_drive_callback():
+    from orogen.v2.tectonics import build_nudge_scene
+
+    mesh = build_sim_mesh(96, 1205)
+    result = build_nudge_scene(mesh, 1206)
+    world = result["world"]
+    assert np.isclose(np.linalg.norm(result["heading"]), 1.0)
+    assert np.isclose(np.linalg.norm(result["pole"]), 1.0)
+    result["drive"](world)
+    continent = world.plates[result["start"]["continentId"]]
+    assert np.isclose(np.linalg.norm(continent.omega), 2.0 * 10.0 / 6371.0)

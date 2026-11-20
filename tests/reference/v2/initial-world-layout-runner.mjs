@@ -5,7 +5,7 @@ import { meshFromArrays } from "./core/sim-mesh.mjs";
 import { placeCratons } from "./tectonics/init/cratons.mjs";
 import { shapeLandmass } from "./tectonics/init/landmass.mjs";
 import { plateOutlineWithApron, chooseActiveRim } from "./tectonics/init/rim-trench.mjs";
-import { tangentBasis } from "./core/sphere-geom.mjs";
+import { tangentBasis, cellDistanceKm } from "./core/sphere-geom.mjs";
 
 const payload = JSON.parse(readFileSync(0, "utf8"));
 const { seed, config } = payload;
@@ -97,6 +97,71 @@ function summarise(candidate) {
     };
 }
 
+function compareHeapItems(left, right) {
+    return left[0] < right[0] || (left[0] === right[0] && left[1] < right[1]);
+}
+
+function heapPush(heap, item) {
+    let index = heap.length;
+    heap.push(item);
+    while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (!compareHeapItems(item, heap[parent])) break;
+        heap[index] = heap[parent];
+        index = parent;
+    }
+    heap[index] = item;
+}
+
+function heapPop(heap) {
+    const first = heap[0];
+    const last = heap.pop();
+    if (heap.length && last) {
+        let index = 0;
+        while (true) {
+            const left = index * 2 + 1;
+            if (left >= heap.length) break;
+            const right = left + 1;
+            const child = right < heap.length && compareHeapItems(heap[right], heap[left])
+                ? right : left;
+            if (!compareHeapItems(heap[child], last)) break;
+            heap[index] = heap[child];
+            index = child;
+        }
+        heap[index] = last;
+    }
+    return first;
+}
+
+function seamDistanceSummary(land, seamKind, keepStrength) {
+    const distance = new Float64Array(mesh.numCells).fill(Infinity);
+    const strength = new Float32Array(mesh.numCells);
+    const heap = [];
+    for (let cell = 0; cell < mesh.numCells; cell++) {
+        if (land.suture[cell] !== seamKind) continue;
+        distance[cell] = 0;
+        if (keepStrength) strength[cell] = land.pairRange[land.pair[cell]];
+        heapPush(heap, [0, cell]);
+    }
+    while (heap.length) {
+        const [current, cell] = heapPop(heap);
+        if (current > distance[cell] + 1e-9 || current > 3000) continue;
+        for (let edge = mesh.adjOffset[cell]; edge < mesh.adjOffset[cell + 1]; edge++) {
+            const neighbour = mesh.adjList[edge];
+            if (land.type[neighbour] === 0) continue;
+            const candidate = current + cellDistanceKm(mesh.xyz, cell, neighbour);
+            if (candidate >= distance[neighbour] || candidate > 3000) continue;
+            distance[neighbour] = candidate;
+            strength[neighbour] = strength[cell];
+            heapPush(heap, [candidate, neighbour]);
+        }
+    }
+    return {
+        distance: Array.from(Float32Array.from(distance)),
+        strength: Array.from(strength),
+    };
+}
+
 function assembleWorldSummary(layout, land) {
     const isLand = Uint8Array.from(land.type, type => type === 0 ? 0 : 1);
     const { inPlate, rim } = plateOutlineWithApron(mesh, isLand, config);
@@ -130,6 +195,8 @@ function assembleWorldSummary(layout, land) {
             }
         }
     }
+    const majorSeams = seamDistanceSummary(land, 3, true);
+    const ringSeams = seamDistanceSummary(land, 2, false);
     return {
         continentName: layout.cratons.map(craton => craton.letter).join(""),
         continentMask,
@@ -146,6 +213,11 @@ function assembleWorldSummary(layout, land) {
         passiveFrom: trench.passiveFrom,
         passiveTo: trench.passiveTo,
         reference,
+        startSeamKm: {
+            major: majorSeams.distance,
+            majorRange: majorSeams.strength,
+            ring: ringSeams.distance,
+        },
     };
 }
 

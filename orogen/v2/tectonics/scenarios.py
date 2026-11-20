@@ -422,7 +422,10 @@ def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
     world = TectonicWorld(sim_mesh, seed)
     noise = FastNoise(seed)
     xyz = _xyz(sim_mesh)
-    centres = [\n        lat_lon_to_xyz(*cast(tuple[float, float], definition["centre"]))\n        for definition in _RIGID_PLATES\n    ]
+    centres = [
+        lat_lon_to_xyz(*cast(tuple[float, float], definition["centre"]))
+        for definition in _RIGID_PLATES
+    ]
     plates = []
     for definition, centre in zip(_RIGID_PLATES, centres, strict=True):
         plate = world.add_plate(str(definition["name"]))

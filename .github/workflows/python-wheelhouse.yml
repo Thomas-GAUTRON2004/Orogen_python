@@ -48,10 +48,10 @@ jobs:
           =================================
 
           Target: CPython 3.12, Linux x86_64.
-          Contents: wheels for the project and its runtime, test, speed,
+          Contents: wheels for the project's runtime, test, speed,
           benchmark and quality dependencies, including Ruff 0.17.5.
 
-          From the repository root, with this archive extracted:
+          From the repository root, with this artifact extracted:
             python -m pip install --no-index --find-links ./wheelhouse "orogen[test,speed,quality,benchmark]"
 
           To run Ruff:
@@ -62,13 +62,13 @@ jobs:
 
           This bundle is platform- and Python-version-specific.
           EOF
-          cp dist/README.txt dist/wheelhouse/README.txt
-          (cd dist && zip -qr ../orogen-python-wheelhouse-py312-linux-x86_64.zip wheelhouse README.txt)
 
       - name: Upload dependency archive
         uses: actions/upload-artifact@v4
         with:
           name: orogen-python-wheelhouse-py312-linux-x86_64
-          path: orogen-python-wheelhouse-py312-linux-x86_64.zip
+          path: |
+            dist/wheelhouse/
+            dist/README.txt
           if-no-files-found: error
           retention-days: 14

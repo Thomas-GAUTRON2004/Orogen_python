@@ -93,10 +93,7 @@ def _body_radius(body: Mapping[str, Any], theta: float) -> float:
     return (
         float(body["a"])
         * float(body["b"])
-        / math.sqrt(
-            float(body["b"]) ** 2 * cosine**2
-            + float(body["a"]) ** 2 * sine**2
-        )
+        / math.sqrt(float(body["b"]) ** 2 * cosine**2 + float(body["a"]) ** 2 * sine**2)
         * lobe
     )
 
@@ -305,7 +302,7 @@ def _make_block(
                     beta + math.pi / 2.0,
                     math.pi,
                     km_per_unit,
-                    ease
+                    ease,
                 ),
             ]
             pieces[1]["cuts"] = [

@@ -302,7 +302,11 @@ def test_craton_outline_degenerate_and_unbounded_ray_fallback(monkeypatch):
     from orogen.v2.tectonics import initial_cratons
 
     monkeypatch.setattr(initial_cratons, "OUTLINE_SAMPLES", 1)
-    monkeypatch.setattr(initial_cratons, "_piece_shape", lambda *_args: {"d": -1.0, "rift": 0.0})
+    monkeypatch.setattr(
+        initial_cratons,
+        "_piece_shape",
+        lambda *_args: {"d": -1.0, "rift": 0.0},
+    )
     piece = {"body": {}, "cuts": [], "tu": 0.0, "tv": 0.0}
     outline = initial_cratons._trace_outline(piece)
     assert outline["area"] == 0.0
@@ -316,7 +320,13 @@ def test_craton_block_rejects_degenerate_outline(monkeypatch):
     monkeypatch.setattr(
         initial_cratons,
         "_trace_outline",
-        lambda _piece: {"points": [], "area": 0.0, "cx": 0.0, "cy": 0.0, "compact": 0.0},
+        lambda _piece: {
+            "points": [],
+            "area": 0.0,
+            "cx": 0.0,
+            "cy": 0.0,
+            "compact": 0.0,
+        },
     )
     cfg = {
         "cratonMaxDiameterKm": 10000.0,
@@ -401,14 +411,17 @@ def test_landmass_bridge_shortcut_and_empty_corridor():
     assert not np.any(initial_landmass._bridges(mesh, pair, -1.0))
 
 
-def test_pick_separated_relaxes_threshold_and_fills_remaining_candidates():
+def test_pick_craton_centres_relaxes_threshold_and_fills_remaining_candidates():
     xyz = np.tile(np.asarray([[1.0, 0.0, 0.0]]), (3, 1))
-    picked = initial_world._pick_separated(
+    picked = initial_world._pick_craton_centres(
         xyz,
         np.asarray([0, 1, 2], dtype=np.int32),
+        np.asarray([1.0, 0.0, 0.0]),
+        0.0,
         3,
         1000.0,
         1.0,
+        lambda: 0.5,
     )
     assert picked.shape == (3,)
     assert set(picked.tolist()) == {0, 1, 2}
@@ -420,7 +433,9 @@ def test_layout_attempt_skips_failed_craton_and_landmass_candidates(monkeypatch)
     monkeypatch.setattr(initial_world, "_shrink_steps", lambda _value: [1.0, 0.5])
     monkeypatch.setattr(initial_cratons, "place_cratons", lambda *_args: None)
     mesh = build_sim_mesh(48, 931)
-    tried, fit = initial_world._evaluate_layout_attempt(mesh, 1, {"cratonMinAreaScale": 1.0}, 0)
+    tried, fit = initial_world._evaluate_layout_attempt(
+        mesh, 1, {"cratonMinAreaScale": 1.0}, 0
+    )
     assert tried == []
     assert fit is None
 
@@ -443,8 +458,14 @@ def test_find_layout_uses_closest_candidate_after_last_attempt(monkeypatch):
         "attempts": 1,
     }
     monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 1)
-    monkeypatch.setattr(initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], None))
-    result = initial_world._find_layout(mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 180.0})
+    monkeypatch.setattr(
+        initial_world,
+        "_evaluate_layout_attempt",
+        lambda *_args: ([candidate], None),
+    )
+    result = initial_world._find_layout(
+        mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 180.0}
+    )
     assert result is not None
     assert result["fractionMet"] is False
 
@@ -459,10 +480,16 @@ def test_find_layout_retries_wide_fit_and_half_span_handles_empty_land(monkeypat
     candidate = {"land": {"type": land_type}, "excess": 0.0, "attempts": 1}
     monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 2)
     monkeypatch.setattr(initial_world, "_LAYOUT_RELAX_SPAN_AFTER", 1)
-    monkeypatch.setattr(initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], candidate))
+    monkeypatch.setattr(
+        initial_world,
+        "_evaluate_layout_attempt",
+        lambda *_args: ([candidate], candidate),
+    )
     monkeypatch.setattr(initial_world, "_land_centroid", lambda *_args: [1.0, 0.0, 0.0])
     monkeypatch.setattr(initial_world, "_half_span_deg", lambda *_args: 180.0)
-    result = initial_world._find_layout(mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 0.0})
+    result = initial_world._find_layout(
+        mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 0.0}
+    )
     assert result is not None
     assert result["attempts"] == 1
 

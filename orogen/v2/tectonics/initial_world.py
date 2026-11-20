@@ -221,7 +221,11 @@ def _paint_old_ranges(
                 z * 2.7 * frequency + 1.9,
             )
             strength[index] = 1.0 - vary * np.clip(0.5 + 0.6 * value, 0.0, 1.0)
-            if kind == StartSeam["MAJOR"] and pairs is not None and pair_range is not None:
+            if (
+                kind == StartSeam["MAJOR"]
+                and pairs is not None
+                and pair_range is not None
+            ):
                 pair_id = int(pairs[cell])
                 if 0 <= pair_id < len(pair_range):
                     strength[index] *= float(pair_range[pair_id])
@@ -683,7 +687,9 @@ def _evaluate_layout_attempt(
         if land is None:
             continue
         land_count = int(np.count_nonzero(land["type"] != CrustType["OCEAN"]))
-        excess = land_count / int(sim_mesh.num_cells) - float(config["continentalFraction"])
+        excess = land_count / int(sim_mesh.num_cells) - float(
+            config["continentalFraction"]
+        )
         candidate = {
             "layout": layout,
             "land": land,
@@ -705,9 +711,7 @@ def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
     return (total / length).tolist()
 
 
-def _half_span_deg(
-    sim_mesh: Any, land_type: np.ndarray, centre: list[float]
-) -> float:
+def _half_span_deg(sim_mesh: Any, land_type: np.ndarray, centre: list[float]) -> float:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     if not np.any(selected):
@@ -733,10 +737,9 @@ def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
         if chosen is None:
             continue
         middle = _land_centroid(sim_mesh, chosen["land"]["type"])
-        too_wide = (
-            _half_span_deg(sim_mesh, chosen["land"]["type"], middle)
-            > round_span + float(config["spanAllowanceDeg"])
-        )
+        too_wide = _half_span_deg(
+            sim_mesh, chosen["land"]["type"], middle
+        ) > round_span + float(config["spanAllowanceDeg"])
         if fit is not None and too_wide and attempt < _LAYOUT_RELAX_SPAN_AFTER:
             continue
         return {
@@ -747,9 +750,7 @@ def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
     return None
 
 
-def _record_start_pushes(
-    world: TectonicWorld, continent, land: dict
-) -> None:
+def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
     config = world.config
     work = float(config["farStartWorkKm"])
     if work <= 0.0:
@@ -795,9 +796,7 @@ def _assemble_upstream_start_world(
     slab_mature = float(config["slabMatureKm"])
     apron_cells = []
     trench_cells = []
-    weak_sutures = (land["suture"] == Seam["MAJOR"]) | (
-        land["suture"] == Seam["INNER"]
-    )
+    weak_sutures = (land["suture"] == Seam["MAJOR"]) | (land["suture"] == Seam["INNER"])
     for cell in range(int(mesh.num_cells)):
         if not in_plate[cell]:
             ocean.crust.create(cell, CrustType["OCEAN"], ocean_age)

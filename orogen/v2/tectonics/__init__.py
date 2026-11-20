@@ -63,6 +63,7 @@ from .far_field import (
     spread_push,
 )
 from .force_scenes import FORCE_SCENES, build_force_scene, buildForceScene
+from .event_scenes import EVENT_SCENES, build_event_scene, buildEventScene
 from .forces import FORCE_KINDS, gather_boundary_loads
 from .gather import clear_world_view, for_each_claim
 from .geology import (
@@ -157,6 +158,9 @@ __all__ = [
     "FORCE_SCENES",
     "build_force_scene",
     "buildForceScene",
+    "EVENT_SCENES",
+    "build_event_scene",
+    "buildEventScene",
     "BeltSide",
     "CrustFlag",
     "CrustRaster",

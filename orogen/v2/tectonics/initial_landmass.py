@@ -280,7 +280,7 @@ def shape_landmass(
                 )
             )
             weighted[cluster] = value
-            if value < weighted[first] if cluster else False:
+            if cluster > 0 and value < weighted[first]:
                 second, first = first, cluster
             elif cluster != first and (second < 0 or value < weighted[second]):
                 second = cluster
@@ -321,7 +321,6 @@ def shape_landmass(
             rings[cell] = ring
             terrane[cell] = len(cratons) + 1 + first * MAX_RINGS + ring - 1
 
-        craton = next(item for item in cratons if int(item["id"]) == nearest_id)
         wobble = (
             _clamp(
                 1.4

@@ -792,4 +792,3 @@ def test_upstream_assembly_handles_land_without_major_sutures(monkeypatch):
 
     result = initial_world._assemble_upstream_start_world(world, 955, found)
     assert np.all(np.isinf(result["world"].startSeamKm["major"]))
-

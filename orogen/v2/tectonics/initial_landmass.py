@@ -111,14 +111,12 @@ def _margin_profile(
             bulge = arc["height"] * (1.0 - (2.0 * ratio - 1.0) ** 2) * active
         else:
             # Step intervals tile [0, span) whenever this branch is reachable.
-            segment_index = bisect_right(
-                [segment["from"] for segment in steps], position
-            ) - 1
+            segment_index = (
+                bisect_right([segment["from"] for segment in steps], position) - 1
+            )
             segment = steps[segment_index]
             following = (
-                steps[segment_index + 1]
-                if segment_index + 1 < len(steps)
-                else None
+                steps[segment_index + 1] if segment_index + 1 < len(steps) else None
             )
             blend = (
                 _smoothstep((position - (segment["to"] - 0.5)) / 0.5)

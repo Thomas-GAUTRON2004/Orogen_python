@@ -1,3 +1,9 @@
+import copy
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -11,6 +17,83 @@ from orogen.v2.tectonics import (
     build_scenario_scene,
     build_start_world,
 )
+from orogen.v2.tectonics.config import TECTONICS
+
+
+_CONFIG_KEYS = (
+    "cratonCount",
+    "continentalFraction",
+    "cratonShare",
+    "cratonMinAreaScale",
+    "cratonSizeRatio",
+    "cratonSizeSkew",
+    "cratonMaxDiameterKm",
+    "cratonMinGapKm",
+    "cratonMinCoastKm",
+    "cratonEdgeNoiseKm",
+    "cratonMaxAspect",
+    "cratonLobes",
+    "cratonRiftEdges",
+    "cratonRiftDepth",
+    "cratonRiftSteps",
+    "cratonRiftStepKm",
+    "cratonRiftNoise",
+    "cratonMinCompact",
+    "cratonSiblingChance",
+    "clusterBlocks",
+    "clusterElongation",
+    "clusterApart",
+    "clusterGapVariety",
+    "clusterLooseness",
+    "startMaxLatitudeDeg",
+    "bridgeHalfWidthKm",
+    "coastReliefKm",
+    "coastUnionSoftnessKm",
+    "terraneBorderWanderKm",
+    "cratonGrainNoiseKm",
+    "sutureHalfWidthKm",
+    "startCoreKm",
+    "startGrowthBias",
+    "startRingKm",
+    "startSeamWanderKm",
+    "startCoastDetailKm",
+    "startArcKm",
+    "startArcRadiusKm",
+    "startStepKm",
+    "startStepOffsetKm",
+    "rimTrenchCoverage",
+    "spanAllowanceDeg",
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNNER = ROOT / "tests/reference/v2/initial-world-layout-runner.mjs"
+
+
+def _run_initial_world_reference(node: str, mesh, seed: int, config: dict):
+    payload = {
+        "seed": seed,
+        "config": {key: copy.deepcopy(config[key]) for key in _CONFIG_KEYS},
+        "mesh": {
+            "numCells": int(mesh.num_cells),
+            "xyz": np.asarray(mesh.xyz, dtype=np.float32).reshape(-1).tolist(),
+            "adjOffset": np.asarray(mesh.adj_offset, dtype=np.int32).tolist(),
+            "adjList": np.asarray(mesh.adj_list, dtype=np.int32).tolist(),
+        },
+    }
+    result = subprocess.run(
+        [node, str(RUNNER)],
+        input=json.dumps(payload, separators=(",", ":"), allow_nan=False),
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"upstream initial-world JS runner failed:\\n{result.stderr}\\n{result.stdout}"
+    )
+    return json.loads(result.stdout)
+
+
 
 
 def _coverage(world):
@@ -139,7 +222,12 @@ def test_scenario_builders_apply_configuration_overrides():
 
 def test_production_resolution_start_world_uses_packed_landmass_path():
     mesh = build_sim_mesh(512, 911)
-    result = build_start_world(mesh, 912)
+    seed = 912
+    node = shutil.which("node")
+    expected = None
+    if node is not None:
+        expected = _run_initial_world_reference(node, mesh, seed, TECTONICS)
+    result = build_start_world(mesh, seed)
     world, start = result["world"], result["start"]
 
     assert start["attempts"] >= 1
@@ -151,6 +239,38 @@ def test_production_resolution_start_world_uses_packed_landmass_path():
     assert len(world.plates) == 2
     assert np.all(_coverage(world) == 1)
     assert np.any(world.plates[0].crust.type == CrustType["CRATON"])
+
+    if expected is not None:
+        assert start["attempts"] == expected["attempts"]
+        assert start["cratonAreaScale"] == pytest.approx(expected["areaScale"], abs=0)
+        assert start["fractionMet"] is expected["fractionMet"]
+        assert start["elongation"] == pytest.approx(
+            expected["layout"]["elongation"], abs=2e-12
+        )
+        assert start["centre"] == pytest.approx(expected["middle"], abs=2e-12)
+        assert start["rimCentre"] == pytest.approx(
+            expected["land"]["rimCentre"], abs=2e-12
+        )
+        assert start["skirtKm"] == pytest.approx(expected["land"]["skirtKm"], abs=2e-8)
+        assert len(start["cratons"]) == len(expected["layout"]["cratons"])
+        for py_craton, js_craton in zip(
+            start["cratons"], expected["layout"]["cratons"], strict=True
+        ):
+            for key in ("id", "letter", "cluster"):
+                assert py_craton[key] == js_craton[key]
+            assert py_craton["centre"] == pytest.approx(js_craton["centre"], abs=2e-12)
+            for key in ("radius", "reach", "inner", "grain"):
+                assert py_craton[key] == pytest.approx(js_craton[key], abs=2e-12)
+        continent = world.plates[0].crust
+        for field in ("type", "terrane"):
+            np.testing.assert_array_equal(
+                getattr(continent, field), expected["land"][field]
+            )
+        for field in ("seams", "owner"):
+            np.testing.assert_array_equal(
+                start[field],
+                expected["land"]["suture" if field == "seams" else "owner"],
+            )
 
 
 def test_rigid_drift_scenario_builds_four_moving_continents_and_ocean():

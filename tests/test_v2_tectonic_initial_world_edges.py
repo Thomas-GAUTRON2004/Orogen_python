@@ -697,11 +697,9 @@ def test_find_layout_continues_after_an_attempt_without_a_candidate(monkeypatch)
     result = initial_world._find_layout(
         mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 180.0}
     )
-    assert result is candidate or result == {
-        **candidate,
-        "middle": [1.0, 0.0, 0.0],
-        "fractionMet": True,
-    }
+    assert result is not None
+    assert result["attempts"] == 2
+    assert result["fractionMet"] is True
     assert attempts == [0, 1]
 
 

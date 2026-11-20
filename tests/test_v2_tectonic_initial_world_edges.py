@@ -297,7 +297,6 @@ def test_scene_kit_unselected_rim_and_coast_sectors(monkeypatch):
     assert not np.any(plate.crust.flags & CrustFlag["TRENCH"])
 
 
-
 def test_craton_outline_degenerate_and_unbounded_ray_fallback(monkeypatch):
     from orogen.v2.tectonics import initial_cratons
 
@@ -439,9 +438,13 @@ def test_layout_attempt_skips_failed_craton_and_landmass_candidates(monkeypatch)
     assert tried == []
     assert fit is None
 
-    monkeypatch.setattr(initial_cratons, "place_cratons", lambda *_args: {"cratons": []})
+    monkeypatch.setattr(
+        initial_cratons, "place_cratons", lambda *_args: {"cratons": []}
+    )
     monkeypatch.setattr(initial_world, "_shape_attempt", lambda *_args: None)
-    tried, fit = initial_world._evaluate_layout_attempt(mesh, 1, {"cratonMinAreaScale": 1.0}, 0)
+    tried, fit = initial_world._evaluate_layout_attempt(
+        mesh, 1, {"cratonMinAreaScale": 1.0}, 0
+    )
     assert tried == []
     assert fit is None
 

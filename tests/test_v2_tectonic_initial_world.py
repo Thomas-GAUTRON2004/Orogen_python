@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import (
     CrustFlag,

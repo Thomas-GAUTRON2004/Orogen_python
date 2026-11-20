@@ -229,7 +229,9 @@ def test_production_resolution_start_world_matches_javascript_reference(
     expected = None
     if node is not None:
         expected = _run_initial_world_reference(node, mesh, seed, TECTONICS)
-        assert expected is not None, "JavaScript reference did not produce a start-world layout"
+        assert expected is not None, (
+            "JavaScript reference did not produce a start-world layout"
+        )
     result = build_start_world(mesh, seed)
     world, start = result["world"], result["start"]
 

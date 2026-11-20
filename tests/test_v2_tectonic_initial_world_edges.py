@@ -527,10 +527,7 @@ def test_margin_profile_covers_arc_and_step_segments():
         "startStepOffsetKm": (1000.0, 1000.0),
     }
     # Five arcs consume two draws each; use opposite signs for adjacent steps.
-    rng_values = iter(
-        [0.5] * 10
-        + [0.5, 0.9, 0.5, 0.5, 0.0, 0.5, 0.5, 0.9, 0.5]
-    )
+    rng_values = iter([0.5] * 10 + [0.5, 0.9, 0.5, 0.5, 0.0, 0.5, 0.5, 0.9, 0.5])
     profile = _margin_profile(
         lambda: next(rng_values), cfg, {"from": 0.0, "span": 120.0}
     )

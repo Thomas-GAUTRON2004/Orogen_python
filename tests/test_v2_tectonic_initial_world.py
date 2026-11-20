@@ -217,13 +217,19 @@ def test_scenario_builders_apply_configuration_overrides():
             assert np.all(plate.crust.formedAt[mask] == expected_age)
 
 
-def test_production_resolution_start_world_uses_packed_landmass_path():
-    mesh = build_sim_mesh(512, 911)
-    seed = 912
+@pytest.mark.parametrize(
+    ("mesh_cells", "seed"),
+    ((512, 912), (768, 777)),
+)
+def test_production_resolution_start_world_matches_javascript_reference(
+    mesh_cells: int, seed: int
+):
+    mesh = build_sim_mesh(mesh_cells, 911)
     node = shutil.which("node")
     expected = None
     if node is not None:
         expected = _run_initial_world_reference(node, mesh, seed, TECTONICS)
+        assert expected is not None, "JavaScript reference did not produce a start-world layout"
     result = build_start_world(mesh, seed)
     world, start = result["world"], result["start"]
 
@@ -268,6 +274,35 @@ def test_production_resolution_start_world_uses_packed_landmass_path():
                 start[field],
                 expected["land"]["suture" if field == "seams" else "owner"],
             )
+
+        # Compare the JavaScript plate/crust assembly after the landmass is
+        # wrapped in the smoothed ocean apron and active/passive rim sectors.
+        reference_world = expected["world"]
+        continent, ocean = world.plates
+        np.testing.assert_array_equal(
+            continent.crust.mask, reference_world["continentMask"]
+        )
+        np.testing.assert_array_equal(ocean.crust.mask, reference_world["oceanMask"])
+        for field in ("type", "flags", "terrane", "slabKm", "formedAt"):
+            np.testing.assert_array_equal(
+                getattr(continent.crust, field), reference_world[field]
+            )
+        np.testing.assert_array_equal(
+            ocean.crust.formedAt, reference_world["oceanFormedAt"]
+        )
+        assert continent.name == reference_world["continentName"]
+        assert continent.born == pytest.approx(reference_world["born"], abs=0)
+        assert start["rim"].tolist() == reference_world["rim"]
+        assert start["trench"].tolist() == reference_world["trench"]
+        assert start["passiveFrom"] == pytest.approx(
+            reference_world["passiveFrom"], abs=2e-12
+        )
+        assert start["passiveTo"] == pytest.approx(
+            reference_world["passiveTo"], abs=2e-12
+        )
+        assert start["reference"] == pytest.approx(
+            reference_world["reference"], abs=2e-12
+        )
 
 
 def test_rigid_drift_scenario_builds_four_moving_continents_and_ocean():

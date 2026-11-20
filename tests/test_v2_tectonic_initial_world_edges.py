@@ -615,7 +615,9 @@ def test_shape_landmass_rejects_craton_at_antipode_and_disconnected_final_land(
         return np.ones(mesh.num_cells, dtype=np.uint8)
 
     monkeypatch.setattr(initial_landmass, "flood_from", flood)
-    assert initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+    assert (
+        initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+    )
 
 
 def test_find_layout_returns_none_after_all_wide_attempts(monkeypatch):

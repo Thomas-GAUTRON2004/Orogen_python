@@ -5,6 +5,12 @@ import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import initial_world, scenarios
+from orogen.v2.tectonics.crust import CrustFlag, CrustType
+
+
+def _coverage(world):
+    masks = np.stack([plate.crust.mask.astype(bool) for plate in world.plates])
+    return masks.sum(axis=0)
 
 
 def test_mesh_xyz_rejects_inconsistent_cell_count():

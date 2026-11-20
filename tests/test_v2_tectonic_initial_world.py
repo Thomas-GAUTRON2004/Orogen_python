@@ -94,7 +94,6 @@ def _run_initial_world_reference(node: str, mesh, seed: int, config: dict):
 
 
 
-
 def _coverage(world):
     masks = np.stack([plate.crust.mask.astype(bool) for plate in world.plates])
     return masks.sum(axis=0)

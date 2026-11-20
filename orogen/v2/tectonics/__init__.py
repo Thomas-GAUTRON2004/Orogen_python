@@ -169,6 +169,12 @@ from .spread_belt import spread_belt
 from .stepper import step_world
 from .subduction_init import founder_within_plates, initiate_subduction
 from .supercontinent import is_continental, landmasses, track_cycle
+from .terrain_scenes import (
+    FAR_TERRANES,
+    TERRAIN_SCENES,
+    build_terrain_scene,
+    buildTerrainScene,
+)
 from .thermal import (
     insulate_at_start,
     pick_plume_site,
@@ -288,6 +294,10 @@ __all__ = [
     "insulate_at_start",
     "update_mantle_heat",
     "plume_heat_factor",
+    "FAR_TERRANES",
+    "TERRAIN_SCENES",
+    "build_terrain_scene",
+    "buildTerrainScene",
     "pick_plume_site",
     "birth_plume",
     "update_plumes",

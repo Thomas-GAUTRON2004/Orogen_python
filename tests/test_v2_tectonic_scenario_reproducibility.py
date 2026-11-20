@@ -1,31 +1,54 @@
+from importlib import import_module
+
 import numpy as np
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics.budget_scenes import build_budget_scene
-from orogen.v2.tectonics.collision_scenes import build_collision_scene
-from orogen.v2.tectonics.event_scenes import build_event_scene
-from orogen.v2.tectonics.force_scenes import build_force_scene
-from orogen.v2.tectonics.hotspot_scenes import build_hotspot_scene
-from orogen.v2.tectonics.margin_scenes import build_margin_scene
-from orogen.v2.tectonics.rift_scenes import build_rift_scene
-from orogen.v2.tectonics.terrain_scenes import build_terrain_scene
 
 
 _SCENARIOS = (
-    pytest.param(build_event_scene, "wings", id="event-wings"),
-    pytest.param(build_budget_scene, "erosion", id="budget-erosion"),
-    pytest.param(build_force_scene, "one-sided", id="force-one-sided"),
-    pytest.param(build_margin_scene, "margins", id="margin-margins"),
-    pytest.param(build_rift_scene, "plume", id="rift-plume"),
-    pytest.param(build_terrain_scene, "andes", id="terrain-andes"),
-    pytest.param(build_hotspot_scene, "hawaii", id="hotspot-hawaii"),
-    pytest.param(build_collision_scene, "zipper", id="collision-zipper"),
+    pytest.param(
+        "orogen.v2.tectonics.event_scenes", "build_event_scene", "wings",
+        id="event-wings",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.budget_scenes", "build_budget_scene", "erosion",
+        id="budget-erosion",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.force_scenes", "build_force_scene", "one-sided",
+        id="force-one-sided",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.margin_scenes", "build_margin_scene", "margins",
+        id="margin-margins",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.rift_scenes", "build_rift_scene", "plume",
+        id="rift-plume",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.terrain_scenes", "build_terrain_scene", "andes",
+        id="terrain-andes",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.hotspot_scenes", "build_hotspot_scene", "hawaii",
+        id="hotspot-hawaii",
+    ),
+    pytest.param(
+        "orogen.v2.tectonics.collision_scenes", "build_collision_scene", "zipper",
+        id="collision-zipper",
+    ),
 )
 
 
-@pytest.mark.parametrize(("builder", "scenario"), _SCENARIOS)
-def test_scenario_family_builders_reproduce_the_same_seeded_world(builder, scenario):
+@pytest.mark.parametrize(
+    ("module_path", "builder_name", "scenario"), _SCENARIOS
+)
+def test_scenario_family_builders_reproduce_the_same_seeded_world(
+    module_path, builder_name, scenario
+):
+    builder = getattr(import_module(module_path), builder_name)
     mesh = build_sim_mesh(512, 7701)
     first = builder(mesh, 7702, scenario)
     second = builder(mesh, 7702, scenario)

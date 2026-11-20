@@ -25,6 +25,11 @@ from .collision import (
     track_collisions,
     underthrust,
 )
+from .collision_scenes import (
+    COLLISION_SCENES,
+    build_collision_scene,
+    buildCollisionScene,
+)
 from .config import (
     CM_PER_YR_TO_KM_PER_MYR,
     CM_PER_YR_TO_RAD_PER_MYR,
@@ -173,6 +178,9 @@ __all__ = [
     "EventKind",
     "Provisional",
     "TectonicWorld",
+    "COLLISION_SCENES",
+    "build_collision_scene",
+    "buildCollisionScene",
     "BinIndex",
     "bin_index",
     "mark_bin",

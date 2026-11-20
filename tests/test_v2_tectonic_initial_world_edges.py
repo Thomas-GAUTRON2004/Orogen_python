@@ -227,3 +227,67 @@ def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
     assert np.all(_coverage(world) == 1)
     assert np.all(canvas["taken"] == 1)
     assert np.count_nonzero(plate.crust.flags & CrustFlag["TRENCH"]) > 0
+
+
+
+def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
+    from orogen.v2.core.fast_noise import FastNoise
+    from orogen.v2.tectonics.scenarios import add_continent, scene_canvas
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(48, 920)
+    world = TectonicWorld(mesh, 921)
+    plate = world.add_plate("Validation")
+    canvas = scene_canvas(mesh, world.config)
+
+    with pytest.raises(ValueError, match="radius_km"):
+        add_continent(canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=0)
+    with pytest.raises(ValueError, match="wobble"):
+        add_continent(
+            canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=1000, wobble=-1
+        )
+    with pytest.raises(ValueError, match="craton_km"):
+        add_continent(
+            canvas,
+            FastNoise(922),
+            plate=plate,
+            centre=(0, 0),
+            radius_km=1000,
+            craton_km=1001,
+        )
+
+    canvas["taken"][:] = 1
+    result = add_continent(
+        canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=1000
+    )
+    assert not np.any(result["isLand"])
+
+
+def test_scene_kit_unselected_rim_and_coast_sectors(monkeypatch):
+    from orogen.v2.tectonics.scenarios import (
+        add_apron_and_trench,
+        flag_coast_trench,
+        scene_canvas,
+    )
+    from orogen.v2.tectonics.world import TectonicWorld
+
+    mesh = build_sim_mesh(48, 923)
+    world = TectonicWorld(mesh, 924)
+    plate = world.add_plate("Sector fixture")
+    canvas = scene_canvas(mesh, world.config)
+    centre = [1.0, 0.0, 0.0]
+    continent = {"centre": centre, "isLand": np.zeros(mesh.num_cells, dtype=np.uint8)}
+    in_plate = np.zeros(mesh.num_cells, dtype=bool)
+    in_plate[1] = True
+    monkeypatch.setattr(
+        scenarios,
+        "_plate_outline_with_apron",
+        lambda *_args: (in_plate, np.asarray([1], dtype=np.int32)),
+    )
+    add_apron_and_trench(canvas, plate, continent, [], world.config)
+    assert plate.crust.mask[1]
+    assert not (plate.crust.flags[1] & CrustFlag["TRENCH"])
+
+    plate.crust.create(0, CrustType["CONTINENT"], -1000.0)
+    flag_coast_trench(mesh, plate, centre, [], world.config)
+    assert not np.any(plate.crust.flags & CrustFlag["TRENCH"])

@@ -107,7 +107,16 @@ def _run_initial_world_reference(node: str, mesh, seed: int, config: dict):
     assert result.returncode == 0, (
         f"upstream initial-world JS runner failed:\\n{result.stderr}\\n{result.stdout}"
     )
-    return json.loads(result.stdout)
+    reference = json.loads(result.stdout)
+    # JSON.stringify serializes JavaScript Infinity values as null. Restore
+    # that transport representation for unreachable seam distances so the
+    # differential comparison preserves the reference's numeric semantics.
+    for field in ("major", "ring"):
+        distances = reference["world"]["startSeamKm"][field]
+        reference["world"]["startSeamKm"][field] = [
+            float("inf") if value is None else value for value in distances
+        ]
+    return reference
 
 
 def _coverage(world):

@@ -18,6 +18,7 @@ from orogen.v2.tectonics import (
     build_start_world,
 )
 from orogen.v2.tectonics.config import TECTONICS
+from orogen.v2.tectonics.initial_world import _plate_outline_with_apron
 
 _CONFIG_KEYS = (
     "cratonCount",
@@ -297,6 +298,23 @@ def test_production_resolution_start_world_matches_javascript_reference(
         # wrapped in the smoothed ocean apron and active/passive rim sectors.
         reference_world = expected["world"]
         continent, ocean = world.plates
+        python_in_plate, _python_rim = _plate_outline_with_apron(
+            mesh,
+            np.asarray(expected["land"]["type"]) != CrustType["OCEAN"],
+            world.config,
+        )
+        np.testing.assert_array_equal(
+            python_in_plate,
+            reference_world["continentMask"],
+            err_msg=(
+                "Python/JavaScript apron mismatch: "
+                f"Python cells={int(np.count_nonzero(python_in_plate))}, "
+                f"JavaScript cells={int(np.count_nonzero(reference_world['continentMask']))}, "
+                f"Python hops=({world.config['apronKm'] / mesh.edge_km:.6f}, "
+                f"{world.config['apronSmoothKm'] / mesh.edge_km:.6f}), "
+                f"JavaScript diagnostics={reference_world['apronDiagnostics']}"
+            ),
+        )
         np.testing.assert_array_equal(
             continent.crust.mask, reference_world["continentMask"]
         )

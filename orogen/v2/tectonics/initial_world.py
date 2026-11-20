@@ -280,16 +280,13 @@ def _paint_old_ranges(
                 heapq.heappush(queue, (candidate, other))
 
         affected = np.isfinite(nearest)
-        relief_keep = keep * nearest_strength
+        relief_keep = keep * np.where(affected, nearest_strength, 1.0)
         for field, previous in (
             (crust.rootKm, before["root"]),
             (crust.upliftKm, before["uplift"]),
             (crust.rugged, before["rugged"]),
         ):
-            field[affected] = (
-                previous[affected]
-                + (field[affected] - previous[affected]) * relief_keep[affected]
-            )
+            field[:] = previous + (field - previous) * relief_keep
 
 
 def _distance_km(

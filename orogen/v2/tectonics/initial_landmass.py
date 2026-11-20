@@ -422,9 +422,13 @@ def shape_landmass(
         np.argmax(xyz @ np.asarray(cratons[0]["centre"], dtype=np.float64))
     )
 
+    # JavaScript reads Float32Array values as Numbers before adding them.
+    # Keep this sum in float64 instead of rounding it back to float32 as NumPy does.
+    coast_level = field.astype(np.float64) + shape.astype(np.float64)
+
     def landmass(skirt: float) -> tuple[np.ndarray, int] | None:
         made = types.copy()
-        add_land = (near_craton != 0) | (bridge != 0) | (field + shape < skirt)
+        add_land = (near_craton != 0) | (bridge != 0) | (coast_level < skirt)
         made[(made != CrustType["CRATON"]) & add_land] = CrustType["CONTINENT"]
         if made[antipode] != CrustType["OCEAN"]:
             return None
@@ -442,7 +446,7 @@ def shape_landmass(
         made[land_cells & (mainland == 0)] = CrustType["OCEAN"]
         return made, int(np.count_nonzero(made != CrustType["OCEAN"]))
 
-    lower = float(np.min(field + shape)) - 0.01
+    lower = float(np.min(coast_level)) - 0.01
     upper = 0.7
     for _ in range(24):
         skirt = (lower + upper) / 2.0

@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Callable
-
-import numpy as np
+from typing import Any
 
 from ..core.fast_noise import FastNoise
 from ..core.sphere_geometry import (
@@ -20,19 +18,16 @@ from .scenarios import (
     add_apron_and_trench,
     add_continent,
     add_ocean,
+    build_wilson_world,
     fill_background,
     flag_coast_trench,
     scene_canvas,
-    build_wilson_world,
 )
 from .world import TectonicWorld
 
 WEST = [[125.0, 235.0]]
 EAST = [[-55.0, 55.0]]
 WILSON_HOME = (8.0, -40.0)
-
-SceneBuilder = Callable[[Any, int], TectonicWorld]
-
 
 def _begin(sim_mesh: Any, seed: int):
     world = TectonicWorld(sim_mesh, seed)

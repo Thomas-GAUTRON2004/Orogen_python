@@ -588,7 +588,6 @@ def _build_coarse_start_world(
 # The public builder is replaced below after retaining the fixture implementation.
 
 
-
 _MAX_LAYOUT_ATTEMPTS = 24
 _LAYOUT_RELAX_SPAN_AFTER = 18
 _LAYOUT_FRACTION_TOLERANCE = 0.004

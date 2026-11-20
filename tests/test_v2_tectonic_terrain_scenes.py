@@ -36,16 +36,24 @@ def test_terrain_scenes_build_complete_land_and_ocean_partitions(scene_id):
     world = build_terrain_scene(mesh, 2102, scene_id)
     assert np.all(_coverage(world) == 1)
     assert all(plate.crust.count > 0 for plate in world.plates)
+    if scene_id == "traps":
+        scene = next(item for item in TERRAIN_SCENES if item["id"] == scene_id)
+        scene["drive"](world)
+        assert np.linalg.norm(world.plates[0].omega) > 0.0
 
 
 def test_farfield_scene_preserves_named_terrane_features_and_partition():
-    mesh = build_sim_mesh(4096, 2103)
+    mesh = build_sim_mesh(16384, 2103)
     world = build_terrain_scene(mesh, 2104, "farfield")
     assert np.all(_coverage(world) == 1)
     assert set(FAR_TERRANES.values()) == {901, 902, 903, 904, 905}
     asia = world.plates[0]
     assert np.count_nonzero(asia.crust.terrane == FAR_TERRANES["tarim"]) > 0
     assert np.count_nonzero(asia.crust.terrane == FAR_TERRANES["siberia"]) > 0
+    assert np.count_nonzero(asia.crust.terrane == FAR_TERRANES["across"]) > 0
+    assert np.count_nonzero(asia.crust.terrane == FAR_TERRANES["along"]) > 0
+    assert np.count_nonzero(asia.crust.terrane == FAR_TERRANES["aulacogen"]) > 0
+    assert np.count_nonzero(asia.crust.flags & CrustFlag["FAILED_RIFT"]) > 0
 
 
 def test_terrain_history_and_cycle_apply_whole_planet_pacing():
@@ -73,6 +81,18 @@ def test_flagged_focus_returns_centroid_or_none_and_scene_dispatch_rejects_unkno
     assert np.isfinite(result).all()
     frame["flags"][:] = 0
     assert focus(frame, mesh) is None
+
+    antipodal_mesh = type(
+        "Mesh",
+        (),
+        {"xyz": np.asarray([1.0, 0.0, 0.0, -1.0, 0.0, 0.0], dtype=np.float64)},
+    )()
+    antipodal_frame = {
+        "owner": np.asarray([0, 0]),
+        "type": np.asarray([CrustType["CONTINENT"], CrustType["CONTINENT"]]),
+        "flags": np.asarray([CrustFlag["LIP"], CrustFlag["LIP"]]),
+    }
+    assert focus(antipodal_frame, antipodal_mesh) is None
 
     assert {scene["id"] for scene in TERRAIN_SCENES} == {
         "andes",

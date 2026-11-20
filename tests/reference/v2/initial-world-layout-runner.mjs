@@ -165,6 +165,11 @@ function seamDistanceSummary(land, seamKind, keepStrength) {
 function assembleWorldSummary(layout, land) {
     const isLand = Uint8Array.from(land.type, type => type === 0 ? 0 : 1);
     const { inPlate, rim } = plateOutlineWithApron(mesh, isLand, config);
+    const apronHops = Math.max(1, Math.round(config.apronKm / mesh.edgeKm));
+    const smoothHops = Math.max(1, Math.round(config.apronSmoothKm / mesh.edgeKm));
+    const fromLand = hopDistance(mesh, cell => isLand[cell] === 1, apronHops + smoothHops);
+    const grown = Uint8Array.from(fromLand, distance => distance >= 0 ? 1 : 0);
+    const fromOutside = hopDistance(mesh, cell => grown[cell] === 0, smoothHops);
     const reference = tangentBasis(land.rimCentre)[0];
     const trench = chooseActiveRim(mesh, rim, land.rimCentre, reference, land.passive);
     const numCells = mesh.numCells;
@@ -213,6 +218,15 @@ function assembleWorldSummary(layout, land) {
         passiveFrom: trench.passiveFrom,
         passiveTo: trench.passiveTo,
         reference,
+        apronDiagnostics: {
+            edgeKm: mesh.edgeKm,
+            apronHops,
+            smoothHops,
+            landCells: Array.from(isLand).reduce((sum, value) => sum + value, 0),
+            grownCells: Array.from(grown).reduce((sum, value) => sum + value, 0),
+            inPlateCells: Array.from(inPlate).reduce((sum, value) => sum + value, 0),
+            outsideReached: Array.from(fromOutside).filter(distance => distance >= 0).length,
+        },
         startSeamKm: {
             major: majorSeams.distance,
             majorRange: majorSeams.strength,

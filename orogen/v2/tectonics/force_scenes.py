@@ -51,9 +51,9 @@ def _add_ocean_between(
         distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
         if distance * PLANET_RADIUS_KM < skirt_km:
             return True
-        off_track = abs(
-            math.asin(max(-1.0, min(1.0, dot(point, axis))))
-        ) * PLANET_RADIUS_KM
+        off_track = (
+            abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
+        )
         along = math.atan2(dot(cross(first, point), axis), dot(first, point))
         return off_track < half_width_km and 0.0 < along < span
 
@@ -127,9 +127,7 @@ def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
         centre=(40.0, 72.0),
         radius_km=2800.0,
     )
-    add_apron_and_trench(
-        canvas, asia, asia_land, [[215.0, 325.0]], world.config
-    )
+    add_apron_and_trench(canvas, asia, asia_land, [[215.0, 325.0]], world.config)
     india_land = add_continent(
         canvas,
         noise,
@@ -227,7 +225,10 @@ FORCE_SCENES: list[dict[str, Any]] = [
             "going down Asia's trench: slab pull should make India race north, then "
             "slow sharply when the two landmasses meet."
         ),
-        "expect": {"India": ["subducting", "colliding"], "Asia": ["active", "colliding"]},
+        "expect": {
+            "India": ["subducting", "colliding"],
+            "Asia": ["active", "colliding"],
+        },
         "checklist": [
             "India, whose own ocean floor is going down Asia's trench, should be "
             "several times faster than a suction-driven continent (yellow slab-pull arrow).",
@@ -268,7 +269,9 @@ def build_force_scene(
         if definition["id"] == key:
             return definition["build"](sim_mesh, int(seed))
     available = ", ".join(definition["id"] for definition in FORCE_SCENES)
-    raise ValueError(f"unknown force scenario {scenario!r}; expected one of: {available}")
+    raise ValueError(
+        f"unknown force scenario {scenario!r}; expected one of: {available}"
+    )
 
 
 # Mechanical alias matching the upstream catalogue naming.

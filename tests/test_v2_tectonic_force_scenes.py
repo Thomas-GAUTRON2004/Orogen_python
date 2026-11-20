@@ -16,7 +16,9 @@ def _coverage(world):
 
 
 @pytest.mark.parametrize("scene_id", [scene["id"] for scene in FORCE_SCENES])
-def test_force_scene_catalogue_builders_make_complete_deterministic_partitions(scene_id):
+def test_force_scene_catalogue_builders_make_complete_deterministic_partitions(
+    scene_id,
+):
     mesh = build_sim_mesh(128, 1401)
     first = build_force_scene(mesh, 1402, scene_id)
     second = build_force_scene(mesh, 1402, scene_id)

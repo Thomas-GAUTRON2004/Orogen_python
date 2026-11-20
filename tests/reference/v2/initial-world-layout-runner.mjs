@@ -279,6 +279,8 @@ function spreadInitialRange(crust, sources, widths, works, time, config) {
                 * Number(config.thickeningPerWorkKm);
         crust.thickKm[cell] += thickened;
         const heights = config.heights ?? {};
+        // Match upstream buildHeights: the crustal root grows with the belt's thickening.
+        crust.rootKm[cell] += thickened * Number(heights.rootGain?.[3] ?? 1);
         const relief = Number(heights.reliefKm?.[3] ?? 1.7)
             * (Number(heights.youngShare ?? 0.55)
                 + (1 - Number(heights.youngShare ?? 0.55))

@@ -4,6 +4,8 @@ import { FastNoise } from "./core/fast-noise.mjs";
 import { meshFromArrays } from "./core/sim-mesh.mjs";
 import { placeCratons } from "./tectonics/init/cratons.mjs";
 import { shapeLandmass } from "./tectonics/init/landmass.mjs";
+import { plateOutlineWithApron, chooseActiveRim } from "./tectonics/init/rim-trench.mjs";
+import { tangentBasis } from "./core/sphere-geom.mjs";
 
 const payload = JSON.parse(readFileSync(0, "utf8"));
 const { seed, config } = payload;
@@ -91,6 +93,59 @@ function summarise(candidate) {
             rimCentre: land.rimCentre,
             passive: land.passive,
         },
+        world: assembleWorldSummary(layout, land),
+    };
+}
+
+function assembleWorldSummary(layout, land) {
+    const isLand = Uint8Array.from(land.type, type => type === 0 ? 0 : 1);
+    const { inPlate, rim } = plateOutlineWithApron(mesh, isLand, config);
+    const reference = tangentBasis(land.rimCentre)[0];
+    const trench = chooseActiveRim(mesh, rim, land.rimCentre, reference, land.passive);
+    const numCells = mesh.numCells;
+    const type = new Uint8Array(numCells);
+    const flags = new Uint8Array(numCells);
+    const formedAt = new Float32Array(numCells);
+    const terrane = new Uint16Array(numCells);
+    const slabKm = new Float32Array(numCells);
+    const continentMask = Array.from(inPlate);
+    const oceanMask = Array.from(inPlate, value => value ? 0 : 1);
+    const oceanFormedAt = Array.from(oceanMask, value => value ? -Number(config.initialOceanAgeMyr) : 0);
+    for (let cell = 0; cell < numCells; cell++) {
+        if (!inPlate[cell]) continue;
+        const landType = land.type[cell];
+        type[cell] = landType;
+        if (landType === 0) {
+            flags[cell] |= 32; // CrustFlag.APRON
+            formedAt[cell] = -Number(config.initialOceanAgeMyr);
+            if (trench.active[cell]) {
+                flags[cell] |= 1; // CrustFlag.TRENCH
+                slabKm[cell] = Number(config.slabMatureKm);
+            }
+        } else {
+            formedAt[cell] = -Number(config.initialLandAgeMyr);
+            terrane[cell] = land.terrane[cell];
+            if (land.suture[cell] === 1 || land.suture[cell] === 3) {
+                flags[cell] |= 2; // CrustFlag.SUTURE
+            }
+        }
+    }
+    return {
+        continentName: layout.cratons.map(craton => craton.letter).join(""),
+        continentMask,
+        oceanMask,
+        type: Array.from(type),
+        flags: Array.from(flags),
+        formedAt: Array.from(formedAt),
+        terrane: Array.from(terrane),
+        slabKm: Array.from(slabKm),
+        oceanFormedAt,
+        born: -Number(config.riftTenureMyr),
+        rim,
+        trench: Array.from(trench.active, (value, cell) => value ? cell : -1).filter(cell => cell >= 0),
+        passiveFrom: trench.passiveFrom,
+        passiveTo: trench.passiveTo,
+        reference,
     };
 }
 

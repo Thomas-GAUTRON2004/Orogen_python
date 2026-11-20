@@ -29,6 +29,7 @@ WEST = [[125.0, 235.0]]
 EAST = [[-55.0, 55.0]]
 WILSON_HOME = (8.0, -40.0)
 
+
 def _begin(sim_mesh: Any, seed: int):
     world = TectonicWorld(sim_mesh, seed)
     return world, scene_canvas(sim_mesh, world.config), FastNoise(seed)

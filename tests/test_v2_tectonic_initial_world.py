@@ -61,6 +61,15 @@ _CONFIG_KEYS = (
     "farCratonTake",
     "farWeakTake",
     "farFoldMyr",
+    "startRangeVary",
+    "startRangeVaryKm",
+    "orogenyQuietMyr",
+    "weakCellCost",
+    "cratonRimKm",
+    "cratonRimCost",
+    "cratonRimShare",
+    "beltWorkShare",
+    "thickeningPerWorkKm",
     "startRanges",
     "bridgeHalfWidthKm",
     "coastReliefKm",
@@ -339,6 +348,55 @@ def test_production_resolution_start_world_matches_javascript_reference(
             np.testing.assert_array_equal(
                 world.startSeamKm[field], reference_world["startSeamKm"][field]
             )
+
+        # Compare the inherited pre-history ranges and far-field assembly pushes
+        # against the pinned JavaScript start-world implementation.
+        initial_record_fields = (
+            "oroType",
+            "oroWork",
+            "oroStart",
+            "oroLast",
+            "beltU",
+            "beltReach",
+            "beltAt",
+            "beltSide",
+            "beltShear",
+            "prevType",
+            "prevLast",
+            "prevU",
+            "prevReach",
+            "prevSide",
+            "prevShear",
+            "prevRugged",
+            "thickKm",
+            "rootKm",
+            "upliftKm",
+            "rugged",
+            "farWork",
+            "farDist",
+            "farFold",
+            "farAt",
+            "farDx",
+            "farDy",
+            "farDz",
+        )
+        integer_record_fields = {
+            "oroType", "beltSide", "beltShear", "prevType", "prevSide",
+            "prevShear", "farDx", "farDy", "farDz",
+        }
+        for field in initial_record_fields:
+            actual = getattr(continent, field)
+            reference = reference_world["initialRecords"][field]
+            if field in integer_record_fields:
+                np.testing.assert_array_equal(actual, reference, err_msg=field)
+            else:
+                np.testing.assert_allclose(
+                    actual,
+                    reference,
+                    rtol=2e-5,
+                    atol=2e-5,
+                    err_msg=field,
+                )
         assert continent.name == reference_world["continentName"]
         assert continent.born == pytest.approx(reference_world["born"], abs=0)
         assert start["rim"].tolist() == reference_world["rim"]

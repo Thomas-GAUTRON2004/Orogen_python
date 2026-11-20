@@ -17,6 +17,12 @@ the isolated world-state fixture were adjusted. Algorithms are not rewritten.
 Do not edit reference algorithms to make Python comparisons pass; rebase them only
 when intentionally moving to a new upstream commit, and record that commit here.
 
+The initial-world runner also reproduces the inherited-range and far-field
+start-push record stages from upstream `v2/js/tectonics/init/start-world.js`,
+`v2/js/tectonics/step/orogeny.js`, and `v2/js/tectonics/step/far-field.js`
+at the same pinned commit. It compares the generated orogeny, belt geometry,
+relief, and far-field arrays; do not relax those comparisons to hide a mismatch.
+
 The sphere-mesh differential tests install Delaunator 5.0.1 in CI and compare
 Fibonacci coordinates, stereographic projection, triangle connectivity, region
 adjacency, mesh metrics, and nearest-cell lookup.

@@ -54,6 +54,7 @@ from .dynamics import (
     update_plate_motion,
 )
 from .ending import ENDINGS, frames_ending, history_ending, in_stage
+from .force_scenes import FORCE_SCENES, build_force_scene, buildForceScene
 from .far_field import (
     evolve_far_field,
     far_take,
@@ -153,6 +154,9 @@ __all__ = [
     "in_stage",
     "history_ending",
     "frames_ending",
+    "FORCE_SCENES",
+    "build_force_scene",
+    "buildForceScene",
     "BeltSide",
     "CrustFlag",
     "CrustRaster",

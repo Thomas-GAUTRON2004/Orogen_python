@@ -580,15 +580,21 @@ def test_shape_landmass_rejects_craton_at_antipode_and_disconnected_final_land(
         "startStepOffsetKm": (100.0, 100.0),
     }
     noise = SimpleNamespace(noise3d=lambda *_args: 0.0, fbm=lambda *_args: 0.0)
-    monkeypatch.setattr(initial_landmass, "within_km", lambda *_args: np.zeros(mesh.num_cells))
-    monkeypatch.setattr(initial_landmass, "_bridges", lambda *_args: np.zeros(mesh.num_cells))
+    monkeypatch.setattr(
+        initial_landmass, "within_km", lambda *_args: np.zeros(mesh.num_cells)
+    )
+    monkeypatch.setattr(
+        initial_landmass, "_bridges", lambda *_args: np.zeros(mesh.num_cells)
+    )
 
     monkeypatch.setattr(
         initial_landmass,
         "craton_edge",
         lambda *_args: {"d": -1.0, "rift": 0.0, "along": 0.0, "across": 0.0},
     )
-    assert initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+    assert (
+        initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
+    )
 
     def edge(_craton, x, y, z):
         return {
@@ -620,7 +626,9 @@ def test_find_layout_returns_none_after_all_wide_attempts(monkeypatch):
     monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 2)
     monkeypatch.setattr(initial_world, "_LAYOUT_RELAX_SPAN_AFTER", 2)
     monkeypatch.setattr(
-        initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], candidate)
+        initial_world,
+        "_evaluate_layout_attempt",
+        lambda *_args: ([candidate], candidate),
     )
     monkeypatch.setattr(initial_world, "_land_centroid", lambda *_args: [1.0, 0.0, 0.0])
     monkeypatch.setattr(initial_world, "_half_span_deg", lambda *_args: 180.0)
@@ -642,4 +650,3 @@ def test_build_start_world_raises_when_production_layout_cannot_fit(monkeypatch)
     monkeypatch.setattr(initial_world, "_find_layout", lambda *_args: None)
     with pytest.raises(ValueError, match="do not fit the planet"):
         initial_world.build_start_world(mesh, 1)
-

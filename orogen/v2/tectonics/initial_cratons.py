@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -57,10 +57,7 @@ def _piece_shape(piece: Mapping[str, Any], u: float, v: float) -> dict[str, floa
     radius = (
         float(body["a"])
         * float(body["b"])
-        / math.sqrt(
-            float(body["b"]) ** 2 * cosine**2
-            + float(body["a"]) ** 2 * sine**2
-        )
+        / math.sqrt(float(body["b"]) ** 2 * cosine**2 + float(body["a"]) ** 2 * sine**2)
         * lobe
     )
     body_distance = math.hypot(du, dv) - radius
@@ -77,8 +74,10 @@ def _piece_shape(piece: Mapping[str, Any], u: float, v: float) -> dict[str, floa
         edge_distance = at - p if edge["flip"] else p - at
         cut = max(cut, edge_distance)
         distance = _smax(distance, edge_distance, CORNER)
-    rift = 0.0 if cut == -math.inf else _smoothstep(
-        (cut - body_distance) / (2.0 * CORNER) + 0.5
+    rift = (
+        0.0
+        if cut == -math.inf
+        else _smoothstep((cut - body_distance) / (2.0 * CORNER) + 0.5)
     )
     return {"d": distance, "rift": rift}
 
@@ -236,11 +235,7 @@ def _trace_outline(piece: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _planar_gap(first: list[list[float]], second: list[list[float]]) -> float:
-    return min(
-        math.hypot(a[0] - b[0], a[1] - b[1])
-        for a in first
-        for b in second
-    )
+    return min(math.hypot(a[0] - b[0], a[1] - b[1]) for a in first for b in second)
 
 
 def _make_block(
@@ -303,13 +298,27 @@ def _make_block(
             pieces[0]["cuts"] = [
                 split,
                 *_outer_edges(
-                    rng, cfg, body, count(1), beta + math.pi / 2.0, math.pi, km_per_unit, ease
+                    rng,
+                    cfg,
+                    body,
+                    count(1),
+                    beta + math.pi / 2.0,
+                    math.pi,
+                    km_per_unit,
+                    ease
                 ),
             ]
             pieces[1]["cuts"] = [
                 {**split, "flip": True},
                 *_outer_edges(
-                    rng, cfg, body, count(1), beta - math.pi / 2.0, math.pi, km_per_unit, ease
+                    rng,
+                    cfg,
+                    body,
+                    count(1),
+                    beta - math.pi / 2.0,
+                    math.pi,
+                    km_per_unit,
+                    ease
                 ),
             ]
         traced = [_trace_outline(piece) for piece in pieces]
@@ -324,9 +333,7 @@ def _make_block(
     total_area = sum(float(item["area"]) for item in traced)
     if total_area <= 0.0:
         raise ValueError("craton block has a degenerate outline")
-    scale = math.sqrt(
-        sum(math.pi * radius * radius for radius in targets) / total_area
-    )
+    scale = math.sqrt(sum(math.pi * radius * radius for radius in targets) / total_area)
     if len(pieces) > 1:
         slip = (rng() - 0.5) * 0.6
         gap = opening / scale
@@ -352,10 +359,7 @@ def _make_block(
         "frame": None,
     }
     for piece, outline in zip(pieces, traced, strict=True):
-        local = [
-            [(x - cx) * scale, (y - cy) * scale]
-            for x, y in outline["points"]
-        ]
+        local = [[(x - cx) * scale, (y - cy) * scale] for x, y in outline["points"]]
         centre2 = [
             (float(outline["cx"]) - cx) * scale,
             (float(outline["cy"]) - cy) * scale,
@@ -366,19 +370,15 @@ def _make_block(
         piece["radius"] = math.sqrt(float(outline["area"]) / math.pi) * scale
         piece["reach"] = max(radii)
         piece["inner"] = min(radii)
-    block["reach"] = max(
-        math.hypot(float(piece["centre2"][0]), float(piece["centre2"][1]))
-        + float(piece["reach"])
-        for piece in pieces
-    )
-    block["inner"] = min(
-        max(
-            0.0,
-            float(piece["inner"])
-            - math.hypot(float(piece["centre2"][0]), float(piece["centre2"][1])),
-        )
-        for piece in pieces
-    )
+    reach_values = []
+    inner_values = []
+    for piece in pieces:
+        centre2 = cast(list[float], piece["centre2"])
+        offset = math.hypot(centre2[0], centre2[1])
+        reach_values.append(offset + cast(float, piece["reach"]))
+        inner_values.append(max(0.0, cast(float, piece["inner"]) - offset))
+    block["reach"] = max(reach_values)
+    block["inner"] = min(inner_values)
     return block
 
 
@@ -390,10 +390,7 @@ def _from_frame(frame: Mapping[str, Any], u: float, v: float) -> list[float]:
     cosine = math.cos(rho)
     return [
         float(frame["o"][axis]) * cosine
-        + (
-            float(frame["e"][axis]) * u + float(frame["n"][axis]) * v
-        )
-        * scale
+        + (float(frame["e"][axis]) * u + float(frame["n"][axis]) * v) * scale
         for axis in range(3)
     ]
 
@@ -403,12 +400,8 @@ def _frame_at(origin: list[float], turn: float) -> dict[str, list[float]]:
     cosine, sine = math.cos(turn), math.sin(turn)
     return {
         "o": origin,
-        "e": [
-            east0[i] * cosine + north0[i] * sine for i in range(3)
-        ],
-        "n": [
-            north0[i] * cosine - east0[i] * sine for i in range(3)
-        ],
+        "e": [east0[i] * cosine + north0[i] * sine for i in range(3)],
+        "n": [north0[i] * cosine - east0[i] * sine for i in range(3)],
     }
 
 
@@ -422,9 +415,7 @@ def _placed(
                 "pc": piece,
                 "block": block,
                 "centre": _from_frame(frame, *piece["centre2"]),
-                "outline": [
-                    _from_frame(frame, u, v) for u, v in piece["local"]
-                ],
+                "outline": [_from_frame(frame, u, v) for u, v in piece["local"]],
                 "reach": piece["reach"],
                 "inner": piece["inner"],
                 "radius": piece["radius"],
@@ -465,30 +456,28 @@ def _craton_radii(
     rng: Callable[[], float], cfg: Mapping[str, Any], area_scale: float
 ) -> list[float]:
     count = int(cfg["cratonCount"])
-    target = (
-        float(cfg["cratonShare"])
-        * float(cfg["continentalFraction"])
-        * area_scale
-    )
+    target = float(cfg["cratonShare"]) * float(cfg["continentalFraction"]) * area_scale
     ratio = float(cfg["cratonSizeRatio"])
     while True:
         shape = [
-            ratio ** ((i / (count - 1)) ** float(cfg["cratonSizeSkew"]) if count > 1 else 0.0)
+            ratio
+            ** ((i / (count - 1)) ** float(cfg["cratonSizeSkew"]) if count > 1 else 0.0)
             * (0.9 + 0.2 * rng())
             for i in range(count)
         ]
         low, high = 0.0, 1.0
         for _ in range(40):
             factor = (low + high) / 2.0
-            covered = sum(
-                cap_fraction(min(math.pi, value * factor)) for value in shape
-            )
+            covered = sum(cap_fraction(min(math.pi, value * factor)) for value in shape)
             if covered < target:
                 low = factor
             else:
                 high = factor
         radii = [value * low for value in shape]
-        if 2.0 * max(radii) * PLANET_RADIUS_KM <= float(cfg["cratonMaxDiameterKm"]) or ratio < 1.3:
+        if (
+            2.0 * max(radii) * PLANET_RADIUS_KM <= float(cfg["cratonMaxDiameterKm"])
+            or ratio < 1.3
+        ):
             return radii
         ratio *= 0.93
 
@@ -507,7 +496,10 @@ def _outline_gap(first: Mapping[str, Any], second: Mapping[str, Any]) -> float:
     gap = math.acos(min(1.0, best))
     return max(
         0.0,
-        gap - max(float(first["reach"]), float(second["reach"])) * math.pi / OUTLINE_SAMPLES,
+        gap
+        - max(float(first["reach"]), float(second["reach"]))
+        * math.pi
+        / OUTLINE_SAMPLES,
     )
 
 
@@ -556,8 +548,7 @@ def place_cratons(
         ),
     )
     weights = [
-        (0.6 + 0.8 * rng()) / math.pow(index + 1, 0.6)
-        for index in range(cluster_count)
+        (0.6 + 0.8 * rng()) / math.pow(index + 1, 0.6) for index in range(cluster_count)
     ]
     counts = [1] * cluster_count
     for _ in range(len(blocks) - cluster_count):
@@ -620,7 +611,9 @@ def place_cratons(
             best_frame = None
             best_score = math.inf
             for relaxation in range(4):
-                apart = max(1.0, float(apart_lo) - relaxation * (float(apart_lo) - 1.0) / 3.0)
+                apart = max(
+                    1.0, float(apart_lo) - relaxation * (float(apart_lo) - 1.0) / 3.0
+                )
                 if best_frame is not None:
                     break
                 for tries in range(400):
@@ -629,9 +622,14 @@ def place_cratons(
                     pool = all_pieces if founding else own
                     anchor = pool[math.floor(rng() * len(pool))]
                     if founding:
-                        gap = reserve * (
-                            float(apart_lo) + (float(apart_hi) - float(apart_lo)) * rng()
-                        ) * (apart / float(apart_lo) if relaxation else 1.0)
+                        gap = (
+                            reserve
+                            * (
+                                float(apart_lo)
+                                + (float(apart_hi) - float(apart_lo)) * rng()
+                            )
+                            * (apart / float(apart_lo) if relaxation else 1.0)
+                        )
                     else:
                         gap = reserve * (
                             1.0 + rng() * float(cfg["clusterGapVariety"]) * stretch
@@ -645,7 +643,9 @@ def place_cratons(
                     point = centre
                     for step in range(steps + 1):
                         point = destination(
-                            anchor["centre"], bearing, near + (far - near) * step / steps
+                            anchor["centre"],
+                            bearing,
+                            near + (far - near) * step / steps,
                         )
                         candidate = _placed(block, _frame_at(point, turn))
                         if step == steps or all(
@@ -657,7 +657,8 @@ def place_cratons(
                         >= (
                             gap * 0.999
                             if other_piece is anchor
-                            else reserve * (1.0 if other_piece["cluster"] == cluster else apart)
+                            else reserve
+                            * (1.0 if other_piece["cluster"] == cluster else apart)
                         )
                         for item in candidate
                         for other_piece in all_pieces

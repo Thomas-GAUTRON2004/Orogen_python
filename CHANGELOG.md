@@ -10,7 +10,7 @@ describe the repository state and changes recorded during the V2 port.
 
 ### Added
 - Complete shared V2 tectonic configuration defaults and mechanism controls, with isolated per-world overrides and validation.
-- Added a deterministic initial supercontinent/apron/trench builder and minimal continental, oceanic and mixed scenario fixtures; the initial geometry is a documented numerical adaptation pending full upstream parity.
+- Added the packed, noise-shaped initial supercontinent builder with connected proto-continent assembly, terranes, sutures, ocean apron, active/passive trench sectors, inherited ranges and far-field start records. Vendored JavaScript differential fixtures compare layout, landmass and assembled plate/crust state on 512- and 768-cell meshes. Added deterministic prescribed-motion scenes and all 37 entries across the event, budget, force, margin, rift, terrain, hotspot and collision scenario catalogues.
 - Shared geology flags and compact frame encoders/decoders matching upstream JavaScript rounding.
 - Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
@@ -44,8 +44,10 @@ describe the repository state and changes recorded during the V2 port.
   lookup experiment are not part of the production dependency or runtime path.
 
 ### Compatibility
-- The Python port remains partial. Differential tests cover selected operations
-  and fixtures; they do not establish full engine or whole-simulation parity.
+- The Python port remains partial. Initial-world differentials compare layout,
+  landmass and assembled plate/crust state at two mesh sizes; inherited range
+  relief/far-field record arrays and multi-step scenario histories remain outside
+  that comparison. These fixtures do not establish full-engine or whole-simulation parity.
 - Qhull may select a different valid diagonal for degenerate point sets.
   Sphere-mesh compatibility is therefore checked through topology and
   adjacency invariants rather than byte-identical simplex ordering.

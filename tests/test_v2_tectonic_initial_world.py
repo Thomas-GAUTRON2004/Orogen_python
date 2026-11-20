@@ -292,6 +292,10 @@ def test_production_resolution_start_world_matches_javascript_reference(
         np.testing.assert_array_equal(
             ocean.crust.formedAt, reference_world["oceanFormedAt"]
         )
+        for field in ("major", "majorRange", "ring"):
+            np.testing.assert_array_equal(
+                world.startSeamKm[field], reference_world["startSeamKm"][field]
+            )
         assert continent.name == reference_world["continentName"]
         assert continent.born == pytest.approx(reference_world["born"], abs=0)
         assert start["rim"].tolist() == reference_world["rim"]

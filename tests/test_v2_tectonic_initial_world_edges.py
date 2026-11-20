@@ -590,9 +590,9 @@ def test_shape_landmass_rejects_craton_at_antipode_and_disconnected_final_land(
     )
     assert initial_landmass.shape_landmass(mesh, layout, noise, lambda: 0.5, cfg) is None
 
-    def edge(point, *_args):
+    def edge(_craton, x, y, z):
         return {
-            "d": -1.0 if np.allclose(point, xyz[0]) else 1.0,
+            "d": -1.0 if np.allclose([x, y, z], xyz[0]) else 1.0,
             "rift": 0.0,
             "along": 0.0,
             "across": 0.0,

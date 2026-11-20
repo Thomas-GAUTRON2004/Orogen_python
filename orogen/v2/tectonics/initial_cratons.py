@@ -283,8 +283,8 @@ def _make_block(
         ease = 0.07 * tries
         fewer = tries >> 1
 
-        def count(more: int) -> int:
-            return max(0, _edge_count(rng, cfg) - more - fewer)
+        def count(more: int, fewer_edges: int = fewer) -> int:
+            return max(0, _edge_count(rng, cfg) - more - fewer_edges)
 
         if len(pieces) == 1:
             pieces[0]["cuts"] = _outer_edges(
@@ -367,10 +367,16 @@ def _make_block(
         piece["reach"] = max(radii)
         piece["inner"] = min(radii)
     block["reach"] = max(
-        math.hypot(*piece["centre2"]) + float(piece["reach"]) for piece in pieces
+        math.hypot(float(piece["centre2"][0]), float(piece["centre2"][1]))
+        + float(piece["reach"])
+        for piece in pieces
     )
     block["inner"] = min(
-        max(0.0, float(piece["inner"]) - math.hypot(*piece["centre2"]))
+        max(
+            0.0,
+            float(piece["inner"])
+            - math.hypot(float(piece["centre2"][0]), float(piece["centre2"][1])),
+        )
         for piece in pieces
     )
     return block

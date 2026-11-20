@@ -295,3 +295,191 @@ def test_scene_kit_unselected_rim_and_coast_sectors(monkeypatch):
     plate.crust.create(0, CrustType["CONTINENT"], -1000.0)
     flag_coast_trench(mesh, plate, centre, [], world.config)
     assert not np.any(plate.crust.flags & CrustFlag["TRENCH"])
+
+
+
+def test_craton_outline_degenerate_and_unbounded_ray_fallback(monkeypatch):
+    from orogen.v2.tectonics import initial_cratons
+
+    monkeypatch.setattr(initial_cratons, "OUTLINE_SAMPLES", 1)
+    monkeypatch.setattr(initial_cratons, "_piece_shape", lambda *_args: {"d": -1.0, "rift": 0.0})
+    piece = {"body": {}, "cuts": [], "tu": 0.0, "tv": 0.0}
+    outline = initial_cratons._trace_outline(piece)
+    assert outline["area"] == 0.0
+    assert outline["compact"] == 0.0
+
+
+def test_craton_block_rejects_degenerate_outline(monkeypatch):
+    from orogen.v2.tectonics import initial_cratons
+
+    monkeypatch.setattr(initial_cratons, "_edge_count", lambda *_args: 0)
+    monkeypatch.setattr(
+        initial_cratons,
+        "_trace_outline",
+        lambda _piece: {"points": [], "area": 0.0, "cx": 0.0, "cy": 0.0, "compact": 0.0},
+    )
+    cfg = {
+        "cratonMaxDiameterKm": 10000.0,
+        "cratonMaxAspect": 1.0,
+        "cratonLobes": 0.0,
+        "cratonRiftEdges": (0, 0),
+        "cratonMinCompact": 0.0,
+    }
+    with pytest.raises(ValueError, match="degenerate outline"):
+        initial_cratons._make_block(lambda: 0.5, cfg, [0.01], 0.0)
+
+
+def test_craton_radius_scaling_relaxes_excessive_diameter(monkeypatch):
+    from orogen.v2.tectonics import initial_cratons
+
+    monkeypatch.setattr(initial_cratons, "cap_fraction", lambda _radius: 0.0)
+    cfg = {
+        "cratonCount": 1,
+        "cratonShare": 1.0,
+        "continentalFraction": 0.5,
+        "cratonSizeRatio": 2.0,
+        "cratonSizeSkew": 1.0,
+        "cratonMaxDiameterKm": 100.0,
+    }
+    radii = initial_cratons._craton_radii(lambda: 0.5, cfg, 1.0)
+    assert len(radii) == 1
+    assert radii[0] > 0.0
+
+
+def test_craton_packing_returns_none_when_all_placements_overlap(monkeypatch):
+    from orogen.v2.tectonics import initial_cratons
+
+    monkeypatch.setattr(initial_cratons, "_craton_radii", lambda *_args: [0.01, 0.01])
+    monkeypatch.setattr(
+        initial_cratons,
+        "_make_block",
+        lambda *_args: {
+            "pieces": [{"radius": 1.0, "reach": 1.0, "inner": 0.0}],
+            "reach": 1.0,
+            "inner": 0.0,
+        },
+    )
+    monkeypatch.setattr(
+        initial_cratons,
+        "_placed",
+        lambda block, frame: [
+            {
+                "block": block,
+                "pc": block["pieces"][0],
+                "centre": frame["o"],
+                "outline": [frame["o"]],
+                "reach": 1.0,
+                "inner": 0.0,
+                "radius": 1.0,
+            }
+        ],
+    )
+    monkeypatch.setattr(initial_cratons, "_outline_gap", lambda *_args: -1.0)
+    cfg = {
+        "cratonMinGapKm": 10.0,
+        "cratonEdgeNoiseKm": 0.0,
+        "cratonSiblingChance": 0.0,
+        "clusterBlocks": (2.0, 2.0),
+        "startMaxLatitudeDeg": 90.0,
+        "clusterElongation": 0.0,
+        "clusterApart": (1.0, 1.0),
+        "clusterGapVariety": 0.0,
+        "clusterLooseness": 0.0,
+    }
+    assert initial_cratons.place_cratons(lambda: 0.5, cfg) is None
+
+
+def test_landmass_bridge_shortcut_and_empty_corridor():
+    from orogen.v2.tectonics import initial_landmass
+
+    mesh = build_sim_mesh(48, 930)
+    xyz = np.asarray(mesh.xyz, dtype=np.float64)
+    single = [{"centre": xyz[0].tolist()}]
+    assert not np.any(initial_landmass._bridges(mesh, single, 0.1))
+
+    pair = [{"centre": xyz[0].tolist()}, {"centre": xyz[1].tolist()}]
+    assert not np.any(initial_landmass._bridges(mesh, pair, -1.0))
+
+
+def test_pick_separated_relaxes_threshold_and_fills_remaining_candidates():
+    xyz = np.tile(np.asarray([[1.0, 0.0, 0.0]]), (3, 1))
+    picked = initial_world._pick_separated(
+        xyz,
+        np.asarray([0, 1, 2], dtype=np.int32),
+        3,
+        1000.0,
+        1.0,
+    )
+    assert picked.shape == (3,)
+    assert set(picked.tolist()) == {0, 1, 2}
+
+
+def test_layout_attempt_skips_failed_craton_and_landmass_candidates(monkeypatch):
+    from orogen.v2.tectonics import initial_cratons
+
+    monkeypatch.setattr(initial_world, "_shrink_steps", lambda _value: [1.0, 0.5])
+    monkeypatch.setattr(initial_cratons, "place_cratons", lambda *_args: None)
+    mesh = build_sim_mesh(48, 931)
+    tried, fit = initial_world._evaluate_layout_attempt(mesh, 1, {"cratonMinAreaScale": 1.0}, 0)
+    assert tried == []
+    assert fit is None
+
+    monkeypatch.setattr(initial_cratons, "place_cratons", lambda *_args: {"cratons": []})
+    monkeypatch.setattr(initial_world, "_shape_attempt", lambda *_args: None)
+    tried, fit = initial_world._evaluate_layout_attempt(mesh, 1, {"cratonMinAreaScale": 1.0}, 0)
+    assert tried == []
+    assert fit is None
+
+
+def test_find_layout_uses_closest_candidate_after_last_attempt(monkeypatch):
+    mesh = build_sim_mesh(48, 932)
+    land_type = np.full(mesh.num_cells, CrustType["OCEAN"], dtype=np.uint8)
+    land_type[0] = CrustType["CONTINENT"]
+    candidate = {
+        "land": {"type": land_type},
+        "layout": {},
+        "areaScale": 1.0,
+        "excess": 0.1,
+        "attempts": 1,
+    }
+    monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 1)
+    monkeypatch.setattr(initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], None))
+    result = initial_world._find_layout(mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 180.0})
+    assert result is not None
+    assert result["fractionMet"] is False
+
+
+def test_find_layout_retries_wide_fit_and_half_span_handles_empty_land(monkeypatch):
+    mesh = build_sim_mesh(48, 933)
+    empty = np.full(mesh.num_cells, CrustType["OCEAN"], dtype=np.uint8)
+    assert initial_world._half_span_deg(mesh, empty, [1.0, 0.0, 0.0]) == 0.0
+
+    land_type = empty.copy()
+    land_type[0] = CrustType["CONTINENT"]
+    candidate = {"land": {"type": land_type}, "excess": 0.0, "attempts": 1}
+    monkeypatch.setattr(initial_world, "_MAX_LAYOUT_ATTEMPTS", 2)
+    monkeypatch.setattr(initial_world, "_LAYOUT_RELAX_SPAN_AFTER", 1)
+    monkeypatch.setattr(initial_world, "_evaluate_layout_attempt", lambda *_args: ([candidate], candidate))
+    monkeypatch.setattr(initial_world, "_land_centroid", lambda *_args: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(initial_world, "_half_span_deg", lambda *_args: 180.0)
+    result = initial_world._find_layout(mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 0.0})
+    assert result is not None
+    assert result["attempts"] == 1
+
+
+def test_record_start_pushes_spreads_major_pair(monkeypatch):
+    calls = []
+    monkeypatch.setattr(initial_world, "spread_push", lambda *args: calls.append(args))
+    world = SimpleNamespace(
+        config={"farStartWorkKm": 2.0, "startRanges": {"major": [0.0, 0.0, 5.0]}},
+        mesh=SimpleNamespace(edge_km=10.0),
+    )
+    land = {
+        "pair": np.asarray([1, 1, 0], dtype=np.uint8),
+        "pairRange": np.asarray([0.0, 0.5], dtype=np.float32),
+        "suture": np.asarray([initial_world.StartSeam["MAJOR"]] * 3, dtype=np.uint8),
+        "type": np.asarray([CrustType["CONTINENT"]] * 3, dtype=np.uint8),
+    }
+    initial_world._record_start_pushes(world, object(), land)
+    assert len(calls) == 1
+    assert calls[0][2] == {0: 1.0, 1: 1.0}

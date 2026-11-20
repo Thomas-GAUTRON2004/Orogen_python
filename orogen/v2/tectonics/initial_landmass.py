@@ -147,7 +147,7 @@ def _bridges(
             for j in range(count):
                 if in_tree[j]:
                     continue
-                distance = angle_between(centres[i], centres[j])
+                distance = angle_between(centres[i].tolist(), centres[j].tolist())
                 if best is None or distance < best[2]:
                     best = (i, j, distance)
         if best is None:
@@ -189,7 +189,7 @@ def shape_landmass(
     cluster_count = int(layout.get("clusters", 1))
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     num_cells = int(sim_mesh.num_cells)
-    def km(value: float) -> float:
+    def km(value: Any) -> float:
         return float(value) / PLANET_RADIUS_KM
 
     edge_noise = km(cfg["cratonEdgeNoiseKm"])
@@ -204,7 +204,7 @@ def shape_landmass(
         float(cfg["cratonMinGapKm"]) + 2.0 * float(cfg["cratonEdgeNoiseKm"])
     )
     small_craton = km(800.0)
-    clusters = []
+    clusters: list[dict[str, Any]] = []
     for cluster in range(cluster_count):
         members = [item for item in cratons if int(item.get("cluster", 0)) == cluster]
         heart = _heart_of(members)
@@ -396,7 +396,7 @@ def shape_landmass(
         sim_mesh, cratons, km(float(cfg["bridgeHalfWidthKm"]))
     )
     antipode = int(np.argmax(xyz @ -np.asarray(layout["centre"], dtype=np.float64)))
-    heart = int(np.argmax(xyz @ np.asarray(cratons[0]["centre"], dtype=np.float64)))
+    heart_cell = int(np.argmax(xyz @ np.asarray(cratons[0]["centre"], dtype=np.float64)))
 
     def landmass(skirt: float) -> tuple[np.ndarray, int] | None:
         made = types.copy()
@@ -410,7 +410,7 @@ def shape_landmass(
         enclosed = (made == CrustType["OCEAN"]) & (open_ocean == 0)
         made[enclosed] = CrustType["CONTINENT"]
         mainland = flood_from(
-            sim_mesh, heart, lambda cell: made[cell] != CrustType["OCEAN"]
+            sim_mesh, heart_cell, lambda cell: made[cell] != CrustType["OCEAN"]
         )
         land_cells = made != CrustType["OCEAN"]
         if np.any((made == CrustType["CRATON"]) & (mainland == 0)):

@@ -51,7 +51,9 @@ def _add_arc_ridge(
         crust.type[cell] = CrustType["ARC"]
         crust.terrane[cell] = terrane_id
         crust.formedAt[cell] = -float(config["initialOceanAgeMyr"])
-        crust.flags[cell] &= ~CrustFlag["TRENCH"]
+        crust.flags[cell] = np.uint8(
+            int(crust.flags[cell]) & (0xFF ^ int(CrustFlag["TRENCH"]))
+        )
 
 
 def _add_arc_plate(

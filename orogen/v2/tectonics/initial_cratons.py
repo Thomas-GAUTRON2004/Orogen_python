@@ -315,7 +315,7 @@ def _make_block(
                     beta - math.pi / 2.0,
                     math.pi,
                     km_per_unit,
-                    ease
+                    ease,
                 ),
             ]
         traced = [_trace_outline(piece) for piece in pieces]

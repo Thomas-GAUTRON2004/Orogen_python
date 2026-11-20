@@ -971,6 +971,31 @@ def _emit_far_pushes_kernel(
     return written
 
 
+def _walk_kernel(xyz, offsets, adjacency, current, x, y, z):
+    """Greedy walk toward a direction; numerically identical to SphereIndex.walk.
+
+    The neighbour range of the current cell is read once per pass, as in the
+    Python loop, so a move during a pass does not change which neighbours are
+    scanned in that pass.
+    """
+    offset = 3 * current
+    best = x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
+    improved = True
+    while improved:
+        improved = False
+        low = offsets[current]
+        high = offsets[current + 1]
+        for k in range(low, high):
+            neighbour = adjacency[k]
+            offset = 3 * neighbour
+            candidate = x * xyz[offset] + y * xyz[offset + 1] + z * xyz[offset + 2]
+            if candidate > best:
+                best = candidate
+                current = neighbour
+                improved = True
+    return current
+
+
 # Dispatcher globals are intentionally optional when Numba is not installed.
 noise3d_numba: Any
 fbm_numba: Any
@@ -979,6 +1004,7 @@ hop_distance_numba: Any
 spread_km_numba: Any
 far_field_distance_numba: Any
 emit_far_pushes_numba: Any
+walk_numba: Any
 pieces_of_numba: Any
 largest_piece_numba: Any
 destination_many_numba: Any
@@ -1007,6 +1033,7 @@ if NUMBA_AVAILABLE:
     # Helper dispatchers must exist before the kernel that calls them is compiled.
     _record_push_kernel = njit(cache=True, fastmath=False)(_record_push_kernel)
     emit_far_pushes_numba = njit(cache=True, fastmath=False)(_emit_far_pushes_kernel)
+    walk_numba = njit(cache=True, fastmath=False)(_walk_kernel)
     pieces_of_numba = njit(cache=True, fastmath=False)(_pieces_of_kernel)
     _pieces_of_kernel = pieces_of_numba
     largest_piece_numba = njit(cache=True, fastmath=False)(_largest_piece_kernel)
@@ -1030,7 +1057,7 @@ if NUMBA_AVAILABLE:
 else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = (
         spread_km_numba
-    ) = far_field_distance_numba = emit_far_pushes_numba = None
+    ) = far_field_distance_numba = walk_numba = emit_far_pushes_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None

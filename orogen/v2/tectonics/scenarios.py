@@ -14,8 +14,8 @@ import numpy as np
 
 from ..core.fast_noise import FastNoise
 from ..core.mesh_bfs import touches
-from ..core.seed import make_rng
 from ..core.rotation import quat_identity
+from ..core.seed import make_rng
 from ..core.sphere_geometry import (
     angle_between,
     cross,

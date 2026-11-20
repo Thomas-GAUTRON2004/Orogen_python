@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import mechanisms_on, only_mechanisms
 from orogen.v2.tectonics.budget_scenes import BUDGET_SCENES, build_budget_scene

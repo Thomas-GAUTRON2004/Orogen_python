@@ -14,7 +14,7 @@ from .config import mechanisms_on, only_mechanisms
 from .crust import CrustFlag, CrustType
 from .dynamics import update_plate_motion
 from .force_scenes import _begin
-from .hotspot_scenes import DECCAN, HAWAII, HOTSPOT_SCENES
+from .hotspot_scenes import HOTSPOT_SCENES
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz, xyz_to_lat_lon
 from .margin_scenes import MARGIN_SCENES, heading, omega_for

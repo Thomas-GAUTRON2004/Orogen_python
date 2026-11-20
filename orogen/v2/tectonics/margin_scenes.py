@@ -7,8 +7,8 @@ from typing import Any
 
 import numpy as np
 
-from ..core.sphere_geometry import cross, dot, normalize
-from .config import mechanisms_off, only_mechanisms
+from ..core.sphere_geometry import cross, normalize
+from .config import only_mechanisms
 from .crust import CrustType
 from .dynamics import update_plate_motion
 from .force_scenes import _begin
@@ -53,7 +53,12 @@ def omega_for(
     speed_cm_yr: float,
 ) -> list[float]:
     """Angular velocity for moving a point along a tangent at a given speed."""
-    pole = normalize(cross(point, direction))
+    pole = normalize(
+        cross(
+            np.asarray(point, dtype=np.float64).tolist(),
+            np.asarray(direction, dtype=np.float64).tolist(),
+        )
+    )
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
@@ -242,6 +247,18 @@ def _mariana(sim_mesh: Any, seed: int):
     return world
 
 
+def _drive_mariana(world: TectonicWorld) -> None:
+    point = lat_lon_to_xyz(15.0, 150.0)
+    _set_motion(world, "Philippina", point, -90.0, 3.0)
+    _set_motion(world, "Pacifica", point, -90.0, 8.0)
+
+
+def _drive_japan(world: TectonicWorld) -> None:
+    point = lat_lon_to_xyz(35.0, 140.0)
+    _set_motion(world, "Asiana", point, 90.0, 1.0)
+    _set_motion(world, "Pacifica", point, -90.0, 8.0)
+
+
 def _japan(sim_mesh: Any, seed: int):
     world, canvas, noise = _begin(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
@@ -320,14 +337,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
             "the plate behind its island arc and opening a back-arc sea."
         ),
         "build": _mariana,
-        "drive": lambda world: (
-            _set_motion(
-                world, "Philippina", lat_lon_to_xyz(15.0, 150.0), -90.0, 3.0
-            ),
-            _set_motion(
-                world, "Pacifica", lat_lon_to_xyz(15.0, 150.0), -90.0, 8.0
-            ),
-        ),
+        "drive": _drive_mariana,
     },
     {
         "id": "japan",
@@ -340,14 +350,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
             "rifts off as an island chain and a sea opens behind it."
         ),
         "build": _japan,
-        "drive": lambda world: (
-            _set_motion(
-                world, "Asiana", lat_lon_to_xyz(35.0, 140.0), 90.0, 1.0
-            ),
-            _set_motion(
-                world, "Pacifica", lat_lon_to_xyz(35.0, 140.0), -90.0, 8.0
-            ),
-        ),
+        "drive": _drive_japan,
     },
     {
         "id": "history",

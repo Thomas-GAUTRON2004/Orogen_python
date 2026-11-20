@@ -28,10 +28,16 @@ def _share_basin(
         own_centre = centres[index]
         other_centre = centres[1 - index]
 
-        def wanted(x: float, y: float, z: float) -> bool:
+        def wanted(
+            x: float,
+            y: float,
+            z: float,
+            own: list[float] = own_centre,
+            other: list[float] = other_centre,
+        ) -> bool:
             point = (x, y, z)
-            own_dot = sum(point[i] * own_centre[i] for i in range(3))
-            other_dot = sum(point[i] * other_centre[i] for i in range(3))
+            own_dot = sum(point[i] * own[i] for i in range(3))
+            other_dot = sum(point[i] * other[i] for i in range(3))
             distance = math.acos(max(-1.0, min(1.0, own_dot)))
             if distance > reach:
                 return False

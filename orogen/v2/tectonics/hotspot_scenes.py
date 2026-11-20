@@ -12,17 +12,22 @@ from .force_scenes import _begin
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .margin_scenes import heading, omega_for
-from .scenarios import add_apron_and_trench, add_continent, add_ocean, fill_background
+from .scenarios import (
+    add_apron_and_trench,
+    add_continent,
+    add_ocean,
+    fill_background,
+)
 from .world import TectonicWorld
 
 
-HAWAII = {
+HAWAII: dict[str, Any] = {
     "plume": (19.0, -155.0),
     "speedCmYr": 8.0,
     "bendMyr": 45.0,
     "legs": (0.0, -60.0),
 }
-DECCAN = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesMyr": 12.0}
+DECCAN: dict[str, Any] = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesMyr": 12.0}
 PLUMES_ONLY = only_mechanisms()
 
 

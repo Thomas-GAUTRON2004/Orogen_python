@@ -1,0 +1,74 @@
+name: Build Python wheelhouse
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - ".github/workflows/python-wheelhouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-wheelhouse-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheelhouse:
+    name: Python 3.12 / Linux x86_64 package bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Download all project wheels
+        run: |
+          mkdir -p dist/wheelhouse
+          python -m pip download \
+            --only-binary=:all: \
+            --prefer-binary \
+            --dest dist/wheelhouse \
+            ".[test,speed,quality,benchmark]" \
+            "ruff==0.17.5"
+
+      - name: Add offline installation instructions
+        run: |
+          cat > dist/README.txt <<'EOF'
+          Orogen Python dependency bundle
+          =================================
+
+          Target: CPython 3.12, Linux x86_64.
+          Contents: wheels for the project and its runtime, test, speed,
+          benchmark and quality dependencies, including Ruff 0.17.5.
+
+          From the repository root, with this archive extracted:
+            python -m pip install --no-index --find-links ./wheelhouse "orogen[test,speed,quality,benchmark]"
+
+          To run Ruff:
+            python -m ruff --version
+            python -m ruff check .
+            python -m ruff format --check scripts/check_mypy_regressions.py
+            python -m ruff format --check orogen scripts tests
+
+          This bundle is platform- and Python-version-specific.
+          EOF
+          cp dist/README.txt dist/wheelhouse/README.txt
+          (cd dist && zip -qr ../orogen-python-wheelhouse-py312-linux-x86_64.zip wheelhouse README.txt)
+
+      - name: Upload dependency archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: orogen-python-wheelhouse-py312-linux-x86_64
+          path: orogen-python-wheelhouse-py312-linux-x86_64.zip
+          if-no-files-found: error
+          retention-days: 14

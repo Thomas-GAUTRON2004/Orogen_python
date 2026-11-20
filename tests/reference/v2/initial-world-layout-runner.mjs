@@ -382,8 +382,8 @@ function buildInitialInheritedRecords(land, crust, config, seed) {
         for (let cell = 0; cell < mesh.numCells; cell++) {
             if (!crust.mask[cell] || land.suture[cell] !== kind || crust.type[cell] === 0) continue;
             const x = mesh.xyz[3 * cell], y = mesh.xyz[3 * cell + 1], z = mesh.xyz[3 * cell + 2];
-            const value = noise.noise3d(x * frequency + 7.1 * kind, y * frequency, z * frequency)
-                + 0.4 * noise.noise3d(
+            const value = noise.noise3D(x * frequency + 7.1 * kind, y * frequency, z * frequency)
+                + 0.4 * noise.noise3D(
                     x * 2.7 * frequency + 3.3,
                     y * 2.7 * frequency + 8.1 * kind,
                     z * 2.7 * frequency + 1.9,

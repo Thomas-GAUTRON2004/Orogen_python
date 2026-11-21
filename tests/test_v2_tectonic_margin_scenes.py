@@ -5,8 +5,8 @@ from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import CrustFlag, CrustType
 from orogen.v2.tectonics.margin_scenes import (
     ARC_TERRANE_ID,
-    _arc_behind,
     MARGIN_SCENES,
+    _arc_behind,
     build_margin_scene,
     heading,
     omega_for,

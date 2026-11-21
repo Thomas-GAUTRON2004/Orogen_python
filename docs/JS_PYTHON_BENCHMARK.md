@@ -73,6 +73,12 @@ preparation are excluded from the timed region.
 
 ---
 
+## Initial-world builder comparison
+
+In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. It compares a pinned pre-optimization commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells. Each mesh receives one warm-up and two timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
+
+The baseline and head timings, layout-attempt counts and comparison summary are attached to the `initial-world-builder-benchmarks` Actions artifact. This measures initial-world construction, including its Python per-cell loops; it does not measure multi-step geological-history execution or establish a universal runtime for other hosts.
+
 ## Reproducible benchmark harness
 
 The current harness compares the vendored upstream JavaScript reference with

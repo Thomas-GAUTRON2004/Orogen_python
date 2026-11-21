@@ -545,9 +545,7 @@ def _outline_gap_at_least(
             if candidate > best:
                 best = candidate
             if candidate > dot_limit:
-                candidate_gap = max(
-                    0.0, math.acos(min(1.0, candidate)) - correction
-                )
+                candidate_gap = max(0.0, math.acos(min(1.0, candidate)) - correction)
                 if candidate_gap < minimum_gap:
                     return False
     return max(0.0, math.acos(min(1.0, best)) - correction) >= minimum_gap
@@ -725,7 +723,7 @@ def place_cratons(
                         _outline_gap_at_least(
                             other_piece,
                             item,
-                                (
+                            (
                                 gap * 0.999
                                 if other_piece is anchor
                                 else reserve

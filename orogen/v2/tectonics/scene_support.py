@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from ..core.fast_noise import FastNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize

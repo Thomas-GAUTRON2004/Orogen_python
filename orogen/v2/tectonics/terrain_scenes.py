@@ -14,7 +14,6 @@ from .budget_scenes import BUDGET_SCENES
 from .config import mechanisms_on, only_mechanisms
 from .crust import CrustFlag, CrustType
 from .dynamics import update_plate_motion
-from .scene_support import add_ocean_corridor, begin_scene
 from .hotspot_scenes import HOTSPOT_SCENES
 from .kinematics import lat_lon_to_xyz, xyz_to_lat_lon
 from .margin_scenes import MARGIN_SCENES, heading, omega_for
@@ -22,9 +21,9 @@ from .rift_scenes import RIFT_SCENES
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
-    add_ocean,
     fill_background,
 )
+from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
 FAR_TERRANES = MappingProxyType(

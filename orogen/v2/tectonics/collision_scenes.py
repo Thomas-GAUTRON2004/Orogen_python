@@ -7,12 +7,12 @@ from typing import Any
 import numpy as np
 
 from ..core.sphere_geometry import normalize
-from .force_scenes import _add_ocean_between, _begin
+from .scene_support import add_ocean_corridor, begin_scene
 from .scenarios import add_apron_and_trench, add_continent, fill_background
 
 
 def _zipper(sim_mesh: Any, seed: int):
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     borea = world.add_plate("Borea")
     austra = world.add_plate("Austra")
 
@@ -51,7 +51,7 @@ def _zipper(sim_mesh: Any, seed: int):
         for centre in ((2.0, 92.0), (-8.0, 75.0), (-18.0, 58.0))
     ]
     austra_land = parts[1]
-    _add_ocean_between(
+    add_ocean_corridor(
         canvas,
         austra,
         austra_land["centre"],

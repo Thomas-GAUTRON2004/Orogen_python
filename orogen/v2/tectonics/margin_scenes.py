@@ -23,8 +23,7 @@ from .scenarios import (
 )
 from .scene_support import begin_scene
 
-ARC_TERRANE_ID = 900
-MARIANA_ARC_WIDTH_KM = 243.0
+from .scene_constants import ARC_TERRANE_ID, MARIANA_ARC_WIDTH_KM
 
 ROLLBACK_ONLY = MappingProxyType(
     {

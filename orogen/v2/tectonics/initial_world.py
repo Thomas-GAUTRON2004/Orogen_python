@@ -192,13 +192,13 @@ def _paint_old_ranges(
 ) -> None:
     """Build inherited ranges with spatially varying source strength."""
     cfg, mesh, crust = world.config, world.mesh, plate.crust
-    ranges = cfg.get("startRanges", {})
+    ranges = cfg["startRanges"]
     if not isinstance(ranges, dict):
         return
     xyz = _mesh_xyz(mesh)
     noise = FastNoise((int(world.seed) ^ 0x5A7E) & 0xFFFFFFFF)
-    vary = max(0.0, float(cfg.get("startRangeVary", 0.5)))
-    scale_km = max(1.0, float(cfg.get("startRangeVaryKm", 1600.0)))
+    vary = max(0.0, float(cfg["startRangeVary"]))
+    scale_km = max(1.0, float(cfg["startRangeVaryKm"]))
     frequency = 6371.0 / scale_km
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
 
@@ -346,7 +346,7 @@ def _build_coarse_start_world(
     """
     world = TectonicWorld(sim_mesh, seed, overrides=overrides)
     cfg = world.config
-    fraction = float(cfg.get("continentalFraction", 0.29))
+    fraction = float(cfg["continentalFraction"])
     if not math.isfinite(fraction) or not 0.0 < fraction < 1.0:
         raise ValueError(
             "continentalFraction must be finite and strictly between 0 and 1"
@@ -366,9 +366,9 @@ def _build_coarse_start_world(
     land_mask = np.zeros(n, dtype=bool)
     land_mask[land_cells] = True
 
-    share = float(cfg.get("cratonShare", 0.24))
+    share = float(cfg["cratonShare"])
     target_cratons = max(1, int(round(target_land * max(0.0, min(1.0, share)))))
-    requested = int(cfg.get("cratonCount", 14))
+    requested = int(cfg["cratonCount"])
     craton_count = min(max(1, requested), max(1, target_land // 12), target_cratons)
     centres = _pick_craton_centres(
         xyz,
@@ -376,7 +376,7 @@ def _build_coarse_start_world(
         centre,
         land_radius,
         craton_count,
-        float(cfg.get("cratonMinGapKm", 500.0)),
+        float(cfg["cratonMinGapKm"]),
         float(sim_mesh.edge_km),
         layout_rng,
     )
@@ -405,8 +405,8 @@ def _build_coarse_start_world(
     # Reproduce the upstream morphological closing: grow land by apron + smoothing,
     # then erode the grown mask by the smoothing radius. This fills narrow bays and
     # leaves a smoother offshore plate rim than a simple apron dilation.
-    apron_km = max(0.0, float(cfg.get("apronKm", 250.0)))
-    smooth_km = max(0.0, float(cfg.get("apronSmoothKm", 1400.0)))
+    apron_km = max(0.0, float(cfg["apronKm"]))
+    smooth_km = max(0.0, float(cfg["apronSmoothKm"]))
     apron_hops = max(
         1, int(math.floor(apron_km / max(float(sim_mesh.edge_km), 1.0) + 0.5))
     )
@@ -424,14 +424,14 @@ def _build_coarse_start_world(
     continent = world.add_plate("".join(chr(65 + i) for i in range(craton_count)))
     ocean = world.add_plate("Pre-history ocean")
     ocean.isBackground = True
-    continent.born = -float(cfg.get("riftTenureMyr", 30.0))
+    continent.born = -float(cfg["riftTenureMyr"])
 
     land_types = np.full(land_cells.size, CrustType["CONTINENT"], dtype=np.uint8)
     land_types[core_mask] = CrustType["CRATON"]
     continent.crust.create_many(
         land_cells,
         land_types,
-        -float(cfg.get("initialLandAgeMyr", 2000.0)),
+        -float(cfg["initialLandAgeMyr"]),
         terrane_owner.astype(np.uint16),
     )
     apron_cells = np.flatnonzero(apron_mask)
@@ -439,7 +439,7 @@ def _build_coarse_start_world(
         continent.crust.create_many(
             apron_cells,
             CrustType["OCEAN"],
-            -float(cfg.get("initialOceanAgeMyr", 150.0)),
+            -float(cfg["initialOceanAgeMyr"]),
         )
         continent.crust.flags[apron_cells] |= CrustFlag["APRON"]
 
@@ -452,7 +452,7 @@ def _build_coarse_start_world(
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
         rim_mask[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])
     rim_cells = np.flatnonzero(rim_mask).astype(np.int32)
-    coverage = max(0.0, min(1.0, float(cfg.get("rimTrenchCoverage", 0.85))))
+    coverage = max(0.0, min(1.0, float(cfg["rimTrenchCoverage"])))
     passive_from = passive_rng() * 360.0 - 180.0
     passive_span = 360.0 * (1.0 - coverage)
     if rim_cells.size and coverage > 0:
@@ -464,7 +464,7 @@ def _build_coarse_start_world(
         continent.crust.flags[trench_cells] |= CrustFlag["TRENCH"]
         continent.crust.slabKm[trench_cells] = np.maximum(
             continent.crust.slabKm[trench_cells],
-            float(cfg.get("slabMatureKm", 600.0)),
+            float(cfg["slabMatureKm"]),
         )
     else:
         trench_cells = np.empty(0, dtype=np.int32)
@@ -473,7 +473,7 @@ def _build_coarse_start_world(
     ocean.crust.create_many(
         ocean_cells,
         CrustType["OCEAN"],
-        -float(cfg.get("initialOceanAgeMyr", 150.0)),
+        -float(cfg["initialOceanAgeMyr"]),
     )
 
     # Inner and major boundaries are weak sutures. Ring seams are accreted
@@ -485,7 +485,7 @@ def _build_coarse_start_world(
     # Each pair of proto-continents leaves its own far-field shortening fan.
     # Grouping fronts independently preserves the source strength and length
     # scaling used by the upstream startPushes pass.
-    far_start_work = float(cfg.get("farStartWorkKm", 0.0))
+    far_start_work = float(cfg["farStartWorkKm"])
     if far_start_work > 0.0:
         offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
         by_pair: dict[tuple[int, int], dict[int, float]] = {}
@@ -519,7 +519,7 @@ def _build_coarse_start_world(
                 continent,
                 sources,
                 float(len(sources)) * float(sim_mesh.edge_km),
-                -float(cfg.get("startRanges", {}).get("major", [0, 0, 0])[2]),
+                -float(cfg["startRanges"]["major"][2]),
             )
 
     major_sources = (seams == StartSeam["MAJOR"]) & land_mask

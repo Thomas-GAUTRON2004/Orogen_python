@@ -22,7 +22,7 @@ from .scenarios import (
     omega_for,
 )
 
-ARC_TERRANE_ID = ARC_TERRANE_ID
+ARC_TERRANE_ID = 900
 MARIANA_ARC_WIDTH_KM = 243.0
 
 ROLLBACK_ONLY = {

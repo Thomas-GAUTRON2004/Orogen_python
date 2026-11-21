@@ -12,8 +12,8 @@ from typing import Any, cast
 
 import numpy as np
 
-from ..core.fast_noise import FastNoise
 from ..core.array_selection import stable_top_k as _stable_top_k
+from ..core.fast_noise import FastNoise
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
 from ..core.seed import make_rng

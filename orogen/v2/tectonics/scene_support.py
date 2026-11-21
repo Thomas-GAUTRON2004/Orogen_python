@@ -37,7 +37,9 @@ def add_ocean_corridor(
         distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
         if distance * PLANET_RADIUS_KM < skirt_km:
             return True
-        off_track = abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
+        off_track = (
+            abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
+        )
         along = math.atan2(dot(cross(first, point), axis), dot(first, point))
         return off_track < half_width_km and 0.0 < along < span
 

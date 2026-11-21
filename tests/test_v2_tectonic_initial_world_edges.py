@@ -384,7 +384,7 @@ def test_craton_packing_returns_none_when_all_placements_overlap(monkeypatch):
             }
         ],
     )
-    monkeypatch.setattr(initial_cratons, "_outline_gap", lambda *_args: -1.0)
+    monkeypatch.setattr(initial_cratons, "_outline_gap_at_least", lambda *_args: False)
     cfg = {
         "cratonMinGapKm": 10.0,
         "cratonEdgeNoiseKm": 0.0,

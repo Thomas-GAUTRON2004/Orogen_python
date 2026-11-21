@@ -42,6 +42,11 @@ def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
     return xyz
 
 
+
+# Preserve the historical private symbol while exposing the shared helper clearly.
+_plate_outline_with_apron = plate_outline_with_apron
+
+
 def _distance_hops(
     sim_mesh: Any, sources: np.ndarray, *, can_enter=None, max_hops=None
 ) -> np.ndarray:
@@ -600,7 +605,7 @@ def _passive_stretch(coverage: float, rng) -> dict[str, float]:
     }
 
 
-def _plate_outline_with_apron(
+def plate_outline_with_apron(
     sim_mesh: Any, is_land: np.ndarray, config: dict
 ) -> tuple[np.ndarray, np.ndarray]:
     """Morphologically close the continental mask and return its outer rim."""

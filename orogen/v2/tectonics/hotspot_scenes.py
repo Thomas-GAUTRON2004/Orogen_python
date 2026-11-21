@@ -8,7 +8,7 @@ from typing import Any
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import only_mechanisms
 from .dynamics import update_plate_motion
-from .force_scenes import _begin
+from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (
@@ -32,7 +32,7 @@ PLUMES_ONLY = only_mechanisms()
 
 
 def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, _noise = _begin(sim_mesh, seed)
+    world, canvas, _noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     pacifica = world.add_plate("Pacifica")
     centre = lat_lon_to_xyz(-6.0, -148.0)
@@ -58,7 +58,7 @@ def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     indica = world.add_plate("Indica")
     land = add_continent(

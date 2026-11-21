@@ -50,8 +50,19 @@ jobs:
 
       - name: Download complete Python CI dependencies
         run: |
-          python -m pip download --only-binary=:all: --prefer-binary --dest dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6"
+          python -m pip download --only-binary=:all: --prefer-binary --dest dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6" "setuptools>=77" "wheel"
         shell: bash
+
+      - name: Verify full CI bundle installs offline
+        shell: bash
+        run: |
+          python -m venv dist/ci-venv
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            CI_PYTHON="dist/ci-venv/Scripts/python.exe"
+          else
+            CI_PYTHON="dist/ci-venv/bin/python"
+          fi
+          "$CI_PYTHON" -m pip install --no-index --find-links dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6"
 
       - name: Download runtime-only package and dependencies
         run: |
@@ -69,8 +80,9 @@ jobs:
           cat > dist/README-CI.txt <<'EOF'
           Orogen - full Python CI dependency bundle
           Target: CPython 3.12 on the platform named in this archive.
-          Includes project dependencies, pytest, pytest-cov, Numba, Ruff 0.17.5,
-          mypy, Bandit, Xenon, Radon, and Delaunator 5.0.1 under node_modules.
+          Includes project dependencies and build requirements (setuptools>=77, wheel),
+          pytest, pytest-cov, Numba, Ruff 0.17.5, mypy, Bandit, Xenon, Radon,
+          and Delaunator 5.0.1 under node_modules.
           
           Install Python dependencies from the repository root:
             python -m pip install --no-index --find-links ./wheelhouse ".[test,speed,quality]"

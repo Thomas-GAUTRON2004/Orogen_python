@@ -13,6 +13,7 @@ from typing import Any, cast
 import numpy as np
 
 from ..core.fast_noise import FastNoise
+from ..core.array_selection import stable_top_k as _stable_top_k
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
 from ..core.seed import make_rng
@@ -77,17 +78,6 @@ def omega_for(
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
-def _stable_top_k(cosine: np.ndarray, count: int) -> np.ndarray:
-    """Select highest values with stable index tie-breaking in O(n + k log k)."""
-    count = max(0, min(int(count), int(cosine.size)))
-    if count == 0:
-        return np.empty(0, dtype=np.intp)
-    threshold_index = cosine.size - count
-    threshold = np.partition(cosine, threshold_index)[threshold_index]
-    above = np.flatnonzero(cosine > threshold)
-    tied = np.flatnonzero(cosine == threshold)[: count - above.size]
-    selected = np.concatenate((above, tied))
-    return selected[np.lexsort((selected, -cosine[selected]))]
 
 
 def build_continental_scene(

@@ -529,7 +529,7 @@ def _outline_gap_at_least(
     if distance >= first_reach + second_reach:
         return distance - first_reach - second_reach >= minimum_gap
     if distance <= float(first["inner"]) + float(second["inner"]):
-        return 0.0 >= minimum_gap
+        return minimum_gap <= 0.0
     if minimum_gap <= 0.0:
         return True
 

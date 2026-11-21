@@ -665,7 +665,7 @@ def test_paint_old_ranges_discards_a_stale_long_distance_queue_entry(monkeypatch
         adj_list=np.asarray([1, 2, 2], dtype=np.int32),
     )
     world = SimpleNamespace(
-        config={"startRanges": {"inner": [100.0, 10.0, 20.0, 0.5]}},
+        config={"startRanges": {"inner": [100.0, 10.0, 20.0, 0.5]}, "startRangeVary": 0.5},
         seed=101,
         mesh=mesh,
     )

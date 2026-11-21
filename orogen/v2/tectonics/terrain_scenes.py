@@ -13,7 +13,7 @@ from .budget_scenes import BUDGET_SCENES
 from .config import mechanisms_on, only_mechanisms
 from .crust import CrustFlag, CrustType
 from .dynamics import update_plate_motion
-from .force_scenes import _begin
+from .scene_support import add_ocean_corridor, begin_scene
 from .hotspot_scenes import HOTSPOT_SCENES
 from .kinematics import lat_lon_to_xyz, xyz_to_lat_lon
 from .margin_scenes import MARGIN_SCENES, heading, omega_for
@@ -70,33 +70,8 @@ def _from_catalogue(
     return {**scene, "drive": update_plate_motion, **overrides}
 
 
-def _ocean_corridor(
-    canvas: dict[str, Any],
-    plate: Any,
-    first: list[float],
-    second: list[float],
-    skirt_km: float,
-    half_width_km: float,
-) -> None:
-    axis = normalize(cross(first, second))
-    span = math.acos(max(-1.0, min(1.0, dot(first, second))))
-
-    def wanted(x: float, y: float, z: float) -> bool:
-        point = [x, y, z]
-        distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
-        if distance * PLANET_RADIUS_KM < skirt_km:
-            return True
-        off_track = (
-            abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
-        )
-        along = math.atan2(dot(cross(first, point), axis), dot(first, point))
-        return off_track < half_width_km and 0.0 < along < span
-
-    add_ocean(canvas, plate, wanted, -90.0)
-
-
 def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
     asia_land = add_continent(
@@ -116,7 +91,7 @@ def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
         radius_km=1300.0,
         craton_km=950.0,
     )
-    _ocean_corridor(
+    add_ocean_corridor(
         canvas,
         india,
         india_land["centre"],
@@ -131,7 +106,7 @@ def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
     asia_land = add_continent(
@@ -211,7 +186,7 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
         radius_km=1300.0,
         craton_km=950.0,
     )
-    _ocean_corridor(
+    add_ocean_corridor(
         canvas,
         india,
         india_land["centre"],

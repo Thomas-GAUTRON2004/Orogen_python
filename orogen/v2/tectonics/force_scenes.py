@@ -111,6 +111,7 @@ def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _start_world(sim_mesh: Any, seed: int) -> TectonicWorld:
+    """Build a fresh mutable start world instead of reusing simulation state."""
     return build_start_world(sim_mesh, seed)["world"]
 
 

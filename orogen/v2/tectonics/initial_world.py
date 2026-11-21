@@ -43,9 +43,6 @@ def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
 
 
 
-# Preserve the historical private symbol while exposing the shared helper clearly.
-_plate_outline_with_apron = plate_outline_with_apron
-
 
 def _distance_hops(
     sim_mesh: Any, sources: np.ndarray, *, can_enter=None, max_hops=None
@@ -626,6 +623,10 @@ def plate_outline_with_apron(
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
         rim[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])
     return in_plate, np.flatnonzero(rim).astype(np.int32)
+
+
+# Preserve the historical private symbol for internal/test compatibility.
+_plate_outline_with_apron = plate_outline_with_apron
 
 
 def _choose_active_rim(

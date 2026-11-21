@@ -725,11 +725,11 @@ def place_cratons(
                         _outline_gap_at_least(
                             other_piece,
                             item,
-                            (
-                            gap * 0.999
-                            if other_piece is anchor
-                            else reserve
-                            * (1.0 if other_piece["cluster"] == cluster else apart)
+                                (
+                                gap * 0.999
+                                if other_piece is anchor
+                                else reserve
+                                * (1.0 if other_piece["cluster"] == cluster else apart)
                             ),
                         )
                         for item in candidate

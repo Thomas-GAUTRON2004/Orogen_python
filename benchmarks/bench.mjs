@@ -1,72 +1,209 @@
+import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
-import { median } from "./bench-utils.mjs";
+import { summarize } from "./bench-utils.mjs";
 import { FastNoise } from "../tests/reference/v2/core/fast-noise.mjs";
 import * as geom from "../tests/reference/v2/core/sphere-geom.mjs";
 import { hopDistance, piecesOf } from "../tests/reference/v2/core/mesh-bfs.mjs";
 import { spreadKm } from "../tests/reference/v2/core/min-heap.mjs";
 import { CrustRaster, CrustType } from "../tests/reference/v2/tectonics/crust.mjs";
 
-const N_NOISE = 40000, N_GEOM = 80000, N_CELLS = 40000, ROUNDS = 5;
+const N_NOISE = 40_000;
+const N_GEOM = 80_000;
+const N_CELLS = 40_000;
+const ROUNDS = Math.max(3, Number(process.env.BENCH_ROUNDS ?? 10));
+const WARMUPS = Math.max(1, Number(process.env.BENCH_WARMUPS ?? 2));
+
 function measure(fn) {
-  fn();
-  const values = [];
+  for (let i = 0; i < WARMUPS; i++) fn();
+  const samples = [];
   for (let i = 0; i < ROUNDS; i++) {
-    const start = performance.now();
+    const started = performance.now();
     fn();
-    values.push(performance.now() - start);
+    samples.push(performance.now() - started);
   }
-  return median(values);
+  return summarize(samples);
 }
+
 function makeInputs() {
-  const points = Array.from({length:N_NOISE}, (_,i) => [
+  const points = Array.from({ length: N_NOISE }, (_, i) => [
     Math.sin(i * 0.013) * 17.0,
     Math.cos(i * 0.007) * 11.0,
     Math.sin(i * 0.003 + 0.4) * 23.0,
   ]);
-  const vectors = Array.from({length:N_GEOM}, (_,i) => {
+  const vectors = Array.from({ length: N_GEOM }, (_, i) => {
     const z = 1 - 2 * (i + 0.5) / N_GEOM;
-    const a = i * 2.399963229728653;
-    const r = Math.sqrt(1-z*z);
-    return [r*Math.cos(a), r*Math.sin(a), z];
+    const angle = i * 2.399963229728653;
+    const radius = Math.sqrt(1 - z * z);
+    return [radius * Math.cos(angle), radius * Math.sin(angle), z];
   });
   const xyz = new Float32Array(N_CELLS * 3);
-  for (let i=0;i<N_CELLS;i++) {
-    const z=1-2*(i+0.5)/N_CELLS, a=i*2.399963229728653, r=Math.sqrt(1-z*z);
-    xyz[3*i]=r*Math.cos(a); xyz[3*i+1]=r*Math.sin(a); xyz[3*i+2]=z;
+  for (let i = 0; i < N_CELLS; i++) {
+    const z = 1 - 2 * (i + 0.5) / N_CELLS;
+    const angle = i * 2.399963229728653;
+    const radius = Math.sqrt(1 - z * z);
+    xyz[3 * i] = radius * Math.cos(angle);
+    xyz[3 * i + 1] = radius * Math.sin(angle);
+    xyz[3 * i + 2] = z;
   }
-  const offsets = new Int32Array(N_CELLS+1), adjacency = new Int32Array(N_CELLS*6);
-  for(let i=0;i<N_CELLS;i++) {
-    offsets[i]=i*6;
-    for(let k=0;k<3;k++){adjacency[i*6+k]=(i+k+1)%N_CELLS;adjacency[i*6+3+k]=(i-k-1+N_CELLS)%N_CELLS;}
+
+  const offsets = new Int32Array(N_CELLS + 1);
+  const adjacency = new Int32Array(N_CELLS * 6);
+  for (let i = 0; i < N_CELLS; i++) {
+    offsets[i] = i * 6;
+    for (let k = 0; k < 3; k++) {
+      adjacency[i * 6 + k] = (i + k + 1) % N_CELLS;
+      adjacency[i * 6 + 3 + k] = (i - k - 1 + N_CELLS) % N_CELLS;
+    }
   }
-  offsets[N_CELLS]=N_CELLS*6;
-  return {points,vectors,mesh:{numCells:N_CELLS,xyz,adjOffset:offsets,adjList:adjacency}};
+  offsets[N_CELLS] = N_CELLS * 6;
+  return {
+    points,
+    vectors,
+    mesh: { numCells: N_CELLS, xyz, adjOffset: offsets, adjList: adjacency },
+  };
 }
-const {points,vectors,mesh}=makeInputs();
-const noise=new FastNoise(9876);
-const selectedCells = [];
-for (let start = 0; start < N_CELLS; start += 68) {
-  for (let cell = start; cell < Math.min(start + 64, N_CELLS); cell++) selectedCells.push(cell);
+
+function benchmarkJavaScript() {
+  const { points, vectors, mesh } = makeInputs();
+  const noise = new FastNoise(9876);
+  const selectedCells = [];
+  for (let start = 0; start < N_CELLS; start += 68) {
+    for (let cell = start; cell < Math.min(start + 64, N_CELLS); cell++) {
+      selectedCells.push(cell);
+    }
+  }
+  const copySource = new CrustRaster(N_CELLS);
+  for (let i = 0; i < N_CELLS; i += 2) {
+    copySource.create(i, CrustType.CONTINENT, -100, i + 1);
+  }
+
+  return {
+    noise_fbm_ms: measure(() => {
+      let sum = 0;
+      for (const point of points) sum += noise.fbm(...point, 5, 2 / 3);
+      globalThis.__benchSink = sum;
+    }),
+    spherical_geometry_ms: measure(() => {
+      let sum = 0;
+      for (const point of vectors) {
+        const target = geom.destination(point, 0.71, 0.013);
+        sum += geom.bearingTo(point, target) + geom.dot(point, target);
+      }
+      globalThis.__benchSink = sum;
+    }),
+    mesh_bfs_ms: measure(() => {
+      const distance = hopDistance(mesh, (cell) => cell === 0, N_CELLS);
+      globalThis.__benchSink = distance[N_CELLS - 1];
+    }),
+    mesh_components_ms: measure(() => {
+      const components = piecesOf(mesh, selectedCells);
+      globalThis.__benchSink = components.reduce((sum, part) => sum + part.length, 0);
+    }),
+    mesh_dijkstra_ms: measure(() => {
+      const distance = new Float64Array(N_CELLS);
+      distance.fill(Infinity);
+      distance[0] = 0;
+      spreadKm(mesh, distance, { maxKm: 20_000 });
+      globalThis.__benchSink = distance[N_CELLS - 1];
+    }),
+    crust_create_snapshot_ms: measure(() => {
+      const crust = new CrustRaster(N_CELLS);
+      let sum = 0;
+      for (let i = 0; i < N_CELLS; i += 2) {
+        crust.create(i, CrustType.CONTINENT, -100, i + 1);
+        sum += crust.snapshot(i).length;
+      }
+      globalThis.__benchSink = sum;
+    }),
+    crust_copy_ms: measure(() => {
+      const crust = new CrustRaster(N_CELLS);
+      for (let i = 0; i < N_CELLS; i += 2) {
+        crust.copyFrom(i, copySource, i);
+      }
+      globalThis.__benchSink = crust.count;
+    }),
+  };
 }
-const copySource = new CrustRaster(N_CELLS);
-for (let i=0;i<N_CELLS;i+=2) copySource.create(i,CrustType.CONTINENT,-100,i+1);
-const jsResults = {
-  noise_fbm_ms: measure(() => { let s=0; for(const p of points) s+=noise.fbm(...p,5,2/3); globalThis.__benchSink=s; }),
-  spherical_geometry_ms: measure(() => { let s=0; for(const p of vectors){const q=geom.destination(p,0.71,0.013);s+=geom.bearingTo(p,q)+geom.dot(p,q);} globalThis.__benchSink=s; }),
-  mesh_bfs_ms: measure(() => { const d=hopDistance(mesh,c=>c===0, N_CELLS); globalThis.__benchSink=d[N_CELLS-1]; }),
-  mesh_components_ms: measure(() => { const pieces=piecesOf(mesh,selectedCells); globalThis.__benchSink=pieces.reduce((n,p)=>n+p.length,0); }),
-  mesh_dijkstra_ms: measure(() => { const d=new Float64Array(N_CELLS); d.fill(Infinity); d[0]=0; spreadKm(mesh,d,{maxKm:20000}); globalThis.__benchSink=d[N_CELLS-1]; }),
-  crust_create_snapshot_ms: measure(() => { const c=new CrustRaster(N_CELLS); let s=0; for(let i=0;i<N_CELLS;i+=2){c.create(i,CrustType.CONTINENT,-100,i+1);s+=c.snapshot(i).length;} globalThis.__benchSink=s; }),
-  crust_copy_ms: measure(() => { const c=new CrustRaster(N_CELLS); for(let i=0;i<N_CELLS;i+=2)c.copyFrom(i,copySource,i); globalThis.__benchSink=c.count; }),
+
+function ratio(numerator, denominator) {
+  return denominator > 0 ? Number((numerator / denominator).toFixed(3)) : null;
+}
+
+function buildComparisons(javascript, python) {
+  const comparisons = {};
+  for (const [name, jsStats] of Object.entries(javascript)) {
+    const pure = python.python_pure.timings[name];
+    const accelerated = python.python_numba?.timings[name] ?? null;
+    comparisons[name] = {
+      javascript_median_ms: jsStats.median_ms,
+      python_pure_median_ms: pure.median_ms,
+      python_numba_median_ms: accelerated?.median_ms ?? null,
+      python_pure_over_js: ratio(pure.median_ms, jsStats.median_ms),
+      python_numba_over_js: accelerated
+        ? ratio(accelerated.median_ms, jsStats.median_ms)
+        : null,
+      numba_speedup_over_pure: accelerated
+        ? ratio(pure.median_ms, accelerated.median_ms)
+        : null,
+    };
+  }
+  return comparisons;
+}
+
+const javascript = benchmarkJavaScript();
+const pythonRun = spawnSync("python", ["benchmarks/bench_python.py"], {
+  encoding: "utf8",
+  env: {
+    ...process.env,
+    BENCH_ROUNDS: String(ROUNDS),
+    BENCH_WARMUPS: String(WARMUPS),
+  },
+  maxBuffer: 20 * 1024 * 1024,
+});
+if (pythonRun.status !== 0) {
+  throw new Error(
+    "Python benchmark failed:\n" + pythonRun.stderr + "\n" + pythonRun.stdout,
+  );
+}
+let python;
+try {
+  python = JSON.parse(pythonRun.stdout);
+} catch (error) {
+  throw new Error(
+    "Could not parse Python benchmark JSON: " + String(error) + "\n" +
+      pythonRun.stdout.slice(-4000),
+  );
+}
+
+const report = {
+  schema_version: 2,
+  generated_at: new Date().toISOString(),
+  configuration: {
+    rounds: ROUNDS,
+    warmups: WARMUPS,
+    noise_points: N_NOISE,
+    geometry_points: N_GEOM,
+    graph_cells: N_CELLS,
+    step_world_cells: python.configuration.step_world_requested_cells,
+    timing_unit: "milliseconds",
+    statistic: "median, mean, sample standard deviation, p95, min, max, raw samples",
+  },
+  runtime: {
+    node: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    cpu_model: os.cpus()[0]?.model ?? null,
+    logical_cpus: os.cpus().length,
+    python: python.runtime,
+  },
+  javascript,
+  python: {
+    numba_available: python.runtime.numba_available,
+    pure: python.python_pure,
+    numba: python.python_numba,
+  },
+  comparisons: buildComparisons(javascript, python),
 };
-const py = spawnSync("python", ["benchmarks/bench_python.py"], {encoding:"utf8"});
-if (py.status !== 0) throw new Error("Python benchmark failed:\n"+py.stderr+"\n"+py.stdout);
-const pyResults=JSON.parse(py.stdout);
-const results={runtime:{node:process.version,python:pyResults.runtime.python,platform:process.platform,arch:process.arch},iterations:{noise:N_NOISE,geometry:N_GEOM,cells:N_CELLS,rounds:ROUNDS},javascript:jsResults,python:pyResults.timings,accelerator_comparisons:pyResults.accelerator_comparisons};
-const comparison={};
-for(const key of Object.keys(jsResults)){
- const js=jsResults[key], python=pyResults.timings[key];
- comparison[key]={javascript_ms:+js.toFixed(3),python_ms:+python.toFixed(3),python_over_js:+(python/js).toFixed(2),faster:js<python?"javascript":"python"};
-}
-console.log(JSON.stringify({results,comparison},null,2));
+
+console.log(JSON.stringify(report, null, 2));

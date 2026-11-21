@@ -10,7 +10,7 @@ import numpy as np
 from .config import only_mechanisms
 from .crust import CrustType
 from .dynamics import update_plate_motion
-from .force_scenes import _begin
+from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (
@@ -117,7 +117,7 @@ def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
 
 
 def _margins(sim_mesh: Any, seed: int):
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     drift = world.add_plate("Driftia")
     land = add_continent(
@@ -136,7 +136,7 @@ def _margins(sim_mesh: Any, seed: int):
 
 
 def _laramide(sim_mesh: Any, seed: int):
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     laurentia = world.add_plate("Laurentia")
     farallona = world.add_plate("Farallona")
@@ -165,7 +165,7 @@ def _laramide(sim_mesh: Any, seed: int):
 
 
 def _mariana(sim_mesh: Any, seed: int):
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
     philippina = world.add_plate("Philippina")
@@ -225,7 +225,7 @@ def _drive_japan(world: Any) -> None:
 
 
 def _japan(sim_mesh: Any, seed: int):
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
     pacifica = world.add_plate("Pacifica")

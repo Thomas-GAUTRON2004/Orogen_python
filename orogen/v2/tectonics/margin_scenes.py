@@ -21,9 +21,8 @@ from .scenarios import (
     heading,
     omega_for,
 )
-from .scene_support import begin_scene
-
 from .scene_constants import ARC_TERRANE_ID, MARIANA_ARC_WIDTH_KM
+from .scene_support import begin_scene
 
 ROLLBACK_ONLY = MappingProxyType(
     {

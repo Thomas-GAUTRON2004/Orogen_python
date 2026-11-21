@@ -258,6 +258,7 @@ def _japan(sim_mesh: Any, seed: int):
 
 
 def _history(sim_mesh: Any, seed: int):
+    """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
 

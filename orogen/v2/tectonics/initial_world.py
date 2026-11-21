@@ -42,8 +42,6 @@ def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
     return xyz
 
 
-
-
 def _distance_hops(
     sim_mesh: Any, sources: np.ndarray, *, can_enter=None, max_hops=None
 ) -> np.ndarray:
@@ -58,8 +56,6 @@ def _distance_hops(
         max_hops=int(max_hops if max_hops is not None else sim_mesh.num_cells),
         can_enter=can_enter,
     )
-
-
 
 
 def _land_cells(

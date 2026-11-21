@@ -280,3 +280,14 @@ def test_mechanism_helpers_reject_unknown_names_and_copy_nested_values():
     disabled = mechanisms_off("mantleHeatRifts")
     disabled["riftHeatGain"] = 999
     assert MECHANISMS["mantleHeatRifts"]["riftHeatGain"] == 0
+
+
+def test_validate_config_rejects_latitude_above_ninety_degrees():
+    with pytest.raises(ValueError, match="startMaxLatitudeDeg cannot exceed 90"):
+        validate_tectonics_config({"startMaxLatitudeDeg": 91.0})
+
+
+def test_known_shape_validation_accepts_matching_scalar_type():
+    from orogen.v2.tectonics.config import _validate_known_shape
+
+    _validate_known_shape("continental", "oceanic", "label")

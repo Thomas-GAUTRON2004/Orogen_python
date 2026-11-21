@@ -63,8 +63,9 @@ def _land_cells(
     xyz = _mesh_xyz(sim_mesh)
     count = max(1, min(int(count), int(sim_mesh.num_cells) - 1))
     cosine = xyz @ centre
-    cells = np.argpartition(cosine, -count)[-count:]
-    cells = cells[np.argsort(-cosine[cells], kind="stable")]
+    # Resolve equal-distance mesh cells by index, not by argpartition's
+    # implementation-dependent ordering at the selection boundary.
+    cells = np.lexsort((np.arange(cosine.size), -cosine))[:count]
     radius = math.acos(float(np.clip(np.min(cosine[cells]), -1.0, 1.0)))
     return cells.astype(np.int32), radius
 
@@ -583,9 +584,6 @@ def _build_coarse_start_world(
     return {"world": world, "start": start}
 
 
-# The public builder is replaced below after retaining the fixture implementation.
-
-
 _MAX_LAYOUT_ATTEMPTS = 24
 _LAYOUT_RELAX_SPAN_AFTER = 18
 _LAYOUT_FRACTION_TOLERANCE = 0.004
@@ -900,6 +898,16 @@ def build_start_world(
         raise ValueError(
             "Initial-world settings do not fit the planet: craton spacing, coast "
             "margins and connected land cannot satisfy continentalFraction."
+        )
+    if not found["fractionMet"]:
+        actual = int(np.count_nonzero(found["land"]["type"] != CrustType["OCEAN"]))
+        achieved = actual / int(sim_mesh.num_cells)
+        target = float(world.config["continentalFraction"])
+        raise ValueError(
+            "Initial-world settings could not meet continentalFraction after "
+            f"{found['attempts']} attempts (target={target:.4f}, "
+            f"closest={achieved:.4f}); adjust craton spacing, coast margins or "
+            "continentalFraction."
         )
     return _assemble_upstream_start_world(world, int(seed), found)
 

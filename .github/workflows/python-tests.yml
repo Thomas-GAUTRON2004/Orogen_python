@@ -238,6 +238,6 @@ jobs:
               failures.append("coverage report contains no Python package files")
           if failures:
               print("Coverage threshold failures:")
-              print("\\n".join(failures))
+              print("\n".join(failures))
               raise SystemExit(1)
           PY

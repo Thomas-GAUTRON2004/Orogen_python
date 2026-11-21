@@ -53,12 +53,25 @@ def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
         {"collisionShearShare": -0.1},
         {"beltSpeedFactorMin": 2.0, "beltSpeedFactorMax": 1.0},
         {"beltSpeedExponent": -0.1},
+        {"startArcKm": [0, 0]},
+        {"startArcKm": [0, 100]},
+        {"startStepKm": [100, 0]},
+        {"startMaxLatitudeDeg": 0},
+        {"coastUnionSoftnessKm": 0},
+        {"startGrowthBias": 1},
+        {"startGrowthBias": -0.1},
         {"belts": {"andean": {"baseKm": 500, "maxKm": 400}}},
     ],
 )
 def test_invalid_configuration_values_are_rejected(overrides):
     with pytest.raises((TypeError, ValueError)):
         make_tectonics_config(overrides)
+
+
+def test_start_margin_ranges_reject_reversed_bounds():
+    for key in ("startArcKm", "startStepKm"):
+        with pytest.raises(ValueError, match="lower bound cannot exceed upper bound"):
+            make_tectonics_config({key: [500.0, 100.0]})
 
 
 def test_boolean_is_not_accepted_as_numeric_configuration():

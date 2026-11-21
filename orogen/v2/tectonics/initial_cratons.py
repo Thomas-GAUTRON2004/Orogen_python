@@ -30,6 +30,37 @@ MIN_EDGE_TURN = 0.9
 STEP_WIDTH = 0.04
 
 
+def _craton_letter(index: int) -> str:
+    """Return spreadsheet-style alphabetic identifiers (A..Z, AA..)."""
+    if index < 0:
+        raise ValueError("craton index must be non-negative")
+    value = index + 1
+    letters: list[str] = []
+    while value:
+        value, remainder = divmod(value - 1, 26)
+        letters.append(chr(65 + remainder))
+    return "".join(reversed(letters))
+
+
+def _random_centre_within_latitude(
+    rng: Callable[[], float], max_latitude_deg: float
+) -> list[float]:
+    """Sample a spherical centre within a latitude band with bounded retries."""
+    max_z = math.sin(math.radians(max_latitude_deg))
+    centre = random_point(rng)
+    for _ in range(64):
+        if abs(float(centre[2])) <= max_z:
+            return centre
+        centre = random_point(rng)
+
+    # A tiny but valid latitude band can make rejection sampling impractical.
+    # Uniform z and longitude give the same uniform-on-sphere conditional law.
+    z = (2.0 * rng() - 1.0) * max_z
+    longitude = rng() * TAU
+    horizontal = math.sqrt(max(0.0, 1.0 - z * z))
+    return [horizontal * math.cos(longitude), horizontal * math.sin(longitude), z]
+
+
 def _smoothstep(value: float) -> float:
     if value <= 0.0:
         return 0.0
@@ -573,10 +604,9 @@ def place_cratons(
             offset += counts[cluster]
         clusters.append(sorted(members, key=block_size, reverse=True))
 
-    centre = random_point(rng)
-    max_latitude = math.sin(math.radians(float(cfg["startMaxLatitudeDeg"])))
-    while abs(centre[2]) > max_latitude:
-        centre = random_point(rng)
+    centre = _random_centre_within_latitude(
+        rng, float(cfg["startMaxLatitudeDeg"])
+    )
     axis = rng() * math.pi
     elongation = rng() * float(cfg["clusterElongation"]) * stretch
     apart_lo, apart_hi = cfg["clusterApart"]
@@ -685,7 +715,7 @@ def place_cratons(
         cratons.append(
             {
                 "id": index + 1,
-                "letter": chr(65 + index),
+                "letter": _craton_letter(index),
                 "cluster": item["cluster"],
                 "centre": item["centre"],
                 "radius": item["radius"],

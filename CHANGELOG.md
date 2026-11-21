@@ -29,6 +29,10 @@ describe the repository state and changes recorded during the V2 port.
   compatibility limits, the SciPy backend and porting status.
 
 ### Changed
+- Initial-world configuration now rejects zero-width margins and singular
+  growth settings, bounds latitude sampling, uses stable mesh-cell tie breaks,
+  and reports an unmet continental-fraction target instead of returning a
+  silently degraded start world.
 - The partial `step_world` orchestrator now conditionally includes collision
   tracking and far-field evolution, and rebuilds ownership after topology changes.
 - The production spherical triangulation backend is SciPy/Qhull. Orogen retains

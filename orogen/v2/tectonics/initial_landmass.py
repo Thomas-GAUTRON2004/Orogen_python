@@ -56,6 +56,9 @@ def _margin_profile(
     cfg: Mapping[str, Any],
     passive: Mapping[str, float],
 ) -> Callable[[float], dict[str, float]]:
+    for key in ("startArcKm", "startStepKm"):
+        if any(float(width) <= 0.0 for width in cfg[key]):
+            raise ValueError(f"{key} widths must be positive")
     km_per_degree = (
         math.sin(math.acos(1.0 - 2.0 * float(cfg["continentalFraction"])))
         * 2.0
@@ -245,7 +248,7 @@ def shape_landmass(
     suture = np.zeros(num_cells, dtype=np.uint8)
     owner = np.full(num_cells, -1, dtype=np.int8)
     rings = np.zeros(num_cells, dtype=np.uint8)
-    pairs = np.zeros(num_cells, dtype=np.uint8)
+    pairs = np.zeros(num_cells, dtype=np.uint16)
     field = np.zeros(num_cells, dtype=np.float32)
     shape = np.zeros(num_cells, dtype=np.float32)
     growth = np.zeros(cluster_count, dtype=np.float64)
@@ -426,7 +429,7 @@ def shape_landmass(
     # Keep this sum in float64 instead of rounding it back to float32 as NumPy does.
     coast_level = field.astype(np.float64) + shape.astype(np.float64)
 
-    def landmass(skirt: float) -> tuple[np.ndarray, int] | None:
+    def landmass(skirt: float) -> tuple[np.ndarray, int] | bool | None:
         made = types.copy()
         add_land = (near_craton != 0) | (bridge != 0) | (coast_level < skirt)
         made[(made != CrustType["CRATON"]) & add_land] = CrustType["CONTINENT"]
@@ -442,7 +445,7 @@ def shape_landmass(
         )
         land_cells = made != CrustType["OCEAN"]
         if np.any((made == CrustType["CRATON"]) & (mainland == 0)):
-            return None
+            return False
         made[land_cells & (mainland == 0)] = CrustType["OCEAN"]
         return made, int(np.count_nonzero(made != CrustType["OCEAN"]))
 
@@ -452,14 +455,21 @@ def shape_landmass(
         skirt = (lower + upper) / 2.0
         made = landmass(skirt)
         if made is None:
-            return None
+            # The antipode is already land: this threshold is too high.
+            upper = skirt
+            continue
+        if made is False:
+            # Some fixed craton cells are disconnected from the main landmass:
+            # more of the coast must be admitted before testing the fraction.
+            lower = skirt
+            continue
         if made[1] / num_cells < float(cfg["continentalFraction"]):
             lower = skirt
         else:
             upper = skirt
     skirt = (lower + upper) / 2.0
     final_land = landmass(skirt)
-    if final_land is None:
+    if final_land is None or final_land is False:
         return None
     types[:] = final_land[0]
     ocean = types == CrustType["OCEAN"]

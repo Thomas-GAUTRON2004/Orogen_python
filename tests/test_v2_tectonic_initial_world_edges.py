@@ -792,3 +792,66 @@ def test_upstream_assembly_handles_land_without_major_sutures(monkeypatch):
 
     result = initial_world._assemble_upstream_start_world(world, 955, found)
     assert np.all(np.isinf(result["world"].startSeamKm["major"]))
+
+
+def test_land_cells_breaks_equal_distance_ties_by_cell_index():
+    mesh = SimpleNamespace(
+        num_cells=4,
+        xyz=np.asarray(
+            [
+                [1.0, 0.0, 0.0],
+                [0.5, np.sqrt(0.75), 0.0],
+                [0.5, -np.sqrt(0.75), 0.0],
+                [0.0, 0.0, 1.0],
+            ],
+            dtype=np.float64,
+        ),
+    )
+    cells, _radius = initial_world._land_cells(
+        mesh, np.asarray([1.0, 0.0, 0.0]), 2
+    )
+    assert cells.tolist() == [0, 1]
+
+
+def test_start_world_rejects_unmet_continental_fraction(monkeypatch):
+    mesh = SimpleNamespace(num_cells=512)
+    fake_world = SimpleNamespace(config={"continentalFraction": 0.3})
+    monkeypatch.setattr(
+        initial_world, "TectonicWorld", lambda *_args, **_kwargs: fake_world
+    )
+    land_type = np.asarray(
+        [CrustType["CONTINENT"]] * 149 + [CrustType["OCEAN"]] * 363
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_find_layout",
+        lambda *_args, **_kwargs: {
+            "fractionMet": False,
+            "attempts": 24,
+            "land": {"type": land_type},
+        },
+    )
+    monkeypatch.setattr(
+        initial_world,
+        "_assemble_upstream_start_world",
+        lambda *_args, **_kwargs: pytest.fail(
+            "unmet fraction must not be assembled"
+        ),
+    )
+    with pytest.raises(ValueError, match="could not meet continentalFraction"):
+        initial_world.build_start_world(mesh, 123)
+
+
+def test_margin_profile_rejects_zero_width_segments():
+    from orogen.v2.tectonics.initial_landmass import _margin_profile
+
+    with pytest.raises(ValueError, match="startArcKm widths must be positive"):
+        _margin_profile(
+            lambda: 0.5,
+            {
+                "continentalFraction": 0.29,
+                "startArcKm": [0, 0],
+                "startStepKm": [1, 1],
+            },
+            {"span": 0.0, "from": 0.0},
+        )

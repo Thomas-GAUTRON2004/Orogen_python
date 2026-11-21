@@ -6,8 +6,11 @@ import math
 
 import pytest
 
+from orogen.v2.tectonics import initial_cratons
 from orogen.v2.tectonics.initial_cratons import (
+    _craton_letter,
     _frame_at,
+    _random_centre_within_latitude,
     _piece_shape,
     _trace_outline,
     craton_edge,
@@ -58,3 +61,19 @@ def test_craton_edge_projects_world_point_into_block_frame():
     assert centre["d"] == pytest.approx(-1.0)
     assert outside["d"] == pytest.approx(1.0)
     assert centre["rift"] == 0.0
+
+
+@pytest.mark.parametrize(
+    ("index", "expected"),
+    [(0, "A"), (25, "Z"), (26, "AA"), (27, "AB"), (701, "ZZ"), (702, "AAA")],
+)
+def test_craton_letters_remain_alphanumeric_beyond_26(index, expected):
+    assert _craton_letter(index) == expected
+
+
+def test_random_centre_within_tiny_latitude_band_has_bounded_fallback(monkeypatch):
+    monkeypatch.setattr(initial_cratons, "random_point", lambda _rng: [1.0, 0.0, 0.0])
+    centre = _random_centre_within_latitude(lambda: 0.5, 0.001)
+    assert len(centre) == 3
+    assert sum(value * value for value in centre) == pytest.approx(1.0)
+    assert abs(centre[2]) <= math.sin(math.radians(0.001))

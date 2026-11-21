@@ -96,8 +96,9 @@ def build_continental_scene(
         ),
     )
     cosine = xyz @ centre
-    land = np.argpartition(cosine, -count)[-count:]
-    land = land[np.argsort(-cosine[land], kind="stable")].astype(np.int32)
+    # Stable secondary index ordering makes ties reproducible across NumPy
+    # versions and platforms.
+    land = np.lexsort((np.arange(cosine.size), -cosine))[:count].astype(np.int32)
     land_mask = np.zeros(sim_mesh.num_cells, dtype=bool)
     land_mask[land] = True
 

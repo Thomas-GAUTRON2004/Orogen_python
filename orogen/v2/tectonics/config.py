@@ -647,6 +647,8 @@ _POSITIVE = frozenset(
         "stepGridMyr",
         "maxCellsPerStep",
         "snapshotEveryMyr",
+        "coastUnionSoftnessKm",
+        "startMaxLatitudeDeg",
         "slabPullAgeRefMyr",
         "slabMatureKm",
         "ridgeMaxAgeMyr",
@@ -662,6 +664,7 @@ _POSITIVE = frozenset(
 _NON_NEGATIVE = frozenset(
     {
         "beltSpeedExponent",
+        "startGrowthBias",
         "slowRulesEveryMyr",
         "boundaryActiveCmYr",
         "closingCmYr",
@@ -769,6 +772,23 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
             raise ValueError(f"{key} must be in [0, 1]")
         if key in {"beltSpeedFactorMin", "beltSpeedFactorMax"} and float(value) < 0:
             raise ValueError(f"{key} must be non-negative")
+    for key in ("startArcKm", "startStepKm"):
+        if key not in config:
+            continue
+        lower, upper = (float(value) for value in config[key])
+        if lower <= 0.0 or upper <= 0.0:
+            raise ValueError(f"{key} values must be positive")
+        if lower > upper:
+            raise ValueError(f"{key} lower bound cannot exceed upper bound")
+
+    if "startGrowthBias" in config and float(config["startGrowthBias"]) >= 1.0:
+        raise ValueError("startGrowthBias must be strictly less than 1")
+    if (
+        "startMaxLatitudeDeg" in config
+        and float(config["startMaxLatitudeDeg"]) > 90.0
+    ):
+        raise ValueError("startMaxLatitudeDeg cannot exceed 90 degrees")
+
     if float(config.get("beltSpeedFactorMin", 0.6)) > float(
         config.get("beltSpeedFactorMax", 1.6)
     ):

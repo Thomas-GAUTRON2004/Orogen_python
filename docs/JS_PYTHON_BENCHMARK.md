@@ -382,16 +382,16 @@ The paired benchmark now exercises a synthetic degree-6 ring graph with **40,000
 
 | Workload | JavaScript | Python pure | Python + Numba | Numba / JS | Numba gain over pure |
 |---|---:|---:|---:|---:|---:|
-| FBM, 40,000 points × 5 octaves | 15.506 ms | 1,667.064 ms | 14.009 ms | 0.90× | 119.00× |
-| Spherical geometry, 80,000 points | 30.840 ms | 761.877 ms | 6.831 ms | 0.22× | 111.53× |
-| Mesh BFS, 40,000 cells | 0.995 ms | 88.371 ms | 3.745 ms | 3.77× | 23.60× |
-| Connected components, 40,000 cells | 11.373 ms | 75.023 ms | 8.440 ms | 0.74× | 8.89× |
-| Mesh Dijkstra, 40,000 cells | 0.559 ms | 5.268 ms | 0.031 ms | 0.06× | 170.61× |
-| Crust create + batch snapshot, 6,000 cells | 10.967 ms | 761.448 ms | 3.158 ms | 0.29× | 241.09× |
-| Crust batch copy, 6,000 cells | 4.823 ms | 151.987 ms | 1.389 ms | 0.29× | 109.40× |
+| FBM, 40,000 points × 5 octaves | 10.800 ms | 1,103.039 ms | 10.509 ms | 0.97× | 104.96× |
+| Spherical geometry, 80,000 points | 20.609 ms | 476.499 ms | 5.027 ms | 0.24× | 94.79× |
+| Mesh BFS, 40,000 cells | 0.605 ms | 50.165 ms | 2.258 ms | 3.73× | 22.22× |
+| Connected components, 40,000 cells | 8.976 ms | 45.123 ms | 5.451 ms | 0.61× | 8.28× |
+| Mesh Dijkstra, 40,000 cells | 0.236 ms | 3.011 ms | 0.017 ms | 0.07× | 173.68× |
+| Crust create + batch snapshot, 6,000 cells | 6.668 ms | 472.506 ms | 1.636 ms | 0.25× | 288.90× |
+| Crust batch copy, 6,000 cells | 5.171 ms | 94.042 ms | 0.860 ms | 0.17× | 109.32× |
 
-Python-only tectonic workloads measured `spread_push` at 1,134.526 ms without Numba and 14.349 ms with Numba (79.07×), and one `step_world` on a prebuilt four-plate 513-cell mesh at 50.263 ms and 46.097 ms respectively (1.09×).
+Python-only tectonic workloads measured `spread_push` at 705.502 ms without Numba and 9.707 ms with Numba (72.68×), and one `step_world` on a prebuilt four-plate 513-cell mesh at 30.324 ms and 27.919 ms respectively (1.09×).
 
-[40,000-cell paired benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44907427318).
+[40,000-cell paired benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44907829831).
 
 The graph results are synthetic microbenchmarks, not production spherical-mesh or end-to-end planet-generation timings. In this run, Numba makes the tested connected-components, geometry, FBM, Dijkstra and crust batch paths competitive with or faster than the JavaScript reference. BFS remains about 3.8× slower than JavaScript with Numba; that is a measured optimization target, not a reason to weaken the test or benchmark gates.

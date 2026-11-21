@@ -12,6 +12,8 @@ from orogen.v2.tectonics.config import make_tectonics_config
 from orogen.v2.tectonics.initial_cratons import (
     _craton_letter,
     _frame_at,
+    _outline_gap,
+    _outline_gap_at_least,
     _piece_shape,
     _random_centre_within_latitude,
     _trace_outline,
@@ -112,3 +114,64 @@ def test_single_piece_craton_block_builds_without_rift_gap(monkeypatch):
     assert len(block["pieces"]) == 1
     assert block["reach"] > 0.0
     assert block["inner"] > 0.0
+
+
+def _outline_record(centre, outline, reach=0.8, inner=0.1):
+    return {
+        "centre": centre,
+        "outline": outline,
+        "reach": reach,
+        "inner": inner,
+    }
+
+
+def test_outline_gap_predicate_matches_full_gap_across_thresholds():
+    first = _outline_record(
+        [1.0, 0.0, 0.0],
+        [
+            [1.0, 0.0, 0.0],
+            [math.cos(0.4), math.sin(0.4), 0.0],
+            [math.cos(-0.4), math.sin(-0.4), 0.0],
+        ],
+    )
+    second = _outline_record(
+        [math.cos(1.0), math.sin(1.0), 0.0],
+        [
+            [math.cos(0.9), math.sin(0.9), 0.0],
+            [math.cos(1.4), math.sin(1.4), 0.0],
+            [math.cos(1.8), math.sin(1.8), 0.0],
+        ],
+    )
+    for minimum_gap in (0.0, 0.01, 0.1, 0.25, 0.5, 1.0, 2.0, 3.2):
+        assert _outline_gap_at_least(
+            first, second, minimum_gap
+        ) is (_outline_gap(first, second) >= minimum_gap)
+
+
+def test_outline_gap_predicate_stops_when_one_pair_proves_overlap():
+    class StopAfterFirstPair:
+        def __iter__(self):
+            yield [math.cos(0.1), math.sin(0.1), 0.0]
+            raise AssertionError("the outline scan should stop at the first pair")
+
+    first = _outline_record([1.0, 0.0, 0.0], [[1.0, 0.0, 0.0]])
+    second = _outline_record(
+        [math.cos(1.0), math.sin(1.0), 0.0], StopAfterFirstPair()
+    )
+
+    assert _outline_gap_at_least(first, second, 0.5) is False
+
+
+def test_outline_gap_predicate_covers_centre_distance_fast_paths():
+    first = _outline_record([1.0, 0.0, 0.0], [], reach=0.1, inner=0.05)
+    far = _outline_record(
+        [math.cos(1.0), math.sin(1.0), 0.0], [], reach=0.1, inner=0.05
+    )
+    nested = _outline_record(
+        [math.cos(0.05), math.sin(0.05), 0.0], [], reach=0.1, inner=0.05
+    )
+
+    assert _outline_gap_at_least(first, far, 0.5)
+    assert not _outline_gap_at_least(first, far, 1.0)
+    assert not _outline_gap_at_least(first, nested, 1e-12)
+    assert _outline_gap_at_least(first, nested, 0.0)

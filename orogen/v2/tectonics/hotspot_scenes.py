@@ -85,6 +85,7 @@ def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _history(sim_mesh: Any, seed: int) -> TectonicWorld:
+    """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
 

@@ -27,7 +27,7 @@ permissions:
 jobs:
   compare:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       BENCH_ROUNDS: "10"
       BENCH_WARMUPS: "2"
@@ -38,6 +38,9 @@ jobs:
       MKL_NUM_THREADS: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -50,6 +53,43 @@ jobs:
         run: node benchmarks/bench.mjs > benchmark-results.json
       - name: Generate Markdown and CSV reports
         run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
+      - name: Benchmark initial-world construction against the PR parent
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          baseline_sha="$(git rev-parse "${PR_HEAD_SHA}^")"
+          git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
+          benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 2)
+          (
+            cd "$RUNNER_TEMP"
+            PYTHONPATH="$RUNNER_TEMP/orogen-baseline" \
+              python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
+              "${benchmark_args[@]}" --label "$baseline_sha" \
+              > "$RUNNER_TEMP/initial-world-baseline.json"
+          )
+          (
+            cd "$RUNNER_TEMP"
+            PYTHONPATH="$GITHUB_WORKSPACE" \
+              python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
+              "${benchmark_args[@]}" --label "$PR_HEAD_SHA" \
+              > "$RUNNER_TEMP/initial-world-head.json"
+          )
+          python benchmarks/compare_initial_world.py \
+            --baseline "$RUNNER_TEMP/initial-world-baseline.json" \
+            --head "$RUNNER_TEMP/initial-world-head.json" \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --output "$RUNNER_TEMP/initial-world-comparison.json"
+      - name: Upload initial-world benchmark comparison
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: initial-world-builder-benchmarks
+          path: |
+            ${{ runner.temp }}/initial-world-baseline.json
+            ${{ runner.temp }}/initial-world-head.json
+            ${{ runner.temp }}/initial-world-comparison.json
+          retention-days: 90
       - name: Upload benchmark reports
         uses: actions/upload-artifact@v4
         with:

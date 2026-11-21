@@ -705,7 +705,11 @@ def test_find_layout_continues_after_an_attempt_without_a_candidate(monkeypatch)
 
 def test_record_start_pushes_returns_without_land_access_when_work_is_zero():
     world = SimpleNamespace(config={"farStartWorkKm": 0.0})
-    initial_world._record_start_pushes(world, object(), {})
+
+    result = initial_world._record_start_pushes(world, object(), {})
+
+    assert result is None
+    assert world.config["farStartWorkKm"] == 0.0
 
 
 def test_paint_old_ranges_ignores_out_of_range_major_pair_id(monkeypatch):

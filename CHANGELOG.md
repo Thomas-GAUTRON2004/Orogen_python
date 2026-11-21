@@ -32,7 +32,7 @@ describe the repository state and changes recorded during the V2 port.
 
 ### Changed
 - Craton placement now short-circuits rejected outline-gap checks while preserving the original gap decision boundary; deterministic top-k selection is shared from core and validated configuration defaults are read directly.
-- Scenario construction now uses shared helpers, immutable configuration templates and immutable west/east sector definitions instead of cross-module private helper imports and duplicate ocean-corridor code.
+- Scenario construction now uses shared helpers, immutable configuration templates and immutable west/east sector definitions instead of cross-module private helper imports and duplicate ocean-corridor code. Shared scene terrane identifiers and the Mariana arc width are centralized in `scene_constants.py`.
 - Far-field vector normalization now uses `math.hypot` to match the upstream JavaScript `Math.hypot` semantics. Back-arc painting is documented and tested as painting only the ring exactly the requested number of cells behind the trench.
 - Initial-world configuration now rejects zero-width margins and singular
   growth settings, bounds latitude sampling, uses stable mesh-cell tie breaks,

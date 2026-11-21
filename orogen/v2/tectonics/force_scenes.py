@@ -17,8 +17,8 @@ from .scenarios import (
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
-WEST = [[125.0, 235.0]]
-EAST = [[-55.0, 55.0]]
+WEST: tuple[tuple[float, float], ...] = ((125.0, 235.0),)
+EAST: tuple[tuple[float, float], ...] = ((-55.0, 55.0),)
 WILSON_HOME = (8.0, -40.0)
 
 

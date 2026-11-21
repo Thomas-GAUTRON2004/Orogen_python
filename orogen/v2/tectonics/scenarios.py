@@ -28,7 +28,7 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType
-from .initial_world import _plate_outline_with_apron, build_start_world
+from .initial_world import build_start_world, plate_outline_with_apron
 from .kinematics import (
     lat_lon_to_xyz,
     omega_from_euler_pole,
@@ -301,7 +301,7 @@ def add_apron_and_trench(
     mesh = canvas["mesh"]
     xyz = _xyz(mesh)
     taken = canvas["taken"]
-    in_plate, rim = _plate_outline_with_apron(
+    in_plate, rim = plate_outline_with_apron(
         mesh, continent["isLand"].astype(bool), config
     )
     for cell in range(int(mesh.num_cells)):

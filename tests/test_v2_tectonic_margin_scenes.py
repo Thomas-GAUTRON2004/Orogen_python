@@ -8,8 +8,8 @@ from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import CrustFlag, CrustType
 from orogen.v2.tectonics.margin_scenes import (
     ARC_TERRANE_ID,
-    MARIANA_ARC_WIDTH_KM,
     MARGIN_SCENES,
+    MARIANA_ARC_WIDTH_KM,
     _arc_behind,
     build_margin_scene,
     heading,

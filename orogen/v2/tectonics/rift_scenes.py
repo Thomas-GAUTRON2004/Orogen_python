@@ -6,7 +6,7 @@ import math
 from typing import Any
 
 from .config import mechanisms_off
-from .force_scenes import _begin
+from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import add_apron_and_trench, add_continent, add_ocean, fill_background
@@ -47,7 +47,7 @@ def _share_basin(
 
 
 def _plume(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     pangaea = world.add_plate("Pangaea")
     pangaea.born = -float(world.config["riftTenureMyr"])
     land = add_continent(
@@ -90,7 +90,7 @@ def _breakup(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _founder(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
     west_land = add_continent(

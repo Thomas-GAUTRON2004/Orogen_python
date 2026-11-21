@@ -21,6 +21,7 @@ from .scenarios import (
     heading,
     omega_for,
 )
+from .scene_support import begin_scene
 
 ARC_TERRANE_ID = 900
 MARIANA_ARC_WIDTH_KM = 243.0

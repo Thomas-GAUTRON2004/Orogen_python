@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
-from ..core.fast_noise import FastNoise
-from ..core.sphere_geometry import (
-    PLANET_RADIUS_KM,
-    cross,
-    dot,
-    normalize,
-)
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (
@@ -21,8 +13,8 @@ from .scenarios import (
     build_wilson_world,
     fill_background,
     flag_coast_trench,
-    scene_canvas,
 )
+from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
 WEST = [[125.0, 235.0]]
@@ -30,39 +22,13 @@ EAST = [[-55.0, 55.0]]
 WILSON_HOME = (8.0, -40.0)
 
 
-def _begin(sim_mesh: Any, seed: int):
-    world = TectonicWorld(sim_mesh, seed)
-    return world, scene_canvas(sim_mesh, world.config), FastNoise(seed)
-
-
-def _add_ocean_between(
-    canvas: dict[str, Any],
-    plate: Any,
-    first: list[float],
-    second: list[float],
-    skirt_km: float,
-    half_width_km: float,
-) -> None:
-    """Paint an old-ocean skirt around the first centre and a corridor to the second."""
-    axis = normalize(cross(first, second))
-    span = math.acos(max(-1.0, min(1.0, dot(first, second))))
-
-    def wanted(x: float, y: float, z: float) -> bool:
-        point = [x, y, z]
-        distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
-        if distance * PLANET_RADIUS_KM < skirt_km:
-            return True
-        off_track = (
-            abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
-        )
-        along = math.atan2(dot(cross(first, point), axis), dot(first, point))
-        return off_track < half_width_km and 0.0 < along < span
-
-    add_ocean(canvas, plate, wanted, -90.0)
+# Compatibility names; new scenario modules import the shared public helpers.
+_begin = begin_scene
+_add_ocean_between = add_ocean_corridor
 
 
 def _one_sided(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     solo = world.add_plate("Solo")
     continent = add_continent(
         canvas,
@@ -77,7 +43,7 @@ def _one_sided(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _tug(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     balanced = world.add_plate("Balanced")
     lopsided = world.add_plate("Lopsided")
     balanced_land = add_continent(
@@ -118,7 +84,7 @@ def _wilson(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
     asia_land = add_continent(
@@ -139,7 +105,7 @@ def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
     )
     first = india_land["centre"]
     second = asia_land["centre"]
-    _add_ocean_between(canvas, india, first, second, 1500.0, 1700.0)
+    add_ocean_corridor(canvas, india, first, second, 1500.0, 1700.0)
     fill_background(canvas, world, world.config)
     return world
 

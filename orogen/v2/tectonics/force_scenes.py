@@ -9,7 +9,6 @@ from .kinematics import lat_lon_to_xyz
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
-    add_ocean,
     build_wilson_world,
     fill_background,
     flag_coast_trench,

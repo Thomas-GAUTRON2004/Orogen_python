@@ -190,6 +190,7 @@ def test_outline_gap_predicate_preserves_exact_maximum_gap_boundary():
     assert _outline_gap(first, second) == minimum_gap
     assert _outline_gap_at_least(first, second, minimum_gap)
 
+
 def test_outline_gap_uses_centre_distance_for_disjoint_and_nested_cratons():
     first = _outline_record([1.0, 0.0, 0.0], [], reach=0.1, inner=0.05)
     far = _outline_record(

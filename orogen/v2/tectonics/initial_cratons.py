@@ -535,7 +535,7 @@ def _outline_gap_at_least(
 
     correction = max(first_reach, second_reach) * math.pi / OUTLINE_SAMPLES
     angular_limit = minimum_gap + correction
-    if angular_limit >= math.pi:
+    if angular_limit > math.pi:
         return False
     dot_limit = math.cos(angular_limit)
     best = -math.inf

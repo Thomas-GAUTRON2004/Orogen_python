@@ -8,6 +8,7 @@ and mixed states while preserving the TectonicWorld and Plate contracts.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from typing import Any, cast
 
 import numpy as np
@@ -231,7 +232,7 @@ def scene_terrane(canvas: dict[str, Any]) -> int:
     return int(canvas["lastTerrane"])
 
 
-def _in_sectors(azimuth: float, sectors: str | list[list[float]]) -> bool:
+def _in_sectors(azimuth: float, sectors: str | Sequence[Sequence[float]]) -> bool:
     if isinstance(sectors, str):
         return sectors == "all"
     position = float(azimuth) % 360.0
@@ -293,7 +294,7 @@ def add_apron_and_trench(
     canvas: dict[str, Any],
     plate: Any,
     continent: dict[str, Any],
-    sectors: str | list[list[float]],
+    sectors: str | Sequence[Sequence[float]],
     config: dict,
 ) -> None:
     """Add the captured ocean apron and mature trench along selected rim sectors."""
@@ -327,7 +328,7 @@ def flag_coast_trench(
     sim_mesh: Any,
     plate: Any,
     centre_xyz: list[float] | np.ndarray,
-    sectors: str | list[list[float]],
+    sectors: str | Sequence[Sequence[float]],
     config: dict,
 ) -> None:
     """Arm exposed continental coast cells as mature trench in selected sectors."""

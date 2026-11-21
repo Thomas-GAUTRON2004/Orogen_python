@@ -143,9 +143,9 @@ def test_outline_gap_predicate_matches_full_gap_across_thresholds():
         ],
     )
     for minimum_gap in (0.0, 0.01, 0.1, 0.25, 0.5, 1.0, 2.0, 3.2):
-        assert _outline_gap_at_least(
-            first, second, minimum_gap
-        ) is (_outline_gap(first, second) >= minimum_gap)
+        assert _outline_gap_at_least(first, second, minimum_gap) is (
+            _outline_gap(first, second) >= minimum_gap
+        )
 
 
 def test_outline_gap_predicate_stops_when_one_pair_proves_overlap():
@@ -155,9 +155,7 @@ def test_outline_gap_predicate_stops_when_one_pair_proves_overlap():
             raise AssertionError("the outline scan should stop at the first pair")
 
     first = _outline_record([1.0, 0.0, 0.0], [[1.0, 0.0, 0.0]])
-    second = _outline_record(
-        [math.cos(1.0), math.sin(1.0), 0.0], StopAfterFirstPair()
-    )
+    second = _outline_record([math.cos(1.0), math.sin(1.0), 0.0], StopAfterFirstPair())
 
     assert _outline_gap_at_least(first, second, 0.5) is False
 

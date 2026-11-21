@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
@@ -429,7 +429,7 @@ def shape_landmass(
     # Keep this sum in float64 instead of rounding it back to float32 as NumPy does.
     coast_level = field.astype(np.float64) + shape.astype(np.float64)
 
-    def landmass(skirt: float) -> tuple[np.ndarray, int] | bool | None:
+    def landmass(skirt: float) -> tuple[np.ndarray, int] | Literal[False] | None:
         made = types.copy()
         add_land = (near_craton != 0) | (bridge != 0) | (coast_level < skirt)
         made[(made != CrustType["CRATON"]) & add_land] = CrustType["CONTINENT"]

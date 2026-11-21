@@ -5,15 +5,18 @@ import csv
 import json
 from pathlib import Path
 
-CORE_LABELS = {
-    "noise_fbm_ms": "3-D simplex FBM (40k points x 5 octaves)",
-    "spherical_geometry_ms": "Spherical geometry (80k points)",
-    "mesh_bfs_ms": "Mesh BFS (12k-cell degree-6 ring)",
-    "mesh_components_ms": "Connected components (12k-cell graph)",
-    "mesh_dijkstra_ms": "Mesh Dijkstra (12k-cell ring, 20,000 km cutoff)",
-    "crust_create_snapshot_ms": "Crust create + batch snapshot (6k cells)",
-    "crust_copy_ms": "Crust batch copy (6k cells)",
-}
+def core_labels(graph_cells: int) -> dict[str, str]:
+    """Build workload labels from the actual benchmark configuration."""
+    cells = f"{graph_cells:,}"
+    return {
+        "noise_fbm_ms": "3-D simplex FBM (40k points x 5 octaves)",
+        "spherical_geometry_ms": "Spherical geometry (80k points)",
+        "mesh_bfs_ms": f"Mesh BFS ({cells}-cell degree-6 ring)",
+        "mesh_components_ms": f"Connected components ({cells}-cell graph)",
+        "mesh_dijkstra_ms": f"Mesh Dijkstra ({cells}-cell ring, 20,000 km cutoff)",
+        "crust_create_snapshot_ms": "Crust create + batch snapshot (6k cells)",
+        "crust_copy_ms": "Crust batch copy (6k cells)",
+    }
 
 
 def fmt(value, digits: int = 3) -> str:
@@ -45,7 +48,8 @@ def timing_table(report: dict) -> list[str]:
     ]
     pure = report["python"]["pure"]["timings"]
     accelerated = report["python"].get("numba")
-    for key, label in CORE_LABELS.items():
+    labels = core_labels(report["configuration"]["graph_cells"])
+    for key, label in labels.items():
         js_ms = get_median(report["javascript"], key)
         pure_ms = get_median(pure, key)
         numba_ms = get_median(accelerated["timings"], key) if accelerated else None
@@ -71,7 +75,7 @@ def python_only_table(report: dict) -> list[str]:
     accelerated = report["python"].get("numba")
     rows = [
         (
-            "Far-field spread_push (12k cells, two sources)",
+            f"Far-field spread_push ({report['configuration']['graph_cells']:,} cells, two sources)",
             pure.get("far_field_diffusion"),
             accelerated.get("far_field_diffusion") if accelerated else None,
         ),
@@ -128,7 +132,7 @@ def csv_rows(report: dict) -> list[dict]:
                 rows.append({"operation": label, "runtime": runtime_name, **stats})
 
     for key, label in (
-        ("far_field_diffusion", "Far-field spread_push (12k cells)"),
+        ("far_field_diffusion", f"Far-field spread_push ({report['configuration']['graph_cells']:,} cells)"),
         ("step_world", "step_world (four plates)"),
     ):
         sections = (

@@ -342,6 +342,9 @@ def _build_coarse_start_world(
     fraction is exact at mesh resolution; craton count is reduced on coarse
     meshes so every core remains represented by cells.
     """
+    n = int(sim_mesh.num_cells)
+    if n < 4:
+        raise ValueError("start-world generation requires at least four mesh cells")
     world = TectonicWorld(sim_mesh, seed, overrides=overrides)
     cfg = world.config
     fraction = float(cfg["continentalFraction"])
@@ -349,9 +352,6 @@ def _build_coarse_start_world(
         raise ValueError(
             "continentalFraction must be finite and strictly between 0 and 1"
         )
-    n = int(sim_mesh.num_cells)
-    if n < 4:
-        raise ValueError("start-world generation requires at least four mesh cells")
     xyz = _mesh_xyz(sim_mesh)
 
     # Match the upstream attempt stream offsets: layout and passive margin are

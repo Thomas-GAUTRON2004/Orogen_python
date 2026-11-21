@@ -807,9 +807,7 @@ def test_land_cells_breaks_equal_distance_ties_by_cell_index():
             dtype=np.float64,
         ),
     )
-    cells, _radius = initial_world._land_cells(
-        mesh, np.asarray([1.0, 0.0, 0.0]), 2
-    )
+    cells, _radius = initial_world._land_cells(mesh, np.asarray([1.0, 0.0, 0.0]), 2)
     assert cells.tolist() == [0, 1]
 
 
@@ -819,9 +817,7 @@ def test_start_world_rejects_unmet_continental_fraction(monkeypatch):
     monkeypatch.setattr(
         initial_world, "TectonicWorld", lambda *_args, **_kwargs: fake_world
     )
-    land_type = np.asarray(
-        [CrustType["CONTINENT"]] * 149 + [CrustType["OCEAN"]] * 363
-    )
+    land_type = np.asarray([CrustType["CONTINENT"]] * 149 + [CrustType["OCEAN"]] * 363)
     monkeypatch.setattr(
         initial_world,
         "_find_layout",
@@ -834,9 +830,7 @@ def test_start_world_rejects_unmet_continental_fraction(monkeypatch):
     monkeypatch.setattr(
         initial_world,
         "_assemble_upstream_start_world",
-        lambda *_args, **_kwargs: pytest.fail(
-            "unmet fraction must not be assembled"
-        ),
+        lambda *_args, **_kwargs: pytest.fail("unmet fraction must not be assembled"),
     )
     with pytest.raises(ValueError, match="could not meet continentalFraction"):
         initial_world.build_start_world(mesh, 123)

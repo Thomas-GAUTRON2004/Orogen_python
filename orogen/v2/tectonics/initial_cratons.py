@@ -604,9 +604,7 @@ def place_cratons(
             offset += counts[cluster]
         clusters.append(sorted(members, key=block_size, reverse=True))
 
-    centre = _random_centre_within_latitude(
-        rng, float(cfg["startMaxLatitudeDeg"])
-    )
+    centre = _random_centre_within_latitude(rng, float(cfg["startMaxLatitudeDeg"]))
     axis = rng() * math.pi
     elongation = rng() * float(cfg["clusterElongation"]) * stretch
     apart_lo, apart_hi = cfg["clusterApart"]

@@ -10,8 +10,8 @@ from orogen.v2.tectonics import initial_cratons
 from orogen.v2.tectonics.initial_cratons import (
     _craton_letter,
     _frame_at,
-    _piece_shape,
     _random_centre_within_latitude,
+    _piece_shape,
     _trace_outline,
     craton_edge,
 )

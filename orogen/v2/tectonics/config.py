@@ -783,10 +783,7 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
 
     if "startGrowthBias" in config and float(config["startGrowthBias"]) >= 1.0:
         raise ValueError("startGrowthBias must be strictly less than 1")
-    if (
-        "startMaxLatitudeDeg" in config
-        and float(config["startMaxLatitudeDeg"]) > 90.0
-    ):
+    if "startMaxLatitudeDeg" in config and float(config["startMaxLatitudeDeg"]) > 90.0:
         raise ValueError("startMaxLatitudeDeg cannot exceed 90 degrees")
 
     if float(config.get("beltSpeedFactorMin", 0.6)) > float(

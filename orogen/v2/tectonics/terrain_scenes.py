@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
+from types import MappingProxyType
 from typing import Any
 
 import numpy as np
@@ -26,14 +27,18 @@ from .scenarios import (
 )
 from .world import TectonicWorld
 
-FAR_TERRANES = {
-    "tarim": 901,
-    "siberia": 902,
-    "across": 903,
-    "along": 904,
-    "aulacogen": 905,
-}
-WHOLE_PLANET_PACE = {"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3}
+FAR_TERRANES = MappingProxyType(
+    {
+        "tarim": 901,
+        "siberia": 902,
+        "across": 903,
+        "along": 904,
+        "aulacogen": 905,
+    }
+)
+WHOLE_PLANET_PACE = MappingProxyType(
+    {"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3}
+)
 
 
 def flagged(

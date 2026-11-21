@@ -360,8 +360,8 @@ def _emit_pushes_numba(
 
 
 def _norm3(x: float, y: float, z: float) -> float:
-    """Euclidean length, computed exactly as the compiled kernel does."""
-    return math.sqrt(x * x + y * y + z * z)
+    """Return the 3-D norm using the upstream JavaScript Math.hypot semantics."""
+    return math.hypot(x, y, z)
 
 
 def far_take(config: Mapping, crust_type: int, flags: int) -> float:

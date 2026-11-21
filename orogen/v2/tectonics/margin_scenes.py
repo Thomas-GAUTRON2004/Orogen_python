@@ -22,6 +22,9 @@ from .scenarios import (
     omega_for,
 )
 
+ARC_TERRANE_ID = ARC_TERRANE_ID
+MARIANA_ARC_WIDTH_KM = 243.0
+
 ROLLBACK_ONLY = {
     **only_mechanisms("backArcs", "flatSlabs"),
     "backArcRatePerMyr": 0.5,
@@ -94,7 +97,7 @@ def _arm_facing(
 
 
 def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
-    """Paint island-arc crust the requested number of ocean-cell rows behind a trench."""
+    """Paint only the ring exactly hops cells inland of the trench."""
     seen = set(trench)
     ring = list(trench)
     for _ in range(hops):
@@ -109,8 +112,8 @@ def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
         ring = following
     for cell in ring:
         plate.crust.type[cell] = CrustType["ARC"]
-        plate.crust.terrane[cell] = 900
-    plate.arcTerraneId = 900
+        plate.crust.terrane[cell] = ARC_TERRANE_ID
+    plate.arcTerraneId = ARC_TERRANE_ID
 
 
 def _margins(sim_mesh: Any, seed: int):
@@ -204,7 +207,7 @@ def _mariana(sim_mesh: Any, seed: int):
     fill_background(canvas, world, world.config)
     _arm_against(sim_mesh, asiana, philippina, world.config)
     trench = _arm_against(sim_mesh, philippina, pacifica, world.config)
-    hops = max(1, math.floor(243.0 / float(sim_mesh.edge_km) + 0.5))
+    hops = max(1, math.floor(MARIANA_ARC_WIDTH_KM / float(sim_mesh.edge_km) + 0.5))
     _arc_behind(sim_mesh, philippina, trench, hops)
     return world
 

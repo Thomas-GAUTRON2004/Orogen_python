@@ -18,7 +18,13 @@ def _validate_partition(world: Any, cell_count: int) -> None:
     """Ensure the initial plates partition every mesh cell exactly once."""
     coverage = np.zeros(cell_count, dtype=np.uint8)
     for plate in world.plates:
-        coverage += np.asarray(plate.crust.mask, dtype=np.uint8)
+        mask = np.asarray(plate.crust.mask, dtype=np.uint8)
+        if mask.shape != (cell_count,):
+            raise RuntimeError(
+                "plate crust mask does not match the actual simulation mesh size: "
+                f"expected {cell_count}, got {mask.size}"
+            )
+        coverage += mask
     invalid = int(np.count_nonzero(coverage != 1))
     if invalid:
         raise RuntimeError(
@@ -32,6 +38,7 @@ def _benchmark_size(
     mesh_started = time.perf_counter()
     mesh = build_sim_mesh(cell_count, seed)
     mesh_seconds = time.perf_counter() - mesh_started
+    actual_cell_count = int(mesh.num_cells)
 
     timings: list[float] = []
     attempts: list[int] = []
@@ -39,7 +46,7 @@ def _benchmark_size(
         started = time.perf_counter()
         built = build_start_world(mesh, seed)
         elapsed = time.perf_counter() - started
-        _validate_partition(built["world"], cell_count)
+        _validate_partition(built["world"], actual_cell_count)
         if not built["start"].get("fractionMet", False):
             raise RuntimeError("initial-world builder did not meet its land fraction")
         if run_index >= warmups:
@@ -48,7 +55,8 @@ def _benchmark_size(
         del built
 
     return {
-        "num_cells": cell_count,
+        "requested_cells": cell_count,
+        "num_cells": actual_cell_count,
         "mesh_build_seconds": mesh_seconds,
         "warmups": warmups,
         "repeats": repeats,

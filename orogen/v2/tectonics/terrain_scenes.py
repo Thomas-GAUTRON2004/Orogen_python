@@ -23,18 +23,10 @@ from .scenarios import (
     add_continent,
     fill_background,
 )
+from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
-FAR_TERRANES = MappingProxyType(
-    {
-        "tarim": 901,
-        "siberia": 902,
-        "across": 903,
-        "along": 904,
-        "aulacogen": 905,
-    }
-)
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
 
 

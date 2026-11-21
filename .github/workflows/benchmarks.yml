@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install Python package with Numba
-        run: python -m pip install -e ".[speed]"
+        run: python -m pip install ".[speed]"
       - name: Run paired JavaScript, Python and Numba benchmarks
         run: node benchmarks/bench.mjs > benchmark-results.json
       - name: Generate Markdown and CSV reports

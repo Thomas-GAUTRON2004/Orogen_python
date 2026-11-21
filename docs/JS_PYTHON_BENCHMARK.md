@@ -376,3 +376,22 @@ CI for this implementation revision: **476 tests passed, 100% line coverage**.
 [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171695194).
 
 These timings are five-round medians after warm-up on a shared hosted runner, not end-to-end simulation timings. The raster create/snapshot and copy workloads are synthetic; the large remaining create/snapshot gap is the next optimization target. The grouped copy kernel is beneficial in the tested batch workload, while the snapshot traversal experiment did not identify a worthwhile alternative to row-major.
+## 40,000-cell graph benchmark — 2026-11-21
+
+The paired benchmark now exercises a synthetic degree-6 ring graph with **40,000 cells** (10 measured rounds after 2 warmups) on a GitHub-hosted Linux runner with an AMD EPYC 7763 CPU, Node 22.23.5, Python 3.12.16, NumPy 2.5.5 and Numba enabled.
+
+| Workload | JavaScript | Python pure | Python + Numba | Numba / JS | Numba gain over pure |
+|---|---:|---:|---:|---:|---:|
+| FBM, 40,000 points × 5 octaves | 10.800 ms | 1,103.039 ms | 10.509 ms | 0.97× | 104.96× |
+| Spherical geometry, 80,000 points | 20.609 ms | 476.499 ms | 5.027 ms | 0.24× | 94.79× |
+| Mesh BFS, 40,000 cells | 0.605 ms | 50.165 ms | 2.258 ms | 3.73× | 22.22× |
+| Connected components, 40,000 cells | 8.976 ms | 45.123 ms | 5.451 ms | 0.61× | 8.28× |
+| Mesh Dijkstra, 40,000 cells | 0.236 ms | 3.011 ms | 0.017 ms | 0.07× | 173.68× |
+| Crust create + batch snapshot, 6,000 cells | 6.668 ms | 472.506 ms | 1.636 ms | 0.25× | 288.90× |
+| Crust batch copy, 6,000 cells | 5.171 ms | 94.042 ms | 0.860 ms | 0.17× | 109.32× |
+
+Python-only tectonic workloads measured `spread_push` at 705.502 ms without Numba and 9.707 ms with Numba (72.68×), and one `step_world` on a prebuilt four-plate 513-cell mesh at 30.324 ms and 27.919 ms respectively (1.09×).
+
+[40,000-cell paired benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44907829831).
+
+The graph results are synthetic microbenchmarks, not production spherical-mesh or end-to-end planet-generation timings. In this run, Numba makes the tested connected-components, geometry, FBM, Dijkstra and crust batch paths competitive with or faster than the JavaScript reference. BFS remains about 3.8× slower than JavaScript with Numba; that is a measured optimization target, not a reason to weaken the test or benchmark gates.

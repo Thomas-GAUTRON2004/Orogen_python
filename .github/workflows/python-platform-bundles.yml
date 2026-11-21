@@ -1,0 +1,138 @@
+name: Build Windows and Linux dependency bundles
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "package.json"
+      - ".github/workflows/python-platform-bundles.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-platform-bundles-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundles:
+    name: ${{ matrix.os }} / Python 3.12
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Create bundle directories
+        shell: bash
+        run: |
+          mkdir -p dist/ci/wheelhouse dist/runtime/wheelhouse
+
+      - name: Download complete Python CI dependencies
+        run: |
+          python -m pip download --only-binary=:all: --prefer-binary --dest dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6" "setuptools>=77" "wheel"
+        shell: bash
+
+      - name: Verify full CI bundle installs offline
+        shell: bash
+        run: |
+          python -m venv dist/ci-venv
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            CI_PYTHON="dist/ci-venv/Scripts/python.exe"
+          else
+            CI_PYTHON="dist/ci-venv/bin/python"
+          fi
+          "$CI_PYTHON" -m pip install --no-index --find-links dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6"
+
+      - name: Download runtime-only package and dependencies
+        run: |
+          python -m pip download --only-binary=:all: --prefer-binary --dest dist/runtime/wheelhouse .
+        shell: bash
+
+      - name: Bundle JavaScript differential-test dependency
+        run: |
+          npm install --prefix dist/ci --no-save --package-lock=false delaunator@5.0.1
+        shell: bash
+
+      - name: Write usage instructions
+        shell: bash
+        run: |
+          cat > dist/README-CI.txt <<'EOF'
+          Orogen - full Python CI dependency bundle
+          Target: CPython 3.12 on the platform named in this archive.
+          Includes project dependencies and build requirements (setuptools>=77, wheel),
+          pytest, pytest-cov, Numba, Ruff 0.17.5, mypy, Bandit, Xenon, Radon,
+          and Delaunator 5.0.1 under node_modules.
+          
+          Install Python dependencies from the repository root:
+            python -m pip install --no-index --find-links ./wheelhouse ".[test,speed,quality]"
+            python -m pip install --no-index --find-links ./wheelhouse "ruff==0.17.5" "radon>=6"
+          
+          For JS/Python differential tests, install Node.js 22 and copy the
+          bundled node_modules directory to the repository root.
+          Run the checks using the commands in .github/workflows/python-tests.yml.
+          Some CI steps also require Git, network access, and the Gitleaks binary.
+          EOF
+          cat > dist/README-RUNTIME.txt <<'EOF'
+          Orogen - runtime-only bundle (no tests or development tools)
+          Target: CPython 3.12 on the platform named in this archive.
+          Includes the built Orogen wheel and its runtime dependencies only.
+          
+          Install from the repository root:
+            python -m pip install --no-index --find-links ./wheelhouse orogen
+          EOF
+
+      - name: Create ZIP archives
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          def archive(output, folder, readme):
+              root = Path("dist") / folder
+              with ZipFile(output, "w", ZIP_DEFLATED) as z:
+                  z.write(Path("dist") / readme, readme)
+                  for file in root.rglob("*"):
+                      if file.is_file():
+                          z.write(file, file.relative_to(Path("dist")))
+
+          archive("orogen-ci-${{ matrix.platform }}-py312.zip", "ci", "README-CI.txt")
+          archive("orogen-runtime-${{ matrix.platform }}-py312.zip", "runtime", "README-RUNTIME.txt")
+          PY
+
+      - name: Upload full CI bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: orogen-ci-${{ matrix.platform }}-py312
+          path: orogen-ci-${{ matrix.platform }}-py312.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload runtime-only bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: orogen-runtime-${{ matrix.platform }}-py312
+          path: orogen-runtime-${{ matrix.platform }}-py312.zip
+          if-no-files-found: error
+          retention-days: 14

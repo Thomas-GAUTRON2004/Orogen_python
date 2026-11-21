@@ -476,3 +476,37 @@ def test_disabled_rifting_keeps_updating_big_continent_clock():
 def test_rifting_stage_short_circuits_only_without_rate_configuration():
     world = make_world(config={})
     assert rift_continents(world, 1.0) == 0
+
+
+def test_pending_plume_request_is_discarded_when_both_rift_attempts_fail(monkeypatch):
+    world = make_world(time=100.0, config=base_config())
+    world.pendingPlumeRifts = [
+        {
+            "plate": 0,
+            "cell": 1,
+            "since": 0.0,
+            "junctions": [1],
+            "cause": {"text": "plume", "kind": "plume", "hotspot": 2},
+        }
+    ]
+    monkeypatch.setattr(rifting, "try_rift", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(rifting, "_retry_plume_rift", lambda *_args: False)
+
+    assert rift_continents(world, 1.0) == 0
+    assert world.pendingPlumeRifts == []
+
+
+def test_unpaced_spontaneous_rift_continues_after_a_failed_attempt(monkeypatch):
+    world = make_world(
+        time=100.0,
+        config=base_config(
+            riftRatePerMyr=100.0,
+            riftMinGapMyr=0.0,
+            riftMaxGapMyr=1000.0,
+        ),
+        dynamics={"tension": 1.0},
+    )
+    monkeypatch.setattr(rifting, "choose_junction", lambda *_args: 3)
+    monkeypatch.setattr(rifting, "try_rift", lambda *_args, **_kwargs: False)
+
+    assert rift_continents(world, 1.0) == 0

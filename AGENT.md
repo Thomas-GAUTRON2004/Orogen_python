@@ -130,4 +130,89 @@ Every agent deliverable states:
    done.
 When an earlier analysis is out of date (for example because the branch has
 moved on), say so and repeat the measurement before drawing conclusions.
- 
+
+## 11. Platform Dependency Bundles (Windows and Linux)
+
+The workflow `.github/workflows/python-platform-bundles.yml` builds four
+platform-specific ZIP artifacts for **CPython 3.12**:
+
+| Artifact | Purpose | Contents |
+|---|---|---|
+| `orogen-ci-windows-py312` | Local Python CI/test dependencies on Windows | Python wheels for `.[test,speed,quality]`, Ruff 0.17.5, Radon, and the Delaunator 5.0.1 Node dependency |
+| `orogen-ci-linux-py312` | Local Python CI/test dependencies on Linux | Same dependency set, built on Linux |
+| `orogen-runtime-windows-py312` | Runtime installation on Windows | Orogen wheel and runtime dependency wheels only |
+| `orogen-runtime-linux-py312` | Runtime installation on Linux | Orogen wheel and runtime dependency wheels only |
+
+These are **dependency bundles**, not source-code archives. The CI bundles do
+not contain the repository's test files or application source; check out the
+repository separately. They contain wheels for the selected OS and Python
+version, so do not use a Windows bundle on Linux, or vice versa. They target
+CPython 3.12 and the architecture of the corresponding GitHub-hosted runner.
+
+### Building and downloading
+
+The workflow runs on a pull request when `pyproject.toml`, `package.json` or
+the workflow itself changes, and can also be started manually with
+`workflow_dispatch`. It uploads four GitHub Actions artifacts and retains them
+for 14 days. Download them from the workflow run's **Artifacts** section.
+Artifact names are the four names in the table above.
+
+### Installing from a CI bundle
+
+Extract the matching `orogen-ci-<platform>-py312.zip`. From the repository
+root, install the Python dependencies without accessing a package index:
+
+```bash
+python -m pip install --no-index --find-links ./ci/wheelhouse ".[test,speed,quality]"
+python -m pip install --no-index --find-links ./ci/wheelhouse "ruff==0.17.5" "radon>=6"
+```
+
+The archive stores the JavaScript dependency in `ci/node_modules`. For
+JavaScript/Python differential tests, use Node.js 22 and make that directory
+available as the repository-root `node_modules` directory. For example, on
+Linux:
+
+```bash
+cp -a ci/node_modules ./node_modules
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item -Recurse ci/node_modules ./node_modules
+```
+
+Then run the relevant checks from `.github/workflows/python-tests.yml`. The
+main test and coverage command is:
+
+```bash
+python -m pytest --cov=orogen --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=99
+```
+
+The bundle supplies Python wheels and Delaunator, but it does **not** bundle
+Python itself, Node.js/npm, Git, uv, or Gitleaks. Those tools must be installed
+separately for the corresponding CI steps. In particular, `uv lock --check`
+requires uv, and the secret scan requires the Gitleaks executable. Network
+access is still required by any workflow step that downloads external tools or
+dependencies not present in the bundle.
+
+### Installing the runtime-only bundle
+
+Extract `orogen-runtime-<platform>-py312.zip`. It contains the Orogen wheel and
+runtime wheels under `runtime/wheelhouse`. Install without an index:
+
+```bash
+python -m pip install --no-index --find-links ./runtime/wheelhouse orogen
+```
+
+This runtime bundle intentionally excludes pytest, coverage, Ruff, mypy,
+Bandit, Xenon, Radon and JavaScript test dependencies.
+
+### Maintenance
+
+When project dependencies or CI commands change, update
+`.github/workflows/python-platform-bundles.yml` and this section together.
+Keep the bundle dependency lists aligned with `pyproject.toml` and
+`.github/workflows/python-tests.yml`. Do not describe the bundle as a complete
+offline CI environment unless every external tool and workflow prerequisite is
+also included and verified.

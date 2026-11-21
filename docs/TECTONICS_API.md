@@ -412,3 +412,67 @@ settings does not mutate the plates. Far-field collision forcing, full
 collision-history parity and the complete upstream `simulate.js` cadence
 remain outstanding. A `sutureCandidate` or `weldCandidate` by itself does
 not imply that a plate merge has happened.
+
+
+## Initial-world generation and scenario catalogues
+
+`build_start_world(sim_mesh, seed, overrides=None)` returns a mapping with a
+`TectonicWorld` and start-layout metadata. On meshes with at least 512 cells,
+it uses the upstream craton packing and noise-shaped landmass assembly:
+craton bodies and clusters, connected continental growth, terranes, inner/ring/
+major sutures, a smoothed ocean apron and active/passive trench sectors. It
+records pre-history ranges and far-field shortening. Meshes below 512 cells
+retain a smaller deterministic fixture builder to keep low-resolution unit
+fixtures inexpensive and spatially meaningful.
+
+The Python/JavaScript reference runner receives the exact Python mesh arrays
+(`xyz`, CSR adjacency offsets and adjacency list), then runs the pinned
+upstream craton placement, landmass shaping and rim/trench construction. The
+production differential test covers 512- and 768-cell meshes with different
+seeds. It compares layout search decisions, craton geometry, the landmass
+`type`, `terrane`, `suture` and `owner` arrays, and the assembled
+continent/background-ocean masks, crust types, flags, terranes, formation
+times, trench slab lengths, rim cells and passive-sector metadata. Old-range
+(`oroType`/relief) and far-field record arrays are checked through Python
+invariant tests but are not yet included in the JavaScript differential
+comparison; multi-step tectonic histories are outside this fixture.
+
+### Minimal initial-world fixtures
+
+- `build_continental_scene`: a continental cap and background ocean.
+- `build_oceanic_scene`: two oceanic plates divided by a great-circle boundary.
+- `build_mixed_scene`: the generated supercontinent with apron and background ocean.
+- `build_scenario_scene`: dispatches the three controlled fixtures by
+  `continental`, `oceanic` or `mixed`.
+
+### Prescribed-motion scenes
+
+- `build_rigid_drift_world` / `set_rigid_drift_time`
+- `build_wilson_world` / `drive_wilson`
+- `build_nudge_scene`
+
+These scenes use deterministic geometry and prescribed Euler-pole motion;
+they are separate from the named rule-testing catalogues below.
+
+### Rule-testing scene catalogues
+
+The builders return deterministic scenes by identifier. Their catalogues are
+ported from the pinned upstream v3.0.1 scenario files:
+
+| Builder | Supported identifiers |
+|---|---|
+| `build_event_scene` | `wings`, `terrane`, `arc`, `arc-collision` |
+| `build_budget_scene` | `erosion`, `india`, `arcs`, `history` |
+| `build_force_scene` | `one-sided`, `tug`, `wilson`, `india`, `start` |
+| `build_margin_scene` | `margins`, `laramide`, `mariana`, `japan`, `history` |
+| `build_rift_scene` | `plume`, `breakup`, `founder` |
+| `build_terrain_scene` | `andes`, `laramide`, `india`, `mariana`, `japan`, `hawaii`, `traps`, `rift`, `cratons`, `farfield`, `history`, `cycle` |
+| `build_hotspot_scene` | `hawaii`, `deccan`, `history` |
+| `build_collision_scene` | `zipper` |
+
+The eight catalogues contain 37 entries in total (some reuse the same
+underlying scene in different testing contexts). Tests verify catalogue
+identifiers, deterministic construction, complete plate partitions and
+family-specific metadata. These are scenario fixtures and rule-testing
+scenes, not a claim that the full upstream tectonic time-stepping engine or
+the complete interactive application has been ported.

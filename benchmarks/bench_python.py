@@ -32,7 +32,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 N_NOISE = 40_000
 N_GEOM = 80_000
-N_CELLS = 12_000
+N_CELLS = 40_000
 N_STEP_CELLS = int(os.environ.get("BENCH_STEP_CELLS", "512"))
 ROUNDS = max(3, int(os.environ.get("BENCH_ROUNDS", "10")))
 WARMUPS = max(1, int(os.environ.get("BENCH_WARMUPS", "2")))

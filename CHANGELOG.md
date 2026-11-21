@@ -10,6 +10,7 @@ describe the repository state and changes recorded during the V2 port.
 
 ### Added
 - Complete shared V2 tectonic configuration defaults and mechanism controls, with isolated per-world overrides and validation.
+- Added the packed, noise-shaped initial supercontinent builder with connected proto-continent assembly, terranes, sutures, ocean apron, active/passive trench sectors, inherited ranges and far-field start records. Vendored JavaScript differential fixtures compare layout, landmass, assembled plate/crust state, inherited range/relief records and far-field push records on 512- and 768-cell meshes. Added deterministic prescribed-motion scenes and all 37 entries across the event, budget, force, margin, rift, terrain, hotspot and collision scenario catalogues.
 - Shared geology flags and compact frame encoders/decoders matching upstream JavaScript rounding.
 - Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
@@ -28,6 +29,13 @@ describe the repository state and changes recorded during the V2 port.
   compatibility limits, the SciPy backend and porting status.
 
 ### Changed
+- Initial-world configuration now rejects zero-width margins and singular
+  growth settings, bounds latitude sampling, uses stable mesh-cell tie breaks,
+  and reports an unmet continental-fraction target instead of returning a
+  silently degraded start world.
+- Initial-world and fixture top-k mesh selection now resolves ties by cell index
+  while using partition-based selection to avoid sorting the entire mesh.
+- Paired JavaScript/Python graph benchmarks now exercise 40,000 mesh cells.
 - The partial `step_world` orchestrator now conditionally includes collision
   tracking and far-field evolution, and rebuilds ownership after topology changes.
 - The production spherical triangulation backend is SciPy/Qhull. Orogen retains

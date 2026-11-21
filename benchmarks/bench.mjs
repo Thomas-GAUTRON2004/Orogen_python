@@ -10,7 +10,7 @@ import { CrustRaster, CrustType } from "../tests/reference/v2/tectonics/crust.mj
 
 const N_NOISE = 40_000;
 const N_GEOM = 80_000;
-const N_CELLS = 12_000;
+const N_CELLS = 40_000;
 const ROUNDS = Math.max(3, Number(process.env.BENCH_ROUNDS ?? 10));
 const WARMUPS = Math.max(1, Number(process.env.BENCH_WARMUPS ?? 2));
 

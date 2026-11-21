@@ -7,8 +7,8 @@ from typing import Any
 import numpy as np
 
 from ..core.sphere_geometry import normalize
-from .scene_support import add_ocean_corridor, begin_scene
 from .scenarios import add_apron_and_trench, add_continent, fill_background
+from .scene_support import add_ocean_corridor, begin_scene
 
 
 def _zipper(sim_mesh: Any, seed: int):

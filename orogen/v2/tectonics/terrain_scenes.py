@@ -35,9 +35,7 @@ FAR_TERRANES = MappingProxyType(
         "aulacogen": 905,
     }
 )
-WHOLE_PLANET_PACE = MappingProxyType(
-    {"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3}
-)
+WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
 
 
 def flagged(

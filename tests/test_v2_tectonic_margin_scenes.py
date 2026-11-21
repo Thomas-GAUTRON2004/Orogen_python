@@ -1,10 +1,14 @@
+import math
+
 import numpy as np
 import pytest
 
+from orogen.v2.core.mesh_bfs import hop_distance
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import CrustFlag, CrustType
 from orogen.v2.tectonics.margin_scenes import (
     ARC_TERRANE_ID,
+    MARIANA_ARC_WIDTH_KM,
     MARGIN_SCENES,
     _arc_behind,
     build_margin_scene,
@@ -52,7 +56,21 @@ def test_margin_scenes_expose_trench_and_arc_metadata():
     margins = build_margin_scene(mesh, 1706, "margins")
     assert np.count_nonzero(margins.plates[0].crust.flags & CrustFlag["TRENCH"]) > 0
     mariana = build_margin_scene(mesh, 1706, "mariana")
-    assert mariana.plates[1].arcTerraneId == ARC_TERRANE_ID
+    plate = mariana.plates[1]
+    assert plate.arcTerraneId == ARC_TERRANE_ID
+    trench = (plate.crust.flags & CrustFlag["TRENCH"]) != 0
+    arc = (plate.crust.type == CrustType["ARC"]) & (
+        plate.crust.terrane == ARC_TERRANE_ID
+    )
+    hops = max(1, math.floor(MARIANA_ARC_WIDTH_KM / mesh.edge_km + 0.5))
+    distance = hop_distance(
+        mesh,
+        lambda cell: bool(trench[cell]),
+        max_hops=hops,
+        can_enter=lambda cell: bool(plate.crust.mask[cell]),
+    )
+    assert np.count_nonzero(arc) > 0
+    assert np.array_equal(arc, distance == hops)
 
 
 def test_arc_behind_paints_only_the_exact_requested_ring():

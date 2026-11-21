@@ -36,6 +36,9 @@ from .kinematics import (
 )
 from .world import EventKind, TectonicWorld
 
+# Retain the scenario-module hook used by downstream fixtures and extensions.
+_plate_outline_with_apron = plate_outline_with_apron
+
 
 def _xyz(sim_mesh: Any) -> np.ndarray:
     values = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
@@ -299,7 +302,7 @@ def add_apron_and_trench(
     mesh = canvas["mesh"]
     xyz = _xyz(mesh)
     taken = canvas["taken"]
-    in_plate, rim = plate_outline_with_apron(
+    in_plate, rim = _plate_outline_with_apron(
         mesh, continent["isLand"].astype(bool), config
     )
     for cell in range(int(mesh.num_cells)):

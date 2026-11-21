@@ -2,7 +2,12 @@
 
 import math
 
+import pytest
+
 from orogen.v2.tectonics import scene_support
+from orogen.v2.tectonics.force_scenes import EAST, WEST
+from orogen.v2.tectonics.margin_scenes import LARAMIDE, QUIET, ROLLBACK_ONLY
+from orogen.v2.tectonics.terrain_scenes import FAR_TERRANES, WHOLE_PLANET_PACE
 
 
 def test_add_ocean_corridor_covers_skirt_and_corridor_predicate_branches(monkeypatch):
@@ -34,3 +39,20 @@ def test_add_ocean_corridor_covers_skirt_and_corridor_predicate_branches(monkeyp
     )
 
     assert observed == [True, True, False, False, False]
+
+
+def test_shared_scenario_configuration_templates_are_immutable():
+    for template in (
+        LARAMIDE,
+        QUIET,
+        ROLLBACK_ONLY,
+        FAR_TERRANES,
+        WHOLE_PLANET_PACE,
+    ):
+        with pytest.raises(TypeError):
+            template["mutation_probe"] = True
+
+    with pytest.raises(TypeError):
+        WEST[0][0] = 0.0
+    with pytest.raises(TypeError):
+        EAST[0][0] = 0.0

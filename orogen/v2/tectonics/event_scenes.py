@@ -11,13 +11,13 @@ from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .crust import CrustFlag, CrustType
 from .force_scenes import FORCE_SCENES
 from .kinematics import lat_lon_to_xyz
-from .scene_support import add_ocean_corridor, begin_scene
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
     fill_background,
     scene_terrane,
 )
+from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
 

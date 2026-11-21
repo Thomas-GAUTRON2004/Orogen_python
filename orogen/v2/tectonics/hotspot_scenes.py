@@ -18,6 +18,7 @@ from .scenarios import (
     heading,
     omega_for,
 )
+from .scene_support import begin_scene
 from .world import TectonicWorld
 
 HAWAII: dict[str, Any] = {

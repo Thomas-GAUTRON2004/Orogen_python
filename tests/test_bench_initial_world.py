@@ -11,7 +11,9 @@ def test_validate_partition_rejects_mask_with_wrong_mesh_size():
         plates=[SimpleNamespace(crust=SimpleNamespace(mask=np.ones(5, dtype=np.uint8)))]
     )
 
-    with pytest.raises(RuntimeError, match="does not match the actual simulation mesh size"):
+    with pytest.raises(
+        RuntimeError, match="does not match the actual simulation mesh size"
+    ):
         bench_initial_world._validate_partition(world, 4)
 
 

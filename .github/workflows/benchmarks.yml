@@ -58,7 +58,8 @@ jobs:
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          baseline_sha="$(git rev-parse "${PR_HEAD_SHA}^")"
+          # Compare against the branch state immediately before the outline-gap optimization.
+          baseline_sha="24dc4d550769efdc57d56506abdc343c576545af"
           git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
           benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 2)
           (

@@ -75,7 +75,10 @@ def python_only_table(report: dict) -> list[str]:
     accelerated = report["python"].get("numba")
     rows = [
         (
-            f"Far-field spread_push ({report['configuration']['graph_cells']:,} cells, two sources)",
+            (
+                "Far-field spread_push "
+                f"({report['configuration']['graph_cells']:,} cells, two sources)"
+            ),
             pure.get("far_field_diffusion"),
             accelerated.get("far_field_diffusion") if accelerated else None,
         ),
@@ -115,7 +118,8 @@ def runtime_lines(report: dict) -> list[str]:
 def csv_rows(report: dict) -> list[dict]:
     """Flatten every timing sample set into rows for spreadsheet analysis."""
     rows = []
-    for key, label in CORE_LABELS.items():
+    labels = core_labels(report["configuration"]["graph_cells"])
+    for key, label in labels.items():
         sections = (
             ("JavaScript", report["javascript"]),
             ("Python pure", report["python"]["pure"]["timings"]),
@@ -132,7 +136,10 @@ def csv_rows(report: dict) -> list[dict]:
                 rows.append({"operation": label, "runtime": runtime_name, **stats})
 
     for key, label in (
-        ("far_field_diffusion", f"Far-field spread_push ({report['configuration']['graph_cells']:,} cells)"),
+        (
+            "far_field_diffusion",
+            f"Far-field spread_push ({report['configuration']['graph_cells']:,} cells)",
+        ),
         ("step_world", "step_world (four plates)"),
     ):
         sections = (

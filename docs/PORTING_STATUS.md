@@ -22,6 +22,16 @@ Last updated: 2026-11-20
 - Added a deterministic, partial stepper integration regression: `step_world` runs the real boundary classifier, `track_collisions` implementation and collision-belt spreading on a continental-overlap cell. It verifies the collision boundary, pair record, shortening, event and belt propagation into both margins. To isolate this seam, the test neutralizes `closing_rate`, `advance_plates`, `resolve`, `contact_at`, `update_plumes`, `open_back_arcs`, and the collision geometry helpers `centroid_of_cells` and `tangent_toward`; it is not an end-to-end tectonic-history test. Suture welding and long-history parity remain unvalidated.
 - Full collision/event-history parity and the complete simulation-stage cadence remain outstanding.
 
+## Initial-world construction and scene-helper review
+
+- Craton placement now has a boolean minimum-gap predicate with an early exit when an outline-point pair proves that a candidate fails. The final comparison uses the same correction and floating-point comparison as the retained gap function; unit tests compare decisions over multiple thresholds. The worst-case scan remains quadratic in the 72 outline samples.
+- `benchmarks/bench_initial_world.py` measures `build_start_world` itself at 512, 1,024, 4,096 and 40,000 mesh cells. The PR benchmark workflow runs a same-runner A/B against the pinned pre-optimization commit `24dc4d550769efdc57d56506abdc343c576545af`, using seed 941, one warm-up and two measured repetitions. Mesh creation is reported separately, and every build is checked for complete, non-overlapping plate coverage. CI timing results are published as the `initial-world-builder-benchmarks` artifact; they are not generalized beyond that runner.
+- History-scene builders construct fresh `TectonicWorld` instances. They are deliberately not cached because simulations mutate world state; sharing a cached world would couple independent runs.
+- Scenario setup and ocean-corridor painting now live in `scene_support.py`; the terrain scene uses the shared corridor helper. The source configuration templates are read-only, and the `WEST`/`EAST` sector definitions are immutable tuples.
+- The no-Numba CI job runs the full test suite without installing the optional `speed` extra. The main differential and coverage job retains the 99% threshold with Numba installed.
+- The far-field 3-D norm uses `math.hypot`, matching upstream `Math.hypot`. Mariana's `_arc_behind` behavior is confirmed against upstream: only the final ring exactly `hops` cells inland is painted; tests assert that intermediate and subsequent rings remain unchanged.
+- The scenario-geometry compatibility shim and camelCase aliases remain in place because they are imported/exported by the package API. The coarse start-world path intentionally passes no pair metadata to `_paint_old_ranges`; the optional `pairs` argument remains used by the full path.
+
 ## Performance optimization (Numba)
 
 - Added an optional `speed` extra and retained a pure-Python fallback.

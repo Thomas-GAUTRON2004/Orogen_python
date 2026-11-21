@@ -94,7 +94,10 @@ def test_random_centre_accepts_first_sample_inside_latitude_band(monkeypatch):
 
 def test_single_piece_craton_block_builds_without_rift_gap(monkeypatch):
     outline = {
-        "points": [[math.cos(i * math.tau / 8), math.sin(i * math.tau / 8)] for i in range(8)],
+        "points": [
+            [math.cos(i * math.tau / 8), math.sin(i * math.tau / 8)]
+            for i in range(8)
+        ],
         "area": math.pi,
         "cx": 0.0,
         "cy": 0.0,

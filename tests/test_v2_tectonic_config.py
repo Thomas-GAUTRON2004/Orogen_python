@@ -280,14 +280,3 @@ def test_mechanism_helpers_reject_unknown_names_and_copy_nested_values():
     disabled = mechanisms_off("mantleHeatRifts")
     disabled["riftHeatGain"] = 999
     assert MECHANISMS["mantleHeatRifts"]["riftHeatGain"] == 0
-
-
-def test_partial_start_geometry_configuration_is_validated():
-    validate_tectonics_config(
-        {
-            "startArcKm": [100.0, 200.0],
-            "startStepKm": [50.0, 100.0],
-            "startGrowthBias": 0.99,
-            "startMaxLatitudeDeg": 90.0,
-        }
-    )

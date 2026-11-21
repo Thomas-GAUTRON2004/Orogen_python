@@ -6,10 +6,10 @@ import math
 from typing import Any
 
 from .config import mechanisms_off
-from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import add_apron_and_trench, add_continent, add_ocean, fill_background
+from .scene_support import begin_scene
 from .world import TectonicWorld
 
 

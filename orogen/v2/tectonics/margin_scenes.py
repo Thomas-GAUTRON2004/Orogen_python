@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from types import MappingProxyType
 from typing import Any
 
 import numpy as np
@@ -25,13 +26,15 @@ from .scenarios import (
 ARC_TERRANE_ID = 900
 MARIANA_ARC_WIDTH_KM = 243.0
 
-ROLLBACK_ONLY = {
-    **only_mechanisms("backArcs", "flatSlabs"),
-    "backArcRatePerMyr": 0.5,
-    "backArcContinentalShare": 1.0,
-}
-QUIET = only_mechanisms("flatSlabs", "marginIsles")
-LARAMIDE = {"speedCmYr": 5.0, "trenchLon": -118.0}
+ROLLBACK_ONLY = MappingProxyType(
+    {
+        **only_mechanisms("backArcs", "flatSlabs"),
+        "backArcRatePerMyr": 0.5,
+        "backArcContinentalShare": 1.0,
+    }
+)
+QUIET = MappingProxyType(only_mechanisms("flatSlabs", "marginIsles"))
+LARAMIDE = MappingProxyType({"speedCmYr": 5.0, "trenchLon": -118.0})
 
 
 def _set_motion(

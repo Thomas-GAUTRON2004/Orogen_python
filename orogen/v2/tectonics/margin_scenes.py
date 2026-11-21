@@ -11,7 +11,6 @@ import numpy as np
 from .config import only_mechanisms
 from .crust import CrustType
 from .dynamics import update_plate_motion
-from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (

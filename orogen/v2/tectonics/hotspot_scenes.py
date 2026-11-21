@@ -8,7 +8,6 @@ from typing import Any
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import only_mechanisms
 from .dynamics import update_plate_motion
-from .scene_support import begin_scene
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (

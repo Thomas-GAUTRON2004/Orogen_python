@@ -5,6 +5,7 @@ import csv
 import json
 from pathlib import Path
 
+
 def core_labels(graph_cells: int) -> dict[str, str]:
     """Build workload labels from the actual benchmark configuration."""
     cells = f"{graph_cells:,}"

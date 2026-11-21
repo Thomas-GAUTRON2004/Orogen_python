@@ -175,3 +175,19 @@ def test_outline_gap_predicate_covers_centre_distance_fast_paths():
     assert not _outline_gap_at_least(first, far, 1.0)
     assert not _outline_gap_at_least(first, nested, 1e-12)
     assert _outline_gap_at_least(first, nested, 0.0)
+
+
+def test_outline_gap_predicate_preserves_exact_maximum_gap_boundary():
+    correction = 0.8 * math.pi / 72
+    minimum_gap = math.pi - correction
+    first = _outline_record(
+        [1.0, 0.0, 0.0],
+        [[1.0, 0.0, 0.0]],
+    )
+    second = _outline_record(
+        [math.cos(1.0), math.sin(1.0), 0.0],
+        [[-1.0, 0.0, 0.0]],
+    )
+
+    assert _outline_gap(first, second) == minimum_gap
+    assert _outline_gap_at_least(first, second, minimum_gap)

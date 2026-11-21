@@ -510,6 +510,49 @@ def _craton_radii(
         ratio *= 0.93
 
 
+def _outline_gap_at_least(
+    first: Mapping[str, Any],
+    second: Mapping[str, Any],
+    minimum_gap: float,
+) -> bool:
+    """Return whether two craton outlines meet a minimum gap, stopping early.
+
+    A single outline-point pair whose angular separation is already too small
+    proves that the full maximum-dot-product calculation cannot meet the gap.
+    The final comparison uses the same correction and floating-point operations
+    as _outline_gap, preserving its decision boundary.
+    """
+    minimum_gap = float(minimum_gap)
+    distance = angle_between(first["centre"], second["centre"])
+    first_reach = float(first["reach"])
+    second_reach = float(second["reach"])
+    if distance >= first_reach + second_reach:
+        return distance - first_reach - second_reach >= minimum_gap
+    if distance <= float(first["inner"]) + float(second["inner"]):
+        return 0.0 >= minimum_gap
+    if minimum_gap <= 0.0:
+        return True
+
+    correction = max(first_reach, second_reach) * math.pi / OUTLINE_SAMPLES
+    angular_limit = minimum_gap + correction
+    if angular_limit >= math.pi:
+        return False
+    dot_limit = math.cos(angular_limit)
+    best = -math.inf
+    for point in first["outline"]:
+        for other in second["outline"]:
+            candidate = sum(a * b for a, b in zip(point, other, strict=True))
+            if candidate > best:
+                best = candidate
+            if candidate > dot_limit:
+                candidate_gap = max(
+                    0.0, math.acos(min(1.0, candidate)) - correction
+                )
+                if candidate_gap < minimum_gap:
+                    return False
+    return max(0.0, math.acos(min(1.0, best)) - correction) >= minimum_gap
+
+
 def _outline_gap(first: Mapping[str, Any], second: Mapping[str, Any]) -> float:
     distance = angle_between(first["centre"], second["centre"])
     if distance >= float(first["reach"]) + float(second["reach"]):
@@ -674,16 +717,20 @@ def place_cratons(
                         )
                         candidate = _placed(block, _frame_at(point, turn))
                         if step == steps or all(
-                            _outline_gap(anchor, item) >= gap for item in candidate
+                            _outline_gap_at_least(anchor, item, gap)
+                            for item in candidate
                         ):
                             break
                     clear = all(
-                        _outline_gap(other_piece, item)
-                        >= (
+                        _outline_gap_at_least(
+                            other_piece,
+                            item,
+                            (
                             gap * 0.999
                             if other_piece is anchor
                             else reserve
                             * (1.0 if other_piece["cluster"] == cluster else apart)
+                            ),
                         )
                         for item in candidate
                         for other_piece in all_pieces

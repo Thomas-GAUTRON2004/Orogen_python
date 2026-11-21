@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics import CrustFlag
+from orogen.v2.tectonics import CrustFlag, CrustType
 from orogen.v2.tectonics.margin_scenes import (
+    ARC_TERRANE_ID,
+    _arc_behind,
     MARGIN_SCENES,
     build_margin_scene,
     heading,
@@ -50,4 +52,27 @@ def test_margin_scenes_expose_trench_and_arc_metadata():
     margins = build_margin_scene(mesh, 1706, "margins")
     assert np.count_nonzero(margins.plates[0].crust.flags & CrustFlag["TRENCH"]) > 0
     mariana = build_margin_scene(mesh, 1706, "mariana")
-    assert mariana.plates[1].arcTerraneId == 900
+    assert mariana.plates[1].arcTerraneId == ARC_TERRANE_ID
+
+
+def test_arc_behind_paints_only_the_exact_requested_ring():
+    from types import SimpleNamespace
+
+    mesh = SimpleNamespace(
+        adj_offset=np.asarray([0, 1, 3, 5, 6], dtype=np.int32),
+        adj_list=np.asarray([1, 0, 2, 1, 3, 2], dtype=np.int32),
+    )
+    plate = SimpleNamespace(
+        crust=SimpleNamespace(
+            mask=np.ones(4, dtype=bool),
+            type=np.zeros(4, dtype=np.uint8),
+            terrane=np.zeros(4, dtype=np.uint16),
+        ),
+        arcTerraneId=-1,
+    )
+
+    _arc_behind(mesh, plate, [0], 2)
+
+    assert plate.crust.type.tolist() == [0, 0, CrustType["ARC"], 0]
+    assert plate.crust.terrane.tolist() == [0, 0, ARC_TERRANE_ID, 0]
+    assert plate.arcTerraneId == ARC_TERRANE_ID

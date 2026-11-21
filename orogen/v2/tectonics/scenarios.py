@@ -79,8 +79,6 @@ def omega_for(
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
-
-
 def build_continental_scene(
     sim_mesh: Any,
     seed: int = 0,

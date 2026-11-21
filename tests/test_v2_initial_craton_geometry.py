@@ -74,7 +74,7 @@ def test_craton_letters_remain_alphanumeric_beyond_26(index, expected):
 
 
 def test_random_centre_within_tiny_latitude_band_has_bounded_fallback(monkeypatch):
-    monkeypatch.setattr(initial_cratons, "random_point", lambda _rng: [1.0, 0.0, 0.0])
+    monkeypatch.setattr(initial_cratons, "random_point", lambda _rng: [0.0, 0.0, 1.0])
     centre = _random_centre_within_latitude(lambda: 0.5, 0.001)
     assert len(centre) == 3
     assert sum(value * value for value in centre) == pytest.approx(1.0)

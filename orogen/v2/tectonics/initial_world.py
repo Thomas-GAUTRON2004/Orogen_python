@@ -57,6 +57,19 @@ def _distance_hops(
     )
 
 
+def _stable_top_k(cosine: np.ndarray, count: int) -> np.ndarray:
+    """Select highest values with stable index tie-breaking in O(n + k log k)."""
+    count = max(0, min(int(count), int(cosine.size)))
+    if count == 0:
+        return np.empty(0, dtype=np.intp)
+    threshold_index = cosine.size - count
+    threshold = np.partition(cosine, threshold_index)[threshold_index]
+    above = np.flatnonzero(cosine > threshold)
+    tied = np.flatnonzero(cosine == threshold)[: count - above.size]
+    selected = np.concatenate((above, tied))
+    return selected[np.lexsort((selected, -cosine[selected]))]
+
+
 def _land_cells(
     sim_mesh: Any, centre: np.ndarray, count: int
 ) -> tuple[np.ndarray, float]:
@@ -65,7 +78,7 @@ def _land_cells(
     cosine = xyz @ centre
     # Resolve equal-distance mesh cells by index, not by argpartition's
     # implementation-dependent ordering at the selection boundary.
-    cells = np.lexsort((np.arange(cosine.size), -cosine))[:count]
+    cells = _stable_top_k(cosine, count)
     radius = math.acos(float(np.clip(np.min(cosine[cells]), -1.0, 1.0)))
     return cells.astype(np.int32), radius
 

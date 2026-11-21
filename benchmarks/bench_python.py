@@ -18,7 +18,7 @@ from orogen.v2.core.sphere_geometry import bearing_to_many, destination_many
 from orogen.v2.tectonics import far_field
 from orogen.v2.tectonics.crust import CrustFlag, CrustRaster, CrustType
 
-N_NOISE, N_GEOM, N_CELLS, ROUNDS = 40000, 80000, 12000, 5
+N_NOISE, N_GEOM, N_CELLS, ROUNDS = 40000, 80000, 40000, 5
 
 def median_ms(fn):
     fn()

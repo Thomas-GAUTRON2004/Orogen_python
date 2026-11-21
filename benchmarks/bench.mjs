@@ -7,7 +7,7 @@ import { hopDistance, piecesOf } from "../tests/reference/v2/core/mesh-bfs.mjs";
 import { spreadKm } from "../tests/reference/v2/core/min-heap.mjs";
 import { CrustRaster, CrustType } from "../tests/reference/v2/tectonics/crust.mjs";
 
-const N_NOISE = 40000, N_GEOM = 80000, N_CELLS = 12000, ROUNDS = 5;
+const N_NOISE = 40000, N_GEOM = 80000, N_CELLS = 40000, ROUNDS = 5;
 function measure(fn) {
   fn();
   const values = [];

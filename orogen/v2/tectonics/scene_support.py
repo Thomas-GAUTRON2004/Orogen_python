@@ -12,7 +12,9 @@ from .scenarios import add_ocean, scene_canvas
 from .world import TectonicWorld
 
 
-def begin_scene(sim_mesh: Any, seed: int) -> tuple[TectonicWorld, dict[str, Any], FastNoise]:
+def begin_scene(
+    sim_mesh: Any, seed: int
+) -> tuple[TectonicWorld, dict[str, Any], FastNoise]:
     """Create a world, its scene canvas and the seeded noise source."""
     world = TectonicWorld(sim_mesh, seed)
     return world, scene_canvas(sim_mesh, world.config), FastNoise(seed)
@@ -35,10 +37,7 @@ def add_ocean_corridor(
         distance = math.acos(max(-1.0, min(1.0, dot(point, first))))
         if distance * PLANET_RADIUS_KM < skirt_km:
             return True
-        off_track = (
-            abs(math.asin(max(-1.0, min(1.0, dot(point, axis)))))
-            * PLANET_RADIUS_KM
-        )
+        off_track = abs(math.asin(max(-1.0, min(1.0, dot(point, axis))))) * PLANET_RADIUS_KM
         along = math.atan2(dot(cross(first, point), axis), dot(first, point))
         return off_track < half_width_km and 0.0 < along < span
 

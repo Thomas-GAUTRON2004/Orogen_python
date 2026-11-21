@@ -9,8 +9,9 @@ import numpy as np
 
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .crust import CrustFlag, CrustType
-from .force_scenes import FORCE_SCENES, _add_ocean_between, _begin
+from .force_scenes import FORCE_SCENES
 from .kinematics import lat_lon_to_xyz
+from .scene_support import add_ocean_corridor, begin_scene
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -140,7 +141,7 @@ def _wings(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     rider = world.add_plate("Rider")
     asia_land = add_continent(
@@ -159,7 +160,7 @@ def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
         radius_km=450.0,
         craton_km=0.0,
     )
-    _add_ocean_between(
+    add_ocean_corridor(
         canvas, rider, microcontinent["centre"], asia_land["centre"], 1500.0, 1700.0
     )
     fill_background(canvas, world, world.config)
@@ -167,7 +168,7 @@ def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     austral = world.add_plate("Austral")
     oceanica = world.add_plate("Oceanica")
     land = add_continent(
@@ -186,7 +187,7 @@ def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
         depth_deg=22.0,
         config=world.config,
     )
-    _add_ocean_between(
+    add_ocean_corridor(
         canvas,
         austral,
         land["centre"],
@@ -199,7 +200,7 @@ def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
 
 
 def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
-    world, canvas, noise = _begin(sim_mesh, seed)
+    world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
     west_land = add_continent(
@@ -218,10 +219,10 @@ def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
     )
     add_apron_and_trench(canvas, west, west_land, [[240.0, 300.0]], world.config)
     add_apron_and_trench(canvas, east, east_land, [[60.0, 120.0]], world.config)
-    _add_ocean_between(
+    add_ocean_corridor(
         canvas, west, west_land["centre"], east_land["centre"], 400.0, 2200.0
     )
-    _add_ocean_between(
+    add_ocean_corridor(
         canvas, east, east_land["centre"], west_land["centre"], 400.0, 2200.0
     )
     _add_arc_ridge(

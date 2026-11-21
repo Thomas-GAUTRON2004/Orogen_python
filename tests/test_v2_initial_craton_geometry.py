@@ -324,9 +324,7 @@ def test_craton_placement_finishes_candidate_scan_when_no_gap_is_clear(monkeypat
         gap_checks += 1
         return False
 
-    monkeypatch.setattr(
-        initial_cratons, "_craton_radii", lambda *_args: [0.1, 0.1]
-    )
+    monkeypatch.setattr(initial_cratons, "_craton_radii", lambda *_args: [0.1, 0.1])
     monkeypatch.setattr(initial_cratons, "_make_block", make_block)
     monkeypatch.setattr(initial_cratons, "_placed", placed)
     monkeypatch.setattr(

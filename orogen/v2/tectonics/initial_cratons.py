@@ -351,7 +351,7 @@ def _make_block(
             ]
         traced = [_trace_outline(piece) for piece in pieces]
         total_area = sum(float(item["area"]) for item in traced)
-        if tries >= 6 or all(
+        if all(
             float(item["compact"]) >= float(cfg["cratonMinCompact"])
             and float(item["area"]) >= 0.25 * total_area
             for item in traced
@@ -714,7 +714,7 @@ def place_cratons(
                             near + (far - near) * step / steps,
                         )
                         candidate = _placed(block, _frame_at(point, turn))
-                        if step == steps or all(
+                        if all(
                             _outline_gap_at_least(anchor, item, gap)
                             for item in candidate
                         ):

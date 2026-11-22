@@ -38,6 +38,17 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
+def _scalar_overrides() -> dict[str, Any]:
+    """Give every scalar default a distinct, still-valid constructor override."""
+    overrides: dict[str, Any] = {}
+    for key, value in TECTONICS.items():
+        if isinstance(value, bool):
+            overrides[key] = not value
+        elif isinstance(value, (int, float)):
+            overrides[key] = float(value) * 0.9 if value else 0.1
+    return overrides
+
+
 def _cases() -> dict[str, dict[str, dict[str, Any]]]:
     names = sorted(MECHANISMS)
     return {
@@ -47,10 +58,16 @@ def _cases() -> dict[str, dict[str, dict[str, Any]]]:
         "constructor_overrides": {
             "partial_belts_replaces_group": {"belts": {"andean": {"maxKm": 450.0}}},
             "partial_geology_replaces_group": {"geology": {"records": False}},
+            "partial_shelf_replaces_nested_group": {
+                "geology": {"shelfKm": {"passive": 175.0}}
+            },
             "null_belts_replaces_group": {"belts": None},
             "unknown_nested_group_is_preserved": {
                 "experimentalGroup": {"enabled": True, "nested": {"level": 2}}
             },
+        },
+        "constructor_scalar_overrides": {
+            "every_scalar_default": _scalar_overrides(),
         },
     }
 

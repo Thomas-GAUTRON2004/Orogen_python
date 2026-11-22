@@ -69,9 +69,9 @@ def test_craton_edge_projects_world_point_into_block_frame():
 
 @pytest.mark.parametrize(
     ("index", "expected"),
-    [(0, "A"), (25, "Z"), (26, "AA"), (27, "AB"), (701, "ZZ"), (702, "AAA")],
+    [(0, "A"), (25, "Z"), (26, "["), (27, "\\"), (28, "]"), (65471, "\\x00")],
 )
-def test_craton_letters_remain_alphanumeric_beyond_26(index, expected):
+def test_craton_letters_match_javascript_from_char_code(index, expected):
     assert _craton_letter(index) == expected
 
 

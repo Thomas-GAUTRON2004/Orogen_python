@@ -92,9 +92,7 @@ def test_mechanisms_off_covers_every_field_in_the_selected_group(name: str):
 @pytest.mark.parametrize("name", sorted(EXPECTED_MECHANISMS))
 def test_mechanisms_on_restores_every_available_upstream_default(name: str):
     expected = {
-        key: TECTONICS[key]
-        for key in MECHANISMS[name]
-        if key in UPSTREAM_DEFAULTS
+        key: TECTONICS[key] for key in MECHANISMS[name] if key in UPSTREAM_DEFAULTS
     }
     assert mechanisms_on(name) == expected
 

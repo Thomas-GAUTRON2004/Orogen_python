@@ -3,6 +3,7 @@
 These tests cover the Python scene contracts. They are not a substitute for a
 JavaScript differential fixture; that requires executing the pinned submodule.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -39,7 +40,11 @@ def test_rigid_drift_prescribes_expected_plate_speeds_and_absolute_poses(sim_mes
     by_name = {plate.name: plate for plate in world.plates}
 
     assert list(by_name) == [
-        "Drifter", "Spinner", "Hinge", "Anchor", "Pre-history ocean"
+        "Drifter",
+        "Spinner",
+        "Hinge",
+        "Anchor",
+        "Pre-history ocean",
     ]
     assert _omega_norm(by_name["Drifter"]) == pytest.approx(
         5.0 * CM_PER_YR_TO_RAD_PER_MYR

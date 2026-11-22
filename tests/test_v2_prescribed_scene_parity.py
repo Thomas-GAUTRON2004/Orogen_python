@@ -79,6 +79,10 @@ def _assert_plates_match(world, expected):
         assert actual.name == reference["name"]
         assert bool(actual.isBackground) is reference["isBackground"]
         _assert_crust_matches(actual, reference)
+        # Compare the actual kinematic state too, not just plate metadata and crust.
+        # These arrays are the state consumed by the simulation after scene setup.
+        _assert_vector(actual.omega, reference["omega"], atol=2e-12)
+        _assert_vector(actual.quat, reference["quat"], atol=2e-9)
 
 
 def _assert_vector(actual, expected, *, atol=2e-10):

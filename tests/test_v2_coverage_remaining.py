@@ -702,9 +702,13 @@ def test_start_world_uses_full_rim_when_passive_sector_contains_no_rim_cells(
     monkeypatch.setattr(initial_world, "make_rng", lambda _seed: lambda: 0.5)
     monkeypatch.setattr(initial_world, "random_point", lambda _rng: [1.0, 0.0, 0.0])
     monkeypatch.setattr(
-        initial_world.np,
-        "arctan2",
-        lambda _y, x: np.zeros_like(x, dtype=np.float64),
+        initial_world,
+        "_choose_active_rim",
+        lambda _mesh, rim, _centre, _reference, passive: (
+            np.zeros(mesh.num_cells, dtype=bool),
+            passive["from"],
+            passive["from"] + passive["span"],
+        ),
     )
 
     result = initial_world.build_start_world(

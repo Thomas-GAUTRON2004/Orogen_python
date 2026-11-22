@@ -209,6 +209,7 @@ def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
     assert classify_contact_boundaries(world, 1.0) == 1
     assert world.boundaryKind[0] == BoundaryKind["COLLISION"]
 
+
 def test_feed_subduction_far_field_rejects_non_positive_reference_rate():
     import pytest
 

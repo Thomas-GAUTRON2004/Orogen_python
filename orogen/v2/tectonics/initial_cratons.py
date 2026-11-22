@@ -31,15 +31,10 @@ STEP_WIDTH = 0.04
 
 
 def _craton_letter(index: int) -> str:
-    """Return spreadsheet-style alphabetic identifiers (A..Z, AA..)."""
+    """Match JavaScript String.fromCharCode(65 + index) exactly."""
     if index < 0:
         raise ValueError("craton index must be non-negative")
-    value = index + 1
-    letters: list[str] = []
-    while value:
-        value, remainder = divmod(value - 1, 26)
-        letters.append(chr(65 + remainder))
-    return "".join(reversed(letters))
+    return chr((65 + index) & 0xFFFF)
 
 
 def _random_centre_within_latitude(

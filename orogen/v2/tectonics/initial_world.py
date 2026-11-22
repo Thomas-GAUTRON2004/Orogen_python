@@ -442,22 +442,22 @@ def _build_coarse_start_world(
         continent.crust.flags[apron_cells] |= CrustFlag["APRON"]
 
     # The active trench follows the smoothed outer rim, leaving one passive
-    # azimuthal sector. The sector is sampled before any rim cells are visited.
-    east, north = tangent_basis(centre.tolist())
+    # azimuthal sector. Reuse the same sector selection as the full-resolution
+    # initial-world builder so both paths have identical angular semantics.
+    reference = tangent_basis(centre.tolist())[0]
     rim_mask = np.zeros(n, dtype=bool)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     for cell in np.flatnonzero(in_plate):
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
         rim_mask[cell] = any(not in_plate[int(other)] for other in adjacency[lo:hi])
     rim_cells = np.flatnonzero(rim_mask).astype(np.int32)
-    coverage = max(0.0, min(1.0, float(cfg["rimTrenchCoverage"])))
-    passive_from = passive_rng() * 360.0 - 180.0
-    passive_span = 360.0 * (1.0 - coverage)
-    if rim_cells.size and coverage > 0:
-        angles = np.degrees(np.arctan2(xyz[rim_cells] @ north, xyz[rim_cells] @ east))
-        offset_angles = np.mod(angles - passive_from, 360.0)
-        trench_cells = rim_cells[offset_angles >= passive_span]
-        if not trench_cells.size and coverage >= 0.5:
+    passive = _passive_stretch(float(cfg["rimTrenchCoverage"]), passive_rng)
+    active_rim, passive_from, passive_to = _choose_active_rim(
+        sim_mesh, rim_cells, centre.tolist(), reference, passive
+    )
+    trench_cells = np.flatnonzero(active_rim).astype(np.int32)
+    if rim_cells.size and float(cfg["rimTrenchCoverage"]) > 0:
+        if not trench_cells.size and float(cfg["rimTrenchCoverage"]) >= 0.5:
             trench_cells = rim_cells
         continent.crust.flags[trench_cells] |= CrustFlag["TRENCH"]
         continent.crust.slabKm[trench_cells] = np.maximum(
@@ -605,13 +605,9 @@ def plate_outline_with_apron(
     count = int(sim_mesh.num_cells)
     apron = km_to_hops(sim_mesh, float(config["apronKm"]))
     smooth = km_to_hops(sim_mesh, float(config["apronSmoothKm"]))
-    from_land = hop_distance(
-        sim_mesh, lambda cell: bool(is_land[cell]), max_hops=apron + smooth
-    )
+    from_land = _distance_hops(sim_mesh, is_land, max_hops=apron + smooth)
     grown = from_land >= 0
-    from_outside = hop_distance(
-        sim_mesh, lambda cell: not bool(grown[cell]), max_hops=smooth
-    )
+    from_outside = _distance_hops(sim_mesh, ~grown, max_hops=smooth)
     in_plate = grown & (from_outside < 0)
     rim = np.zeros(count, dtype=bool)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list

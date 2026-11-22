@@ -17,7 +17,7 @@ from orogen.v2.tectonics.world import BoundaryKind, TectonicWorld
 
 def _world():
     mesh = build_sim_mesh(48, 31)
-    return mesh, TectonicWorld(mesh, 31, {"apronKm": 100.0})
+    return mesh, TectonicWorld(mesh, 31, overrides={"apronKm": 100.0})
 
 
 def test_classify_motion_all_four_states_and_obliquity():

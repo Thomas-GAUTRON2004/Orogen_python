@@ -58,7 +58,6 @@ def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
         {"startStepKm": [100, 0]},
         {"startMaxLatitudeDeg": 0},
         {"coastUnionSoftnessKm": 0},
-        {"startGrowthBias": 1},
         {"startGrowthBias": -0.1},
         {"belts": {"andean": {"baseKm": 500, "maxKm": 400}}},
     ],

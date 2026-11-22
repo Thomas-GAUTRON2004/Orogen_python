@@ -120,15 +120,15 @@ def test_plate_empty_and_antipodal_extent_fallbacks():
 
 def test_world_config_copy_rng_terrane_naming_and_event_validation():
     mesh = build_sim_mesh(24, 13)
-    config = {"nested": {"value": 1}}
-    world = TectonicWorld(mesh, 77, config, {"extra": True})
-    config["nested"]["value"] = 9
+    overrides = {"nested": {"value": 1}, "extra": True}
+    world = TectonicWorld(mesh, 77, overrides=overrides)
+    overrides["nested"]["value"] = 9  # the caller's dict is not aliased
     assert world.config["nested"]["value"] == 1
     assert world.config["extra"] is True
-    same = TectonicWorld(mesh, 77, {"nested": {"value": 1}, "extra": True})
+    same = TectonicWorld(mesh, 77, overrides={"nested": {"value": 1}, "extra": True})
     assert [world.rng() for _ in range(5)] == [same.rng() for _ in range(5)]
-    with pytest.raises(ValueError):
-        TectonicWorld(mesh, 1, None)
+    # None overrides mean the upstream defaults, as `new TectonicWorld(mesh, seed)`.
+    assert TectonicWorld(mesh, 1, overrides=None).config["continentalFraction"] > 0
 
     plate = world.add_plate("old")
     plate.crust.create(0, CrustType["CRATON"], 0, 8)
@@ -153,7 +153,7 @@ def test_world_config_copy_rng_terrane_naming_and_event_validation():
 
 def test_world_terrane_overflow():
     mesh = build_sim_mesh(12, 7)
-    world = TectonicWorld(mesh, 1, {})
+    world = TectonicWorld(mesh, 1, overrides={})
     world.lastTerraneId = 0xFFFF
     with pytest.raises(OverflowError):
         world.next_terrane_id()
@@ -166,7 +166,7 @@ def test_rotated_plate_gather_maps_world_cells_to_plate_frame():
     from orogen.v2.tectonics.world import TectonicWorld
 
     mesh = build_sim_mesh(48, 17)
-    world = TectonicWorld(mesh, 19, {"simCells": 48})
+    world = TectonicWorld(mesh, 19, overrides={"simCells": 48})
     plate = world.add_plate("rotated")
     plate.set_quat(quat_from_axis_angle(0, 0, 1, np.pi / 2))
     world_cell = 5

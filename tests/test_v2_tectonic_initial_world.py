@@ -254,7 +254,7 @@ def test_scenario_builders_apply_configuration_overrides():
 
 @pytest.mark.parametrize(
     ("mesh_cells", "seed"),
-    ((512, 912), (768, 777)),
+    ((512, 912), (768, 777), (512, 17), (768, 941), (768, 5501), (1024, 2026)),
 )
 def test_production_resolution_start_world_matches_javascript_reference(
     mesh_cells: int, seed: int

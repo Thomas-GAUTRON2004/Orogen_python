@@ -781,8 +781,6 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
         if lower > upper:
             raise ValueError(f"{key} lower bound cannot exceed upper bound")
 
-    if "startGrowthBias" in config and float(config["startGrowthBias"]) >= 1.0:
-        raise ValueError("startGrowthBias must be strictly less than 1")
     if "startMaxLatitudeDeg" in config and float(config["startMaxLatitudeDeg"]) > 90.0:
         raise ValueError("startMaxLatitudeDeg cannot exceed 90 degrees")
 

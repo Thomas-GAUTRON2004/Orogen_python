@@ -272,7 +272,7 @@ def test_simplex_noise_and_fbm_cover_corner_and_octave_paths():
 def test_world_craton_naming_fallback_and_sorted_letters():
     from orogen.v2.tectonics.world import TectonicWorld
 
-    world = TectonicWorld(build_sim_mesh(12, 2), 3, {"simCells": 12})
+    world = TectonicWorld(build_sim_mesh(12, 2), 3, overrides={"simCells": 12})
     plate = world.add_plate("fallback")
     assert world.name_by_cratons(plate, "fallback") == "fallback"
     plate.crust.create(0, 2, -1000, 7)

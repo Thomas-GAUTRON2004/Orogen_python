@@ -12,7 +12,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 def _world():
     mesh = build_sim_mesh(48, 41)
     config = {"maxStepMyr": 4.0, "maxCellsPerStep": 1.5, "maxSpeedOceanic": 100.0}
-    return mesh, TectonicWorld(mesh, 41, config)
+    return mesh, TectonicWorld(mesh, 41, overrides=config)
 
 
 def test_fastest_speed_zero_and_equator_crossing():

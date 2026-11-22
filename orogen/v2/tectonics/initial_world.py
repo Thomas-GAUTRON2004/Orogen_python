@@ -902,19 +902,11 @@ def build_start_world(
     world = TectonicWorld(sim_mesh, seed, overrides=overrides)
     found = _find_layout(sim_mesh, int(seed), world.config)
     if found is None:
+        # Upstream wording (assemble in init/start-world.js), kept verbatim.
         raise ValueError(
-            "Initial-world settings do not fit the planet: craton spacing, coast "
-            "margins and connected land cannot satisfy continentalFraction."
-        )
-    if not found["fractionMet"]:
-        actual = int(np.count_nonzero(found["land"]["type"] != CrustType["OCEAN"]))
-        achieved = actual / int(sim_mesh.num_cells)
-        target = float(world.config["continentalFraction"])
-        raise ValueError(
-            "Initial-world settings could not meet continentalFraction after "
-            f"{found['attempts']} attempts (target={target:.4f}, "
-            f"closest={achieved:.4f}); adjust craton spacing, coast margins or "
-            "continentalFraction."
+            f"These settings do not fit on the planet for seed {int(seed)}: the "
+            "cratons, the required gaps between them and their margins need more "
+            "room than the requested continental area allows."
         )
     return _assemble_upstream_start_world(world, int(seed), found)
 

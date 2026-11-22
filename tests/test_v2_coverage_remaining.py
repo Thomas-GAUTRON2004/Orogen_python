@@ -369,7 +369,7 @@ def test_bridge_pieces_handles_single_piece_and_fills_short_seam():
 
 def test_split_strip_preserves_an_active_parent_rift_partnership():
     mesh = build_sim_mesh(48, 98)
-    world = TectonicWorld(mesh, 98, _backarc_config())
+    world = TectonicWorld(mesh, 98, overrides=_backarc_config())
     world.time = 10.0
     world.config["riftPushMyr"] = 20.0
     parent = world.add_plate("Parent")
@@ -390,12 +390,12 @@ def test_split_strip_preserves_an_active_parent_rift_partnership():
 
 def test_backarc_open_guards_and_orphan_strip_cleanup():
     mesh = build_sim_mesh(32, 99)
-    world = TectonicWorld(mesh, 99, _backarc_config())
+    world = TectonicWorld(mesh, 99, overrides=_backarc_config())
     assert backarc.open_back_arcs(world, 0.0) == 0
     world.config.pop("backArcRatePerMyr")
     assert backarc.open_back_arcs(world, 1.0) == 0
 
-    world = TectonicWorld(mesh, 100, _backarc_config())
+    world = TectonicWorld(mesh, 100, overrides=_backarc_config())
     world.time = 100.0
     world.config["backArcRatePerMyr"] = 0.0
     strip = world.add_plate("Orphan Arc")

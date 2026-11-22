@@ -17,7 +17,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 def _world():
     mesh = build_sim_mesh(48, 23)
-    world = TectonicWorld(mesh, 5, {"simCells": 48, "closingCmYr": 0.1})
+    world = TectonicWorld(mesh, 5, overrides={"simCells": 48, "closingCmYr": 0.1})
     return mesh, world
 
 

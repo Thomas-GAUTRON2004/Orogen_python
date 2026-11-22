@@ -656,7 +656,7 @@ def test_build_start_world_raises_when_production_layout_cannot_fit(monkeypatch)
         lambda *_args, **_kwargs: SimpleNamespace(config={}),
     )
     monkeypatch.setattr(initial_world, "_find_layout", lambda *_args: None)
-    with pytest.raises(ValueError, match="do not fit the planet"):
+    with pytest.raises(ValueError, match="do not fit on the planet"):
         initial_world.build_start_world(mesh, 1)
 
 
@@ -817,29 +817,26 @@ def test_land_cells_breaks_equal_distance_ties_by_cell_index():
     assert cells.tolist() == [0, 1]
 
 
-def test_start_world_rejects_unmet_continental_fraction(monkeypatch):
+def test_start_world_keeps_an_unmet_continental_fraction_as_a_flag(monkeypatch):
+    # Upstream assemble() does not throw when the fraction is missed: it returns the
+    # closest layout with fractionMet false. Only "no candidate at all" throws.
     mesh = SimpleNamespace(num_cells=512)
     fake_world = SimpleNamespace(config={"continentalFraction": 0.3})
     monkeypatch.setattr(
         initial_world, "TectonicWorld", lambda *_args, **_kwargs: fake_world
     )
-    land_type = np.asarray([CrustType["CONTINENT"]] * 149 + [CrustType["OCEAN"]] * 363)
     monkeypatch.setattr(
         initial_world,
         "_find_layout",
-        lambda *_args, **_kwargs: {
-            "fractionMet": False,
-            "attempts": 24,
-            "land": {"type": land_type},
-        },
+        lambda *_args, **_kwargs: {"fractionMet": False, "attempts": 24},
     )
     monkeypatch.setattr(
         initial_world,
         "_assemble_upstream_start_world",
-        lambda *_args, **_kwargs: pytest.fail("unmet fraction must not be assembled"),
+        lambda _world, _seed, found: {"start": {"fractionMet": found["fractionMet"]}},
     )
-    with pytest.raises(ValueError, match="could not meet continentalFraction"):
-        initial_world.build_start_world(mesh, 123)
+    result = initial_world.build_start_world(mesh, 123)
+    assert result["start"]["fractionMet"] is False
 
 
 def test_margin_profile_rejects_zero_width_segments():

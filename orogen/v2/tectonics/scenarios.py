@@ -1,8 +1,19 @@
-"""Small deterministic tectonic scenes used by tests and development tools.
+"""Scene builders and their scene-kit helpers.
 
-These builders deliberately keep the fixtures smaller than the interactive
-JavaScript scenario catalogue. They provide controlled continental, oceanic
-and mixed states while preserving the TectonicWorld and Plate contracts.
+Fidelity status (upstream planet_heightmap_generation @ ed466f9):
+
+- ``add_continent``, ``add_apron_and_trench``, ``flag_coast_trench``,
+  ``add_ocean``, ``fill_background``, ``scene_canvas``, ``scene_terrane``
+  mirror ``v2/js/tectonics/scenarios/scene-kit.js`` and are compared through the
+  scene catalogue parity test (``tests/test_v2_scene_parity.py``).
+- ``build_rigid_drift_world``, ``build_wilson_world``, ``build_nudge_scene``
+  mirror ``rigid-drift.js``, ``wilson-cycle.js`` and the nudge scene.
+- ``build_continental_scene``, ``build_oceanic_scene``, ``build_mixed_scene`` and
+  ``build_scenario_scene`` are Python-only fixtures: no upstream counterpart was
+  found by name search. They keep tests and development tools small, and they
+  are not part of the fidelity claim.
+
+Every noise field here uses ``SimplexNoise`` as upstream does.
 """
 
 from __future__ import annotations

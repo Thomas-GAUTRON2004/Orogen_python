@@ -67,7 +67,7 @@ def make_world(extra_right=0):
     world = TectonicWorld(
         mesh,
         73,
-        {"riftShoulderKm": 1000.0, "riftShoulderWorkKm": 20.0},
+        overrides={"riftShoulderKm": 1000.0, "riftShoulderWorkKm": 20.0},
     )
     world.time = 12.5
     plate = world.add_plate("parent")
@@ -114,7 +114,7 @@ def square_junction_fixture():
     world = TectonicWorld(
         mesh,
         17,
-        {"riftMinArmKm": 50.0, "riftWeaknessCost": 0.2},
+        overrides={"riftMinArmKm": 50.0, "riftWeaknessCost": 0.2},
     )
     plate = world.add_plate("landmass")
     for row in range(1, 6):

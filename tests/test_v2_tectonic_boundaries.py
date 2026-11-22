@@ -286,4 +286,3 @@ def test_classify_real_overriding_contact_without_consumption(monkeypatch):
     assert classify_contact_boundaries(world, 1.0) == 1
     assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
     assert not (plate_a.crust.flags[0] & CrustFlag["TRENCH"])
-

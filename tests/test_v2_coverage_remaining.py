@@ -775,3 +775,25 @@ def test_start_world_skips_unassigned_terrane_cells_in_far_field_fans(monkeypatc
     )
 
     assert result["world"].startSeamKm["major"].shape == (mesh.num_cells,)
+
+
+def test_plate_outline_uses_shared_distance_hops_adapter(monkeypatch):
+    mesh = build_sim_mesh(48, 991)
+    land = np.zeros(mesh.num_cells, dtype=bool)
+    land[:3] = True
+    calls = []
+
+    def fake_distance_hops(_mesh, sources, *, max_hops=None):
+        source_mask = np.asarray(sources, dtype=bool)
+        calls.append((source_mask.copy(), max_hops))
+        return np.where(source_mask, 0, -1).astype(np.int16)
+
+    monkeypatch.setattr(initial_world, "_distance_hops", fake_distance_hops)
+    initial_world.plate_outline_with_apron(
+        mesh, land, {"apronKm": 100.0, "apronSmoothKm": 50.0}
+    )
+
+    assert len(calls) == 2
+    np.testing.assert_array_equal(calls[0][0], land)
+    np.testing.assert_array_equal(calls[1][0], ~land)
+    assert all(max_hops is not None for _mask, max_hops in calls)

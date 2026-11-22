@@ -204,7 +204,14 @@ def test_feed_subduction_far_field_processes_land_front(monkeypatch):
 
     assert plate.lastFedAt == world.time
     assert captured["cells"] == [0]
-    assert captured["works"] == [10.0 * world.config["andeanWorkShare"] * world.config["farAndeanShare"]]
+    from orogen.v2.tectonics.config import CM_PER_YR_TO_KM_PER_MYR
+
+    rate_cm_yr = 10.0 / CM_PER_YR_TO_KM_PER_MYR
+    share = world.config["farAndeanShare"] * min(
+        1.0, (rate_cm_yr / world.config["farAndeanRateCmYr"]) ** 2
+    )
+    expected_work = 10.0 * world.config["andeanWorkShare"] * share
+    assert captured["works"] == [expected_work]
     assert captured["front_km"] > 0.0
 
     monkeypatch.setattr(boundaries, "overrides", lambda *_args: None)

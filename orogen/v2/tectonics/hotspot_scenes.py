@@ -109,9 +109,7 @@ HOTSPOT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 90,
         "view": (20, -165),
         "about": (
-            "Pacifica slides over a plume fixed in the mantle. The plate carries "
-            "away an age-progressive volcanic chain that bends when its heading "
-            "changes at 45 Myr."
+            "An ocean plate, “Pacifica”, slides over a plume that stays put in the mantle. The plume keeps erupting, so the plate carries away a chain of volcanoes that is youngest over the plume and older the further downstream — and at 45 Myr the plate turns 60° to the west, so the chain bends, as the Hawaiian–Emperor chain does."
         ),
         **HAWAII,
         "build": _hawaii,
@@ -123,9 +121,7 @@ HOTSPOT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 70,
         "view": (-15, 75),
         "about": (
-            "Indica drifts north. At 12 Myr a plume head reaches its southern half "
-            "and floods a broad province with basalt; its tail later draws a track "
-            "across the ocean floor left behind by the moving plate."
+            "“Indica” drifts north. At 12 Myr a new plume reaches the surface under its southern half: the plume HEAD floods a broad, lobed province of it with basalt — the Indica Traps, a Large Igneous Province — and then its TAIL, still erupting, draws a chain of volcanoes across the ocean floor Indica leaves behind it, from the traps to where the plume is now. (India, the Deccan Traps and the Réunion chain.)"
         ),
         **DECCAN,
         "build": _deccan,
@@ -137,9 +133,7 @@ HOTSPOT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 300,
         "view": None,
         "about": (
-            "The generated supercontinent runs with the full rule set. Mantle heat "
-            "builds beneath long-lived landmasses, plumes rise and their heads and "
-            "tails leave large igneous provinces and volcanic tracks."
+            "The generated supercontinent of Phase 3, left to itself, with every rule on. Plumes rise where the mantle is hot — above all where the supercontinent has sat for aeons, which it has insulated (Mantle heat layer) — but not only there. Each head floods the land or sea above it with basalt; under a big enough continent it may split it; each tail draws a track across whatever plate passes over it. The mantle remembers where the supercontinent WAS, so plumes keep rising there after it has broken up."
         ),
         "build": _history,
         "drive": update_plate_motion,

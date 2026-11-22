@@ -17,10 +17,10 @@ from typing import Any
 import numpy as np
 
 from ..core.array_selection import stable_top_k as _stable_top_k
-from ..core.fast_noise import FastNoise
 from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
 from ..core.sim_mesh import km_to_hops
+from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     cell_distance_km,
     polar_frame,
@@ -194,7 +194,7 @@ def _paint_old_ranges(
     if not isinstance(ranges, dict):
         return
     xyz = _mesh_xyz(mesh)
-    noise = FastNoise((int(world.seed) ^ 0x5A7E) & 0xFFFFFFFF)
+    noise = SimplexNoise((int(world.seed) ^ 0x5A7E) & 0xFFFFFFFF)
     vary = max(0.0, float(cfg["startRangeVary"]))
     scale_km = max(1.0, float(cfg["startRangeVaryKm"]))
     frequency = 6371.0 / scale_km
@@ -216,9 +216,9 @@ def _paint_old_ranges(
         for index, cell_value in enumerate(sources):
             cell = int(cell_value)
             x, y, z = xyz[cell]
-            value = noise.noise3d(
+            value = noise.noise3D(
                 x * frequency + 7.1 * kind, y * frequency, z * frequency
-            ) + 0.4 * noise.noise3d(
+            ) + 0.4 * noise.noise3D(
                 x * 2.7 * frequency + 3.3,
                 y * 2.7 * frequency + 8.1 * kind,
                 z * 2.7 * frequency + 1.9,
@@ -635,7 +635,7 @@ def _choose_active_rim(
     for cell_value in rim:
         cell = int(cell_value)
         azimuth = to_polar(*xyz[cell])["azimuth"]
-        offset = ((azimuth - passive["from"]) % 360.0 + 360.0) % 360.0
+        offset = ((math.fmod(azimuth - passive["from"], 360.0)) + 360.0) % 360.0
         if offset >= passive["span"]:
             active[cell] = True
     return active, passive["from"], passive["from"] + passive["span"]
@@ -661,7 +661,7 @@ def _shape_attempt(
         float(config["rimTrenchCoverage"]),
         make_rng(seed * 31 + attempt * 7919 + 29),
     )
-    noise = FastNoise(seed + attempt * 101)
+    noise = SimplexNoise(seed + attempt * 101)
     rng = make_rng(seed * 31 + attempt * 7919 + 41)
     land = shape_landmass(sim_mesh, layout, noise, rng, config, stretch, passive)
     return land

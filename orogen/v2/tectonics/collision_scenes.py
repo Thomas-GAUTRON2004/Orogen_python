@@ -70,11 +70,7 @@ COLLISION_SCENES: list[dict[str, Any]] = [
         "maxMyr": 160,
         "view": (18, 72),
         "about": (
-            "Borea is a long continent with a trench along its south coast. Austra "
-            "rides north on a mostly oceanic plate, its long chain of land set at "
-            "an angle: one end strikes first while the ocean to the west keeps "
-            "subducting. Slab pull turns Austra about the first contact, closing "
-            "the gap like a zipper before the plates weld."
+            "“Borea”, a long continent, has a trench along its whole south coast. “Austra” rides north on a mostly oceanic plate, its long chain of land set at an angle to that coast: its north-east end strikes Borea first, while the ocean to the west of the contact is still going down the trench. The pull of that slab turns Austra about the first contact, so the rest of the gap closes like a zipper — and only then do the two weld, with little or no sea left between them."
         ),
         "build": _zipper,
     },

@@ -157,7 +157,7 @@ def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatc
 
 
 def test_scene_kit_builds_continent_apron_and_background_partition():
-    from orogen.v2.core.fast_noise import FastNoise
+    from orogen.v2.core.simplex_noise import SimplexNoise
     from orogen.v2.tectonics.scenarios import (
         add_apron_and_trench,
         add_continent,
@@ -172,7 +172,7 @@ def test_scene_kit_builds_continent_apron_and_background_partition():
     canvas = scene_canvas(mesh, world.config)
     continent = add_continent(
         canvas,
-        FastNoise(913),
+        SimplexNoise(913),
         plate=continent_plate,
         centre=(12.0, 25.0),
         radius_km=8500.0,
@@ -191,7 +191,7 @@ def test_scene_kit_builds_continent_apron_and_background_partition():
 
 
 def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
-    from orogen.v2.core.fast_noise import FastNoise
+    from orogen.v2.core.simplex_noise import SimplexNoise
     from orogen.v2.tectonics.scenarios import (
         _in_sectors,
         add_continent,
@@ -214,7 +214,7 @@ def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
     assert scene_terrane(canvas) == 1
     continent = add_continent(
         canvas,
-        FastNoise(916),
+        SimplexNoise(916),
         plate=plate,
         centre=(0.0, 0.0),
         radius_km=9000.0,
@@ -230,7 +230,7 @@ def test_scene_kit_sectors_ocean_predicate_and_coast_trench():
 
 
 def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
-    from orogen.v2.core.fast_noise import FastNoise
+    from orogen.v2.core.simplex_noise import SimplexNoise
     from orogen.v2.tectonics.scenarios import add_continent, scene_canvas
     from orogen.v2.tectonics.world import TectonicWorld
 
@@ -240,11 +240,13 @@ def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
     canvas = scene_canvas(mesh, world.config)
 
     with pytest.raises(ValueError, match="radius_km"):
-        add_continent(canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=0)
+        add_continent(
+            canvas, SimplexNoise(922), plate=plate, centre=(0, 0), radius_km=0
+        )
     with pytest.raises(ValueError, match="wobble"):
         add_continent(
             canvas,
-            FastNoise(922),
+            SimplexNoise(922),
             plate=plate,
             centre=(0, 0),
             radius_km=1000,
@@ -253,7 +255,7 @@ def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
     with pytest.raises(ValueError, match="craton_km"):
         add_continent(
             canvas,
-            FastNoise(922),
+            SimplexNoise(922),
             plate=plate,
             centre=(0, 0),
             radius_km=1000,
@@ -262,7 +264,7 @@ def test_scene_kit_rejects_invalid_continent_geometry_and_skips_taken_cells():
 
     canvas["taken"][:] = 1
     result = add_continent(
-        canvas, FastNoise(922), plate=plate, centre=(0, 0), radius_km=1000
+        canvas, SimplexNoise(922), plate=plate, centre=(0, 0), radius_km=1000
     )
     assert not np.any(result["isLand"])
 
@@ -583,7 +585,7 @@ def test_shape_landmass_rejects_craton_at_antipode_and_disconnected_final_land(
         "startStepKm": (1000.0, 1000.0),
         "startStepOffsetKm": (100.0, 100.0),
     }
-    noise = SimpleNamespace(noise3d=lambda *_args: 0.0, fbm=lambda *_args: 0.0)
+    noise = SimpleNamespace(noise3D=lambda *_args: 0.0, fbm=lambda *_args: 0.0)
     monkeypatch.setattr(
         initial_landmass, "within_km", lambda *_args: np.zeros(mesh.num_cells)
     )
@@ -730,8 +732,8 @@ def test_paint_old_ranges_ignores_out_of_range_major_pair_id(monkeypatch):
 
     monkeypatch.setattr(
         initial_world,
-        "FastNoise",
-        lambda _seed: SimpleNamespace(noise3d=lambda *_args: 0.0),
+        "SimplexNoise",
+        lambda _seed: SimpleNamespace(noise3D=lambda *_args: 0.0),
     )
     monkeypatch.setattr(
         initial_world,

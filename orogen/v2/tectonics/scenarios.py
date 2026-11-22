@@ -14,10 +14,10 @@ from typing import Any, cast
 import numpy as np
 
 from ..core.array_selection import stable_top_k as _stable_top_k
-from ..core.fast_noise import FastNoise
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
 from ..core.seed import make_rng
+from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     angle_between,
     cross,
@@ -236,16 +236,20 @@ def scene_terrane(canvas: dict[str, Any]) -> int:
 def _in_sectors(azimuth: float, sectors: str | Sequence[Sequence[float]]) -> bool:
     if isinstance(sectors, str):
         return sectors == "all"
-    position = float(azimuth) % 360.0
+
+    def wrap(value: float) -> float:
+        # (((v % 360) + 360) % 360), with JS remainder semantics
+        return (math.fmod(value, 360.0) + 360.0) % 360.0
+
     return any(
-        (position - float(start)) % 360.0 <= (float(end) - float(start)) % 360.0
+        wrap(float(azimuth) - float(start)) <= wrap(float(end) - float(start))
         for start, end in sectors
     )
 
 
 def add_continent(
     canvas: dict[str, Any],
-    noise: FastNoise,
+    noise: SimplexNoise,
     *,
     plate: Any,
     centre: tuple[float, float] | list[float],
@@ -265,7 +269,8 @@ def add_continent(
     xyz = _xyz(mesh)
     taken = canvas["taken"]
     centre_xyz = np.asarray(lat_lon_to_xyz(float(centre[0]), float(centre[1])))
-    offset = (float(centre[0]) * 0.37 + float(centre[1]) * 0.11) % 17.0
+    # JS `%` keeps the sign of the dividend (math.fmod); Python `%` does not.
+    offset = math.fmod(float(centre[0]) * 0.37 + float(centre[1]) * 0.11, 17.0)
     terrane = scene_terrane(canvas)
     is_land = np.zeros(int(mesh.num_cells), dtype=np.uint8)
     age = -float(canvas["landAgeMyr"])
@@ -462,7 +467,7 @@ def _pole_for(centre: list[float], offset_deg: float) -> list[float]:
 def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
     """Build four continent-only plates with prescribed Euler-pole motion."""
     world = TectonicWorld(sim_mesh, seed)
-    noise = FastNoise(seed)
+    noise = SimplexNoise(seed)
     xyz = _xyz(sim_mesh)
     centres = [
         lat_lon_to_xyz(*cast(tuple[float, float], definition["centre"]))
@@ -536,7 +541,7 @@ def build_wilson_world(
 ) -> TectonicWorld:
     """Build the prescribed-motion mini Wilson cycle (rift, ocean, collision)."""
     world = TectonicWorld(sim_mesh, seed)
-    noise = FastNoise(seed)
+    noise = SimplexNoise(seed)
     xyz = _xyz(sim_mesh)
     west = world.add_plate("West")
     east = world.add_plate("East")

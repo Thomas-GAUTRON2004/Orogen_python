@@ -277,7 +277,9 @@ def test_min_heap_order_and_dijkstra_match_original(original_extended):
 
 def test_tectonic_world_state_and_rng_streams_match_original(original_extended):
     m = _mesh()
-    w = TectonicWorld(m, 77, {}, {"fixture": {"nested": 3}})
+    w = TectonicWorld(
+        m, 77, overrides={"fixture": {"nested": 3}}
+    )  # as upstream: defaults merged with overrides
     p = w.add_plate("North")
     p.crust.create(0, CrustType["CRATON"], -20, 11)
     p.crust.create(2, CrustType["CRATON"], -30, 12)

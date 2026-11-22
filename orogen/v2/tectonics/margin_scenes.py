@@ -267,9 +267,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "maxMyr": 60,
         "view": (0, 0),
         "about": (
-            "Driftia has a trench along its western coast and none elsewhere. Its "
-            "western coast is active and leading, while its eastern coast is passive "
-            "and trailing; the flanks slide past old ocean."
+            "“Driftia” has a trench along its western coast and none elsewhere; slab suction pulls it west. Its western coast is ACTIVE and LEADING — a narrow shelf and a coastal range to come — and its eastern coast PASSIVE and TRAILING, a wide shelf; along its flanks it slides past the old ocean (Margins layer)."
         ),
         "build": _margins,
         "drive": update_plate_motion,
@@ -280,9 +278,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "maxMyr": 50,
         "view": (40, -110),
         "about": (
-            "Laurentia drives west into a narrow, young ocean plate. The warm, "
-            "buoyant slab goes in flat, producing an inland Laramide belt without "
-            "an arc-volcano chain."
+            "“Laurentia” drives west at 5 cm/yr into a narrow, YOUNG ocean plate, “Farallona”, which is being made at a ridge only a short way offshore — so the slab going down is never older than a few tens of Myr. Young slab is warm and buoyant, and under a plate that drives at it this hard it goes in flat: the belt is Laramide — it reaches far inland, like the Rockies — and there are no arc volcanoes above it (Orogeny layer). Compare the Andean belt a steep slab makes (tunable: flat slabs up to …)."
         ),
         "speedCmYr": 5.0,
         "trenchLon": -118.0,
@@ -297,9 +293,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "maxMyr": 50,
         "view": (15, 140),
         "about": (
-            "Philippina is caught between two trenches. Its west margin descends "
-            "beneath Asiana; an old Pacifica slab rolls back at the east, stretching "
-            "the plate behind its island arc and opening a back-arc sea."
+            "“Philippina” is an ocean plate caught between two trenches. On its west it goes down under the continent “Asiana”, drifting west at 3 cm/yr; on its east it overrides “Pacifica”, very old ocean coming in at 8 cm/yr — and there it carries an island arc. It does not keep up with its own eastern trench, and the old, cold Pacifica slab sinks steeply and rolls back: Philippina is stretched behind its arc until the arc rifts away after the trench, and a back-arc sea opens behind it (the Mariana Trough, the Philippine Sea)."
         ),
         "build": _mariana,
         "drive": _drive_mariana,
@@ -310,9 +304,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "maxMyr": 60,
         "view": (35, 135),
         "about": (
-            "Asiana overrides very old ocean coming in along its eastern coast. "
-            "Rollback stretches the continental margin until a strip of coast "
-            "rifts off as an island chain and a sea opens behind it."
+            "“Asiana” overrides very old ocean, “Pacifica”, coming in at 8 cm/yr along its eastern coast; Asiana itself creeps east at only 1 cm/yr. The cold slab sinks steeply and rolls back faster than the continent follows: Asiana’s eastern margin is stretched until a strip of the coast — hundreds of km wide, accreted crust, never a craton — rifts away after the trench as a chain of islands, and a sea opens behind it (Japan and the Sea of Japan)."
         ),
         "build": _japan,
         "drive": _drive_japan,
@@ -323,9 +315,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "maxMyr": 300,
         "view": None,
         "about": (
-            "The generated supercontinent runs with the full margin rules: coasts "
-            "are classified, young slabs can flatten, and old rolling-back trenches "
-            "can peel arcs and continental strips from their plates."
+            "The generated supercontinent of Phase 3 with every rule on: every coast is classified as it goes (Margins layer), young slabs go in flat under plates driving at them, and old, rolling-back trenches peel arcs — now and then a strip of a continent — off their plates and open seas behind them."
         ),
         "build": _history,
         "drive": update_plate_motion,

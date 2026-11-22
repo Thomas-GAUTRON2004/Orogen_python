@@ -140,10 +140,7 @@ RIFT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 160,
         "view": (5, -20),
         "about": (
-            "Pangaea is a single continent with trenches on its west and east "
-            "coasts. At 20 Myr a mantle plume rises beneath it: a rift follows a "
-            "low-cost path around the craton, leaves a failed arm and pulls the "
-            "two halves apart."
+            "“Pangaea” is a single continent with trenches on its west and east coasts — pulled both ways, going nowhere. At 20 Myr a mantle plume rises under it: a rift starts there, runs to the coasts along the cheapest line (round the craton, along any old seams), leaves a failed arm behind, and the two halves are pulled apart by their own trenches; a ridge opens between them."
         ),
         "build": _plume,
     },
@@ -153,9 +150,7 @@ RIFT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 300,
         "view": None,
         "about": (
-            "The generated supercontinent, ringed by subduction and under tension, "
-            "rifts on its own. The seed determines when it starts; old sutures "
-            "between cratons guide the breakup."
+            "The generated supercontinent of Phase 3, ringed by subduction and under tension. Left to itself it rifts — when is a matter of chance from the seed; where follows the sutures between its cratons — and the pieces disperse, each with its own trenches, wings and arcs. The first history the generator produces on its own."
         ),
         "build": _breakup,
     },
@@ -165,9 +160,7 @@ RIFT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 300,
         "view": (0, 0),
         "about": (
-            "Two continents share an old ocean basin without a trench. As the "
-            "passive margin founders, a new trench is born on their shared plate "
-            "boundary and the basin begins to close."
+            "Two continents across one old ocean, and not a trench between them: passive margins, as a rift leaves them. Each plate owns its half of the ocean, so they meet in mid-basin. Old ocean crust is cold and dense, so sooner or later one of those margins founders — a new trench is born along it, that half of the ocean starts going down beneath the other plate, and the basin that once opened begins to close. When it happens is a matter of chance from the seed (try New); that it happens at all is what closes a Wilson cycle."
         ),
         "build": _founder,
     },

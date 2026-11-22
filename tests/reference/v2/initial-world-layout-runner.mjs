@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { makeRng } from "./js/rng.mjs";
-import { FastNoise } from "./core/fast-noise.mjs";
+import { SimplexNoise } from "./js/simplex-noise.mjs";
 import { meshFromArrays } from "./core/sim-mesh.mjs";
 import { placeCratons } from "./tectonics/init/cratons.mjs";
 import { shapeLandmass } from "./tectonics/init/landmass.mjs";
@@ -374,7 +374,7 @@ function spreadInitialFarPush(crust, sources, frontKm, time, config) {
 }
 
 function buildInitialInheritedRecords(land, crust, config, seed) {
-    const noise = new FastNoise((seed ^ 0x5a7e) >>> 0);
+    const noise = new SimplexNoise((seed ^ 0x5a7e) >>> 0);
     const frequency = 6371 / Number(config.startRangeVaryKm);
     for (const [name, kind] of [["inner", 1], ["ring", 2], ["major", 3]]) {
         const [widthKm, workKm, ageMyr, keep] = config.startRanges[name];
@@ -596,7 +596,7 @@ for (let attempt = 0; attempt < maxAttempts; attempt++) {
             from: passiveRng() * 360 - 180,
             span: 360 * (1 - Math.min(1, Math.max(0, config.rimTrenchCoverage))),
         };
-        const noise = new FastNoise(seed + attempt * 101);
+        const noise = new SimplexNoise(seed + attempt * 101);
         const shapeRng = makeRng(seed * 31 + attempt * 7919 + 41);
         const land = shapeLandmass(mesh, layout, noise, shapeRng, config, stretch, passive);
         if (!land) continue;

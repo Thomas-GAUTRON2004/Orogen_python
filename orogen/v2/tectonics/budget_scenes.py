@@ -46,9 +46,7 @@ BUDGET_SCENES: list[dict[str, Any]] = [
         "maxMyr": 150,
         "view": (0, -20),
         "about": (
-            "Driftia is pulled west by its western trench. Some margin stretches "
-            "are erosive and lose fore-arc crust; others are accretionary and grow "
-            "islands into the continent. Their character stays fixed to the plate."
+            "“Driftia” is pulled west by the trench along its western coast. Stretches of that margin are EROSIVE: the trench scrapes the fore-arc away and the coast retreats (Margins layer: purple), as the Andes have lost ~250 km of coast since the Jurassic. The stretches between are ACCRETIONARY: islands rise off the coast and grow into it (Crust type layer). Which is which comes from a field fixed in the plate, so a stretch keeps its character as the plate moves."
         ),
         "build": _erosion,
         "drive": update_plate_motion,
@@ -59,9 +57,7 @@ BUDGET_SCENES: list[dict[str, Any]] = [
         "maxMyr": 90,
         "view": (5, 72),
         "about": (
-            "India reaches Asia. The leading edge of the lower continent slides "
-            "under the upper one: India’s land in the overlap is consumed and "
-            "Asia’s crust thickens into a plateau before the continents weld."
+            "“India” reaches “Asia”. Continental crust is too buoyant to subduct as a slab, but the leading edge of the lower continent slides UNDER the upper one: as the two converge, India’s land in the overlap is consumed and Asia’s crust above it thickens (Thickness layer) — the area becomes a plateau, as Tibet swallowed ~2000 km of Greater India. The continents weld when the collision is spent."
         ),
         "build": _india,
         "drive": update_plate_motion,
@@ -72,9 +68,7 @@ BUDGET_SCENES: list[dict[str, Any]] = [
         "maxMyr": 220,
         "view": (0, 0),
         "about": (
-            "Two continents close with island arcs on their facing margins. Small "
-            "arcs are recycled with their slab; larger arcs accrete onto the "
-            "continents, so growth happens in fewer, larger pieces."
+            "Two continents close on each other, each with island arcs on its facing margin (the Phase 5b scene). Where an arc arrives at a continent, a small piece of it — under arcAccreteMinKm2 — is too little to accrete: it goes down with its slab (event log: “arc recycled”). Big arcs still accrete. So continents grow from arcs in fewer, bigger pieces — a Japan, a Kohistan — not a scatter of islets."
         ),
         "build": _arcs,
         "drive": update_plate_motion,
@@ -85,9 +79,7 @@ BUDGET_SCENES: list[dict[str, Any]] = [
         "maxMyr": 600,
         "view": None,
         "about": (
-            "The generated supercontinent runs with the full mechanism set. "
-            "Continental area grows through arc and fore-arc accretion, while "
-            "erosive margins, underthrusting and recycled arcs remove crust."
+            "The generated supercontinent with every rule on, over 600 Myr (it takes a while to build). Continental area grows — arcs and fore-arc islands add crust — but not without bound: erosive margins, underthrusting at collisions and recycled arcs take some away again (chart: land share of the planet)."
         ),
         "build": _history,
         "drive": update_plate_motion,

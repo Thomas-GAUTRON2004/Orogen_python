@@ -10,8 +10,8 @@ from typing import Any
 
 import numpy as np
 
-from ..core.fast_noise import FastNoise
 from ..core.seed import make_rng
+from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, normalize, tangent_basis
 from .crust import CrustFlag, CrustType, VolcanicType
 from .thermal import (
@@ -335,7 +335,7 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
         for k in range(1, 6)
     ]
     noise_seed = math.floor(float(rv()) * 1e9)
-    noise = FastNoise(noise_seed)
+    noise = SimplexNoise(noise_seed)
     rs = make_rng((noise_seed ^ 0x11B5) & 0xFFFFFFFF)
     area_km2 = 1e6 * minimum * (maximum / minimum) ** u
     radius = math.sqrt(area_km2 / math.pi) / PLANET_RADIUS_KM

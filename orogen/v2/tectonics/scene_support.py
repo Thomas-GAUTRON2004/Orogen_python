@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 from typing import Any
 
-from ..core.fast_noise import FastNoise
+from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .scenarios import add_ocean, scene_canvas
 from .world import TectonicWorld
@@ -14,10 +14,10 @@ from .world import TectonicWorld
 
 def begin_scene(
     sim_mesh: Any, seed: int
-) -> tuple[TectonicWorld, dict[str, Any], FastNoise]:
+) -> tuple[TectonicWorld, dict[str, Any], SimplexNoise]:
     """Create a world, its scene canvas and the seeded noise source."""
     world = TectonicWorld(sim_mesh, seed)
-    return world, scene_canvas(sim_mesh, world.config), FastNoise(seed)
+    return world, scene_canvas(sim_mesh, world.config), SimplexNoise(seed)
 
 
 def add_ocean_corridor(

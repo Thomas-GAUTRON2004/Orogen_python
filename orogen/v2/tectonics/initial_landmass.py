@@ -96,7 +96,9 @@ def _margin_profile(
         offset += width
 
     def at(azimuth: float) -> dict[str, float]:
-        position = ((azimuth - float(passive["from"])) % 360.0 + 360.0) % 360.0
+        position = (
+            (math.fmod(azimuth - float(passive["from"]), 360.0)) + 360.0
+        ) % 360.0
         active = (
             1.0
             if span <= 0.0
@@ -292,13 +294,13 @@ def shape_landmass(
                     theta - float(frame["towards"])
                 )
             value = growth[cluster] + seam_wander * (
-                noise.noise3d(
+                noise.noise3D(
                     x * 1.5 + 11.3 * cluster,
                     y * 1.5 - 5.1 * cluster,
                     z * 1.5 + 2.9 * cluster,
                 )
                 + 0.2
-                * noise.noise3d(
+                * noise.noise3D(
                     x * 4.5 - 3.7 * cluster,
                     y * 4.5 + 8.2 * cluster,
                     z * 4.5 + 1.3 * cluster,
@@ -323,7 +325,7 @@ def shape_landmass(
                 if int(craton.get("cluster", 0)) != first:
                     continue
                 craton_id = int(craton["id"])
-                border = craton_edge(craton, x, y, z)["d"] + wander * noise.noise3d(
+                border = craton_edge(craton, x, y, z)["d"] + wander * noise.noise3D(
                     x * 2.2 + 7.3 * craton_id,
                     y * 2.2 - 3.1 * craton_id,
                     z * 2.2 + 1.7 * craton_id,
@@ -342,7 +344,7 @@ def shape_landmass(
             ring = 1 + math.floor(
                 (true_distance[first] - core) / km(clusters[first]["ringKm"])
                 + 0.35
-                * noise.noise3d(
+                * noise.noise3D(
                     x * 3.0 + 4.4 * first, y * 3.0 + 1.7, z * 3.0 - 2.2 * first
                 )
             )
@@ -397,7 +399,7 @@ def shape_landmass(
             + km(cfg["coastReliefKm"])
             * (0.5 + 0.5 * stretch)
             * _clamp(
-                1.3 * noise.noise3d(x * 0.9 + 31.0, y * 0.9 + 31.0, z * 0.9 + 31.0),
+                1.3 * noise.noise3D(x * 0.9 + 31.0, y * 0.9 + 31.0, z * 0.9 + 31.0),
                 -1.0,
                 1.0,
             )
@@ -454,15 +456,10 @@ def shape_landmass(
     for _ in range(24):
         skirt = (lower + upper) / 2.0
         made = landmass(skirt)
-        if made is None:
-            # The antipode is already land: this threshold is too high.
-            upper = skirt
-            continue
-        if made is False:
-            # Some fixed craton cells are disconnected from the main landmass:
-            # more of the coast must be admitted before testing the fraction.
-            lower = skirt
-            continue
+        # As upstream (`if (!made) return null;`): an antipode on land or a
+        # craton cut off from the main landmass rejects the whole attempt.
+        if made is None or made is False:
+            return None
         if made[1] / num_cells < float(cfg["continentalFraction"]):
             lower = skirt
         else:

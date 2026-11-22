@@ -256,9 +256,7 @@ EVENT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 300,
         "view": (5, -35),
         "about": (
-            "The lone continent has a trench on its west coast. Its ends propagate "
-            "out to sea, capturing old ocean into the plate as a fore-arc; where a "
-            "wing has swallowed enough slab, an island arc forms behind it."
+            "The lone continent with a trench on its west coast. The trench does not stop where the land stops: its ends propagate out to sea, across the plate’s motion, capturing old ocean into the plate as a fore-arc; where a wing has swallowed enough slab, an island arc forms behind it — land that belongs to the continent’s plate."
         ),
         "expect": {"wings": True, "arc": True},
         "build": _wings,
@@ -269,9 +267,7 @@ EVENT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 90,
         "view": (5, 72),
         "about": (
-            "A microcontinent rides north on a mostly oceanic plate toward Asia. "
-            "On arrival it docks with a narrow belt and subduction jumps to its "
-            "outboard side."
+            "“Asia” with a trench on its south coast; a microcontinent (well under the terrane size) rides north on a mostly-oceanic plate. On arrival it does not suture as an equal: it is added to Asia’s plate with a narrow belt, and subduction jumps to its outboard side — the rest of its plate keeps going down."
         ),
         "expect": {"docks": True},
         "build": _terrane,
@@ -282,9 +278,7 @@ EVENT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 90,
         "view": (0, 130),
         "about": (
-            "Austral is a continent with no trench of its own. Oceanica carries a "
-            "mature island arc toward Austral; the arc accretes and subduction "
-            "polarity reverses without a special-case rule."
+            "“Austral” is a continent with no trench of its own; the ocean on its plate is going down the trench of “Oceanica”, an oceanic plate that already carries a mature island arc. Slab pull takes Austral north into the arc. The arc is small, so it accretes onto Austral — and from then on Oceanica’s ocean goes down beneath Austral: the polarity has reversed, with no rule written for it."
         ),
         "expect": {"docks": True, "reversal": True},
         "build": _arc,
@@ -295,9 +289,7 @@ EVENT_SCENES: list[dict[str, Any]] = [
         "maxMyr": 220,
         "view": (0, 0),
         "about": (
-            "Two continents close on each other with island arcs on their facing "
-            "margins. The thin buoyant arcs are scraped onto the continents before "
-            "the continental cores meet and form a suture."
+            "Two continents close on each other, each carrying an island arc on its facing margin. The arcs meet first — and they are thin, buoyant crust, so they are SCRAPED onto whichever continent they hit rather than welding the two plates where they touch. The ocean behind them keeps going down, and the continents keep closing until their own cores meet: that is the collision, and that is where the suture and the mountains belong."
         ),
         "expect": {"docks": True},
         "build": _arc_collision,

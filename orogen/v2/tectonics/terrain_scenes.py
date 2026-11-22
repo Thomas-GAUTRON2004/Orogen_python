@@ -225,9 +225,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         id="andes",
         label="An Andean margin",
         about=(
-            "An ocean plate subducts along a continent’s leading coast: a coastal "
-            "range, a valley behind it, the main volcanic range and inland "
-            "fold-and-thrust ridges, all parallel to the coast."
+            "A continent overrides an ocean plate along its leading coast: a coastal range, a valley behind it, the main volcanic range, fold-and-thrust ridges inland — all parallel to the coast. Offshore, the trench and its outer rise; the trailing coast behind has a wide shelf."
         ),
     ),
     _from_catalogue(
@@ -236,9 +234,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         id="laramide",
         label="A Laramide belt",
         about=(
-            "A continent drives over a young, flat slab. Deformation reaches far "
-            "inland, producing a high interior with blocky basement ranges and a "
-            "front range but no volcanic chain."
+            "A continent drives over a young slab, which goes in flat: deformation reaches far inland — a high interior with blocky basement ranges and a front range bracketing it, and no volcanoes (the magmatic gap)."
         ),
     ),
     _from_catalogue(
@@ -246,24 +242,28 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         "india",
         id="india",
         label="A continental collision",
+        about="“India” reaches “Asia” and slides under it. On Asia’s side (the upper plate): a range along the suture, the plateau of thickened crust, a back range and a fall line. On India’s side: the highest range just off the suture, fold hills, then the foreland basin. Ridges run parallel to the suture.",
     ),
     _from_catalogue(
         MARGIN_SCENES,
         "mariana",
         id="mariana",
         label="An ocean island arc",
+        about="An arc on an ocean plate, rifting off behind: a chain of volcanic islands on a submarine ridge, the trench in front, a young back-arc basin behind.",
     ),
     _from_catalogue(
         MARGIN_SCENES,
         "japan",
         id="japan",
         label="A strip of coast rifts off",
+        about="A strip of an active continental margin rifts off as a back-arc basin opens behind it: a Japan — a mountainous arc of continental crust with volcanoes, a sea behind it.",
     ),
     _from_catalogue(
         HOTSPOT_SCENES,
         "hawaii",
         id="hawaii",
         label="A hotspot track",
+        about="A plate slides over a fixed plume: volcanic islands near the plume, older ones worn down and drowned downstream as the floor under them ages and sinks (seamounts, guyots).",
     ),
     {
         "id": "traps",
@@ -274,10 +274,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         "build": _build_traps,
         "drive": _drive_traps,
         "about": (
-            "A plume head floods a continent with basalt at 12 Myr; the continent "
-            "drifts slowly north for 300 Myr. The province erodes from a plateau "
-            "to escarpments, mesas and buttes while a short-lived tail avoids "
-            "leaving a long volcanic chain."
+            "A plume head floods a continent with basalt at 12 Myr; the continent drifts slowly north for 300 Myr. Young, the province is a plateau with a lobed edge; as it wears, canyons with stepped walls cut into it and its escarpment retreats from the edge, leaving flat-topped mesas before it (Ethiopia’s ambas, the Western Ghats); old, it is mesas and buttes on a low, stepped remnant. Around it a faint grain of dykes radiates from the plume’s centre. (The Deccan, Siberian and Karoo traps.)"
         ),
     },
     _from_catalogue(
@@ -287,6 +284,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         label="A continent splits",
         maxMyr=40,
         focus=flagged(CrustFlag["RIFT_MARGIN"]),
+        about="A plume splits a continent: the new coasts are lifted into shoulders — a great escarpment facing the young ocean, sloping gently inland — and the arm that failed is a low corridor.",
     ),
     {
         "id": "cratons",
@@ -296,9 +294,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         "build": _build_cratons,
         "drive": update_plate_motion,
         "about": (
-            "India collides with Asia, whose shields lie behind the southern "
-            "collision front. The plateau reaches the Asian shield while the "
-            "lower-plate foothills ride onto India’s cratonic rim."
+            "India, with a big shield close behind its leading coast, collides with Asia, whose shield lies ~900 km behind its south coast. On India’s side (the lower plate) the range’s foothills ride onto the shield’s rim, and in front of them a lowland bends the shield down; on Asia’s side the plateau reaches the shield and its back meets it in a steep front. Neither shield’s outline shows as the sim’s cells."
         ),
     },
     {
@@ -309,9 +305,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
         "build": _build_farfield,
         "drive": update_plate_motion,
         "about": (
-            "A collision pushes against two cratonic blocks, transverse and "
-            "longitudinal sutures and a failed rift. The far-field stress reaches "
-            "beyond the strong block and builds a distant range."
+            "India collides with an Asia that has a Tarim-like shield ~1100 km behind its south coast and a Siberian one far to the north; between them an old suture runs east–west, square across the push, another north–south along it, and a failed rift strikes north-east. The push passes through the stiff shield and is taken up beyond it: the suture across it rises as a range far from the front (the Tian Shan), the one along it barely stirs, the failed rift is squeezed up into a ridge (an inverted aulacogen) — and broad, low swells and basins run parallel to the front across the continent. Far field layer: how much push each place has felt, and the axis it was squeezed along."
         ),
     },
     _whole_planet(
@@ -322,6 +316,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
             label="A whole planet (600 Myr)",
             maxMyr=600,
             endings=True,
+            about="The start world run for 600 Myr with every rule on (building takes about a minute). Young belts stand high and sharp, old ones low but still grained; cratons flat and low; wide shelves on passive margins, narrow ones on active margins; mid-ocean ridges and trenches in the sea.",
         )
     ),
     _whole_planet(
@@ -332,6 +327,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
             label="The supercontinent cycle (1200 Myr)",
             maxMyr=1200,
             endings=True,
+            about="The start world run for 1200 Myr with every rule on (building takes two minutes or so). The supercontinent breaks up in a burst of rifts, its pieces drift apart, and over a few hundred Myr they gather again into a new one — about 90° from the last, where the mantle goes down — which in its turn breaks up (chart: the largest landmass’s share of the continental crust, how many landmasses, the rifts).",
         )
     ),
 ]

@@ -1,0 +1,3 @@
+[submodule "external/planet_heightmap_generation"]
+	path = external/planet_heightmap_generation
+	url = https://github.com/raguilar011095/planet_heightmap_generation.git

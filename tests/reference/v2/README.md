@@ -1,21 +1,34 @@
-# Upstream JavaScript reference fixtures
+# Upstream JavaScript reference
 
-These files are copied from the upstream repository
-[raguilar011095/planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation),
-tag `v3.0.1`, commit `ed466f9db71292e912d8d0160e689a67a994f2d9`.
+The upstream engine is a git submodule:
 
-Vendored upstream modules include:
-- `js/rng.js` and `js/sphere-mesh.js`;
-- `v2/js/core/seed.js`, `rotation.js`, `fast-noise.js`, `device.js`,
-  `sphere-geom.js`, `sphere-index.js`, `mesh-bfs.js`, `mesh-rings.js`,
-  `mesh-locate.js`, `min-heap.js`, and `sim-mesh.js`;
-- `v2/js/tectonics/model/crust.js`, `plate.js`, and `world.js`.
+- path: `external/planet_heightmap_generation`
+- repository: https://github.com/raguilar011095/planet_heightmap_generation
+- pinned commit: `ed466f9db71292e912d8d0160e689a67a994f2d9` (tag `v3.0.1`)
 
-The JavaScript implementations are retained as the comparison oracle. Only module
-extensions, relative import paths, and a minimal empty TECTONICS config shim for
-the isolated world-state fixture were adjusted. Algorithms are not rewritten.
-Do not edit reference algorithms to make Python comparisons pass; rebase them only
-when intentionally moving to a new upstream commit, and record that commit here.
+Clone the repository with `git clone --recurse-submodules`, or run
+`git submodule update --init` in an existing checkout. CI checks the submodule out
+recursively.
+
+Every `.mjs` file in this directory that corresponds to an upstream module is a
+**pointer**: a single `export * from` line into the submodule. Comparisons therefore
+run on the upstream code itself, not on a copy. The pointers are:
+
+- `core/*.mjs` → `v2/js/core/*.js`;
+- `js/rng.mjs`, `js/simplex-noise.mjs`, `js/sphere-mesh.mjs` → `js/*.js`;
+- `tectonics/config.mjs` → `v2/js/tectonics/config.js` (the full `TECTONICS` defaults);
+- `tectonics/crust.mjs`, `plate.mjs`, `world.mjs`, `geology.mjs` → `v2/js/tectonics/model/*.js`;
+- `tectonics/kinematics.mjs`, `occupancy.mjs` → `v2/js/tectonics/step/*.js`;
+- `tectonics/init/cratons.mjs`, `landmass.mjs`, `rim-trench.mjs` → `v2/js/tectonics/init/*.js`.
+
+Harness files (`*-runner.mjs`, `differential-*.mjs`, `noise-probe.mjs`,
+`geology-encoding.mjs`, `scenes/dump_scenes.mjs`) are not upstream modules. They drive
+the upstream code and may reproduce some stages, as described below. Their algorithms
+must not be edited to make a Python comparison pass. To move to a new upstream commit,
+update the submodule pin and this file together, then rerun the comparisons.
+
+Upstream code is loaded as ES modules. Delaunator 5.0.1 is installed at the repository
+root for the sphere-mesh and scene tests.
 
 The initial-world runner also reproduces the inherited-range and far-field
 start-push record stages from upstream `v2/js/tectonics/init/start-world.js`,

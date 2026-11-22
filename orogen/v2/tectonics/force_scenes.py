@@ -121,9 +121,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
         "maxMyr": 80,
         "view": (5, -35),
         "about": (
-            "A lone continent with a trench along its west coast only. Slab suction "
-            "should pull it west, toward its trench, and it should settle at an "
-            "active-margin speed (2–5 cm/yr)."
+            "A lone continent with a trench along its west coast only. Slab suction should pull it west, toward its trench, and it should settle at an active-margin speed (2–5 cm/yr)."
         ),
         "expect": {"Solo": ["active"]},
         "checklist": [
@@ -141,9 +139,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
         "maxMyr": 80,
         "view": (5, -5),
         "about": (
-            "Balanced has equal trenches on opposite coasts: the pulls cancel, it "
-            "barely moves, and its tension reads high. Lopsided has a long trench "
-            "in the west and a short one in the east, so it drifts slowly west."
+            "“Balanced” has equal trenches on opposite coasts: the pulls cancel, it barely moves, and its tension reads high — the state a ringed supercontinent is in before it rifts. “Lopsided” has a long trench in the west and a short one in the east, so it drifts slowly west."
         ),
         "expect": {"Balanced": ["ringed", "active"], "Lopsided": ["active", "ringed"]},
         "checklist": [
@@ -162,9 +158,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
         "maxMyr": 160,
         "view": (10, -20),
         "about": (
-            "The Phase 2 landmass moves under its own forces. Trenches on the two "
-            "outer coasts pull West and East apart; an ocean opens between them and "
-            "ridge push joins in. East then meets Far and the collision slows it."
+            "The Phase 2 landmass, but nobody tells it how to move. Trenches on the two outer coasts pull West and East apart; an ocean opens between them and ridge push joins in. East then meets Far — and this time the collision slows it and locks the two together instead of letting them plough through each other."
         ),
         "expect": {
             "West": ["active"],
@@ -187,10 +181,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
         "maxMyr": 70,
         "view": (5, 72),
         "about": (
-            "Asia is a big continent with a trench along its south coast. India is "
-            "a small continent on a plate that is mostly ocean, and that ocean is "
-            "going down Asia's trench: slab pull should make India race north, then "
-            "slow sharply when the two landmasses meet."
+            "“Asia” is a big continent with a trench along its south coast. “India” is a small continent on a plate that is mostly ocean, and that ocean is going down Asia’s trench: slab pull acts on India’s own plate, so it should race north at subducting-ocean speeds (8–20 cm/yr), several times faster than any suction-driven continent, then slow sharply when the two landmasses meet."
         ),
         "expect": {
             "India": ["subducting", "colliding"],
@@ -210,10 +201,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
         "maxMyr": 60,
         "view": None,
         "about": (
-            "A generated supercontinent with a trench round most of its rim. Pulled "
-            "from almost every side at once, it should hardly move, but its tension "
-            "should be high. That stored tension is what Phase 6 uses to decide when "
-            "and where it rifts."
+            "A generated supercontinent with a trench round most of its rim. Pulled from almost every side at once, it should hardly move — but its tension should be high. That stored tension is what Phase 6 will use to decide when and where it rifts."
         ),
         "expect": {"*": ["ringed"]},
         "checklist": [

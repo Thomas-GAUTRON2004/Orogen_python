@@ -470,3 +470,32 @@ def test_nudge_scenario_returns_normalized_heading_and_drive_callback():
     result["drive"](world)
     continent = world.plates[result["start"]["continentId"]]
     assert np.isclose(np.linalg.norm(continent.omega), 2.0 * 10.0 / 6371.0)
+
+
+def test_public_camel_case_builders_are_snake_case_aliases():
+    import orogen.v2.tectonics as tectonics
+
+    aliases = (
+        ("buildBudgetScene", "build_budget_scene"),
+        ("buildCollisionScene", "build_collision_scene"),
+        ("buildEventScene", "build_event_scene"),
+        ("buildForceScene", "build_force_scene"),
+        ("buildHotspotScene", "build_hotspot_scene"),
+        ("buildMarginScene", "build_margin_scene"),
+        ("buildRiftScene", "build_rift_scene"),
+        ("buildTerrainScene", "build_terrain_scene"),
+        ("buildStartWorld", "build_start_world"),
+        ("buildContinentalScene", "build_continental_scene"),
+        ("buildOceanicScene", "build_oceanic_scene"),
+        ("buildMixedScene", "build_mixed_scene"),
+        ("buildScenarioScene", "build_scenario_scene"),
+        ("buildRigidDriftWorld", "build_rigid_drift_world"),
+        ("setRigidDriftTime", "set_rigid_drift_time"),
+        ("buildWilsonWorld", "build_wilson_world"),
+        ("driveWilson", "drive_wilson"),
+        ("buildNudgeScene", "build_nudge_scene"),
+        ("headingForMargin", "heading_for_margin"),
+        ("omegaForMargin", "omega_for_margin"),
+    )
+    for camel_case, snake_case in aliases:
+        assert getattr(tectonics, camel_case) is getattr(tectonics, snake_case)

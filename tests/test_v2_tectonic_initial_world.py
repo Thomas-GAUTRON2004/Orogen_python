@@ -494,8 +494,8 @@ def test_public_camel_case_builders_are_snake_case_aliases():
         ("buildWilsonWorld", "build_wilson_world"),
         ("driveWilson", "drive_wilson"),
         ("buildNudgeScene", "build_nudge_scene"),
-        ("headingForMargin", "heading_for_margin"),
-        ("omegaForMargin", "omega_for_margin"),
+        ("headingForMargin", "heading"),
+        ("omegaForMargin", "omega_for"),
     )
     for camel_case, snake_case in aliases:
         assert getattr(tectonics, camel_case) is getattr(tectonics, snake_case)

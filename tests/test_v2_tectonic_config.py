@@ -290,3 +290,35 @@ def test_known_shape_validation_accepts_matching_scalar_type():
     from orogen.v2.tectonics.config import _validate_known_shape
 
     _validate_known_shape("continental", "oceanic", "label")
+
+
+@pytest.mark.parametrize("key", sorted(TECTONICS))
+def test_omitted_top_level_override_keeps_upstream_default(key):
+    """An absent override must leave that upstream default unchanged."""
+    config = make_tectonics_config({})
+    assert config[key] == TECTONICS[key]
+
+
+def test_mechanism_helpers_cover_every_upstream_mechanism_field():
+    """Exercise every mechanism rather than only the rifts representative."""
+    for name, disabled in MECHANISMS.items():
+        off = mechanisms_off(name)
+        assert off == disabled
+        only = only_mechanisms(name)
+        for other_name, other_fields in MECHANISMS.items():
+            if other_name == name:
+                continue
+            for key, value in other_fields.items():
+                assert only[key] == value
+        enabled = mechanisms_on(name)
+        for key in disabled:
+            assert enabled[key] == TECTONICS[key]
+
+
+def test_mechanism_helpers_compose_without_losing_unrelated_fields():
+    for first in MECHANISMS:
+        for second in MECHANISMS:
+            if first == second:
+                continue
+            combined = mechanisms_off(first, second)
+            assert combined == {**MECHANISMS[first], **MECHANISMS[second]}

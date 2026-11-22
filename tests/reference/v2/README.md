@@ -47,3 +47,8 @@ from the pinned submodule. The adjacent
 seeds and sample times. Python differential tests send the same mesh arrays
 to the JavaScript harness and compare plate crust, prescribed motion and
 time-dependent poses/velocities.
+The mechanism override runner `scenes/dump_mechanism_overrides.mjs` applies each
+Python mechanism-helper result to the upstream `TectonicWorld` constructor and
+returns the effective overridden fields. It specifically exercises the JS
+constructor semantics for every mechanism group, including the positive-infinity
+disabled sentinel.

@@ -695,16 +695,6 @@ _UNIT_INTERVAL = frozenset(
 )
 
 
-def _merge(base: dict[str, Any], values: Mapping[str, Any]) -> dict[str, Any]:
-    result = deepcopy(base)
-    for key, value in values.items():
-        if isinstance(value, Mapping) and isinstance(result.get(key), dict):
-            result[key] = _merge(result[key], value)
-        else:
-            result[key] = deepcopy(value)
-    return result
-
-
 def _validate_known_shape(value: Any, default: Any, path: str) -> None:
     """Check types and finite numeric values against the upstream default schema."""
     if isinstance(default, bool):
@@ -816,15 +806,17 @@ def make_tectonics_config(
     *,
     base: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Return an isolated config with recursive overrides and validated known fields.
+    """Return an isolated config using the upstream constructor shallow spread.
 
-    By default, overrides are merged into the upstream defaults. Supplying a base
-    instead merges into that explicit configuration, preserving its partial shape.
+    The JavaScript world uses object spread: supplying a nested group replaces
+    that group rather than recursively merging its fields. Supplying base applies
+    the same top-level replacement semantics to it.
     """
     if overrides is not None and not isinstance(overrides, Mapping):
         raise TypeError("tectonics overrides must be a mapping")
     if base is not None and not isinstance(base, Mapping):
         raise TypeError("tectonics base config must be a mapping")
-    config = _merge(TECTONICS if base is None else dict(base), overrides or {})
+    config = deepcopy(TECTONICS if base is None else dict(base))
+    config.update(deepcopy(dict(overrides or {})))
     validate_tectonics_config(config)
     return config

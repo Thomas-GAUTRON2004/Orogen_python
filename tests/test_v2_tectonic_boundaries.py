@@ -1,10 +1,11 @@
-"""Tests for the deterministic boundary classification primitives."""
+""""Tests for the deterministic boundary classification primitives."""
 
 import numpy as np
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.boundaries import (
     Motion,
+    _feed_subduction_far_field,
     classify_contact_boundaries,
     classify_motion,
     feed_trench,
@@ -43,30 +44,9 @@ def test_vote_segments_connected_weighted_and_tied_groups():
         int(mesh.adj_list[mesh.adj_offset[0] + 1]),
     )
     contacts = [
-        {
-            "w": a,
-            "key": "0:1",
-            "lowerId": 0,
-            "upperId": 1,
-            "prefersLower": True,
-            "weight": 2,
-        },
-        {
-            "w": b,
-            "key": "0:1",
-            "lowerId": 0,
-            "upperId": 1,
-            "prefersLower": False,
-            "weight": 1,
-        },
-        {
-            "w": c,
-            "key": "2:3",
-            "lowerId": 2,
-            "upperId": 3,
-            "prefersLower": False,
-            "weight": 1,
-        },
+        {"w": a, "key": "0:1", "lowerId": 0, "upperId": 1, "prefersLower": True, "weight": 2},
+        {"w": b, "key": "0:1", "lowerId": 0, "upperId": 1, "prefersLower": False, "weight": 1},
+        {"w": c, "key": "2:3", "lowerId": 2, "upperId": 3, "prefersLower": False, "weight": 1},
     ]
     vote_segments(world, contacts)
     assert world.oceanOverrider[a] == 0
@@ -81,22 +61,8 @@ def test_vote_segments_tie_uses_first_contact_preference():
     vote_segments(
         world,
         [
-            {
-                "w": a,
-                "key": "0:1",
-                "lowerId": 0,
-                "upperId": 1,
-                "prefersLower": True,
-                "weight": 1,
-            },
-            {
-                "w": int(mesh.adj_list[mesh.adj_offset[a]]),
-                "key": "0:1",
-                "lowerId": 0,
-                "upperId": 1,
-                "prefersLower": False,
-                "weight": 1,
-            },
+            {"w": a, "key": "0:1", "lowerId": 0, "upperId": 1, "prefersLower": True, "weight": 1},
+            {"w": int(mesh.adj_list[mesh.adj_offset[a]]), "key": "0:1", "lowerId": 0, "upperId": 1, "prefersLower": False, "weight": 1},
         ],
     )
     assert world.oceanOverrider[a] == 0
@@ -136,15 +102,35 @@ def test_feed_trench_can_start_from_adjacent_consumption():
     assert plate.crust.slabKm[0] == 4.0
 
 
-def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
-    monkeypatch,
-):
+def test_feed_subduction_far_field_clears_flat_slab_without_land_sources():
+    mesh, world = _world()
+    plate = world.add_plate("P")
+    plate.crust.create(0, CrustType["OCEAN"], 0, 1)
+    plate.flatSlabKm = 12.0
+    world.config.update({"farAndeanRateCmYr": 1.0, "orogenyQuietMyr": 100.0, "apronKm": 0.0})
+
+    _feed_subduction_far_field(world, {plate: {"cells": [0], "flat": 1}}, 1.0)
+
+    assert plate.flatSlabKm == 0.0
+
+
+def test_feed_subduction_far_field_skips_nonpositive_dt():
+    mesh, world = _world()
+    plate = world.add_plate("P")
+    plate.crust.create(0, CrustType["CONTINENT"], 0, 1)
+    plate.flatSlabKm = 12.0
+    world.config.update({"farAndeanRateCmYr": 1.0, "orogenyQuietMyr": 100.0})
+
+    _feed_subduction_far_field(world, {plate: {"cells": [0], "flat": 1}}, 0.0)
+
+    assert plate.flatSlabKm == 12.0
+
+
+def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(monkeypatch):
     import orogen.v2.tectonics.boundaries as boundaries
 
     mesh, world = _world()
-    world.config.update(
-        {"boundaryActiveCmYr": 0.5, "obliqueLimit": 1.0, "segmentPolarity": False}
-    )
+    world.config.update({"boundaryActiveCmYr": 0.5, "obliqueLimit": 1.0, "segmentPolarity": False})
     a, b = world.add_plate("A"), world.add_plate("B")
     a.crust.create(0, CrustType["CONTINENT"], 0, 1)
     b.crust.create(0, CrustType["CONTINENT"], 0, 2)
@@ -173,3 +159,7 @@ def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
     monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.CLOSING)
     assert classify_contact_boundaries(world, 1.0) == 1
     assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
+
+    monkeypatch.setattr(boundaries, "overrides", lambda *_args: None)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["COLLISION"]

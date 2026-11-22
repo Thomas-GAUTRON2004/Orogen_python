@@ -16,7 +16,7 @@ Ce document distingue les **ports directs** (même algorithme, même ordre de ca
 | Lettres des cratons | Identiques à `String.fromCharCode(65 + i)` |
 | Sémantique `%` (signe du dividende) | `math.fmod` aux sites portés |
 | Distances `spreadKm` : stockage float32 à chaque relaxation | Écart d'un ulp corrigé, parité du monde initial |
-| Constructeur `TectonicWorld(mesh, seed, overrides=None)` | Même signature et même fusion que `new TectonicWorld(simMesh, seed, overrides)` |
+| Constructeur `TectonicWorld(mesh, seed, overrides=None)` | Même signature et même remplacement superficiel des clés de premier niveau (`{ ...TECTONICS, ...overrides }`) ; testé avec des groupes imbriqués partiels dans `tests/test_v2_mechanism_config_js_parity.py` |
 
 ## 2. Adaptations Python : validation de configuration
 

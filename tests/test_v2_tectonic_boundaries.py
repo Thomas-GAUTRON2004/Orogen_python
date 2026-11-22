@@ -160,6 +160,7 @@ def test_feed_subduction_far_field_skips_nonpositive_dt():
     plate = world.add_plate("P")
     plate.crust.create(0, CrustType["CONTINENT"], 0, 1)
     plate.flatSlabKm = 12.0
+    plate.lastFedAt = world.time
     world.config.update({"farAndeanRateCmYr": 1.0, "orogenyQuietMyr": 100.0})
 
     _feed_subduction_far_field(world, {plate: {"cells": [0], "flat": 1}}, 0.0)

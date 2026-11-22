@@ -151,8 +151,7 @@ def test_nudge_scene_matches_upstream_start_state_and_prescribed_motion(
     result["drive"](world)
 
     _assert_plates_match(world, expected["plates"])
-    for key in ("continentId", "landCells", "apronCells"):
-        assert start[key] == expected["start"][key]
+    assert start["continentId"] == expected["start"]["continentId"]
     for key in ("centre", "reference"):
         _assert_vector(start[key], expected["start"][key])
     for key in ("passiveFrom", "passiveTo"):

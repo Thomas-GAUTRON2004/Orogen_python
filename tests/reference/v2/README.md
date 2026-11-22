@@ -38,3 +38,12 @@ adjacency, mesh metrics, and nearest-cell lookup.
 
 The upstream project is GPL-3.0. These fixtures are included under the same
 license as the Python port.
+
+The prescribed-motion scene harness
+`scenes/dump_prescribed_scenes.mjs` imports the upstream rigid-drift,
+Wilson-cycle and start-world-nudge constructors and motion drivers directly
+from the pinned submodule. The adjacent
+`scenes/prescribed-scenes-cases.json` records the deterministic mesh size,
+seeds and sample times. Python differential tests send the same mesh arrays
+to the JavaScript harness and compare plate crust, prescribed motion and
+time-dependent poses/velocities.

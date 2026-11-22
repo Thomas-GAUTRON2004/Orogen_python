@@ -121,8 +121,8 @@ def _run_initial_world_reference(node: str, mesh, seed: int, config: dict):
     # that transport representation for unreachable seam distances so the
     # differential comparison preserves the reference's numeric semantics.
     for field in ("major", "ring"):
-        distances = reference["world"]["startSeamKm"][field]
-        reference["world"]["startSeamKm"][field] = [
+        distances = reference["startSeamKm"][field]
+        reference["startSeamKm"][field] = [
             float("inf") if value is None else value for value in distances
         ]
     return reference
@@ -282,19 +282,17 @@ def test_production_resolution_start_world_matches_javascript_reference(
 
     if expected is not None:
         assert start["attempts"] == expected["attempts"]
-        assert start["cratonAreaScale"] == pytest.approx(expected["areaScale"], abs=0)
+        assert start["cratonAreaScale"] == pytest.approx(
+            expected["cratonAreaScale"], abs=0
+        )
         assert start["fractionMet"] is expected["fractionMet"]
-        assert start["elongation"] == pytest.approx(
-            expected["layout"]["elongation"], abs=2e-12
-        )
-        assert start["centre"] == pytest.approx(expected["middle"], abs=2e-12)
-        assert start["rimCentre"] == pytest.approx(
-            expected["land"]["rimCentre"], abs=2e-12
-        )
-        assert start["skirtKm"] == pytest.approx(expected["land"]["skirtKm"], abs=2e-8)
-        assert len(start["cratons"]) == len(expected["layout"]["cratons"])
+        assert start["elongation"] == pytest.approx(expected["elongation"], abs=2e-12)
+        assert start["centre"] == pytest.approx(expected["centre"], abs=2e-12)
+        assert start["rimCentre"] == pytest.approx(expected["rimCentre"], abs=2e-12)
+        assert start["skirtKm"] == pytest.approx(expected["skirtKm"], abs=2e-8)
+        assert len(start["cratons"]) == len(expected["cratons"])
         for py_craton, js_craton in zip(
-            start["cratons"], expected["layout"]["cratons"], strict=True
+            start["cratons"], expected["cratons"], strict=True
         ):
             for key in ("id", "letter", "cluster"):
                 assert py_craton[key] == js_craton[key]
@@ -303,22 +301,20 @@ def test_production_resolution_start_world_matches_javascript_reference(
                 assert py_craton[key] == pytest.approx(js_craton[key], abs=2e-12)
         continent = world.plates[0].crust
         for field in ("type", "terrane"):
-            np.testing.assert_array_equal(
-                getattr(continent, field), expected["land"][field]
-            )
+            np.testing.assert_array_equal(getattr(continent, field), expected[field])
         for field in ("seams", "owner"):
             np.testing.assert_array_equal(
                 start[field],
-                expected["land"]["suture" if field == "seams" else "owner"],
+                expected["seams" if field == "seams" else "owner"],
             )
 
         # Compare the JavaScript plate/crust assembly after the landmass is
         # wrapped in the smoothed ocean apron and active/passive rim sectors.
-        reference_world = expected["world"]
+        reference_world = expected
         continent, ocean = world.plates
         python_in_plate, _python_rim = _plate_outline_with_apron(
             mesh,
-            np.asarray(expected["land"]["type"]) != CrustType["OCEAN"],
+            np.asarray(expected["type"]) != CrustType["OCEAN"],
             world.config,
         )
         np.testing.assert_array_equal(
@@ -329,8 +325,7 @@ def test_production_resolution_start_world_matches_javascript_reference(
                 f"Python cells={int(np.count_nonzero(python_in_plate))}, "
                 f"JavaScript cells={int(np.count_nonzero(reference_world['continentMask']))}, "
                 f"Python hops=({world.config['apronKm'] / mesh.edge_km:.6f}, "
-                f"{world.config['apronSmoothKm'] / mesh.edge_km:.6f}), "
-                f"JavaScript diagnostics={reference_world['apronDiagnostics']}"
+                f"{world.config['apronSmoothKm'] / mesh.edge_km:.6f})"
             ),
         )
         np.testing.assert_array_equal(

@@ -21,11 +21,7 @@ run on the upstream code itself, not on a copy. The pointers are:
 - `tectonics/kinematics.mjs`, `occupancy.mjs` → `v2/js/tectonics/step/*.js`;
 - `tectonics/init/cratons.mjs`, `landmass.mjs`, `rim-trench.mjs` → `v2/js/tectonics/init/*.js`.
 
-Harness files (`*-runner.mjs`, `differential-*.mjs`, `noise-probe.mjs`,
-`geology-encoding.mjs`, `scenes/dump_scenes.mjs`) are not upstream modules. They drive
-the upstream code and may reproduce some stages, as described below. Their algorithms
-must not be edited to make a Python comparison pass. To move to a new upstream commit,
-update the submodule pin and this file together, then rerun the comparisons.
+Harness files (`*-runner.mjs`, `differential-*.mjs`, `noise-probe.mjs`, `geology-encoding.mjs`, `scenes/dump_scenes.mjs`) are not upstream modules. They only import the pointers above and call the upstream functions; none of them reimplements an upstream step. `initial-world-layout-runner.mjs` calls `buildStartWorld` from `init/start-world.js` and prints its result, so the layout search, landmass, rim and trench, inherited ranges and far-field pushes are all upstream code. To move to a new upstream commit, update the submodule pin and this file together, then rerun the comparisons.
 
 Upstream code is loaded as ES modules. Delaunator 5.0.1 is installed at the repository
 root for the sphere-mesh and scene tests.

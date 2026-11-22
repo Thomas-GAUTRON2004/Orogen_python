@@ -299,12 +299,18 @@ def _distance_km(
     max_km: float = 3000.0,
     source_strength: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return weighted geodesic distance and nearest-source strength."""
+    """Return weighted geodesic distance and nearest-source strength.
+
+    Mirrors upstream ``seamDistances``/``spreadKm``: distances live in a
+    float32 array, so every stored value is rounded to float32 and the queue
+    carries the stored value (not the float64 candidate). Comparisons are
+    strict, with no tolerance, as in the JavaScript.
+    """
     n = int(sim_mesh.num_cells)
     source_mask = np.asarray(sources, dtype=bool)
     if source_mask.shape != (n,):
         raise ValueError("source mask must contain one value per mesh cell")
-    distance = np.full(n, np.inf, dtype=np.float64)
+    distance = np.full(n, np.inf, dtype=np.float32)
     strength = np.zeros(n, dtype=np.float32)
     queue: list[tuple[float, int]] = []
     for cell_value in np.flatnonzero(source_mask):
@@ -317,7 +323,7 @@ def _distance_km(
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     while queue:
         current, cell = heapq.heappop(queue)
-        if current > distance[cell] + 1e-9 or current > max_km:
+        if current > float(distance[cell]):
             continue
         lo, hi = int(offsets[cell]), int(offsets[cell + 1])
         for other_value in adjacency[lo:hi]:
@@ -325,12 +331,12 @@ def _distance_km(
             if can_enter is not None and not can_enter(other):
                 continue
             candidate = current + cell_distance_km(sim_mesh.xyz, cell, other)
-            if candidate >= distance[other] or candidate > max_km:
+            if candidate >= float(distance[other]) or candidate > max_km:
                 continue
-            distance[other] = candidate
+            distance[other] = candidate  # rounded to float32, as a Float32Array store
             strength[other] = strength[cell]
-            heapq.heappush(queue, (candidate, other))
-    return distance.astype(np.float32), strength
+            heapq.heappush(queue, (float(distance[other]), other))
+    return distance, strength
 
 
 def _build_coarse_start_world(

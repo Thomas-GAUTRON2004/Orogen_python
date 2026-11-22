@@ -45,12 +45,8 @@ def _cases() -> dict[str, dict[str, dict[str, Any]]]:
         "mechanisms_on": {name: mechanisms_on(name) for name in names},
         "only_mechanisms": {name: only_mechanisms(name) for name in names},
         "constructor_overrides": {
-            "partial_belts_replaces_group": {
-                "belts": {"andean": {"maxKm": 450.0}}
-            },
-            "partial_geology_replaces_group": {
-                "geology": {"records": False}
-            },
+            "partial_belts_replaces_group": {"belts": {"andean": {"maxKm": 450.0}}},
+            "partial_geology_replaces_group": {"geology": {"records": False}},
             "null_belts_replaces_group": {"belts": None},
             "unknown_nested_group_is_preserved": {
                 "experimentalGroup": {"enabled": True, "nested": {"level": 2}}
@@ -82,8 +78,8 @@ def test_mechanism_and_nested_overrides_match_upstream_world_constructor():
 
     for helper_name, groups in cases.items():
         for group_name, overrides in groups.items():
-            # Every mechanism helper emits top-level override values. The upstream
-            # constructor applies the same keys with its actual JS object spread.
+            # The upstream constructor applies these top-level keys with its actual
+            # JavaScript object spread, including nested-group replacements.
             expected_config = make_tectonics_config(overrides)
             expected = {key: _json_safe(expected_config[key]) for key in overrides}
             assert observed[helper_name][group_name] == expected, (

@@ -30,7 +30,11 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
     if isinstance(value, float) and math.isinf(value):
-        return "__OROGEN_POSITIVE_INFINITY__" if value > 0 else "__OROGEN_NEGATIVE_INFINITY__"
+        return (
+            "__OROGEN_POSITIVE_INFINITY__"
+            if value > 0
+            else "__OROGEN_NEGATIVE_INFINITY__"
+        )
     return value
 
 
@@ -60,8 +64,7 @@ def test_mechanism_helper_overrides_match_upstream_world_constructor():
         timeout=120,
     )
     assert result.returncode == 0, (
-        "upstream mechanism override runner failed:\n"
-        f"{result.stderr}\n{result.stdout}"
+        f"upstream mechanism override runner failed:\n{result.stderr}\n{result.stdout}"
     )
     observed = json.loads(result.stdout)
 
@@ -80,9 +83,5 @@ def test_mechanism_enable_groups_are_derived_from_upstream_defaults():
     # This makes the relationship explicit: a helper may restore only fields
     # represented in the upstream TECTONICS defaults.
     for name in MECHANISMS:
-        expected = {
-            key: TECTONICS[key]
-            for key in MECHANISMS[name]
-            if key in TECTONICS
-        }
+        expected = {key: TECTONICS[key] for key in MECHANISMS[name] if key in TECTONICS}
         assert mechanisms_on(name) == expected

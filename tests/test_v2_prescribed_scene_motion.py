@@ -67,9 +67,7 @@ def test_rigid_drift_prescribes_expected_plate_speeds_and_absolute_poses(sim_mes
     assert not np.allclose(by_name["Spinner"].mat, initial["Spinner"])
     assert not np.allclose(by_name["Hinge"].mat, initial["Hinge"])
     assert np.allclose(by_name["Anchor"].mat, initial["Anchor"])
-    assert np.allclose(
-        by_name["Pre-history ocean"].mat, initial["Pre-history ocean"]
-    )
+    assert np.allclose(by_name["Pre-history ocean"].mat, initial["Pre-history ocean"])
 
     # Absolute-time evaluation must be reversible, not incremental.
     at_125 = by_name["Drifter"].mat.copy()

@@ -4,7 +4,6 @@ These tests cover the Python scene contracts. They are not a substitute for a
 JavaScript differential fixture; that requires executing the pinned submodule.
 """
 
-
 from __future__ import annotations
 
 import numpy as np

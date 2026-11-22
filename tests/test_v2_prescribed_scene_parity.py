@@ -58,8 +58,7 @@ def js_reference(mesh):
         timeout=900,
     )
     assert result.returncode == 0, (
-        "upstream prescribed-scene JS runner failed:\n"
-        f"{result.stderr}\n{result.stdout}"
+        f"upstream prescribed-scene JS runner failed:\n{result.stderr}\n{result.stdout}"
     )
     return json.loads(result.stdout)
 
@@ -91,7 +90,9 @@ def _assert_vector(actual, expected, *, atol=2e-10):
     )
 
 
-def test_rigid_drift_scene_matches_upstream_state_and_absolute_poses(mesh, js_reference):
+def test_rigid_drift_scene_matches_upstream_state_and_absolute_poses(
+    mesh, js_reference
+):
     test_case = CASES["rigidDrift"]
     expected = js_reference["rigidDrift"]
     world = build_rigid_drift_world(mesh, test_case["seed"])
@@ -134,7 +135,9 @@ def test_wilson_scene_matches_upstream_crust_and_time_dependent_motion(
         world.time = time
         drive_wilson(world)
         assert world.time == pytest.approx(reference["time"], abs=0)
-        for plate, expected_omega in zip(world.plates, reference["omegas"], strict=True):
+        for plate, expected_omega in zip(
+            world.plates, reference["omegas"], strict=True
+        ):
             _assert_vector(plate.omega, expected_omega, atol=2e-12)
 
 
@@ -156,7 +159,9 @@ def test_nudge_scene_matches_upstream_start_state_and_prescribed_motion(
         assert start[key] == pytest.approx(expected["start"][key], abs=2e-10)
 
     assert len(start["cratons"]) == len(expected["start"]["cratons"])
-    for actual, reference in zip(start["cratons"], expected["start"]["cratons"], strict=True):
+    for actual, reference in zip(
+        start["cratons"], expected["start"]["cratons"], strict=True
+    ):
         for key in ("id", "letter", "cluster"):
             assert actual[key] == reference[key]
         _assert_vector(actual["centre"], reference["centre"])

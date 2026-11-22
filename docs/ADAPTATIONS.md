@@ -1,6 +1,6 @@
 # Adaptations Python par rapport à l'amont JavaScript
 
-Référence : `planet_heightmap_generation` @ `ed466f9db71292e912d8d0160e689a67a994f2d9` (tag v3.0.1), submodule `third_party/planet_heightmap_generation`.
+Référence : `planet_heightmap_generation` @ `ed466f9db71292e912d8d0160e689a67a994f2d9` (tag v3.0.1), submodule `external/planet_heightmap_generation`.
 
 Ce document distingue les **ports directs** (même algorithme, même ordre de calcul, vérifiés par parité) des **adaptations Python** (écarts assumés ou à décider). Chaque adaptation indique la preuve mesurée contre le JavaScript.
 

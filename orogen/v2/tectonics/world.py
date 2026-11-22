@@ -61,8 +61,8 @@ class TectonicWorld:
         seed: int,
         overrides: dict | None = None,
     ):
-        # As upstream `new TectonicWorld(simMesh, seed, overrides)`: the upstream
-        # defaults are always present and the overrides are merged into them.
+        # As upstream `new TectonicWorld(simMesh, seed, overrides)`: defaults
+        # are always present and overrides replace top-level keys via object spread.
         self.mesh = sim_mesh
         self.seed = int(seed)
         self.config = make_tectonics_config(overrides)

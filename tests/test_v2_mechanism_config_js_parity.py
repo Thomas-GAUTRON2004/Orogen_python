@@ -44,10 +44,22 @@ def _cases() -> dict[str, dict[str, dict[str, Any]]]:
         "mechanisms_off": {name: mechanisms_off(name) for name in names},
         "mechanisms_on": {name: mechanisms_on(name) for name in names},
         "only_mechanisms": {name: only_mechanisms(name) for name in names},
+        "constructor_overrides": {
+            "partial_belts_replaces_group": {
+                "belts": {"andean": {"maxKm": 450.0}}
+            },
+            "partial_geology_replaces_group": {
+                "geology": {"records": False}
+            },
+            "null_belts_replaces_group": {"belts": None},
+            "unknown_nested_group_is_preserved": {
+                "experimentalGroup": {"enabled": True, "nested": {"level": 2}}
+            },
+        },
     }
 
 
-def test_mechanism_helper_overrides_match_upstream_world_constructor():
+def test_mechanism_and_nested_overrides_match_upstream_world_constructor():
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not installed")

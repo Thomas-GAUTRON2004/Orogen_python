@@ -45,13 +45,9 @@ Les tests de limites (`tests/test_v2_tectonic_config_limits.py`, 290 cas) fixent
 - `SimplexNoise` est en Python pur : environ 10 µs par appel fBm. Les noyaux Numba existants (`orogen/v2/core/_numba_kernels.py`) accélèrent **FastNoise**, pas `SimplexNoise`. Les chemins du monde initial et des scènes ont donc perdu l'accélération Numba. Un noyau `SimplexNoise` bit-exact est une étape de performance à mesurer.
 - `_outline_gap` (recherche de disposition) est O(72²) dans le pire cas. Construction du monde initial : 7,3 s (768 cellules), 7,8 s (1 024), 13 s (4 096).
 
-## 5. Fixtures Python sans équivalent JS
+## 5. Fixtures de test sans équivalent JS
 
-Trouvés par recherche de nom, aucun équivalent upstream :
-
-- `build_continental_scene`, `build_oceanic_scene`, `build_mixed_scene`, `build_scenario_scene` (`orogen/v2/tectonics/scenarios.py`).
-
-Elles ne peuvent donc pas être comparées au JavaScript. Elles sont testées pour leurs contrats (couverture, invariants). Le critère « références JavaScript pour les mêmes entrées » de #15 ne s'applique pas à elles : à trancher dans l'issue.
+Les builders `build_continental_scene`, `build_oceanic_scene`, `build_mixed_scene` et le dispatcher `build_scenario_scene` sont des **fixtures de test** : ils vivent dans `tests/scenario_fixtures.py` et ne font pas partie de l'API du paquet. Aucun équivalent upstream n'existe (recherche sur tout le submodule). Ils ne peuvent donc pas être comparés au JavaScript. Ils sont testés pour leurs contrats (couverture, invariants, scénario reporté).
 
 ## 6. Audit des modèles de données partagés
 

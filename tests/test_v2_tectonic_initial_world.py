@@ -6,15 +6,17 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from scenario_fixtures import (
+    build_continental_scene,
+    build_mixed_scene,
+    build_oceanic_scene,
+    build_scenario_scene,
+)
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import (
     CrustFlag,
     CrustType,
-    build_continental_scene,
-    build_mixed_scene,
-    build_oceanic_scene,
-    build_scenario_scene,
     build_start_world,
 )
 from orogen.v2.tectonics.config import TECTONICS
@@ -480,10 +482,6 @@ def test_public_camel_case_builders_are_snake_case_aliases():
         ("buildRiftScene", "build_rift_scene"),
         ("buildTerrainScene", "build_terrain_scene"),
         ("buildStartWorld", "build_start_world"),
-        ("buildContinentalScene", "build_continental_scene"),
-        ("buildOceanicScene", "build_oceanic_scene"),
-        ("buildMixedScene", "build_mixed_scene"),
-        ("buildScenarioScene", "build_scenario_scene"),
         ("buildRigidDriftWorld", "build_rigid_drift_world"),
         ("setRigidDriftTime", "set_rigid_drift_time"),
         ("buildWilsonWorld", "build_wilson_world"),

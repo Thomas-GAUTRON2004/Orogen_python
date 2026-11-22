@@ -437,13 +437,11 @@ times, trench slab lengths, rim cells and passive-sector metadata. Old-range
 invariant tests but are not yet included in the JavaScript differential
 comparison; multi-step tectonic histories are outside this fixture.
 
-### Minimal initial-world fixtures
+### Controlled test fixtures (not public API)
 
-- `build_continental_scene`: a continental cap and background ocean.
-- `build_oceanic_scene`: two oceanic plates divided by a great-circle boundary.
-- `build_mixed_scene`: the generated supercontinent with apron and background ocean.
-- `build_scenario_scene`: dispatches the three controlled fixtures by
-  `continental`, `oceanic` or `mixed`.
+The minimal continental, oceanic and mixed worlds live in `tests/scenario_fixtures.py`.
+They are test fixtures, not part of the `orogen.v2.tectonics` package API, and they
+have no upstream JavaScript counterpart (see `docs/ADAPTATIONS.md`, section 5).
 
 ### Prescribed-motion scenes
 

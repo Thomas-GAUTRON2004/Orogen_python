@@ -8,10 +8,8 @@ Fidelity status (upstream planet_heightmap_generation @ ed466f9):
   scene catalogue parity test (``tests/test_v2_scene_parity.py``).
 - ``build_rigid_drift_world``, ``build_wilson_world``, ``build_nudge_scene``
   mirror ``rigid-drift.js``, ``wilson-cycle.js`` and the nudge scene.
-- ``build_continental_scene``, ``build_oceanic_scene``, ``build_mixed_scene`` and
-  ``build_scenario_scene`` are Python-only fixtures: no upstream counterpart was
-  found by name search. They keep tests and development tools small, and they
-  are not part of the fidelity claim.
+- The controlled continental, oceanic and mixed fixtures are test helpers, not
+  part of this module: they live in ``tests/scenario_fixtures.py``.
 
 Every noise field here uses ``SimplexNoise`` as upstream does.
 """
@@ -24,10 +22,8 @@ from typing import Any, cast
 
 import numpy as np
 
-from ..core.array_selection import stable_top_k as _stable_top_k
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
-from ..core.seed import make_rng
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     angle_between,
@@ -35,7 +31,6 @@ from ..core.sphere_geometry import (
     dot,
     normalize,
     polar_frame,
-    random_point,
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType
@@ -45,7 +40,7 @@ from .kinematics import (
     omega_from_euler_pole,
     pose_at_constant_omega,
 )
-from .world import EventKind, TectonicWorld
+from .world import TectonicWorld
 
 # Retain the scenario-module hook used by downstream fixtures and extensions.
 _plate_outline_with_apron = plate_outline_with_apron
@@ -91,141 +86,6 @@ def omega_for(
         )
     )
     return omega_from_euler_pole(pole, speed_cm_yr)
-
-
-def build_continental_scene(
-    sim_mesh: Any,
-    seed: int = 0,
-    fraction: float = 0.30,
-    overrides: dict | None = None,
-) -> dict[str, Any]:
-    """Build a single continental plate against the passive background ocean."""
-    if not math.isfinite(float(fraction)) or not 0.0 < float(fraction) < 1.0:
-        raise ValueError("fraction must be finite and strictly between 0 and 1")
-    world = TectonicWorld(sim_mesh, seed, overrides=overrides)
-    xyz = _xyz(sim_mesh)
-    centre = np.asarray(random_point(make_rng(seed * 31 + 211)), dtype=np.float64)
-    count = max(
-        1,
-        min(
-            sim_mesh.num_cells - 1, int(math.floor(sim_mesh.num_cells * fraction + 0.5))
-        ),
-    )
-    cosine = xyz @ centre
-    # Stable secondary index ordering makes ties reproducible across NumPy
-    # versions and platforms.
-    land = _stable_top_k(cosine, count).astype(np.int32)
-    land_mask = np.zeros(sim_mesh.num_cells, dtype=bool)
-    land_mask[land] = True
-
-    continent = world.add_plate("Continental scene")
-    ocean = world.add_plate("Background ocean")
-    ocean.isBackground = True
-    continent.crust.create_many(
-        land,
-        CrustType["CONTINENT"],
-        -float(world.config.get("initialLandAgeMyr", 2000.0)),
-        1,
-    )
-    water = np.flatnonzero(~land_mask)
-    ocean.crust.create_many(
-        water, CrustType["OCEAN"], -float(world.config.get("initialOceanAgeMyr", 150.0))
-    )
-    for plate in world.plates:
-        plate.refresh_extent(sim_mesh.xyz)
-    world.terraneLetters = {1: "A"}
-    world.log(
-        EventKind["START"],
-        "Continental fixture",
-        {"plate": continent.id, "continentalCells": int(land.size)},
-    )
-    return {
-        "world": world,
-        "start": {
-            "scenario": "continental",
-            "centre": centre.tolist(),
-            "continentId": continent.id,
-            "oceanId": ocean.id,
-            "landCells": int(land.size),
-            "continentalFraction": land.size / sim_mesh.num_cells,
-        },
-    }
-
-
-def build_oceanic_scene(
-    sim_mesh: Any, seed: int = 0, overrides: dict | None = None
-) -> dict[str, Any]:
-    """Build two oceanic plates separated by a deterministic great-circle boundary."""
-    world = TectonicWorld(sim_mesh, seed, overrides=overrides)
-    xyz = _xyz(sim_mesh)
-    pole = np.asarray(random_point(make_rng(seed * 31 + 307)), dtype=np.float64)
-    signed = xyz @ pole
-    first = np.flatnonzero(signed >= 0.0).astype(np.int32)
-    second = np.flatnonzero(signed < 0.0).astype(np.int32)
-    if not first.size or not second.size:
-        order = np.argsort(signed, kind="stable")
-        midpoint = max(1, len(order) // 2)
-        second, first = (
-            order[:midpoint].astype(np.int32),
-            order[midpoint:].astype(np.int32),
-        )
-
-    age = -float(world.config.get("initialOceanAgeMyr", 150.0))
-    plate_a = world.add_plate("Oceanic plate A")
-    plate_b = world.add_plate("Oceanic plate B")
-    plate_a.crust.create_many(first, CrustType["OCEAN"], age)
-    plate_b.crust.create_many(second, CrustType["OCEAN"], age)
-    for plate in world.plates:
-        plate.refresh_extent(sim_mesh.xyz)
-    world.log(
-        EventKind["START"],
-        "Two-plate oceanic fixture",
-        {"plates": [plate_a.id, plate_b.id]},
-    )
-    return {
-        "world": world,
-        "start": {
-            "scenario": "oceanic",
-            "boundaryPole": pole.tolist(),
-            "plateA": plate_a.id,
-            "plateB": plate_b.id,
-            "plateACells": int(first.size),
-            "plateBCells": int(second.size),
-        },
-    }
-
-
-def build_mixed_scene(
-    sim_mesh: Any, seed: int = 0, overrides: dict | None = None
-) -> dict[str, Any]:
-    """Build the full mixed supercontinent, apron and background-ocean fixture."""
-    result = build_start_world(sim_mesh, seed, overrides)
-    result["start"]["scenario"] = "mixed"
-    return result
-
-
-def build_scenario_scene(
-    sim_mesh: Any,
-    seed: int = 0,
-    scenario: str = "mixed",
-    overrides: dict | None = None,
-) -> dict[str, Any]:
-    """Dispatch one of the three supported deterministic fixture builders."""
-    key = str(scenario).strip().lower()
-    if key == "continental":
-        return build_continental_scene(sim_mesh, seed, overrides=overrides)
-    if key == "oceanic":
-        return build_oceanic_scene(sim_mesh, seed, overrides=overrides)
-    if key == "mixed":
-        return build_mixed_scene(sim_mesh, seed, overrides)
-    raise ValueError("scenario must be one of: continental, oceanic, mixed")
-
-
-# Public camel-case aliases for mechanically ported callers.
-buildContinentalScene = build_continental_scene  # noqa: N816 -- preserve upstream V2 public spelling
-buildOceanicScene = build_oceanic_scene  # noqa: N816 -- preserve upstream V2 public spelling
-buildMixedScene = build_mixed_scene  # noqa: N816 -- preserve upstream V2 public spelling
-buildScenarioScene = build_scenario_scene  # noqa: N816 -- preserve upstream V2 public spelling
 
 
 def scene_canvas(sim_mesh: Any, config: dict) -> dict[str, Any]:

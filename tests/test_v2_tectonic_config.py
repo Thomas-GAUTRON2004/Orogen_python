@@ -146,7 +146,6 @@ def test_belt_speed_exponent_may_be_zero_but_not_negative():
         make_tectonics_config({"beltSpeedExponent": -0.1})
 
 
-
 @pytest.mark.parametrize(
     ("value", "default", "error", "message"),
     [

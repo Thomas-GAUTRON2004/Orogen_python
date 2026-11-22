@@ -1,0 +1,17 @@
+{
+  "mesh": {
+    "cells": 512,
+    "seed": 911
+  },
+  "rigidDrift": {
+    "seed": 1202,
+    "timesMyr": [0, 25, 150, 300]
+  },
+  "wilson": {
+    "seed": 1204,
+    "timesMyr": [0, 99, 100, 150]
+  },
+  "nudge": {
+    "seed": 1206
+  }
+}

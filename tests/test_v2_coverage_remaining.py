@@ -643,7 +643,6 @@ def test_start_world_far_field_groups_each_major_terrane_pair(monkeypatch):
         {
             "farStartWorkKm": 25.0,
             "rimTrenchCoverage": 0.0,
-            "startRanges": {},
         },
     )
     assert pushed

@@ -26,16 +26,15 @@ def test_upstream_unit_conversions_and_default_values():
     }
 
 
-def test_nested_overrides_are_merged_without_mutating_defaults():
+def test_nested_overrides_follow_upstream_shallow_spread_without_mutating_defaults():
     config = make_tectonics_config({"belts": {"andean": {"maxKm": 450.0}}})
-    assert config["belts"]["andean"] == {
+    assert config["belts"] == {"andean": {"maxKm": 450.0}}
+    assert "himalayan" not in config["belts"]
+    assert TECTONICS["belts"]["andean"] == {
         "baseKm": 120.0,
         "perKm": 1.0,
-        "maxKm": 450.0,
+        "maxKm": 400.0,
     }
-    assert config["belts"]["himalayan"]["maxKm"] == 1000.0
-    config["belts"]["andean"]["baseKm"] = 1.0
-    assert TECTONICS["belts"]["andean"]["baseKm"] == 120.0
 
 
 def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
@@ -147,21 +146,6 @@ def test_belt_speed_exponent_may_be_zero_but_not_negative():
         make_tectonics_config({"beltSpeedExponent": -0.1})
 
 
-def test_merge_replaces_non_mapping_values_and_keeps_unknown_nested_values():
-    from orogen.v2.tectonics.config import _merge
-
-    source = {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
-    result = _merge(
-        source,
-        {"scalar": {"new": True}, "nested": {"extra": 3}, "list": {"replace": 4}},
-    )
-    assert result == {
-        "scalar": {"new": True},
-        "nested": {"keep": [1, 2], "extra": 3},
-        "list": {"replace": 4},
-    }
-    assert source == {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
-
 
 @pytest.mark.parametrize(
     ("value", "default", "error", "message"),
@@ -257,16 +241,13 @@ def test_make_config_rejects_non_mapping_overrides_and_base():
         make_tectonics_config(base=[])
 
 
-def test_make_config_merges_into_an_explicit_partial_base():
+def test_make_config_uses_shallow_spread_with_an_explicit_partial_base():
     base = {"custom": {"nested": [1]}, "simCells": 10}
     config = make_tectonics_config(
         {"custom": {"extra": True}, "simCells": 20},
         base=base,
     )
-    assert config == {
-        "custom": {"nested": [1], "extra": True},
-        "simCells": 20,
-    }
+    assert config == {"custom": {"extra": True}, "simCells": 20}
     assert base == {"custom": {"nested": [1]}, "simCells": 10}
 
 

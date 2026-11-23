@@ -93,7 +93,7 @@ jobs:
             {
               echo "### Initial-world construction benchmark"
               echo
-              echo "The PR base (`$baseline_sha`) does not contain `orogen/v2/tectonics/initial_world.py`. A before/after comparison is therefore not applicable. The PR-head measurements are attached as an artifact."
+              echo "The PR base $baseline_sha does not contain orogen/v2/tectonics/initial_world.py. A before/after comparison is therefore not applicable. The PR-head measurements are attached as an artifact."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "baseline_available=true" >> "$GITHUB_OUTPUT"

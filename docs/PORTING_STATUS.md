@@ -22,6 +22,16 @@ Last updated: 2026-11-20
 - Added a deterministic, partial stepper integration regression: `step_world` runs the real boundary classifier, `track_collisions` implementation and collision-belt spreading on a continental-overlap cell. It verifies the collision boundary, pair record, shortening, event and belt propagation into both margins. To isolate this seam, the test neutralizes `closing_rate`, `advance_plates`, `resolve`, `contact_at`, `update_plumes`, `open_back_arcs`, and the collision geometry helpers `centroid_of_cells` and `tangent_toward`; it is not an end-to-end tectonic-history test. Suture welding and long-history parity remain unvalidated.
 - Full collision/event-history parity and the complete simulation-stage cadence remain outstanding.
 
+## Issues #14 and #15 status (current batch)
+
+- The upstream engine is the git submodule `external/planet_heightmap_generation`, pinned at `ed466f9` (tag v3.0.1). Comparisons run on that code through pointer files in `tests/reference/v2`; no algorithm is copied or rewritten there.
+- Shared configuration: the 310 `TECTONICS` keys and defaults match upstream (`tests/test_v2_tectonic_config_upstream.py`). `TectonicWorld(mesh, seed, overrides=None)` has the upstream constructor shape; the Python-only base-config parameter was removed.
+- Validation rules are documented in `docs/ADAPTATIONS.md`, with the upstream behaviour measured for each rule that affects the start world (`tests/reference/v2/config/validation-probes.json`). Rules for the 37 dynamics parameters have no visible effect on the start world and remain to be checked by the multi-step differential work (issues #19 to #21).
+- Negative growth bias and negative coastal softness are kept as documented domain guards. Zero coastal softness is accepted and follows upstream IEEE arithmetic.
+- The controlled continental, oceanic and mixed scene builders were removed: they had no upstream counterpart.
+- Prescribed-motion scenes (rigid drift, Wilson, nudge) are compared with upstream over two meshes and nine cases; a mutation check confirms the tests fail on a perturbed constant.
+- The tests CI job timeout is 40 minutes: the branch-coverage run takes about 14 minutes on its own, and the 20-minute limit cancelled a run.
+
 ## Initial-world construction and scene-helper review
 
 - Craton placement now has a boolean minimum-gap predicate with an early exit when an outline-point pair proves that a candidate fails. The final comparison uses the same correction and floating-point comparison as the retained gap function; unit tests compare decisions over multiple thresholds. The worst-case scan remains quadratic in the 72 outline samples.
@@ -35,6 +45,7 @@ Last updated: 2026-11-20
 ## Performance optimization (Numba)
 
 - Added an optional `speed` extra and retained a pure-Python fallback.
+- `SimplexNoise` (upstream 12-gradient simplex, used by the initial world and scenes) is compiled with Numba: about 45x faster per fBm sample than the Python path. Both paths are bit-identical and compared against upstream golden values.
 - Numba compiles batched 3-D simplex FBM, CSR BFS, callback-free mesh Dijkstra, and the weighted far-field traversal used by tectonic `spread_push` (`fastmath=False`). FBM is checked bit-for-bit against Python and upstream JavaScript; BFS retains FIFO/source order and int16 semantics; Dijkstra preserves heap ordering and float32/float64 distance storage.
 - Mesh Dijkstra retains the Python path when `can_enter` or `on_reach` callbacks are provided. Far-field diffusion keeps crust-history recording in Python and retains the complete Python graph-traversal fallback. Differential tests compare reached order, source assignment, distance arrays and crust history.
 - The latest paired CI sample measured FBM near parity, a large speedup for synthetic mesh Dijkstra, and a **3.35×** full-path speedup for synthetic far-field diffusion versus its Python fallback. Geometry and per-cell crust snapshots remain slower. See `docs/JS_PYTHON_BENCHMARK.md` for method, results and runner variability.

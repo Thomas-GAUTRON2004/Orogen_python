@@ -22,6 +22,16 @@
       "description": "Synthetic CSR graph components"
     },
     {
+      "id": "mesh_largest_piece_ms",
+      "label": "Largest connected component",
+      "description": "Largest component extraction from a selected CSR cell set"
+    },
+    {
+      "id": "mesh_within_km_ms",
+      "label": "Mesh radius traversal (5,000 km)",
+      "description": "Reachability from a source within a great-circle radius"
+    },
+    {
       "id": "mesh_dijkstra_ms",
       "label": "Mesh Dijkstra",
       "description": "Synthetic CSR graph with 20,000 km cutoff"

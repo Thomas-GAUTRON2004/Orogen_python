@@ -67,11 +67,11 @@ jobs:
         run: |
           # Compare against the branch state immediately before the outline-gap optimization.
           baseline_sha="24dc4d550769efdc57d56506abdc343c576545af"
-          git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
           git cat-file -e "${baseline_sha}^{commit}" || {
             echo "::error::Benchmark baseline commit ${baseline_sha} is unavailable."
             exit 1
           }
+          git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
           benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 3)
           (
             cd "$RUNNER_TEMP"
@@ -102,7 +102,6 @@ jobs:
             ${{ runner.temp }}/initial-world-head.json
             ${{ runner.temp }}/initial-world-comparison.json
           if-no-files-found: error
-          if-no-files-found: error
           retention-days: 90
       - name: Upload benchmark reports
         uses: actions/upload-artifact@v4
@@ -112,4 +111,5 @@ jobs:
             benchmark-results.json
             benchmark-results.md
             benchmark-results.csv
+          if-no-files-found: error
           retention-days: 90

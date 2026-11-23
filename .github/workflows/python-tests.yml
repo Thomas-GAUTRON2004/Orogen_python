@@ -19,7 +19,7 @@ jobs:
   tests:
     name: Python 3.12 / Node 22
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40  # coverage run takes ~14 min; 20 min cancelled the job
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

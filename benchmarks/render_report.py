@@ -120,6 +120,56 @@ def python_only_table(report: dict, catalog: dict) -> list[str]:
     return lines
 
 
+
+def initial_world_table(head_path: Path | None, baseline_path: Path | None) -> tuple[list[str], list[dict]]:
+    """Render initial-world timings and return normalized CSV rows."""
+    if head_path is None:
+        return [], []
+    head = json.loads(head_path.read_text(encoding="utf-8"))
+    baseline = (
+        json.loads(baseline_path.read_text(encoding="utf-8"))
+        if baseline_path is not None
+        else None
+    )
+    baseline_by_size = {int(row["num_cells"]): row for row in (baseline or {}).get("results", [])}
+    lines = [
+        "## Initial-world construction",
+        "",
+        "| Cells | Mesh build | PR base builder | PR head builder | Change | Layout attempts (head) |",
+        "|---:|---:|---:|---:|---:|---:|",
+    ]
+    rows = []
+    for head_row in head.get("results", []):
+        size = int(head_row["num_cells"])
+        base_row = baseline_by_size.get(size)
+        base_seconds = float(base_row["median_build_seconds"]) if base_row is not None else None
+        head_seconds = float(head_row["median_build_seconds"])
+        change = ((head_seconds / base_seconds - 1.0) * 100.0) if base_seconds is not None and base_seconds > 0.0 else None
+        base_text = fmt(base_seconds * 1000.0) + " ms" if base_seconds is not None else "n/a"
+        change_text = "{:+.1f}%".format(change) if change is not None else "n/a"
+        attempts_text = ", ".join(str(value) for value in head_row.get("layout_attempts", []))
+        lines.append("| {:,} | {} ms | {} | {} ms | {} | {} |".format(
+            size, fmt(float(head_row["mesh_build_seconds"]) * 1000.0), base_text,
+            fmt(head_seconds * 1000.0), change_text, attempts_text
+        ))
+        for runtime_name, row in (("PR head", head_row), ("PR base", base_row)):
+            if row is None:
+                continue
+            rows.append({
+                "operation": "Initial-world construction ({} cells)".format(size),
+                "runtime": runtime_name,
+                "median_ms": float(row["median_build_seconds"]) * 1000.0,
+                "mesh_build_ms": float(row["mesh_build_seconds"]) * 1000.0,
+                "change_percent": change,
+                "layout_attempts": json.dumps(row.get("layout_attempts", [])),
+            })
+    lines.extend([
+        "",
+        "Builder timings exclude mesh construction; mesh-build time is shown separately. A missing PR-base value means the base revision did not contain the initial-world builder.",
+        "",
+    ])
+    return lines, rows
+
 def runtime_lines(report: dict) -> list[str]:
     runtime = report["runtime"]
     python = runtime["python"]
@@ -135,7 +185,7 @@ def runtime_lines(report: dict) -> list[str]:
     ]
 
 
-def csv_rows(report: dict, catalog: dict) -> list[dict]:
+def csv_rows(report: dict, catalog: dict, initial_world_rows: list[dict] | None = None) -> list[dict]:
     rows = []
     sections = (
         ("JavaScript", report["javascript"]),
@@ -161,6 +211,7 @@ def csv_rows(report: dict, catalog: dict) -> list[dict]:
             stats = section.get(item["id"]) if section else None
             if stats:
                 rows.append({"operation": item["label"], "runtime": runtime_name, **stats})
+    rows.extend(initial_world_rows or [])
     return rows
 
 
@@ -171,12 +222,15 @@ def main() -> None:
     parser.add_argument("--markdown", type=Path, default=Path("benchmark-results.md"))
     parser.add_argument("--csv", type=Path, default=Path("benchmark-results.csv"))
     parser.add_argument("--summary", type=Path)
+    parser.add_argument("--initial-world-head", type=Path)
+    parser.add_argument("--initial-world-baseline", type=Path)
     args = parser.parse_args()
 
     report = json.loads(args.json_file.read_text(encoding="utf-8"))
     catalog = load_catalog(args.registry)
     validate_report(report, catalog)
     configuration = report["configuration"]
+    initial_world_lines, initial_world_rows = initial_world_table(args.initial_world_head, args.initial_world_baseline)
     lines = [
         "# JavaScript / Python / Numba benchmark",
         "",
@@ -199,6 +253,7 @@ def main() -> None:
         "A Python-only entry has no JavaScript equivalent registered yet. "
         "It remains directly comparable between the Python fallback and Numba.",
         "",
+        *initial_world_lines,
         "## Environment",
         "",
         *runtime_lines(report),
@@ -223,10 +278,10 @@ def main() -> None:
     markdown = "\n".join(lines)
     args.markdown.write_text(markdown, encoding="utf-8")
 
-    rows = csv_rows(report, catalog)
+    rows = csv_rows(report, catalog, initial_world_rows)
     columns = [
         "operation", "runtime", "median_ms", "mean_ms", "stddev_ms",
-        "p95_ms", "min_ms", "max_ms", "samples_ms",
+        "p95_ms", "min_ms", "max_ms", "samples_ms", "mesh_build_ms", "change_percent", "layout_attempts",
     ]
     with args.csv.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")

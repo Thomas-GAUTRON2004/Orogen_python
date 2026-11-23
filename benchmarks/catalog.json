@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "paired": [
+    {
+      "id": "noise_fbm_ms",
+      "label": "3-D simplex FBM (40k points x 5 octaves)",
+      "description": "Batched noise evaluation"
+    },
+    {
+      "id": "spherical_geometry_ms",
+      "label": "Spherical geometry (80k points)",
+      "description": "Batched destination and bearing operations"
+    },
+    {
+      "id": "mesh_bfs_ms",
+      "label": "Mesh BFS",
+      "description": "Synthetic CSR degree-6 graph traversal"
+    },
+    {
+      "id": "mesh_components_ms",
+      "label": "Connected components",
+      "description": "Synthetic CSR graph components"
+    },
+    {
+      "id": "mesh_dijkstra_ms",
+      "label": "Mesh Dijkstra",
+      "description": "Synthetic CSR graph with 20,000 km cutoff"
+    },
+    {
+      "id": "crust_create_snapshot_ms",
+      "label": "Crust create + batch snapshot",
+      "description": "Batch raster creation and snapshot materialization"
+    },
+    {
+      "id": "crust_copy_ms",
+      "label": "Crust batch copy",
+      "description": "Batch raster copy"
+    }
+  ],
+  "python_only": [
+    {
+      "id": "far_field_diffusion",
+      "label": "Far-field spread_push",
+      "description": "Python fallback versus Numba; no equivalent JS implementation yet"
+    },
+    {
+      "id": "step_world",
+      "label": "One step_world (four plates)",
+      "description": "Python fallback versus Numba; no equivalent JS orchestration yet"
+    }
+  ]
+}

@@ -75,7 +75,7 @@ preparation are excluded from the timed region.
 
 ## Initial-world builder comparison
 
-In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. It compares a pinned pre-optimization commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells. Each mesh receives one warm-up and two timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
+In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. On pull requests, it compares the PR base commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells. This avoids a repository-specific pinned baseline and makes the comparison reusable across porting branches. Each mesh receives one warm-up and two timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
 
 The baseline and head timings, layout-attempt counts and comparison summary are attached to the `initial-world-builder-benchmarks` Actions artifact. This measures initial-world construction, including its Python per-cell loops; it does not measure multi-step geological-history execution or establish a universal runtime for other hosts.
 
@@ -104,6 +104,61 @@ Common paired workloads are FBM, batched spherical geometry, graph BFS,
 connected components, Dijkstra, crust creation/snapshot and crust batch copy.
 Python pure and Python + Numba are timed for every workload. Far-field
 diffusion is additionally compared within Python with and without Numba.
+
+### Adding a function to the comparison catalog
+
+The paired harness is designed to grow as more JavaScript functions are ported.
+The workload catalog is the single source of truth for report labels and which
+comparison mode a workload belongs to:
+
+- `benchmarks/catalog.json`: stable workload IDs, display labels and grouping.
+- `benchmarks/bench.mjs`: JavaScript implementation and timing for paired workloads.
+- `benchmarks/bench_python.py`: Python fallback and optional Numba timings.
+- `benchmarks/render_report.py`: reads the catalog to generate Markdown/CSV
+  tables and checks that every catalog entry was emitted by the expected runners.
+
+#### Registering a paired JavaScript/Python function
+
+1. Add a deterministic fixture/setup function to the relevant runner. Build
+   fixtures outside the timed callable unless setup cost is intentionally part
+   of the benchmark.
+2. Add the JavaScript measurement to the object returned by
+   `benchmarkJavaScript()` in `benchmarks/bench.mjs`.
+3. Add the matching Python measurement under the same stable ID in the
+   `timings` dictionary in `run_mode()` in `benchmarks/bench_python.py`.
+   The function is measured in both pure-Python and Numba modes automatically.
+4. Add one entry to the `paired` array in `benchmarks/catalog.json`:
+   `{"id": "my_function_ms", "label": "My function (fixture description)" }`.
+   The ID must match the key emitted by both runners.
+5. Run the local command below. Report generation fails with a clear catalog /
+   runner mismatch if either side forgot to emit the registered ID.
+
+#### Registering a Python-only port target
+
+Add the benchmark to the Python-only results returned by `run_mode()` (outside
+the common `timings` mapping), then add its stable ID and label to the
+`python_only` array in the catalog. This gives an immediate pure-Python versus
+Numba comparison while the JavaScript equivalent is still being ported. When a
+JavaScript reference becomes available, move the workload into `paired` and
+emit the matching JavaScript timing.
+
+#### Measurement rules
+
+- Keep stable IDs independent of implementation names so a port can evolve
+  without rewriting historical report consumers.
+- Use the same deterministic input, logical work and output/sink in both
+  implementations. Document unavoidable differences in fixture granularity.
+- Keep fixture construction and JIT compilation out of timed samples unless
+  they are explicitly the target.
+- Preserve raw samples and summary statistics; do not add hard performance
+  pass/fail thresholds based on shared-runner timings.
+- Add correctness/differential tests separately. A faster result is not evidence
+  of semantic equivalence.
+
+The initial-world builder A/B is a separate production-constructor benchmark,
+not a paired JavaScript function yet. Its baseline is the PR target branch.
+The same report artifacts and summary mechanism are used for all benchmark
+outputs.
 
 ### Tectonic step benchmark
 

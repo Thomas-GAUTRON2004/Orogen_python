@@ -157,7 +157,7 @@ def initial_world_table(
             else None
         )
         base_text = fmt(base_seconds * 1000.0) + " ms" if base_seconds is not None else "n/a"
-        change_text = "{:+.1f}%".format(change) if change is not None else "n/a"
+        change_text = f"{change:+.1f}%" if change is not None else "n/a"
         attempts_text = ", ".join(str(value) for value in head_row.get("layout_attempts", []))
         lines.append(
             "| {:,} | {} ms | {} | {} ms | {} | {} |".format(
@@ -173,7 +173,7 @@ def initial_world_table(
             if row is None:
                 continue
             rows.append({
-                "operation": "Initial-world construction ({} cells)".format(size),
+                "operation": f"Initial-world construction ({size} cells)",
                 "runtime": runtime_name,
                 "median_ms": float(row["median_build_seconds"]) * 1000.0,
                 "mesh_build_ms": float(row["mesh_build_seconds"]) * 1000.0,

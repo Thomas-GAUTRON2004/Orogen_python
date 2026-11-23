@@ -460,11 +460,11 @@ The graph results are synthetic microbenchmarks, not production spherical-mesh o
 
 ### Additional mesh workloads and initial-world report integration
 
-The paired suite also measures largest connected-component extraction and
-great-circle radius traversal (within_km, 5,000 km), in JavaScript, Python
-without Numba, and Python with Numba. These complement BFS, connected
-components and Dijkstra by covering two operations used by mesh-region
-selection and spatial reachability.
+The paired suite also measures largest connected-component extraction,
+great-circle radius traversal (within_km, 5,000 km), and multi-source BFS
+(distance plus source ownership), in JavaScript, Python without Numba, and
+Python with Numba. These complement BFS, connected components and Dijkstra
+with operations used by mesh-region selection and spatial reachability.
 
 For pull requests, the generated Markdown and CSV reports include the
 initial-world builder measurements as well as the paired microbenchmarks.

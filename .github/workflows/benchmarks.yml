@@ -17,6 +17,7 @@ on:
     paths:
       - "orogen/v2/**"
       - "tests/reference/v2/**"
+      - "pyproject.toml"
       - "benchmarks/**"
       - "docs/JS_PYTHON_BENCHMARK.md"
       - ".github/workflows/benchmarks.yml"

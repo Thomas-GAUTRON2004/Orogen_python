@@ -75,9 +75,9 @@ preparation are excluded from the timed region.
 
 ## Initial-world builder comparison
 
-In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. On pull requests, it compares the PR base commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells. This avoids a repository-specific pinned baseline and makes the comparison reusable across porting branches. Each mesh receives one warm-up and three timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
+In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. On pull requests, it compares the PR base commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells, provided the base revision already contains `orogen/v2/tectonics/initial_world.py`. If the builder is introduced by the PR and is absent from the base, an A/B comparison is not meaningful: CI records the PR-head measurements and explicitly marks the baseline as unavailable instead of failing the benchmark job. Each mesh receives one warm-up and three timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
 
-The baseline and head timings, layout-attempt counts and comparison summary are attached to the `initial-world-builder-benchmarks` Actions artifact. This measures initial-world construction, including its Python per-cell loops; it does not measure multi-step geological-history execution or establish a universal runtime for other hosts.
+The head timings are always attached to the `initial-world-builder-benchmarks` Actions artifact; when a compatible base implementation exists, baseline timings, layout-attempt counts and the comparison summary are attached as well. This measures initial-world construction, including its Python per-cell loops; it does not measure multi-step geological-history execution or establish a universal runtime for other hosts.
 
 ## Reproducible benchmark harness
 

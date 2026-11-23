@@ -32,6 +32,11 @@
       "description": "Reachability from a source within a great-circle radius"
     },
     {
+      "id": "mesh_multi_source_bfs_ms",
+      "label": "Multi-source mesh BFS",
+      "description": "Hop distance and source ownership from two starting cells"
+    },
+    {
       "id": "mesh_dijkstra_ms",
       "label": "Mesh Dijkstra",
       "description": "Synthetic CSR graph with 20,000 km cutoff"

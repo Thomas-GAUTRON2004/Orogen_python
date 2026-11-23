@@ -60,8 +60,6 @@ jobs:
         run: python -m pip install ".[speed]"
       - name: Run paired JavaScript, Python and Numba benchmarks
         run: node benchmarks/bench.mjs > benchmark-results.json
-      - name: Generate Markdown and CSV reports
-        run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
       - name: Benchmark initial-world construction against the PR base when available
         if: github.event_name == 'pull_request'
         id: initial-world
@@ -128,6 +126,8 @@ jobs:
             ${{ runner.temp }}/initial-world-comparison.json
           if-no-files-found: error
           retention-days: 90
+      - name: Generate Markdown and CSV reports
+        run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
       - name: Upload benchmark reports
         uses: actions/upload-artifact@v4
         with:

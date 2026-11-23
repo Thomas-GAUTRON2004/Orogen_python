@@ -112,7 +112,6 @@ jobs:
             python benchmarks/compare_initial_world.py \
               --baseline "$RUNNER_TEMP/initial-world-baseline.json" \
               --head "$RUNNER_TEMP/initial-world-head.json" \
-              --summary "$GITHUB_STEP_SUMMARY" \
               --output "$RUNNER_TEMP/initial-world-comparison.json"
           fi
       - name: Upload initial-world benchmark results

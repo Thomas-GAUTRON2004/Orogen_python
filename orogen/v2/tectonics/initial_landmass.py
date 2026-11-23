@@ -26,6 +26,42 @@ Seam = {"NONE": 0, "INNER": 1, "RING": 2, "MAJOR": 3}
 MAX_RINGS = 4
 
 
+def _ieee_div(numerator: float, denominator: float) -> float:
+    """Division with IEEE results (no exception), as JavaScript `/`."""
+    if denominator != 0.0:
+        return numerator / denominator
+    if numerator == 0.0 or math.isnan(numerator):
+        return math.nan
+    sign = math.copysign(1.0, numerator) * math.copysign(1.0, denominator)
+    return math.inf if sign > 0.0 else -math.inf
+
+
+def _ieee_exp(value: float) -> float:
+    """Exponential with IEEE overflow (inf), as JavaScript `Math.exp`."""
+    try:
+        return math.exp(value)
+    except OverflowError:
+        return math.inf
+
+
+def _ieee_log(value: float) -> float:
+    """Natural log with IEEE results (-inf at 0, NaN below 0), as `Math.log`."""
+    if math.isnan(value) or value < 0.0:
+        return math.nan
+    if value == 0.0:
+        return -math.inf
+    return math.log(value)
+
+
+def _js_max(first: float, second: float) -> float:
+    """`Math.max` for two values: NaN wins, and max(0, -0) is +0."""
+    if math.isnan(first) or math.isnan(second):
+        return math.nan
+    if first == second == 0.0:
+        return first if math.copysign(1.0, first) > 0 else second
+    return first if first >= second else second
+
+
 def _smoothstep(value: float) -> float:
     if value <= 0.0:
         return 0.0
@@ -373,11 +409,12 @@ def shape_landmass(
             types[cell] = CrustType["CRATON"]
             terrane[cell] = nearest_id
 
-        union = sum(
-            math.exp(-max(growth[index], -soft * 4.0) / soft)
-            for index in range(cluster_count)
-        )
-        field[cell] = -soft * math.log(union) if union > 0.0 else math.inf
+        # IEEE arithmetic as in upstream JavaScript: with coastUnionSoftnessKm = 0
+        # the divisions give NaN instead of raising, and the field becomes NaN.
+        union = 0.0
+        for index in range(cluster_count):
+            union += _ieee_exp(_ieee_div(-_js_max(growth[index], -soft * 4.0), soft))
+        field[cell] = -soft * _ieee_log(union)
         polar = to_polar(x, y, z)
         at = margin_at(float(polar["azimuth"]))
         outer = _smoothstep(

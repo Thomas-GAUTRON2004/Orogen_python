@@ -26,9 +26,9 @@ Le JavaScript n'a **aucun** validateur. Chaque règle Python ci-dessous est un a
 |---|---|---|
 | `startArcKm` : largeurs strictement positives | `[0, 0]` : crash mémoire (abort, rc 134) | **Conservée** : justifiée |
 | `startMaxLatitudeDeg` strictement positif, ≤ 90 | `0` : boucle infinie (timeout) | **Conservée** : justifiée |
-| `coastUnionSoftnessKm` strictement positif | `0` : renvoie un résultat dégradé (`fractionMet: false`, 24 tentatives), sans erreur | **À décider** : le Python rejette ; une division par zéro lèverait une exception Python. Option : émuler l'arithmétique IEEE |
+| `coastUnionSoftnessKm` positif ou nul | `0` : résultat dégradé (`fractionMet: false`, 24 tentatives, échelle 1,0), sans erreur | **Acceptée** : le champ de côte suit l'arithmétique IEEE de `Math.exp`/`Math.log`/division (`tests/test_v2_ieee_js_semantics.py`, valeurs de Node). Mesure de bout en bout à 768 cellules : 24 tentatives, `fractionMet: false`, comme le JS ; ce test prend plus de 6 min et n'est pas dans la suite CI |
 | `startGrowthBias` < 1 | `1.0` : accepté, résultat normal | **Supprimée** |
-| Autres règles `_POSITIVE`, `_NON_NEGATIVE`, `_UNIT_INTERVAL` | Non mesuré | **À vérifier** contre le JS avant de les conserver |
+| Autres règles `_POSITIVE`, `_NON_NEGATIVE`, `_UNIT_INTERVAL` | Non mesuré | **À vérifier** contre le JS avant de les conserver (exécutions dynamiques par clé) |
 
 Les tests de limites (`tests/test_v2_tectonic_config_limits.py`, 290 cas) fixent le contrat Python actuel. Ils ne prouvent pas l'accord avec le JS pour les règles marquées « à vérifier ».
 
@@ -39,6 +39,8 @@ Les tests de limites (`tests/test_v2_tectonic_config_limits.py`, 290 cas) fixent
 | `fractionMet` non atteint | Renvoie le layout le plus proche, `fractionMet: false` | Idem | Aligné |
 | Aucun candidat | Lève `These settings do not fit on the planet for seed …` | Même texte | Aligné |
 | Base de config partielle | Inexistante | Supprimée (`overrides` seul) | Aligné |
+| `attempts` d'un layout non atteint | `attempt + 1` de la boucle externe (24) | Idem : `_find_layout` remplace le compteur interne du candidat | Aligné (corrigé pendant cette revue) |
+| Champs de côte avec `soft = 0` | `NaN` sans exception | Helpers IEEE (`_ieee_div`, `_ieee_exp`, `_ieee_log`, `_js_max`) | Aligné |
 
 ## 4. Adaptations Python : performance (sans effet sémantique)
 

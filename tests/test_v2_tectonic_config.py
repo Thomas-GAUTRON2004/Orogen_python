@@ -56,7 +56,6 @@ def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
         {"startArcKm": [0, 100]},
         {"startStepKm": [100, 0]},
         {"startMaxLatitudeDeg": 0},
-        {"coastUnionSoftnessKm": 0},
         {"startGrowthBias": -0.1},
         {"belts": {"andean": {"baseKm": 500, "maxKm": 400}}},
     ],
@@ -302,3 +301,15 @@ def test_mechanism_helpers_compose_without_losing_unrelated_fields():
                 continue
             combined = mechanisms_off(first, second)
             assert combined == {**MECHANISMS[first], **MECHANISMS[second]}
+
+
+def test_absent_keys_take_the_upstream_defaults():
+    # Upstream `{...TECTONICS, ...overrides}`: a key that is not overridden keeps its
+    # default, whatever the other overrides are.
+    from orogen.v2.tectonics.config import TECTONICS, make_tectonics_config
+
+    assert make_tectonics_config(None) == make_tectonics_config({})
+    config = make_tectonics_config({"cratonCount": 3})
+    assert config["cratonCount"] == 3
+    untouched = [key for key in TECTONICS if key != "cratonCount"]
+    assert all(config[key] == TECTONICS[key] for key in untouched)

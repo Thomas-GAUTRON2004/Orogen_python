@@ -744,10 +744,13 @@ def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
         ) > round_span + float(config["spanAllowanceDeg"])
         if fit is not None and too_wide and attempt < _LAYOUT_RELAX_SPAN_AFTER:
             continue
+        # As upstream findLayout: the reported attempt is the loop number, even for
+        # the closest (not fitting) candidate returned by the last attempt.
         return {
             **chosen,
             "middle": middle,
             "fractionMet": fit is not None,
+            "attempts": attempt + 1,
         }
     return None
 

@@ -500,7 +500,9 @@ def test_find_layout_retries_wide_fit_and_half_span_handles_empty_land(monkeypat
         mesh, 1, {"continentalFraction": 0.3, "spanAllowanceDeg": 0.0}
     )
     assert result is not None
-    assert result["attempts"] == 1
+    # Upstream findLayout returns `attempts: attempt + 1` of the loop: the wide fit
+    # is rejected at attempt 0 and accepted at attempt 1 (the relax threshold).
+    assert result["attempts"] == 2
 
 
 def test_record_start_pushes_spreads_major_pair(monkeypatch):

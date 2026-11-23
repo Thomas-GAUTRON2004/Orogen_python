@@ -647,7 +647,6 @@ _POSITIVE = frozenset(
         "stepGridMyr",
         "maxCellsPerStep",
         "snapshotEveryMyr",
-        "coastUnionSoftnessKm",
         "startMaxLatitudeDeg",
         "slabPullAgeRefMyr",
         "slabMatureKm",
@@ -663,6 +662,8 @@ _POSITIVE = frozenset(
 )
 _NON_NEGATIVE = frozenset(
     {
+        # 0 is accepted: upstream computes NaN, not an exception (docs/ADAPTATIONS.md)
+        "coastUnionSoftnessKm",
         "beltSpeedExponent",
         "startGrowthBias",
         "slowRulesEveryMyr",

@@ -28,7 +28,12 @@ Le JavaScript n'a **aucun** validateur. Chaque règle Python ci-dessous est un a
 | `startMaxLatitudeDeg` strictement positif, ≤ 90 | `0` : boucle infinie (timeout) | **Conservée** : justifiée |
 | `coastUnionSoftnessKm` positif ou nul | `0` : résultat dégradé (`fractionMet: false`, 24 tentatives, échelle 1,0), sans erreur | **Acceptée** : le champ de côte suit l'arithmétique IEEE de `Math.exp`/`Math.log`/division (`tests/test_v2_ieee_js_semantics.py`, valeurs de Node). Mesure de bout en bout à 768 cellules : 24 tentatives, `fractionMet: false`, comme le JS ; ce test prend plus de 6 min et n'est pas dans la suite CI |
 | `startGrowthBias` < 1 | `1.0` : accepté, résultat normal | **Supprimée** |
-| Autres règles `_POSITIVE`, `_NON_NEGATIVE`, `_UNIT_INTERVAL` | Non mesuré | **À vérifier** contre le JS avant de les conserver (exécutions dynamiques par clé) |
+| `startMaxLatitudeDeg` négatif (`-1`) | Boucle infinie (timeout) | **Conservée** |
+| `startGrowthBias` négatif (`-1`) | Accepté, aucun effet visible sur le monde initial | **Écart non justifié** : à retirer du rejet négatif, ou à caractériser sur le monde complet |
+| `coastUnionSoftnessKm` négatif (`-1`) | Accepté, résultat dégradé (24 tentatives, `fractionMet: false`), pas de crash | **Écart** : même famille que la valeur `0` acceptée ; à aligner |
+| Autres clés de `_POSITIVE`, `_NON_NEGATIVE`, `_UNIT_INTERVAL` (37 clés) | Aucun effet visible sur le monde initial : ce sont des paramètres de dynamique | **Non mesurable ici** : leur validité demande une simulation complète JS/Python (couvert par #19 à #21) |
+
+Mesures brutes : `tests/reference/v2/config/validation-probes.json` (61 sondes, 512 cellules, graine 911).
 
 Les tests de limites (`tests/test_v2_tectonic_config_limits.py`, 290 cas) fixent le contrat Python actuel. Ils ne prouvent pas l'accord avec le JS pour les règles marquées « à vérifier ».
 
@@ -79,5 +84,6 @@ Présence confirmée. Parité **exacte** : voir section 1 pour ce qui est mesur�
 
 ## 7. Non vérifié
 
+- Validité des 37 règles de dynamique : non mesurable sur le monde initial (voir section 2).
 - Autres modèles de données hors de ce périmètre (par exemple `present/`, les snapshots) : non audités.
 - Règles de validation marquées « à vérifier » en section 2.

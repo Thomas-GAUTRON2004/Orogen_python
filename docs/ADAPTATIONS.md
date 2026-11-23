@@ -29,8 +29,8 @@ Le JavaScript n'a **aucun** validateur. Chaque règle Python ci-dessous est un a
 | `coastUnionSoftnessKm` positif ou nul | `0` : résultat dégradé (`fractionMet: false`, 24 tentatives, échelle 1,0), sans erreur | **Acceptée** : le champ de côte suit l'arithmétique IEEE de `Math.exp`/`Math.log`/division (`tests/test_v2_ieee_js_semantics.py`, valeurs de Node). Mesure de bout en bout à 768 cellules : 24 tentatives, `fractionMet: false`, comme le JS ; ce test prend plus de 6 min et n'est pas dans la suite CI |
 | `startGrowthBias` < 1 | `1.0` : accepté, résultat normal | **Supprimée** |
 | `startMaxLatitudeDeg` négatif (`-1`) | Boucle infinie (timeout) | **Conservée** |
-| `startGrowthBias` négatif (`-1`) | Accepté, aucun effet visible sur le monde initial | **Écart non justifié** : à retirer du rejet négatif, ou à caractériser sur le monde complet |
-| `coastUnionSoftnessKm` négatif (`-1`) | Accepté, résultat dégradé (24 tentatives, `fractionMet: false`), pas de crash | **Écart** : même famille que la valeur `0` acceptée ; à aligner |
+| `startGrowthBias` négatif (`-1`) | Accepté, aucun effet visible sur le monde initial | **Garde-fou de domaine, conservé** : `config.js` définit le biais comme une amplitude (« growth distance × 1 ± up to this »). Négatif est hors domaine ; à partir de 1, le facteur `1 − biais` devient nul ou négatif |
+| `coastUnionSoftnessKm` négatif (`-1`) | Accepté, résultat dégradé (24 tentatives, `fractionMet: false`), pas de crash | **Garde-fou de domaine, conservé** : c'est une longueur caractéristique (« rounds the notches »), une valeur négative n'a pas de sens. La valeur `0`, dans le domaine, est acceptée |
 | Autres clés de `_POSITIVE`, `_NON_NEGATIVE`, `_UNIT_INTERVAL` (37 clés) | Aucun effet visible sur le monde initial : ce sont des paramètres de dynamique | **Non mesurable ici** : leur validité demande une simulation complète JS/Python (couvert par #19 à #21) |
 
 Mesures brutes : `tests/reference/v2/config/validation-probes.json` (61 sondes, 512 cellules, graine 911).

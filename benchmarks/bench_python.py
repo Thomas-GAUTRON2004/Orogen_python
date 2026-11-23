@@ -22,7 +22,7 @@ import numpy as np
 import orogen.v2.tectonics.far_field as far_field_module
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
-from orogen.v2.core.mesh_bfs import hop_distance, pieces_of, largest_piece_of, within_km
+from orogen.v2.core.mesh_bfs import hop_distance, pieces_of, largest_piece_of, within_km, hops_from
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.sphere_geometry import bearing_to_many, destination_many
@@ -330,6 +330,11 @@ def run_mode(points, vectors, mesh, far_field_case, step_mesh, enabled: bool):
             reached = within_km(mesh, lambda cell: cell == 0, 5_000.0)
             _sink = int(np.count_nonzero(reached))
 
+        def bench_multi_source_bfs():
+            global _sink
+            distance, source = hops_from(mesh, (0, N_CELLS // 2))
+            _sink = int(distance[-1]) + int(source[-1])
+
         def bench_dijkstra():
             global _sink
             distance = np.full(N_CELLS, np.inf, dtype=np.float64)
@@ -360,6 +365,7 @@ def run_mode(points, vectors, mesh, far_field_case, step_mesh, enabled: bool):
             "mesh_components_ms": measure(bench_components),
             "mesh_largest_piece_ms": measure(bench_largest_piece),
             "mesh_within_km_ms": measure(bench_within_km),
+            "mesh_multi_source_bfs_ms": measure(bench_multi_source_bfs),
             "mesh_dijkstra_ms": measure(bench_dijkstra),
             "crust_create_snapshot_ms": measure(bench_crust_create_snapshot),
             "crust_copy_ms": measure(bench_crust_copy),

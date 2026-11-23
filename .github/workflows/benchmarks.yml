@@ -24,10 +24,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: benchmarks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compare:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     env:
       BENCH_ROUNDS: "10"
       BENCH_WARMUPS: "2"
@@ -48,6 +52,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: Install Python package with Numba
         run: python -m pip install ".[speed]"
       - name: Run paired JavaScript, Python and Numba benchmarks
@@ -62,7 +68,11 @@ jobs:
           # Compare against the branch state immediately before the outline-gap optimization.
           baseline_sha="24dc4d550769efdc57d56506abdc343c576545af"
           git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
-          benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 2)
+          git cat-file -e "${baseline_sha}^{commit}" || {
+            echo "::error::Benchmark baseline commit ${baseline_sha} is unavailable."
+            exit 1
+          }
+          benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 3)
           (
             cd "$RUNNER_TEMP"
             PYTHONPATH="$RUNNER_TEMP/orogen-baseline" \
@@ -91,6 +101,8 @@ jobs:
             ${{ runner.temp }}/initial-world-baseline.json
             ${{ runner.temp }}/initial-world-head.json
             ${{ runner.temp }}/initial-world-comparison.json
+          if-no-files-found: error
+          if-no-files-found: error
           retention-days: 90
       - name: Upload benchmark reports
         uses: actions/upload-artifact@v4

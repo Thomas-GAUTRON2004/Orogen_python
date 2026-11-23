@@ -455,7 +455,6 @@ def test_numba_same_raster_rotation_skips_zero_axis():
     assert fields[54][1] == 0
 
 
-
 def test_numba_mesh_bfs_python_bodies_cover_new_kernel_branches():
     """Exercise the new BFS bodies as Python functions for branch coverage."""
     offsets, adjacency = _graph()

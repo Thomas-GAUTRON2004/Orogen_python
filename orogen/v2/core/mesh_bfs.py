@@ -174,8 +174,10 @@ def hops_from(
     n = int(sim_mesh.num_cells)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     ordered_sources = [int(cell) for cell in sources]
-    if NUMBA_AVAILABLE and can_enter is None and all(
-        0 <= cell < n for cell in ordered_sources
+    if (
+        NUMBA_AVAILABLE
+        and can_enter is None
+        and all(0 <= cell < n for cell in ordered_sources)
     ):
         if (
             isinstance(max_hops, (float, np.floating)) and math.isnan(max_hops)

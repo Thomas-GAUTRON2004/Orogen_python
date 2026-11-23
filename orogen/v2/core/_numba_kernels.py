@@ -138,6 +138,86 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     return distance
 
 
+def _hops_from_kernel(offsets, adjacency, source_cells, max_hops):
+    """Return multi-source hop distances and source ownership in queue order."""
+    n = offsets.size - 1
+    distance = np.full(n, -1, dtype=np.int16)
+    source_of = np.full(n, -1, dtype=np.int32)
+    queue = np.empty(n, dtype=np.int32)
+    head = 0
+    tail = 0
+
+    for i in range(source_cells.size):
+        cell = int(source_cells[i])
+        if distance[cell] < 0:
+            distance[cell] = 0
+            source_of[cell] = cell
+            queue[tail] = cell
+            tail += 1
+
+    while head < tail:
+        cell = int(queue[head])
+        head += 1
+        next_depth = int(distance[cell]) + 1
+        if next_depth > max_hops:
+            continue
+        for edge in range(offsets[cell], offsets[cell + 1]):
+            neighbour = int(adjacency[edge])
+            if distance[neighbour] >= 0:
+                continue
+            distance[neighbour] = next_depth
+            source_of[neighbour] = source_of[cell]
+            queue[tail] = neighbour
+            tail += 1
+
+    return distance, source_of
+
+
+def _within_km_kernel(offsets, adjacency, xyz, source_mask, source_edges, min_dot):
+    """Mark the union of per-source great-circle radius traversals."""
+    n = source_mask.size
+    reached = np.zeros(n, dtype=np.uint8)
+    seen = np.full(n, -1, dtype=np.int32)
+    queue = np.empty(n, dtype=np.int32)
+
+    for source in range(n):
+        if not source_mask[source]:
+            continue
+        reached[source] = 1
+        if not source_edges[source]:
+            continue
+
+        sx = float(xyz[3 * source])
+        sy = float(xyz[3 * source + 1])
+        sz = float(xyz[3 * source + 2])
+        head = 0
+        tail = 1
+        queue[0] = source
+        seen[source] = source
+
+        while head < tail:
+            cell = int(queue[head])
+            head += 1
+            for edge in range(offsets[cell], offsets[cell + 1]):
+                neighbour = int(adjacency[edge])
+                if seen[neighbour] == source:
+                    continue
+                offset = 3 * neighbour
+                cosine = (
+                    float(xyz[offset]) * sx
+                    + float(xyz[offset + 1]) * sy
+                    + float(xyz[offset + 2]) * sz
+                )
+                if cosine < min_dot:
+                    continue
+                seen[neighbour] = source
+                reached[neighbour] = 1
+                queue[tail] = neighbour
+                tail += 1
+
+    return reached
+
+
 def _far_field_distance_kernel(
     offsets,
     adjacency,
@@ -1001,6 +1081,8 @@ noise3d_numba: Any
 fbm_numba: Any
 fbm_many_numba: Any
 hop_distance_numba: Any
+hops_from_numba: Any
+within_km_numba: Any
 spread_km_numba: Any
 far_field_distance_numba: Any
 emit_far_pushes_numba: Any
@@ -1135,6 +1217,8 @@ if NUMBA_AVAILABLE:
     _fbm_kernel = fbm_numba
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
+    hops_from_numba = njit(cache=True, fastmath=False)(_hops_from_kernel)
+    within_km_numba = njit(cache=True, fastmath=False)(_within_km_kernel)
     spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
     far_field_distance_numba = njit(cache=True, fastmath=False)(
         _far_field_distance_kernel
@@ -1167,6 +1251,7 @@ else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = (
         spread_km_numba
     ) = far_field_distance_numba = walk_numba = emit_far_pushes_numba = None
+    hops_from_numba = within_km_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None

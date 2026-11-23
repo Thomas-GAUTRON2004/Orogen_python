@@ -69,10 +69,39 @@ GOLDEN = [
 ]
 
 
+@pytest.mark.parametrize("path", ["numba", "python"])
 @pytest.mark.parametrize("block", GOLDEN, ids=lambda b: f"seed-{b['seed']}")
-def test_simplex_noise_matches_upstream_bit_for_bit(block) -> None:
+def test_simplex_noise_matches_upstream_bit_for_bit(block, path, monkeypatch) -> None:
+    import orogen.v2.core.simplex_noise as module
+
+    if path == "python":
+        monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+    elif not module.NUMBA_AVAILABLE:
+        pytest.skip("numba is not installed")
     noise = SimplexNoise(block["seed"])
     for index, (x, y, z) in enumerate(block["points"]):
         assert noise.noise3D(x, y, z) == block["n3"][index]
         assert noise.fbm(x, y, z, 5) == block["fbm"][index]
         assert noise.ridged_fbm(x, y, z) == block["rf"][index]
+
+
+@pytest.mark.parametrize("seed", [0, 941, 5501])
+def test_numba_and_python_paths_are_bit_identical(seed, monkeypatch):
+    import numpy as np
+
+    import orogen.v2.core.simplex_noise as module
+
+    if not module.NUMBA_AVAILABLE:
+        pytest.skip("numba is not installed")
+    rng = np.random.default_rng(seed)
+    points = rng.uniform(-30.0, 30.0, size=(400, 3))
+    fast = SimplexNoise(seed)
+    fast_values = [
+        (fast.noise3D(*p), fast.fbm(*p, 5), fast.ridged_fbm(*p)) for p in points
+    ]
+    monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+    slow = SimplexNoise(seed)
+    slow_values = [
+        (slow.noise3D(*p), slow.fbm(*p, 5), slow.ridged_fbm(*p)) for p in points
+    ]
+    assert fast_values == slow_values

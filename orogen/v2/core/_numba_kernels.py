@@ -1018,6 +1018,115 @@ copy_cells_numba: Any
 remove_cells_numba: Any
 
 
+# --- Simplex noise (upstream js/simplex-noise.js): 12 gradients, fBm, ridged fBm. ---
+SIMPLEX_GRADIENTS = np.array(
+    [
+        [1.0, 1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [1.0, -1.0, 0.0],
+        [-1.0, -1.0, 0.0],
+        [1.0, 0.0, 1.0],
+        [-1.0, 0.0, 1.0],
+        [1.0, 0.0, -1.0],
+        [-1.0, 0.0, -1.0],
+        [0.0, 1.0, 1.0],
+        [0.0, -1.0, 1.0],
+        [0.0, 1.0, -1.0],
+        [0.0, -1.0, -1.0],
+    ],
+    dtype=np.float64,
+)
+
+
+def _simplex_noise3d_kernel(x, y, z, perm, pm12, grad):
+    """One simplex sample; same operation order as upstream `noise3D`."""
+    f, h = 1.0 / 3.0, 1.0 / 6.0
+    skew = (x + y + z) * f
+    i, j, k = math.floor(x + skew), math.floor(y + skew), math.floor(z + skew)
+    unskew = (i + j + k) * h
+    x0, y0, z0 = x - i + unskew, y - j + unskew, z - k + unskew
+    if x0 >= y0:
+        if y0 >= z0:
+            i1, j1, k1, i2, j2, k2 = 1, 0, 0, 1, 1, 0
+        elif x0 >= z0:
+            i1, j1, k1, i2, j2, k2 = 1, 0, 0, 1, 0, 1
+        else:
+            i1, j1, k1, i2, j2, k2 = 0, 0, 1, 1, 0, 1
+    else:
+        if y0 < z0:
+            i1, j1, k1, i2, j2, k2 = 0, 0, 1, 0, 1, 1
+        elif x0 < z0:
+            i1, j1, k1, i2, j2, k2 = 0, 1, 0, 0, 1, 1
+        else:
+            i1, j1, k1, i2, j2, k2 = 0, 1, 0, 1, 1, 0
+    x1, y1, z1 = x0 - i1 + h, y0 - j1 + h, z0 - k1 + h
+    x2, y2, z2 = x0 - i2 + 2.0 * h, y0 - j2 + 2.0 * h, z0 - k2 + 2.0 * h
+    x3, y3, z3 = x0 - 1.0 + 3.0 * h, y0 - 1.0 + 3.0 * h, z0 - 1.0 + 3.0 * h
+    ii, jj, kk = i & 255, j & 255, k & 255
+
+    n0 = 0.0
+    a = 0.6 - x0 * x0 - y0 * y0 - z0 * z0
+    if a > 0.0:
+        a *= a
+        g = pm12[ii + perm[jj + perm[kk]]]
+        n0 = a * a * (grad[g, 0] * x0 + grad[g, 1] * y0 + grad[g, 2] * z0)
+    n1 = 0.0
+    b = 0.6 - x1 * x1 - y1 * y1 - z1 * z1
+    if b > 0.0:
+        b *= b
+        g = pm12[ii + i1 + perm[jj + j1 + perm[kk + k1]]]
+        n1 = b * b * (grad[g, 0] * x1 + grad[g, 1] * y1 + grad[g, 2] * z1)
+    n2 = 0.0
+    c = 0.6 - x2 * x2 - y2 * y2 - z2 * z2
+    if c > 0.0:
+        c *= c
+        g = pm12[ii + i2 + perm[jj + j2 + perm[kk + k2]]]
+        n2 = c * c * (grad[g, 0] * x2 + grad[g, 1] * y2 + grad[g, 2] * z2)
+    n3 = 0.0
+    d = 0.6 - x3 * x3 - y3 * y3 - z3 * z3
+    if d > 0.0:
+        d *= d
+        g = pm12[ii + 1 + perm[jj + 1 + perm[kk + 1]]]
+        n3 = d * d * (grad[g, 0] * x3 + grad[g, 1] * y3 + grad[g, 2] * z3)
+    return 32.0 * (n0 + n1 + n2 + n3)
+
+
+def _simplex_fbm_kernel(x, y, z, octaves, persistence, perm, pm12, grad):
+    total = 0.0
+    peak = 0.0
+    amp = 1.0
+    for o in range(octaves):
+        f = 1 << o
+        total += amp * _simplex_noise3d_kernel(x * f, y * f, z * f, perm, pm12, grad)
+        peak += amp
+        amp *= persistence
+    return total / peak
+
+
+def _simplex_ridged_kernel(
+    x, y, z, octaves, lacunarity, gain, offset, perm, pm12, grad
+):
+    total = 0.0
+    freq = 1.0
+    amp = 1.0
+    prev = 1.0
+    peak = 0.0
+    for _ in range(octaves):
+        n = _simplex_noise3d_kernel(x * freq, y * freq, z * freq, perm, pm12, grad)
+        n = offset - abs(n)
+        n = n * n
+        total += n * amp * prev
+        peak += amp
+        prev = min(n, 1.0)
+        freq *= lacunarity
+        amp *= gain
+    return total / peak
+
+
+simplex_noise3d_py = _simplex_noise3d_kernel
+simplex_fbm_py = _simplex_fbm_kernel
+simplex_ridged_py = _simplex_ridged_kernel
+
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
     # Compile dependencies first and expose their dispatchers to the next kernel.
@@ -1063,3 +1172,11 @@ else:
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
     create_cells_numba = create_cells_blocks_numba = snapshot_cells_numba = None
     copy_cells_numba = remove_cells_numba = None
+
+if NUMBA_AVAILABLE:
+    simplex_noise3d_numba = njit(cache=True, fastmath=False)(simplex_noise3d_py)
+    # fBm and ridged fBm call the sample by global name: rebind it to the compiled
+    # sample so that Numba compiles the whole chain (same pattern as _noise3d_kernel).
+    _simplex_noise3d_kernel = simplex_noise3d_numba
+    simplex_fbm_numba = njit(cache=True, fastmath=False)(simplex_fbm_py)
+    simplex_ridged_numba = njit(cache=True, fastmath=False)(simplex_ridged_py)

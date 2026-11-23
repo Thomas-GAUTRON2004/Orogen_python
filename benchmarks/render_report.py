@@ -25,7 +25,6 @@ def validate_report(report: dict, catalog: dict) -> None:
     """Fail clearly when a catalogued workload is missing from a runner."""
     paired = catalog.get("paired", [])
     javascript = report.get("javascript", {})
-    pure = report.get("python", {}).get("pure", {}).get("timings", {})
     missing_js = [item["id"] for item in paired if item["id"] not in javascript]
     python_only = catalog.get("python_only", [])
     required_python = paired + python_only

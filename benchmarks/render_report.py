@@ -27,12 +27,30 @@ def validate_report(report: dict, catalog: dict) -> None:
     javascript = report.get("javascript", {})
     pure = report.get("python", {}).get("pure", {}).get("timings", {})
     missing_js = [item["id"] for item in paired if item["id"] not in javascript]
-    missing_pure = [item["id"] for item in paired if item["id"] not in pure]
-    if missing_js or missing_pure:
+    python_only = catalog.get("python_only", [])
+    required_python = paired + python_only
+    pure_root = report.get("python", {}).get("pure", {})
+    missing_pure = [
+        item["id"] for item in required_python
+        if item["id"] not in (
+            pure_root.get("timings", {}) if item in paired else pure_root
+        )
+    ]
+    missing_numba = []
+    accelerated = report.get("python", {}).get("numba")
+    if accelerated is not None:
+        missing_numba = [
+            item["id"] for item in required_python
+            if item["id"] not in (
+                accelerated.get("timings", {}) if item in paired else accelerated
+            )
+        ]
+    if missing_js or missing_pure or missing_numba:
         raise ValueError(
             "benchmark catalog/runner mismatch: "
             f"missing JavaScript workloads={missing_js}; "
-            f"missing Python workloads={missing_pure}"
+            f"missing Python pure workloads={missing_pure}; "
+            f"missing Python + Numba workloads={missing_numba}"
         )
 
 

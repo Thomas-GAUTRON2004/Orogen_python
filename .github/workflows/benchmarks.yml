@@ -7,12 +7,13 @@ on:
     paths:
       - "orogen/v2/**"
       - "tests/reference/v2/**"
+      - "pyproject.toml"
       - "benchmarks/**"
       - "docs/JS_PYTHON_BENCHMARK.md"
       - ".github/workflows/benchmarks.yml"
   pull_request:
     branches:
-      - "port/v3.0.1"
+      - "port/**"
     paths:
       - "orogen/v2/**"
       - "tests/reference/v2/**"
@@ -64,9 +65,10 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          # Compare against the branch state immediately before the outline-gap optimization.
-          baseline_sha="24dc4d550769efdc57d56506abdc343c576545af"
+          # Compare the PR head with its target branch, not a hard-coded historical commit.
+          baseline_sha="$PR_BASE_SHA"
           git cat-file -e "${baseline_sha}^{commit}" || {
             echo "::error::Benchmark baseline commit ${baseline_sha} is unavailable."
             exit 1

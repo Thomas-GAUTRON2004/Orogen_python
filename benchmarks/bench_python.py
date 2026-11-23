@@ -22,7 +22,13 @@ import numpy as np
 import orogen.v2.tectonics.far_field as far_field_module
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
-from orogen.v2.core.mesh_bfs import hop_distance, hops_from, largest_piece_of, pieces_of, within_km
+from orogen.v2.core.mesh_bfs import (
+    hop_distance,
+    hops_from,
+    largest_piece_of,
+    pieces_of,
+    within_km,
+)
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.sphere_geometry import bearing_to_many, destination_many

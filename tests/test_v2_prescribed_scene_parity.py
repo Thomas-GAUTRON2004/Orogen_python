@@ -1,4 +1,9 @@
-"""Differential tests for prescribed-motion scenes against the pinned JS engine."""
+"""Differential tests for prescribed-motion scenes against the pinned JS engine.
+
+The matrix in ``prescribed-scenes-cases.json`` covers several meshes and seeds. Each
+case is built by the Python scenes and by the upstream JavaScript scenes (submodule
+``external/planet_heightmap_generation``, ed466f9), then compared field by field.
+"""
 
 from __future__ import annotations
 
@@ -21,31 +26,35 @@ from orogen.v2.tectonics.scenarios import (
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "tests" / "reference" / "v2" / "scenes"
-CASES = json.loads(
+MATRIX = json.loads(
     (REFERENCE / "prescribed-scenes-cases.json").read_text(encoding="utf-8")
 )
 CRUST_FIELDS = ("mask", "type", "flags", "formedAt", "terrane")
 
 
-@pytest.fixture(scope="module")
-def mesh():
-    return build_sim_mesh(CASES["mesh"]["cells"], CASES["mesh"]["seed"])
+def _mesh_for(entry):
+    return build_sim_mesh(entry["cells"], entry["seed"])
+
+
+def _mesh_arrays(mesh):
+    return {
+        "numCells": int(mesh.num_cells),
+        "xyz": np.asarray(mesh.xyz, dtype=np.float32).reshape(-1).tolist(),
+        "adjOffset": np.asarray(mesh.adj_offset, dtype=np.int32).tolist(),
+        "adjList": np.asarray(mesh.adj_list, dtype=np.int32).tolist(),
+    }
 
 
 @pytest.fixture(scope="module")
-def js_reference(mesh):
+def js_reference():
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not installed")
-
     payload = {
-        "cases": CASES,
-        "mesh": {
-            "numCells": int(mesh.num_cells),
-            "xyz": np.asarray(mesh.xyz, dtype=np.float32).reshape(-1).tolist(),
-            "adjOffset": np.asarray(mesh.adj_offset, dtype=np.int32).tolist(),
-            "adjList": np.asarray(mesh.adj_list, dtype=np.int32).tolist(),
-        },
+        "meshes": [
+            {"mesh": _mesh_arrays(_mesh_for(entry)), "cases": entry["cases"]}
+            for entry in MATRIX["meshes"]
+        ]
     }
     runner = REFERENCE / "dump_prescribed_scenes.mjs"
     result = subprocess.run(
@@ -55,7 +64,7 @@ def js_reference(mesh):
         capture_output=True,
         text=True,
         check=False,
-        timeout=900,
+        timeout=1200,
     )
     assert result.returncode == 0, (
         f"upstream prescribed-scene JS runner failed:\n{result.stderr}\n{result.stdout}"
@@ -94,11 +103,28 @@ def _assert_vector(actual, expected, *, atol=2e-10):
     )
 
 
+def _cases(scene):
+    return [
+        (mesh_index, case_index)
+        for mesh_index, entry in enumerate(MATRIX["meshes"])
+        for case_index in range(len(entry["cases"][scene]))
+    ]
+
+
+def _ids(pairs):
+    return [f"mesh{m}-case{c}" for m, c in pairs]
+
+
+@pytest.mark.parametrize(
+    "indices", _cases("rigidDrift"), ids=_ids(_cases("rigidDrift"))
+)
 def test_rigid_drift_scene_matches_upstream_state_and_absolute_poses(
-    mesh, js_reference
+    indices, js_reference
 ):
-    test_case = CASES["rigidDrift"]
-    expected = js_reference["rigidDrift"]
+    mesh_index, case_index = indices
+    mesh = _mesh_for(MATRIX["meshes"][mesh_index])
+    test_case = MATRIX["meshes"][mesh_index]["cases"]["rigidDrift"][case_index]
+    expected = js_reference[mesh_index]["rigidDrift"][case_index]
     world = build_rigid_drift_world(mesh, test_case["seed"])
 
     _assert_plates_match(world, expected["plates"])
@@ -121,11 +147,14 @@ def test_rigid_drift_scene_matches_upstream_state_and_absolute_poses(
             _assert_vector(plate.quat, expected_quat, atol=2e-9)
 
 
+@pytest.mark.parametrize("indices", _cases("wilson"), ids=_ids(_cases("wilson")))
 def test_wilson_scene_matches_upstream_crust_and_time_dependent_motion(
-    mesh, js_reference
+    indices, js_reference
 ):
-    test_case = CASES["wilson"]
-    expected = js_reference["wilson"]
+    mesh_index, case_index = indices
+    mesh = _mesh_for(MATRIX["meshes"][mesh_index])
+    test_case = MATRIX["meshes"][mesh_index]["cases"]["wilson"][case_index]
+    expected = js_reference[mesh_index]["wilson"][case_index]
     world = build_wilson_world(mesh, test_case["seed"])
 
     _assert_plates_match(world, expected["plates"])
@@ -145,11 +174,14 @@ def test_wilson_scene_matches_upstream_crust_and_time_dependent_motion(
             _assert_vector(plate.omega, expected_omega, atol=2e-12)
 
 
+@pytest.mark.parametrize("indices", _cases("nudge"), ids=_ids(_cases("nudge")))
 def test_nudge_scene_matches_upstream_start_state_and_prescribed_motion(
-    mesh, js_reference
+    indices, js_reference
 ):
-    test_case = CASES["nudge"]
-    expected = js_reference["nudge"]
+    mesh_index, case_index = indices
+    mesh = _mesh_for(MATRIX["meshes"][mesh_index])
+    test_case = MATRIX["meshes"][mesh_index]["cases"]["nudge"][case_index]
+    expected = js_reference[mesh_index]["nudge"][case_index]
     result = build_nudge_scene(mesh, test_case["seed"])
     world, start = result["world"], result["start"]
     result["drive"](world)

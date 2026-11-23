@@ -24,13 +24,6 @@ const [
 ]);
 
 const payload = JSON.parse(readFileSync(0, "utf8"));
-const source = payload.mesh;
-const mesh = meshFromArrays({
-  numCells: source.numCells,
-  xyz: new Float32Array(source.xyz),
-  adjOffset: new Int32Array(source.adjOffset),
-  adjList: new Int32Array(source.adjList),
-});
 
 const array = (value) => Array.from(value ?? []);
 const crustSnapshot = (plate) => {
@@ -74,8 +67,7 @@ function plateSnapshot(plate) {
   return result;
 }
 
-function rigidDrift() {
-  const testCase = payload.cases.rigidDrift;
+function runRigidDrift(mesh, testCase) {
   const world = buildRigidDriftWorld(mesh, testCase.seed);
   const plates = world.plates.map(plateSnapshot);
   const times = testCase.timesMyr.map((time) => {
@@ -88,8 +80,7 @@ function rigidDrift() {
   return { plates, times };
 }
 
-function wilson() {
-  const testCase = payload.cases.wilson;
+function runWilson(mesh, testCase) {
   const world = buildWilsonWorld(mesh, testCase.seed);
   const plates = world.plates.map(plateSnapshot);
   const times = testCase.timesMyr.map((time) => {
@@ -103,8 +94,7 @@ function wilson() {
   return { plates, times };
 }
 
-function nudge() {
-  const testCase = payload.cases.nudge;
+function runNudge(mesh, testCase) {
   const result = buildNudgeScene(mesh, testCase.seed);
   const { world, start } = result;
   result.drive(world);
@@ -136,8 +126,20 @@ function nudge() {
   };
 }
 
-console.log(JSON.stringify({
-  rigidDrift: rigidDrift(),
-  wilson: wilson(),
-  nudge: nudge(),
-}));
+// One result per mesh entry, in the order of payload.meshes; each holds one result per case.
+const results = payload.meshes.map((entry) => {
+  const source = entry.mesh;
+  const mesh = meshFromArrays({
+    numCells: source.numCells,
+    xyz: new Float32Array(source.xyz),
+    adjOffset: new Int32Array(source.adjOffset),
+    adjList: new Int32Array(source.adjList),
+  });
+  return {
+    rigidDrift: entry.cases.rigidDrift.map((c) => runRigidDrift(mesh, c)),
+    wilson: entry.cases.wilson.map((c) => runWilson(mesh, c)),
+    nudge: entry.cases.nudge.map((c) => runNudge(mesh, c)),
+  };
+});
+
+console.log(JSON.stringify(results));

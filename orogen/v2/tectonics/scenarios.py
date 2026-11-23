@@ -8,8 +8,6 @@ Fidelity status (upstream planet_heightmap_generation @ ed466f9):
   scene catalogue parity test (``tests/test_v2_scene_parity.py``).
 - ``build_rigid_drift_world``, ``build_wilson_world``, ``build_nudge_scene``
   mirror ``rigid-drift.js``, ``wilson-cycle.js`` and the nudge scene.
-- The controlled continental, oceanic and mixed fixtures are test helpers, not
-  part of this module: they live in ``tests/scenario_fixtures.py``.
 
 Every noise field here uses ``SimplexNoise`` as upstream does.
 """

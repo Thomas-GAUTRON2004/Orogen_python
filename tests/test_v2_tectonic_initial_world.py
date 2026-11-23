@@ -6,12 +6,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from scenario_fixtures import (
-    build_continental_scene,
-    build_mixed_scene,
-    build_oceanic_scene,
-    build_scenario_scene,
-)
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import (
@@ -197,61 +191,6 @@ def test_start_world_rejects_invalid_fraction():
     mesh = build_sim_mesh(24, 18)
     with pytest.raises(ValueError):
         build_start_world(mesh, 1, {"continentalFraction": 1.0})
-
-
-def test_continental_oceanic_and_mixed_scenario_contracts():
-    mesh = build_sim_mesh(160, 42)
-    continental = build_continental_scene(mesh, 7)
-    oceanic = build_oceanic_scene(mesh, 8)
-    mixed = build_mixed_scene(mesh, 9)
-    assert np.all(_coverage(continental["world"]) == 1)
-    assert np.all(_coverage(oceanic["world"]) == 1)
-    assert np.all(_coverage(mixed["world"]) == 1)
-    assert continental["start"]["scenario"] == "continental"
-    assert oceanic["start"]["scenario"] == "oceanic"
-    assert mixed["start"]["scenario"] == "mixed"
-    for plate in oceanic["world"].plates:
-        assert np.all(
-            plate.crust.type[plate.crust.mask.astype(bool)] == CrustType["OCEAN"]
-        )
-
-
-def test_scenario_dispatcher_and_invalid_name():
-    mesh = build_sim_mesh(96, 23)
-    assert (
-        build_scenario_scene(mesh, 3, "continental")["start"]["scenario"]
-        == "continental"
-    )
-    assert build_scenario_scene(mesh, 3, "oceanic")["start"]["scenario"] == "oceanic"
-    assert build_scenario_scene(mesh, 3, "mixed")["start"]["scenario"] == "mixed"
-    with pytest.raises(ValueError, match="scenario must be one of"):
-        build_scenario_scene(mesh, 3, "unknown")
-
-
-def test_scenario_builders_apply_configuration_overrides():
-    mesh = build_sim_mesh(160, 42)
-    continental = build_continental_scene(
-        mesh, 17, fraction=0.25, overrides={"initialLandAgeMyr": 1234.0}
-    )
-    oceanic = build_oceanic_scene(mesh, 18, overrides={"initialOceanAgeMyr": 87.0})
-    dispatched = build_scenario_scene(
-        mesh,
-        19,
-        scenario="oceanic",
-        overrides={"initialOceanAgeMyr": 63.0},
-    )
-
-    continent = continental["world"].plates[0]
-    land = continent.crust.mask.astype(bool) & (
-        continent.crust.type != CrustType["OCEAN"]
-    )
-    assert np.all(continent.crust.formedAt[land] == -1234.0)
-    assert continental["start"]["landCells"] == round(mesh.num_cells * 0.25)
-
-    for result, expected_age in ((oceanic, -87.0), (dispatched, -63.0)):
-        for plate in result["world"].plates:
-            mask = plate.crust.mask.astype(bool)
-            assert np.all(plate.crust.formedAt[mask] == expected_age)
 
 
 @pytest.mark.parametrize(

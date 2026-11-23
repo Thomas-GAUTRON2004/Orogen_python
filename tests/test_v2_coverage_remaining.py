@@ -4,10 +4,9 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-import scenario_fixtures
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics import backarc, boundaries, config, initial_world, scenarios
+from orogen.v2.tectonics import backarc, boundaries, config, initial_world
 from orogen.v2.tectonics.backarc import (
     _bridge_pieces,
     _judge_strip,
@@ -219,26 +218,6 @@ def test_start_world_handles_small_mesh_without_apron_or_active_trench(monkeypat
     assert result["start"]["apronCells"] == 0
     assert result["start"]["trench"].size == 0
     assert not np.any(continent.crust.flags & CrustFlag["TRENCH"])
-
-
-def test_scenario_validation_and_oceanic_empty_hemisphere_fallback(monkeypatch):
-    with pytest.raises(ValueError, match="xyz does not match"):
-        scenarios._xyz(SimpleNamespace(xyz=np.zeros(3), num_cells=2))
-
-    mesh = build_sim_mesh(48, 97)
-    monkeypatch.setattr(
-        scenario_fixtures,
-        "_xyz",
-        lambda sim_mesh: np.tile([[1.0, 0.0, 0.0]], (sim_mesh.num_cells, 1)),
-    )
-    monkeypatch.setattr(scenario_fixtures, "random_point", lambda _rng: [1.0, 0.0, 0.0])
-    result = scenario_fixtures.build_oceanic_scene(mesh, 97)
-    assert (
-        result["start"]["plateACells"] + result["start"]["plateBCells"]
-        == mesh.num_cells
-    )
-    assert result["start"]["plateACells"] > 0
-    assert result["start"]["plateBCells"] > 0
 
 
 def test_backarc_strip_judgement_covers_rejections_and_success():

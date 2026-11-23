@@ -437,12 +437,6 @@ times, trench slab lengths, rim cells and passive-sector metadata. Old-range
 invariant tests but are not yet included in the JavaScript differential
 comparison; multi-step tectonic histories are outside this fixture.
 
-### Controlled test fixtures (not public API)
-
-The minimal continental, oceanic and mixed worlds live in `tests/scenario_fixtures.py`.
-They are test fixtures, not part of the `orogen.v2.tectonics` package API, and they
-have no upstream JavaScript counterpart (see `docs/ADAPTATIONS.md`, section 5).
-
 ### Prescribed-motion scenes
 
 - `build_rigid_drift_world` / `set_rigid_drift_time`

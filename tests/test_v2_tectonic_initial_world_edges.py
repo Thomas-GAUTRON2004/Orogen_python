@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-import scenario_fixtures
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics import initial_world, scenarios
@@ -127,36 +126,6 @@ def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):
     )
     with pytest.raises(ValueError, match="at least four"):
         initial_world.build_start_world(mesh, 1)
-
-
-def test_scenario_builders_reject_invalid_fraction_and_normalize_dispatch():
-    mesh = build_sim_mesh(48, 909)
-    for fraction in (0.0, 1.0, float("nan"), float("inf")):
-        with pytest.raises(ValueError, match="fraction must be finite"):
-            scenario_fixtures.build_continental_scene(mesh, fraction=fraction)
-    assert (
-        scenario_fixtures.build_scenario_scene(mesh, 4, "  CONTINENTAL ")["start"][
-            "scenario"
-        ]
-        == "continental"
-    )
-
-
-def test_oceanic_scene_falls_back_when_random_pole_has_one_hemisphere(monkeypatch):
-    mesh = build_sim_mesh(48, 910)
-    monkeypatch.setattr(scenario_fixtures, "random_point", lambda _rng: [0.0, 0.0, 1.0])
-    monkeypatch.setattr(
-        scenario_fixtures,
-        "_xyz",
-        lambda _mesh: np.tile([0.0, 0.0, 1.0], (mesh.num_cells, 1)),
-    )
-    result = scenario_fixtures.build_oceanic_scene(mesh, 5)
-    assert (
-        result["start"]["plateACells"] + result["start"]["plateBCells"]
-        == mesh.num_cells
-    )
-    assert result["start"]["plateACells"] > 0
-    assert result["start"]["plateBCells"] > 0
 
 
 def test_scene_kit_builds_continent_apron_and_background_partition():

@@ -4,7 +4,7 @@ import { performance } from "node:perf_hooks";
 import { summarize } from "./bench-utils.mjs";
 import { FastNoise } from "../tests/reference/v2/core/fast-noise.mjs";
 import * as geom from "../tests/reference/v2/core/sphere-geom.mjs";
-import { hopDistance, piecesOf, largestPieceOf, withinKm } from "../tests/reference/v2/core/mesh-bfs.mjs";
+import { hopDistance, piecesOf, largestPieceOf, withinKm, hopsFrom } from "../tests/reference/v2/core/mesh-bfs.mjs";
 import { spreadKm } from "../tests/reference/v2/core/min-heap.mjs";
 import { CrustRaster, CrustType } from "../tests/reference/v2/tectonics/crust.mjs";
 
@@ -107,6 +107,10 @@ function benchmarkJavaScript() {
     mesh_within_km_ms: measure(() => {
       const reached = withinKm(mesh, (cell) => cell === 0, 5_000);
       globalThis.__benchSink = reached.reduce((sum, value) => sum + value, 0);
+    }),
+    mesh_multi_source_bfs_ms: measure(() => {
+      const result = hopsFrom(mesh, [0, Math.floor(N_CELLS / 2)]);
+      globalThis.__benchSink = result.dist[N_CELLS - 1] + result.source[N_CELLS - 1];
     }),
     mesh_dijkstra_ms: measure(() => {
       const distance = new Float64Array(N_CELLS);

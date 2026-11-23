@@ -456,3 +456,22 @@ Python-only tectonic workloads measured `spread_push` at 705.502 ms without Numb
 [40,000-cell paired benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44907829831).
 
 The graph results are synthetic microbenchmarks, not production spherical-mesh or end-to-end planet-generation timings. In this run, Numba makes the tested connected-components, geometry, FBM, Dijkstra and crust batch paths competitive with or faster than the JavaScript reference. BFS remains about 3.8× slower than JavaScript with Numba; that is a measured optimization target, not a reason to weaken the test or benchmark gates.
+
+
+### Additional mesh workloads and initial-world report integration
+
+The paired suite also measures largest connected-component extraction and
+great-circle radius traversal (within_km, 5,000 km), in JavaScript, Python
+without Numba, and Python with Numba. These complement BFS, connected
+components and Dijkstra by covering two operations used by mesh-region
+selection and spatial reachability.
+
+For pull requests, the generated Markdown and CSV reports include the
+initial-world builder measurements as well as the paired microbenchmarks.
+The Markdown table reports mesh construction separately from builder time,
+the PR-base and PR-head medians when a baseline exists, the percentage change,
+and layout-attempt counts. If the base does not contain the builder, the report
+shows the PR-head measurement and marks the comparison as unavailable. The CSV
+contains one row per available base/head measurement, with the mesh-build time
+and comparison percentage in separate columns. The raw initial-world JSON
+files remain attached as a dedicated artifact.

@@ -62,47 +62,69 @@ jobs:
         run: node benchmarks/bench.mjs > benchmark-results.json
       - name: Generate Markdown and CSV reports
         run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
-      - name: Benchmark initial-world construction against the PR parent
+      - name: Benchmark initial-world construction against the PR base when available
         if: github.event_name == 'pull_request'
+        id: initial-world
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          # Compare the PR head with its target branch, not a hard-coded historical commit.
+          set -euo pipefail
+          benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 3)
           baseline_sha="$PR_BASE_SHA"
           git cat-file -e "${baseline_sha}^{commit}" || {
-            echo "::error::Benchmark baseline commit ${baseline_sha} is unavailable."
+            echo "::error::Benchmark base commit ${baseline_sha} is unavailable."
             exit 1
           }
           git worktree add --detach "$RUNNER_TEMP/orogen-baseline" "$baseline_sha"
-          benchmark_args=(--sizes 512 1024 4096 40000 --seed 941 --warmups 1 --repeats 3)
-          (
-            cd "$RUNNER_TEMP"
-            PYTHONPATH="$RUNNER_TEMP/orogen-baseline" \
-              python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
-              "${benchmark_args[@]}" --label "$baseline_sha" \
-              > "$RUNNER_TEMP/initial-world-baseline.json"
-          )
-          (
-            cd "$RUNNER_TEMP"
-            PYTHONPATH="$GITHUB_WORKSPACE" \
-              python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
-              "${benchmark_args[@]}" --label "$PR_HEAD_SHA" \
-              > "$RUNNER_TEMP/initial-world-head.json"
-          )
-          python benchmarks/compare_initial_world.py \
-            --baseline "$RUNNER_TEMP/initial-world-baseline.json" \
-            --head "$RUNNER_TEMP/initial-world-head.json" \
-            --summary "$GITHUB_STEP_SUMMARY" \
-            --output "$RUNNER_TEMP/initial-world-comparison.json"
-      - name: Upload initial-world benchmark comparison
+
+          # This constructor may be introduced by the PR itself. In that case
+          # the base revision has no equivalent callable to compare against.
+          if [ ! -f "$RUNNER_TEMP/orogen-baseline/orogen/v2/tectonics/initial_world.py" ]; then
+            echo "baseline_available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The PR base has no initial-world builder; recording the PR-head benchmark without claiming an A/B comparison."
+            (
+              cd "$RUNNER_TEMP"
+              PYTHONPATH="$GITHUB_WORKSPACE" \
+                python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
+                "${benchmark_args[@]}" --label "$PR_HEAD_SHA" \
+                > "$RUNNER_TEMP/initial-world-head.json"
+            )
+            {
+              echo "### Initial-world construction benchmark"
+              echo
+              echo "The PR base (`$baseline_sha`) does not contain `orogen/v2/tectonics/initial_world.py`. A before/after comparison is therefore not applicable. The PR-head measurements are attached as an artifact."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "baseline_available=true" >> "$GITHUB_OUTPUT"
+            (
+              cd "$RUNNER_TEMP"
+              PYTHONPATH="$RUNNER_TEMP/orogen-baseline" \
+                python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
+                "${benchmark_args[@]}" --label "$baseline_sha" \
+                > "$RUNNER_TEMP/initial-world-baseline.json"
+            )
+            (
+              cd "$RUNNER_TEMP"
+              PYTHONPATH="$GITHUB_WORKSPACE" \
+                python "$GITHUB_WORKSPACE/benchmarks/bench_initial_world.py" \
+                "${benchmark_args[@]}" --label "$PR_HEAD_SHA" \
+                > "$RUNNER_TEMP/initial-world-head.json"
+            )
+            python benchmarks/compare_initial_world.py \
+              --baseline "$RUNNER_TEMP/initial-world-baseline.json" \
+              --head "$RUNNER_TEMP/initial-world-head.json" \
+              --summary "$GITHUB_STEP_SUMMARY" \
+              --output "$RUNNER_TEMP/initial-world-comparison.json"
+          fi
+      - name: Upload initial-world benchmark results
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: initial-world-builder-benchmarks
           path: |
-            ${{ runner.temp }}/initial-world-baseline.json
             ${{ runner.temp }}/initial-world-head.json
+            ${{ runner.temp }}/initial-world-baseline.json
             ${{ runner.temp }}/initial-world-comparison.json
           if-no-files-found: error
           retention-days: 90

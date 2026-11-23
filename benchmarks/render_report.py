@@ -121,7 +121,9 @@ def python_only_table(report: dict, catalog: dict) -> list[str]:
 
 
 
-def initial_world_table(head_path: Path | None, baseline_path: Path | None) -> tuple[list[str], list[dict]]:
+def initial_world_table(
+    head_path: Path | None, baseline_path: Path | None
+) -> tuple[list[str], list[dict]]:
     """Render initial-world timings and return normalized CSV rows."""
     if head_path is None:
         return [], []
@@ -131,7 +133,10 @@ def initial_world_table(head_path: Path | None, baseline_path: Path | None) -> t
         if baseline_path is not None
         else None
     )
-    baseline_by_size = {int(row["num_cells"]): row for row in (baseline or {}).get("results", [])}
+    baseline_by_size = {
+        int(row["num_cells"]): row
+        for row in (baseline or {}).get("results", [])
+    }
     lines = [
         "## Initial-world construction",
         "",
@@ -142,16 +147,28 @@ def initial_world_table(head_path: Path | None, baseline_path: Path | None) -> t
     for head_row in head.get("results", []):
         size = int(head_row["num_cells"])
         base_row = baseline_by_size.get(size)
-        base_seconds = float(base_row["median_build_seconds"]) if base_row is not None else None
+        base_seconds = (
+            float(base_row["median_build_seconds"]) if base_row is not None else None
+        )
         head_seconds = float(head_row["median_build_seconds"])
-        change = ((head_seconds / base_seconds - 1.0) * 100.0) if base_seconds is not None and base_seconds > 0.0 else None
+        change = (
+            (head_seconds / base_seconds - 1.0) * 100.0
+            if base_seconds is not None and base_seconds > 0.0
+            else None
+        )
         base_text = fmt(base_seconds * 1000.0) + " ms" if base_seconds is not None else "n/a"
         change_text = "{:+.1f}%".format(change) if change is not None else "n/a"
         attempts_text = ", ".join(str(value) for value in head_row.get("layout_attempts", []))
-        lines.append("| {:,} | {} ms | {} | {} ms | {} | {} |".format(
-            size, fmt(float(head_row["mesh_build_seconds"]) * 1000.0), base_text,
-            fmt(head_seconds * 1000.0), change_text, attempts_text
-        ))
+        lines.append(
+            "| {:,} | {} ms | {} | {} ms | {} | {} |".format(
+                size,
+                fmt(float(head_row["mesh_build_seconds"]) * 1000.0),
+                base_text,
+                fmt(head_seconds * 1000.0),
+                change_text,
+                attempts_text,
+            )
+        )
         for runtime_name, row in (("PR head", head_row), ("PR base", base_row)):
             if row is None:
                 continue
@@ -169,6 +186,7 @@ def initial_world_table(head_path: Path | None, baseline_path: Path | None) -> t
         "",
     ])
     return lines, rows
+
 
 def runtime_lines(report: dict) -> list[str]:
     runtime = report["runtime"]
@@ -230,7 +248,9 @@ def main() -> None:
     catalog = load_catalog(args.registry)
     validate_report(report, catalog)
     configuration = report["configuration"]
-    initial_world_lines, initial_world_rows = initial_world_table(args.initial_world_head, args.initial_world_baseline)
+    initial_world_lines, initial_world_rows = initial_world_table(
+        args.initial_world_head, args.initial_world_baseline
+    )
     lines = [
         "# JavaScript / Python / Numba benchmark",
         "",
@@ -281,7 +301,13 @@ def main() -> None:
     rows = csv_rows(report, catalog, initial_world_rows)
     columns = [
         "operation", "runtime", "median_ms", "mean_ms", "stddev_ms",
-        "p95_ms", "min_ms", "max_ms", "samples_ms", "mesh_build_ms", "change_percent", "layout_attempts",
+        "p95_ms",
+        "min_ms",
+        "max_ms",
+        "samples_ms",
+        "mesh_build_ms",
+        "change_percent",
+        "layout_attempts",
     ]
     with args.csv.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")

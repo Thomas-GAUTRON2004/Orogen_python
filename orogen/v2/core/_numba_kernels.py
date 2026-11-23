@@ -1180,3 +1180,6 @@ if NUMBA_AVAILABLE:
     _simplex_noise3d_kernel = simplex_noise3d_numba
     simplex_fbm_numba = njit(cache=True, fastmath=False)(simplex_fbm_py)
     simplex_ridged_numba = njit(cache=True, fastmath=False)(simplex_ridged_py)
+else:
+    # Keep the optional simplex dispatchers importable when the speed extra is absent.
+    simplex_noise3d_numba = simplex_fbm_numba = simplex_ridged_numba = None

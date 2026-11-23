@@ -127,7 +127,18 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Generate Markdown and CSV reports
-        run: python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY"
+        env:
+          INITIAL_WORLD_BASELINE_AVAILABLE: ${{ steps.initial-world.outputs.baseline_available }}
+        run: |
+          set -euo pipefail
+          initial_world_args=()
+          if [ -f "$RUNNER_TEMP/initial-world-head.json" ]; then
+            initial_world_args+=(--initial-world-head "$RUNNER_TEMP/initial-world-head.json")
+            if [ "$INITIAL_WORLD_BASELINE_AVAILABLE" = "true" ] && [ -f "$RUNNER_TEMP/initial-world-baseline.json" ]; then
+              initial_world_args+=(--initial-world-baseline "$RUNNER_TEMP/initial-world-baseline.json")
+            fi
+          fi
+          python benchmarks/render_report.py benchmark-results.json --summary "$GITHUB_STEP_SUMMARY" "${initial_world_args[@]}"
       - name: Upload benchmark reports
         uses: actions/upload-artifact@v4
         with:

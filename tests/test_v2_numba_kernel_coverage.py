@@ -453,3 +453,73 @@ def test_numba_same_raster_rotation_skips_zero_axis():
     assert fields[52][1] == 0
     assert fields[53][1] == 0
     assert fields[54][1] == 0
+
+
+
+def test_numba_mesh_bfs_python_bodies_cover_new_kernel_branches():
+    """Exercise the new BFS bodies as Python functions for branch coverage."""
+    offsets, adjacency = _graph()
+    source_cells = np.asarray([0, 2, 0], dtype=np.int32)
+
+    distance, source_of = kernels.hops_from_numba.py_func(
+        offsets, adjacency, source_cells, 1
+    )
+    assert distance.tolist() == [0, 1, 0]
+    assert source_of.tolist() == [0, 0, 2]
+
+    cutoff_distance, cutoff_source = kernels.hops_from_numba.py_func(
+        offsets, adjacency, source_cells, 0
+    )
+    assert cutoff_distance.tolist() == [0, -1, 0]
+    assert cutoff_source.tolist() == [0, -1, 2]
+
+    empty_distance, empty_source = kernels.hops_from_numba.py_func(
+        offsets, adjacency, np.asarray([], dtype=np.int32), 3
+    )
+    assert np.all(empty_distance == -1)
+    assert np.all(empty_source == -1)
+
+    xyz = np.asarray(
+        [
+            1.0,
+            0.0,
+            0.0,
+            math.cos(0.01),
+            math.sin(0.01),
+            0.0,
+            math.cos(0.02),
+            math.sin(0.02),
+            0.0,
+        ],
+        dtype=np.float64,
+    )
+    radius_reached = kernels.within_km_numba.py_func(
+        offsets,
+        adjacency,
+        xyz,
+        np.asarray([True, False, False], dtype=np.bool_),
+        np.asarray([True, False, False], dtype=np.bool_),
+        math.cos(0.015),
+    )
+    assert radius_reached.tolist() == [1, 1, 0]
+
+    # Sources without a non-source boundary are marked but not traversed.
+    source_only = kernels.within_km_numba.py_func(
+        offsets,
+        adjacency,
+        xyz,
+        np.asarray([True, False, False], dtype=np.bool_),
+        np.asarray([False, False, False], dtype=np.bool_),
+        math.cos(0.015),
+    )
+    assert source_only.tolist() == [1, 0, 0]
+
+    no_sources = kernels.within_km_numba.py_func(
+        offsets,
+        adjacency,
+        xyz,
+        np.zeros(3, dtype=np.bool_),
+        np.zeros(3, dtype=np.bool_),
+        math.cos(0.015),
+    )
+    assert no_sources.tolist() == [0, 0, 0]

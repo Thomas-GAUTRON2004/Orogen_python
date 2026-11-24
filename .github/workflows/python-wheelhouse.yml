@@ -33,7 +33,7 @@ jobs:
       - name: Upgrade packaging tools
         run: python -m pip install --upgrade pip setuptools wheel
 
-      - name: Download all project wheels
+      - name: Download all project wheels and static-analysis tools
         run: |
           mkdir -p dist/wheelhouse
           python -m pip download \
@@ -41,7 +41,10 @@ jobs:
             --prefer-binary \
             --dest dist/wheelhouse \
             ".[test,speed,quality,benchmark]" \
-            "ruff==0.17.5"
+            "ruff==0.17.5" \
+            "radon>=6" \
+            "setuptools>=77" \
+            "wheel"
 
       - name: Add offline installation instructions
         run: |
@@ -50,17 +53,22 @@ jobs:
           =================================
 
           Target: CPython 3.12, Linux x86_64.
-          Contents: wheels for the project's runtime, test, speed,
-          benchmark and quality dependencies, including Ruff 0.17.5.
+          Contents: wheels for runtime, test, speed, benchmark and quality
+          dependencies, including Ruff 0.17.5, mypy, Bandit, Xenon and Radon,
+          plus setuptools and wheel build requirements.
 
           From the repository root, with this artifact extracted:
-            python -m pip install --no-index --find-links ./wheelhouse "orogen[test,speed,quality,benchmark]"
+            python -m pip install --no-index --find-links ./wheelhouse ".[test,speed,quality,benchmark]" "ruff==0.17.5" "radon>=6"
 
-          To run Ruff:
-            python -m ruff --version
+          Static-analysis commands:
             python -m ruff check .
             python -m ruff format --check scripts/check_mypy_regressions.py
             python -m ruff format --check orogen scripts tests
+            python -m mypy --no-error-summary --show-error-codes orogen
+            bandit -q -r orogen
+            xenon --max-absolute C orogen
+            radon cc -s -a orogen
+            radon mi -s orogen
 
           This bundle is platform- and Python-version-specific.
           EOF

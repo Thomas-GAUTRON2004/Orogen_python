@@ -50,7 +50,7 @@ jobs:
         run: |
           mkdir -p dist/ci/wheelhouse dist/runtime/wheelhouse
 
-      - name: Download complete Python CI dependencies
+      - name: Download complete Python CI dependencies and static-analysis tools
         run: |
           python -m pip download --only-binary=:all: --prefer-binary --dest dist/ci/wheelhouse ".[test,speed,quality]" "ruff==0.17.5" "radon>=6" "setuptools>=77" "wheel"
         shell: bash
@@ -85,21 +85,31 @@ jobs:
           Includes project dependencies and build requirements (setuptools>=77, wheel),
           pytest, pytest-cov, Numba, Ruff 0.17.5, mypy, Bandit, Xenon, Radon,
           and Delaunator 5.0.1 under node_modules.
-          
+
           Install Python dependencies from the repository root:
             python -m pip install --no-index --find-links ./wheelhouse ".[test,speed,quality]"
             python -m pip install --no-index --find-links ./wheelhouse "ruff==0.17.5" "radon>=6"
-          
+
+          Static-analysis commands:
+            python -m ruff check .
+            python -m ruff format --check scripts/check_mypy_regressions.py
+            python -m ruff format --check orogen scripts tests
+            python -m mypy --no-error-summary --show-error-codes orogen
+            bandit -q -r orogen
+            xenon --max-absolute C orogen
+            radon cc -s -a orogen
+            radon mi -s orogen
+
           For JS/Python differential tests, install Node.js 22 and copy the
           bundled node_modules directory to the repository root.
-          Run the checks using the commands in .github/workflows/python-tests.yml.
-          Some CI steps also require Git, network access, and the Gitleaks binary.
+          Run the remaining checks using .github/workflows/python-tests.yml.
+          Secret scanning also requires Git, network access, and the Gitleaks binary.
           EOF
           cat > dist/README-RUNTIME.txt <<'EOF'
           Orogen - runtime-only bundle (no tests or development tools)
           Target: CPython 3.12 on the platform named in this archive.
           Includes the built Orogen wheel and its runtime dependencies only.
-          
+
           Install from the repository root:
             python -m pip install --no-index --find-links ./wheelhouse orogen
           EOF

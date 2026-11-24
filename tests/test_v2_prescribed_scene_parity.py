@@ -8,12 +8,12 @@ case is built by the Python scenes and by the upstream JavaScript scenes (submod
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import numpy as np
-import os
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh

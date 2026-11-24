@@ -1,7 +1,5 @@
 """Numerical compatibility tests for the far-field vector norm."""
 
-import math
-
 from orogen.v2.tectonics.far_field import _norm3
 
 

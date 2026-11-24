@@ -576,11 +576,21 @@ def test_numba_emit_far_pushes_python_body_covers_filter_and_take_paths():
     crust_flags = np.asarray([0, 0, 0, 4, 0], dtype=np.int32)
     xyz = np.asarray(
         [
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-            -1.0, 0.0, 0.0,
-            0.0, -1.0, 0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0,
+            0.0,
         ],
         dtype=np.float64,
     )

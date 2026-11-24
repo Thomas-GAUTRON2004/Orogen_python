@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
-import os
 import pytest
 
 from orogen.v2.tectonics.config import (

@@ -43,7 +43,9 @@ def original():
     node = shutil.which("node")
     if node is None:
         if os.environ.get("CI"):
-            pytest.fail("Node.js is required for upstream JavaScript differential tests")
+            pytest.fail(
+                "Node.js is required for upstream JavaScript differential tests"
+            )
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     result = subprocess.run(
         [node, str(RUNNER)],

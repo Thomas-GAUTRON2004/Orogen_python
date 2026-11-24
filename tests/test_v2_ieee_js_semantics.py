@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import os
 import pytest
 
 from orogen.v2.tectonics.initial_landmass import (
@@ -64,6 +65,8 @@ def test_max_matches_javascript(case):
 def test_fixture_is_current_with_node():
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("node is not installed")
         pytest.skip("node is not installed")
     result = subprocess.run(
         [node, str(REF / "ieee_dump.mjs")],

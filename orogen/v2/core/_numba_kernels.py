@@ -905,6 +905,26 @@ def _snapshot_cell_fields_kernel(fields, cell):
     return values
 
 
+def _hypot3(x, y, z):
+    """3-D norm with the algorithm of V8's Math.hypot (max scaling, Kahan sum).
+
+    Used everywhere the upstream JavaScript calls Math.hypot, so that the
+    Python and Numba paths are bit-identical to the reference.
+    """
+    ax, ay, az = abs(x), abs(y), abs(z)
+    m = max(ax, max(ay, az))
+    if m == 0.0:
+        return 0.0
+    s = 0.0
+    c = 0.0
+    for v in (ax / m, ay / m, az / m):
+        summand = v * v - c
+        pre = s + summand
+        c = (pre - s) - summand
+        s = pre
+    return math.sqrt(s) * m
+
+
 def _record_push_kernel(
     far_work,
     far_dist,
@@ -952,7 +972,7 @@ def _record_push_kernel(
     ax = cosine * px - qx
     ay = cosine * py - qy
     az = cosine * pz - qz
-    length = math.sqrt(ax * ax + ay * ay + az * az)
+    length = _hypot3(ax, ay, az)
     if length < 1e-9:
         return
     ax = ax / length
@@ -969,7 +989,7 @@ def _record_push_kernel(
     x = vx * old_work + ax * felt
     y = vy * old_work + ay * felt
     z = vz * old_work + az * felt
-    norm = math.sqrt(x * x + y * y + z * z)
+    norm = _hypot3(x, y, z)
     if norm == 0.0:
         norm = 1.0
     far_dx[cell] = max(-127, min(127, math.floor(127.0 * x / norm + 0.5)))
@@ -1224,6 +1244,7 @@ if NUMBA_AVAILABLE:
         _far_field_distance_kernel
     )
     # Helper dispatchers must exist before the kernel that calls them is compiled.
+    _hypot3 = njit(cache=True, fastmath=False)(_hypot3)
     _record_push_kernel = njit(cache=True, fastmath=False)(_record_push_kernel)
     emit_far_pushes_numba = njit(cache=True, fastmath=False)(_emit_far_pushes_kernel)
     walk_numba = njit(cache=True, fastmath=False)(_walk_kernel)

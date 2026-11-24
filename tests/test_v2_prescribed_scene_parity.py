@@ -13,6 +13,7 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
+import os
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
@@ -49,6 +50,8 @@ def _mesh_arrays(mesh):
 def js_reference():
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("node is not installed")
         pytest.skip("node is not installed")
     payload = {
         "meshes": [

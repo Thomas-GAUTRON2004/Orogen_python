@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import os
 import pytest
 
 from orogen.v2.tectonics.config import (
@@ -75,6 +76,8 @@ def _cases() -> dict[str, dict[str, dict[str, Any]]]:
 def test_mechanism_and_nested_overrides_match_upstream_world_constructor():
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("node is not installed")
         pytest.skip("node is not installed")
 
     cases = _cases()

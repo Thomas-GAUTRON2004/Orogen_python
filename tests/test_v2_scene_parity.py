@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import os
 import pytest
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
@@ -76,6 +77,8 @@ def test_fixture_is_current_with_the_submodule() -> None:
 
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("node is not installed")
         pytest.skip("node is not installed")
     dump = Path(__file__).parent / "reference" / "v2" / "scenes" / "dump_scenes.mjs"
     try:
@@ -87,5 +90,7 @@ def test_fixture_is_current_with_the_submodule() -> None:
             timeout=600,
         )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        if os.environ.get("CI"):
+            pytest.fail(f"upstream dump unavailable: {error}")
         pytest.skip(f"upstream dump unavailable: {error}")
     assert json.loads(result.stdout) == EXPECTED

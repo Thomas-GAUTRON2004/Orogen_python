@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -203,6 +204,8 @@ def test_production_resolution_start_world_matches_javascript_reference(
     mesh = build_sim_mesh(mesh_cells, 911)
     node = shutil.which("node")
     expected = None
+    if node is None and os.environ.get("CI"):
+        pytest.fail("node is required in CI for the JavaScript start-world reference")
     if node is not None:
         expected = _run_initial_world_reference(node, mesh, seed, TECTONICS)
         assert expected is not None, (

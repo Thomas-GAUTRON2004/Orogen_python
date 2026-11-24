@@ -206,6 +206,18 @@ jobs:
             orogen/v2/tectonics/ops/rift_path.py \
             orogen/v2/tectonics/subduction_init.py
 
+      - name: Guard the pinned upstream submodule
+        run: test -f external/planet_heightmap_generation/js/rng.js
+
+      - name: Fidelity regression tests (fail fast, before the coverage run)
+        run: |
+          python -m pytest -q \
+            tests/test_v2_hypot_parity.py \
+            tests/test_v2_simplex_noise.py \
+            tests/test_v2_tectonic_far_field_numeric.py \
+            tests/test_v2_differential.py \
+            tests/test_v2_tectonic_config_upstream.py
+
       - name: Run Python and JavaScript differential tests (including SciPy sphere mesh)
         env:
           NUMBA_JIT_COVERAGE: "1"

@@ -114,7 +114,7 @@ def test_start_world_without_trench_coverage_and_without_old_ranges():
         },
     )
     assert result["start"]["trench"].size == 0
-    assert np.count_nonzero(result["world"].plates[0].crust.flags) >= 0
+    assert not np.any(result["world"].plates[0].crust.flags & CrustFlag["TRENCH"])
 
 
 def test_start_world_rejects_mesh_with_too_few_cells(monkeypatch):

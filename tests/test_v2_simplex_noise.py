@@ -69,13 +69,25 @@ GOLDEN = [
 ]
 
 
+def _force_pure_python(monkeypatch, module) -> None:
+    """Make the Python path really pure.
+
+    fbm and ridged fBm call the sample by global name; importing with Numba rebinds
+    that name to the compiled sample, so the Python path must rebind it back.
+    """
+    from orogen.v2.core import _numba_kernels as kernels
+
+    monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+    monkeypatch.setattr(kernels, "_simplex_noise3d_kernel", kernels.simplex_noise3d_py)
+
+
 @pytest.mark.parametrize("path", ["numba", "python"])
 @pytest.mark.parametrize("block", GOLDEN, ids=lambda b: f"seed-{b['seed']}")
 def test_simplex_noise_matches_upstream_bit_for_bit(block, path, monkeypatch) -> None:
     import orogen.v2.core.simplex_noise as module
 
     if path == "python":
-        monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+        _force_pure_python(monkeypatch, module)
     elif not module.NUMBA_AVAILABLE:
         pytest.skip("numba is not installed")
     noise = SimplexNoise(block["seed"])
@@ -99,7 +111,7 @@ def test_numba_and_python_paths_are_bit_identical(seed, monkeypatch):
     fast_values = [
         (fast.noise3D(*p), fast.fbm(*p, 5), fast.ridged_fbm(*p)) for p in points
     ]
-    monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+    _force_pure_python(monkeypatch, module)
     slow = SimplexNoise(seed)
     slow_values = [
         (slow.noise3D(*p), slow.fbm(*p, 5), slow.ridged_fbm(*p)) for p in points

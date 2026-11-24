@@ -8,6 +8,7 @@ value must agree; there is no tolerance.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -41,10 +42,17 @@ def test_default_value_matches_upstream(key: str):
     assert _normal(TECTONICS[key]) == _normal(EXPECTED[key])
 
 
+def _unavailable(reason: str) -> None:
+    """Fail under CI, where the upstream check must run; skip on a developer machine."""
+    if os.environ.get("CI"):
+        pytest.fail(reason)
+    pytest.skip(reason)
+
+
 def test_fixture_is_current_with_the_submodule():
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is not installed")
+        _unavailable("node is not installed")
     try:
         result = subprocess.run(
             [node, str(REF / "dump_config.mjs")],
@@ -54,5 +62,5 @@ def test_fixture_is_current_with_the_submodule():
             timeout=120,
         )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
-        pytest.skip(f"upstream dump unavailable: {error}")
+        _unavailable(f"upstream dump unavailable: {error}")
     assert _normal(json.loads(result.stdout)) == _normal(EXPECTED)

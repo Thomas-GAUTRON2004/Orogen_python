@@ -522,3 +522,111 @@ def test_numba_mesh_bfs_python_bodies_cover_new_kernel_branches():
         math.cos(0.015),
     )
     assert no_sources.tolist() == [0, 0, 0]
+
+
+def test_numba_record_push_python_body_covers_source_and_vector_guards():
+    def record(source, source_xyz, far_axis=(0, 127, 0), felt=1.0):
+        far_work = np.asarray([10.0, 0.0], dtype=np.float64)
+        far_dist = np.asarray([5.0, 0.0], dtype=np.float64)
+        far_fold = np.asarray([2.0, 0.0], dtype=np.float64)
+        far_at = np.asarray([0.0, 0.0], dtype=np.float64)
+        far_dx = np.asarray([far_axis[0], 0], dtype=np.int8)
+        far_dy = np.asarray([far_axis[1], 0], dtype=np.int8)
+        far_dz = np.asarray([far_axis[2], 0], dtype=np.int8)
+        xyz = np.asarray([1.0, 0.0, 0.0, *source_xyz], dtype=np.float64)
+        kernels._record_push_kernel.py_func(
+            far_work,
+            far_dist,
+            far_fold,
+            far_at,
+            far_dx,
+            far_dy,
+            far_dz,
+            xyz,
+            0,
+            felt,
+            25.0,
+            source,
+            10.0,
+            100.0,
+        )
+        return far_dx, far_dy, far_dz
+
+    # Missing and self sources return after updating the scalar accumulators.
+    record(-1, (0.0, 1.0, 0.0))
+    record(0, (0.0, 1.0, 0.0))
+
+    # Nearly coincident positions produce a degenerate tangent direction.
+    record(1, (1.0, 1e-12, 0.0))
+
+    # A non-aligned stored axis is flipped toward the source tangent.
+    dx, dy, dz = record(1, (0.0, 1.0, 0.0))
+    assert (int(dx[0]), int(dy[0]), int(dz[0])) == (0, -127, 0)
+
+    # Zero work and a zero stored axis exercise the zero-norm fallback.
+    dx, dy, dz = record(1, (0.0, 1.0, 0.0), far_axis=(0, 0, 0), felt=0.0)
+    assert (int(dx[0]), int(dy[0]), int(dz[0])) == (0, 0, 0)
+
+
+def test_numba_emit_far_pushes_python_body_covers_filter_and_take_paths():
+    reached = np.asarray([0, 1, 2, 3, 4], dtype=np.int32)
+    distance = np.asarray([0.0, 0.0, 0.0, 0.0, 1000.0], dtype=np.float64)
+    source_of = np.asarray([0, 0, 2, 0, 0], dtype=np.int32)
+    crust_type = np.asarray([0, 1, 2, 1, 1], dtype=np.int32)
+    crust_flags = np.asarray([0, 0, 0, 4, 0], dtype=np.int32)
+    xyz = np.asarray(
+        [
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+            -1.0, 0.0, 0.0,
+            0.0, -1.0, 0.0,
+        ],
+        dtype=np.float64,
+    )
+    far_work = np.zeros(5, dtype=np.float64)
+    far_dist = np.zeros(5, dtype=np.float64)
+    far_fold = np.zeros(5, dtype=np.float64)
+    far_at = np.zeros(5, dtype=np.float64)
+    far_dx = np.zeros(5, dtype=np.int8)
+    far_dy = np.zeros(5, dtype=np.int8)
+    far_dz = np.zeros(5, dtype=np.int8)
+    out_cells = np.empty(5, dtype=np.int32)
+    out_inc = np.empty(5, dtype=np.float64)
+    out_from = np.empty(5, dtype=np.int32)
+    out_dist = np.empty(5, dtype=np.float64)
+
+    written = kernels.emit_far_pushes_numba.py_func(
+        reached,
+        distance,
+        source_of,
+        crust_type,
+        crust_flags,
+        xyz,
+        far_work,
+        far_dist,
+        far_fold,
+        far_at,
+        far_dx,
+        far_dy,
+        far_dz,
+        1.0,
+        1.0,
+        10.0,
+        100.0,
+        0.25,
+        1.5,
+        2,
+        4,
+        0,
+        out_cells,
+        out_inc,
+        out_from,
+        out_dist,
+    )
+
+    # Ocean and sub-threshold arrivals are filtered; normal, craton, and weak
+    # cells exercise all three take-factor branches.
+    assert written == 3
+    assert out_cells[:written].tolist() == [1, 2, 3]
+    np.testing.assert_allclose(out_inc[:written], [1.0, 0.25, 1.5])

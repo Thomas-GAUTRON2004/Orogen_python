@@ -3,6 +3,7 @@
 Les valeurs attendues ont été calculées avec Node (Math.hypot) sur des triplets
 fixes : elles ne dépendent d'aucune implémentation Python.
 """
+
 import pytest
 
 from orogen.v2.core._numba_kernels import _hypot3

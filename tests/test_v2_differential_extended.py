@@ -14,7 +14,6 @@ import numpy as np
 import pytest
 
 from orogen.v2.core.fast_noise import FastNoise
-from orogen.v2.core.simplex_noise import SimplexNoise
 from orogen.v2.core.mesh_bfs import (
     flood_from,
     hop_distance,
@@ -30,6 +29,7 @@ from orogen.v2.core.mesh_rings import rings_of
 from orogen.v2.core.min_heap import MinHeap, spread_km
 from orogen.v2.core.seed import make_rng
 from orogen.v2.core.sim_mesh import mesh_from_arrays
+from orogen.v2.core.simplex_noise import SimplexNoise
 from orogen.v2.core.sphere_geometry import (
     angle_between,
     bearing_to,

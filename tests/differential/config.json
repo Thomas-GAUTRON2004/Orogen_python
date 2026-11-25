@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "pairs": [
+    {
+      "name": "Quaternion composition and integration",
+      "javascript_id": "rotation.quaternionOperations",
+      "python_adapter": "_quaternion_operations",
+      "rtol": 2e-7,
+      "atol": 1e-15
+    },
+    {
+      "name": "Quaternion Euler pole conversion",
+      "javascript_id": "rotation.eulerPole",
+      "python_adapter": "_quaternion_euler_pole",
+      "rtol": 2e-7,
+      "atol": 1e-13
+    },
+    {
+      "name": "Seed parsing and Park-Miller RNG",
+      "javascript_id": "seed.seedAndRng",
+      "python_adapter": "_seed_and_rng",
+      "rtol": 0,
+      "atol": 0
+    },
+    {
+      "name": "Fracture-zone coordinates",
+      "javascript_id": "tectonics.fractureCoordinate",
+      "python_adapter": "_fracture_coordinate",
+      "rtol": 2e-7,
+      "atol": 1e-12
+    },
+    {
+      "name": "Force-balance linear solver",
+      "javascript_id": "tectonics.solve3",
+      "python_adapter": "_solve3",
+      "rtol": 2e-7,
+      "atol": 1e-12
+    },
+    {
+      "name": "Fastest plate speed",
+      "javascript_id": "tectonics.fastestSpeed",
+      "python_adapter": "_fastest_speed",
+      "rtol": 2e-7,
+      "atol": 1e-12
+    },
+    {
+      "name": "Geology cover thickening",
+      "javascript_id": "tectonics.thickenCover",
+      "python_adapter": "_thicken_cover",
+      "rtol": 2e-7,
+      "atol": 0.000002
+    },
+    {
+      "name": "Orogenic belt profile",
+      "javascript_id": "tectonics.broadProfile",
+      "python_adapter": "_broad_profile",
+      "rtol": 2e-7,
+      "atol": 2e-12
+    },
+    {
+      "name": "Orogenic belt relief",
+      "javascript_id": "tectonics.beltReliefKm",
+      "python_adapter": "_belt_relief",
+      "rtol": 2e-7,
+      "atol": 2e-12
+    },
+    {
+      "name": "Belt height accumulation",
+      "javascript_id": "tectonics.buildHeights",
+      "python_adapter": "_build_heights",
+      "rtol": 2e-7,
+      "atol": 0.000002
+    },
+    {
+      "name": "Geology frame encodings",
+      "javascript_id": "tectonics.geologyCodecs",
+      "python_adapter": "_geology_codecs",
+      "rtol": 2e-7,
+      "atol": 1e-12
+    },
+    {
+      "name": "Adaptive tectonic simulation step",
+      "javascript_id": "tectonics.chooseStep",
+      "python_adapter": "_adaptive_step",
+      "rtol": 2e-7,
+      "atol": 1e-12
+    },
+    {
+      "name": "Tectonic occupancy bins",
+      "javascript_id": "tectonics.occupancyBins",
+      "python_adapter": "_occupancy_bins",
+      "rtol": 0,
+      "atol": 0
+    },
+    {
+      "name": "Plate kinematics",
+      "javascript_id": "tectonics.plateKinematics",
+      "python_adapter": "_plate_kinematics",
+      "rtol": 2e-7,
+      "atol": 1e-15
+    },
+    {
+      "name": "Crust raster snapshot",
+      "javascript_id": "tectonics.crustSnapshot",
+      "python_adapter": "_crust_snapshot",
+      "rtol": 0,
+      "atol": 0
+    },
+    {
+      "name": "Crust orogeny branch transitions",
+      "javascript_id": "tectonics.crustBranches",
+      "python_adapter": "_crust_branches",
+      "rtol": 0,
+      "atol": 0
+    },
+    {
+      "name": "Plate extent and occupied-cell statistics",
+      "javascript_id": "tectonics.plateExtents",
+      "python_adapter": "_plate_extents",
+      "rtol": 2e-7,
+      "atol": 2e-7
+    },
+    {
+      "name": "Plate frame transform and extent",
+      "javascript_id": "tectonics.plateFrameTransform",
+      "python_adapter": "_plate_frame_transform",
+      "rtol": 2e-7,
+      "atol": 2e-7
+    }
+  ]
+}

@@ -8,25 +8,27 @@ import { CrustRaster, CrustType, OrogenyType, CrustFlag, CELL_FIELDS } from "../
 import { Plate, frameRotation } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/plate.js";
 import { latLonToXyz, xyzToLatLon, omegaFromEulerPole, surfaceVelocity, speedCmYrAt, advancePlates, poseAtConstantOmega } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/kinematics.js";
 
-const seedTexts = ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"];
+const seedTexts = input.seedTexts;
 const seeds = seedTexts.map(text => ({text, word:isWordSeed(text), seed:seedOf(text)}));
-const rng = makeRng(123456);
-const random = Array.from({length:12}, () => rng());
+const rng = makeRng(input.random.seed);
+const random = Array.from({length:input.random.count}, () => rng());
 
-const q1 = quatFromAxisAngle(0, 0, 1, Math.PI / 3);
-const q2 = quatFromAxisAngle(1, 0, 0, -Math.PI / 7);
+const q1 = quatFromAxisAngle(...input.quaternion.q1Axis, input.quaternion.q1Angle);
+const q2 = quatFromAxisAngle(...input.quaternion.q2Axis, input.quaternion.q2Angle);
 const q = quatNormalize(quatMul(q1, q2));
-const omega = [0.001, -0.002, 0.003];
-const integrated = quatIntegrate(q, omega, 12.5);
+const omega = input.quaternion.omega;
+const integrated = quatIntegrate(q, omega, input.quaternion.dt);
 const matrix = Array.from(quatToMat3(integrated, new Float64Array(9)));
 const euler = quatToEulerPole(integrated);
 
-const crust = new CrustRaster(6);
-crust.create(2, CrustType.CONTINENT, -120.25, 17);
-crust.armTrench(2, 35.5);
-crust.recordSubduction(2, 2.75);
-crust.recordOrogeny(2, OrogenyType.ANDEAN, 8.125, 20, 15);
-crust.recordOrogeny(2, OrogenyType.HIMALAYAN, 1.5, 25, 15);
+const crustInput = input.crust;
+const crust = new CrustRaster(crustInput.size);
+crust.create(crustInput.cell, crustInput.type, crustInput.longitude, crustInput.terrane);
+crust.armTrench(crustInput.cell, crustInput.trenchDepth);
+crust.recordSubduction(crustInput.cell, crustInput.subduction);
+for (const [type, work, start, last] of crustInput.orogeny) {
+  crust.recordOrogeny(crustInput.cell, type, work, start, last);
+}
 const snap = crust.snapshot(2);
 const crustOut = {
   fields: CELL_FIELDS,
@@ -42,31 +44,27 @@ const crustOut = {
   flagTrench: CrustFlag.TRENCH,
 };
 
-const plate = new Plate(3, 6, 4.5);
+const plateInput = input.plate;
+const plate = new Plate(plateInput.id, plateInput.numCells, plateInput.radius);
 plate.setQuat(integrated);
-const world = Array.from(plate.toWorld(0.25, -0.5, 0.75, [0,0,0]));
+const world = Array.from(plate.toWorld(...plateInput.worldPoint, [0,0,0]));
 const local = Array.from(plate.toPlateFrame(...world, [0,0,0]));
-const xyz = new Float32Array([1,0,0, 0,1,0, 0,0,1, -1,0,0, 0,-1,0, 0,0,-1]);
-plate.crust.create(0, CrustType.CRATON, -10, 1);
-plate.crust.create(1, CrustType.OCEAN, -5, 2);
+const xyz = new Float32Array(plateInput.xyz);
+for (const [cell, type, longitude, terrane] of plateInput.crustCells) {
+  plate.crust.create(cell, type, longitude, terrane);
+}
 plate.refreshExtent(xyz);
-const other = new Plate(4, 6);
+const other = new Plate(plateInput.otherId, plateInput.otherNumCells);
 other.setQuat(q1);
 const rotation = Array.from(frameRotation(plate, other));
-const cap = plate.capInWorld({edgeRad:0.02});
+const cap = plate.capInWorld({edgeRad:plateInput.capEdgeRad});
 
-const branchCrust = new CrustRaster(5);
-for (let i=0;i<5;i++) branchCrust.create(i, CrustType.CONTINENT, 0, i+1);
-branchCrust.recordOrogeny(0, OrogenyType.INTRAPLATE, 2, 10, 5);
-branchCrust.recordOrogeny(0, OrogenyType.ANDEAN, 3, 12, 5);
-branchCrust.recordOrogeny(1, OrogenyType.HIMALAYAN, 4, 10, 5);
-branchCrust.recordOrogeny(1, OrogenyType.ARC, 1, 11, 5);
-branchCrust.recordOrogeny(2, OrogenyType.ANDEAN, 4, 10, 5);
-branchCrust.recordOrogeny(2, OrogenyType.RIFT, 1, 30, 5);
-branchCrust.recordOrogeny(3, OrogenyType.TRANSPRESSION, 4, 10, 5);
-branchCrust.recordOrogeny(3, OrogenyType.URAL, 1, 11, 5);
-branchCrust.recordOrogeny(4, OrogenyType.ANDEAN, 4, 10, 5);
-branchCrust.recordOrogeny(4, OrogenyType.HIMALAYAN, 1, 11, 5);
+const branchInput = input.crustBranches;
+const branchCrust = new CrustRaster(branchInput.size);
+for (let i=0;i<branchInput.size;i++) branchCrust.create(i, CrustType.CONTINENT, 0, i+1);
+for (const [cell, type, work, start, last] of branchInput.operations) {
+  branchCrust.recordOrogeny(cell, type, work, start, last);
+}
 const crustBranches = Array.from({length:5},(_,i)=>branchCrust.snapshot(i));
 
 function extentCase({occupied, xyz:coords, types, numCells}) {
@@ -80,21 +78,25 @@ function extentCase({occupied, xyz:coords, types, numCells}) {
 const extents = Object.fromEntries(input.extentCases.map(({name, ...scenario}) => [name, extentCase(scenario)]));
 
 
-const kinOmega = omegaFromEulerPole(latLonToXyz(35,-120), 4.5);
-const kinVelocity = surfaceVelocity(kinOmega, ...latLonToXyz(-12,77));
-const kinQ0 = quatFromAxisAngle(0,1,0,0.2);
-const kinPose = poseAtConstantOmega(kinQ0, kinOmega, 3.25);
-const kinWorld = {plates:[{alive:true,quat:kinQ0,omega:kinOmega,setQuat(q){this.quat=q;}},{alive:false,quat:kinQ0,omega:[1,2,3],setQuat(q){this.quat=q;}}],time:7,step:2};
-advancePlates(kinWorld, 1.75);
-const kinematics = {xyz:latLonToXyz(35,-120),latlon:xyzToLatLon(...latLonToXyz(-12,77)),omega:omegaFromEulerPole(latLonToXyz(35,-120),4.5),velocity:kinVelocity,speed:speedCmYrAt(kinOmega,...latLonToXyz(-12,77)),pose:kinPose,advanced:kinWorld.plates[0].quat,time:kinWorld.time,step:kinWorld.step,dead:kinWorld.plates[1].quat};
+const kinInput = input.kinematics;
+const kinOrigin = latLonToXyz(...kinInput.origin);
+const kinVelocityPoint = latLonToXyz(...kinInput.velocityPoint);
+const kinOmega = omegaFromEulerPole(kinOrigin, kinInput.eulerSpeed);
+const kinVelocity = surfaceVelocity(kinOmega, ...kinVelocityPoint);
+const kinQ0 = quatFromAxisAngle(...kinInput.poseAxis, kinInput.poseAngle);
+const kinPose = poseAtConstantOmega(kinQ0, kinOmega, kinInput.poseDt);
+const kinWorld = {plates:[{alive:true,quat:kinQ0,omega:kinOmega,setQuat(q){this.quat=q;}},{alive:false,quat:kinQ0,omega:[1,2,3],setQuat(q){this.quat=q;}}],time:kinInput.worldTime,step:kinInput.worldStep};
+advancePlates(kinWorld, kinInput.advanceDt);
+const kinematics = {xyz:kinOrigin,latlon:xyzToLatLon(...kinVelocityPoint),omega:kinOmega,velocity:kinVelocity,speed:speedCmYrAt(kinOmega,...kinVelocityPoint),pose:kinPose,advanced:kinWorld.plates[0].quat,time:kinWorld.time,step:kinWorld.step,dead:kinWorld.plates[1].quat};
 
 
 import { binIndex, markBin, mayHaveCrustNear } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/occupancy.js";
-const occMesh = {numCells:4, xyz:new Float32Array([1,0,0, 0,1,0, 0,0,1, -1,0,0]), edgeKm:500};
+const occInput = input.occupancy;
+const occMesh = {numCells:occInput.numCells, xyz:new Float32Array(occInput.xyz), edgeKm:occInput.edgeKm};
 const occBins = binIndex(occMesh);
 const occPlate = {};
-markBin(occPlate, occBins.binOf[0], 19, occBins.count);
-const occupancy = {binOf:Array.from(occBins.binOf), counts:occBins.neighbours.map(x=>x.length), near:[0,1,2,3].map(i=>mayHaveCrustNear(occPlate,i,19,occBins)), absent:mayHaveCrustNear({},0,19,occBins), count:occBins.count};
+markBin(occPlate, occBins.binOf[0], occInput.terrane, occBins.count);
+const occupancy = {binOf:Array.from(occBins.binOf), counts:occBins.neighbours.map(x=>x.length), near:Array.from({length:occInput.numCells},(_,i)=>mayHaveCrustNear(occPlate,i,occInput.terrane,occBins)), absent:mayHaveCrustNear({},0,19,occBins), count:occBins.count};
 
 console.log(JSON.stringify({
   extents, seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents, kinematics, occupancy,

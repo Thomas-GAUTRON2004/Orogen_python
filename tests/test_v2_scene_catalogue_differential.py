@@ -15,9 +15,9 @@ import numpy as np
 from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.core.sim_mesh import build_sim_mesh
-from orogen.v2.tectonics.crust import CELL_FIELDS
 from orogen.v2.tectonics.budget_scenes import BUDGET_SCENES
 from orogen.v2.tectonics.collision_scenes import COLLISION_SCENES
+from orogen.v2.tectonics.crust import CELL_FIELDS
 from orogen.v2.tectonics.event_scenes import EVENT_SCENES
 from orogen.v2.tectonics.force_scenes import FORCE_SCENES
 from orogen.v2.tectonics.hotspot_scenes import HOTSPOT_SCENES

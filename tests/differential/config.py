@@ -6,6 +6,7 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+from types import SimpleNamespace
 
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,
@@ -16,6 +17,9 @@ from orogen.v2.core.rotation import (
     quat_to_mat3,
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
+from orogen.v2.tectonics.dynamics import solve3
+from orogen.v2.tectonics.segments import fracture_coordinate
+from orogen.v2.tectonics.simulation import fastest_speed
 
 JsonObject = dict[str, Any]
 
@@ -138,9 +142,6 @@ PAIRS = (
 )
 
 
-from orogen.v2.tectonics.segments import fracture_coordinate
-
-
 def _fracture_coordinate(data: JsonObject) -> Any:
     return fracture_coordinate(*data["point"], data["omega"])
 
@@ -167,9 +168,6 @@ PAIRS = PAIRS + (
 )
 
 
-from orogen.v2.tectonics.dynamics import solve3
-
-
 def _solve3(data: JsonObject) -> Any:
     return solve3(data["matrix"], data["vector"])
 
@@ -192,10 +190,6 @@ PAIRS = PAIRS + (
         atol=1e-12,
     ),
 )
-
-
-from types import SimpleNamespace
-from orogen.v2.tectonics.simulation import fastest_speed
 
 
 def _fastest_speed(data: JsonObject) -> Any:

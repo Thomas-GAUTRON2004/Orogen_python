@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";\nimport { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
+import { readFileSync } from "node:fs";\nimport { solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/dynamics.js";\nimport { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
 
 import { isWordSeed, seedOf } from
   "../../external/planet_heightmap_generation/v2/js/core/seed.js";
@@ -15,7 +15,7 @@ import {
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {\n  "tectonics.fractureCoordinate": (input) => fractureCoordinate(...input.point, input.omega),
+const functions = {\n  "tectonics.solve3": (input) => solve3(input.matrix, input.vector),\n  "tectonics.fractureCoordinate": (input) => fractureCoordinate(...input.point, input.omega),
   "rotation.quaternionOperations": (input) => {
     const q1 = quatFromAxisAngle(...input.q1Axis, input.q1Angle);
     const q2 = quatFromAxisAngle(...input.q2Axis, input.q2Angle);

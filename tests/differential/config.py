@@ -370,7 +370,7 @@ def _build_heights(data: JsonObject) -> JsonObject:
     )
     build_heights(
         crust, 0, data["type"], data["side"], data["u"], data["reach"],
-        data["work"], data["thickened"], {"heights": DEFAULT_HEIGHTS}, data["amp"],
+        data["work"], data["thickened"], {"heights": data["heights"]}, data["amp"],
     )
     return {
         "rootKm": float(crust.rootKm[0]),
@@ -413,7 +413,7 @@ PAIRS = PAIRS + (
         javascript_id="tectonics.buildHeights",
         python_call=_build_heights,
         cases=tuple(
-            DifferentialCase(id=f"height-{index}", input=case)
+            DifferentialCase(id=f"height-{index}", input={**case, "heights": DEFAULT_HEIGHTS})
             for index, case in enumerate(_HEIGHT_CASES)
         ),
         atol=2e-6,

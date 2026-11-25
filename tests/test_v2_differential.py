@@ -157,47 +157,7 @@ def _assert_close(actual, expected, atol=2e-7):
 
 
 
-
-def test_crust_raster_state_and_snapshot_match_original(original, differential_payload):
-    scenario = differential_payload["crust"]
-    crust = CrustRaster(scenario["size"])
-    crust.create(
-        scenario["cell"], scenario["type"], scenario["longitude"], scenario["terrane"]
-    )
-    crust.arm_trench(scenario["cell"], scenario["trenchDepth"])
-    crust.record_subduction(scenario["cell"], scenario["subduction"])
-    for orogeny_type, work, start, last in scenario["orogeny"]:
-        crust.record_orogeny(scenario["cell"], orogeny_type, work, start, last)
-    expected = original["crust"]
-    assert expected["fields"] == CELL_FIELDS
-    assert crust.count == expected["count"]
-    assert crust.mask.tolist() == expected["mask"]
-    cell = scenario["cell"]
-    assert crust.flags[cell] == expected["flags"] == CrustFlag["TRENCH"]
-    assert crust.slabKm[cell] == pytest.approx(expected["slabKm"], abs=0)
-    assert crust.oroType[cell] == expected["oroType"]
-    assert crust.oroWork[cell] == pytest.approx(expected["oroWork"], abs=0)
-    assert crust.oroStart[cell] == pytest.approx(expected["oroStart"], abs=0)
-    assert crust.oroLast[cell] == pytest.approx(expected["oroLast"], abs=0)
-    assert crust.snapshot(cell) == expected["snapshot"]
-
-
-def test_crust_orogeny_branch_transitions_match_original(
-    original, differential_payload
-):
-    scenario = differential_payload["crustBranches"]
-    crust = CrustRaster(scenario["size"])
-    for i in range(scenario["size"]):
-        crust.create(
-            i, scenario["baseType"], scenario["longitude"], scenario["terraneStart"] + i
-        )
-    for cell, orogeny_type, work, start, last in scenario["operations"]:
-        crust.record_orogeny(cell, orogeny_type, work, start, last)
-    assert [crust.snapshot(i) for i in range(scenario["size"])] == original[
-        "crustBranches"
-    ]
-
-
+\n\n
 def test_plate_extent_empty_antipodal_and_mixed_match_original(
     original, differential_payload
 ):

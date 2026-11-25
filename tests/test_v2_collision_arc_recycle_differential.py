@@ -63,7 +63,10 @@ class _Plate:
 def test_small_arc_fragment_is_recycled_like_javascript(javascript, payload):
     spec = payload["scenario"]
     mesh = SimpleNamespace(
+        num_cells=1,
         xyz=np.asarray([1.0, 0.0, 0.0], dtype=np.float64),
+        adj_offset=np.asarray([0, 0], dtype=np.int32),
+        adj_list=np.asarray([], dtype=np.int32),
         index=object(),
         cell_area_km2=spec["cellAreaKm2"],
     )

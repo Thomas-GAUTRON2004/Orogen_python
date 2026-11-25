@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -60,7 +61,10 @@ RUNNER = ROOT / "tests/js/differential-extended-runner.mjs"
 def original_extended():
     node = shutil.which("node")
     if node is None:
-        pytest.skip("Node.js is required for upstream JavaScript differential tests")
+        message = "Node.js is required for upstream JavaScript differential tests"
+        if os.environ.get("CI"):
+            pytest.fail(message)
+        pytest.skip(message)
     result = subprocess.run(
         [node, str(RUNNER)], cwd=ROOT, check=False, capture_output=True, text=True
     )

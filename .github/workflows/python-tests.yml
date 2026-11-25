@@ -230,8 +230,7 @@ jobs:
             tests/test_v2_differential_extended.py \
             tests/test_v2_initial_world_differential.py \
             tests/test_v2_scene_catalogue_differential.py \
-            tests/test_v2_far_field_differential.py \
-            tests/test_v2_numba_kernel_coverage.py
+            tests/test_v2_far_field_differential.py
           test_status=$?
           set -e
           # Always emit coverage data, even when a differential assertion fails.

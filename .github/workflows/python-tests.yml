@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "port/**"
+      - "test/js-python-differential-only"
   pull_request:
   workflow_dispatch:
 

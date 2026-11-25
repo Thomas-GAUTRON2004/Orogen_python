@@ -247,6 +247,7 @@ jobs:
             tests/test_v2_supercontinent_differential.py \
             tests/test_v2_subduction_init_differential.py \
             tests/test_v2_rift_partition_differential.py \
+            tests/test_v2_collision_primitives_differential.py \
             tests/test_v2_numba_kernel_coverage.py
           test_status=$?
           set -e

@@ -184,14 +184,20 @@ jobs:
             orogen/v2/tectonics/subduction_init.py
 
   differential-tests:
-    name: Python / JavaScript differential tests
+    name: Python / JavaScript differential tests (Numba + pure Python)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
+    env:
+      NUMBA_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
     steps:
       - name: Check out repository and upstream source
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -204,20 +210,55 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install project and test dependencies
+      - name: Install project, Numba, test, and coverage dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -e ".[test]"
+          python -m pip install -e ".[test,speed]"
+          python -m pip install "coverage>=7.6.1,<7.17" "pytest-html>=4.1,<5"
 
       - name: Verify pinned upstream source is available
         run: |
           test -f external/planet_heightmap_generation/v2/js/core/seed.js
           test -f external/planet_heightmap_generation/js/rng.js
-
-      - name: Show runtime versions
-        run: |
-          python --version
           node --version
+          python --version
+          python -m coverage --version
 
-      - name: Run Python / JavaScript behavioral comparisons
-        run: python -m pytest -q tests/test_v2_differential_harness.py
+      - name: Run differential tests with branch coverage
+        env:
+          CI: "true"
+        run: |
+          set +e
+          python -m coverage run --branch --source=orogen \
+            -m pytest -q --html=pytest-report.html --self-contained-html \
+            tests/test_v2_differential_harness.py \
+            tests/test_v2_differential.py \
+            tests/test_v2_differential_extended.py \
+            tests/test_v2_initial_world_differential.py \
+            tests/test_v2_scene_catalogue_differential.py \
+            tests/test_v2_far_field_differential.py \
+            tests/test_v2_sphere_mesh_differential.py \
+            tests/test_v2_tectonics_primitives_differential.py \
+            tests/test_v2_mantle_differential.py \
+            tests/test_v2_thermal_differential.py \
+            tests/test_v2_supercontinent_differential.py \
+            tests/test_v2_numba_kernel_coverage.py
+          test_status=$?
+          set -e
+          # Always emit coverage data, even when a differential assertion fails.
+          python -m coverage report -m
+          python -m coverage xml -o coverage.xml
+          python -m coverage html -d coverage-html
+          exit "$test_status"
+
+      - name: Upload differential coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-python-coverage
+          path: |
+            coverage.xml
+            coverage-html/
+            pytest-report.html
+          if-no-files-found: warn
+          retention-days: 14

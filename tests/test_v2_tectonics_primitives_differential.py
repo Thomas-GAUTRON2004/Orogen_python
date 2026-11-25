@@ -45,9 +45,8 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
     build_heights,
 )
-from orogen.v2.tectonics.kinematics import fastest_speed
 from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import choose_step
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/tectonics-primitives-differential-runner.mjs"

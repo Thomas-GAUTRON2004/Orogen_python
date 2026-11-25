@@ -136,3 +136,32 @@ PAIRS = (
         atol=0.0,
     ),
 )
+
+
+from orogen.v2.tectonics.segments import fracture_coordinate
+
+
+def _fracture_coordinate(data: JsonObject) -> Any:
+    return fracture_coordinate(*data["point"], data["omega"])
+
+
+_SEGMENT_CASES = (
+    {"point": [1.0, 0.0, 0.0], "omega": [0.0, 0.0, 0.0]},
+    {"point": [1.0, 0.0, 0.0], "omega": [1.0, 0.0, 0.0]},
+    {"point": [0.0, 1.0, 0.0], "omega": [0.0, 0.0, 2.0]},
+    {"point": [-1.0, 0.0, 0.0], "omega": [1.0, 0.0, 0.0]},
+    {"point": [0.0, 0.0, 1.0], "omega": [0.2, 0.3, 0.4]},
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Fracture-zone coordinates",
+        javascript_id="tectonics.fractureCoordinate",
+        python_call=_fracture_coordinate,
+        cases=tuple(
+            DifferentialCase(id=f"segment-{index}", input=case)
+            for index, case in enumerate(_SEGMENT_CASES)
+        ),
+        atol=1e-12,
+    ),
+)

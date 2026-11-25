@@ -15,6 +15,7 @@ from orogen.v2.core.sphere_geometry import cell_distance_km
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
+    _coast_candidates,
     _crosses_rather_than_hugs,
     _is_monotone,
     _trace_parent_path,
@@ -434,3 +435,66 @@ def test_find_rift_rejects_unmasked_ocean_and_craton_junctions(junction, mask):
     )
 
     assert find_rift(world, SimpleNamespace(crust=crust), junction) is None
+
+
+def test_coast_candidates_keep_only_reachable_distant_exterior_coast_cells():
+    positions = [
+        (0.0, 0.0),
+        (0.0, 10.0),
+        (0.0, -10.0),
+        (0.0, 20.0),
+        (0.0, -20.0),
+        (0.0, 0.5),
+    ]
+    xyz = np.asarray(
+        [
+            coordinate
+            for latitude, longitude in positions
+            for coordinate in _xyz(latitude, longitude)
+        ],
+        dtype=np.float64,
+    )
+    neighbours = [[1, 2, 5], [0, 3], [0, 4], [1], [2], [0]]
+    adjacency = [cell for group in neighbours for cell in group]
+    offsets = [0]
+    for group in neighbours:
+        offsets.append(offsets[-1] + len(group))
+    mesh = SimpleNamespace(
+        num_cells=6,
+        xyz=xyz,
+        adj_offset=np.asarray(offsets, dtype=np.int32),
+        adj_list=np.asarray(adjacency, dtype=np.int32),
+    )
+    crust = SimpleNamespace(
+        mask=np.ones(6, dtype=np.uint8),
+        type=np.asarray(
+            [
+                CrustType["CONTINENT"],
+                CrustType["CONTINENT"],
+                CrustType["CONTINENT"],
+                CrustType["OCEAN"],
+                CrustType["OCEAN"],
+                CrustType["CONTINENT"],
+            ],
+            dtype=np.uint8,
+        ),
+    )
+    costs = {"cost": np.asarray([0.0, 1.0, 2.0, np.inf, np.inf, 0.0])}
+    context = {
+        "cells": np.asarray([1, 2, 5], dtype=np.int32),
+        "exterior": np.asarray([False, False, False, True, True, False]),
+    }
+    config = {"riftMinArmKm": 100.0, "riftAcrossPullBias": 0.5}
+
+    candidates = _coast_candidates(
+        mesh,
+        crust,
+        0,
+        np.asarray([0.0, 1.0, 0.0]),
+        costs,
+        context,
+        config,
+    )
+
+    assert [item["cell"] for item in candidates] == [1, 2]
+    assert [item["score"] for item in candidates] == pytest.approx([1.5, 3.0])

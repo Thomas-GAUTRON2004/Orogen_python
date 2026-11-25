@@ -17,7 +17,6 @@ from orogen.v2.core.rotation import (
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 
-
 JsonObject = dict[str, Any]
 
 

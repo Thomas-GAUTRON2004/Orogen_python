@@ -227,7 +227,7 @@ def test_cheapest_paths_never_enters_ocean_cratons_or_unmasked_cells():
     result = _cheapest_paths(mesh, crust, 8, lambda _cell: 1.0)
 
     assert result["cost"][8] == 0.0
-    assert math.isfinite(result["cost"][9])
+    assert math.isfinite(result["cost"][7])
     assert math.isinf(result["cost"][2])
     assert math.isinf(result["cost"][10])
     assert math.isinf(result["cost"][3])

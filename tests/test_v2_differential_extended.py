@@ -60,7 +60,35 @@ RUNNER = ROOT / "tests/js/differential-extended-runner.mjs"
 
 
 @pytest.fixture(scope="module")
-def original_extended():
+def extended_payload():
+    xyz = [1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1]
+    rings = [[2, 4, 3, 5], [2, 5, 3, 4], [4, 0, 5, 1], [4, 1, 5, 0], [3, 0, 2, 1], [2, 0, 3, 1]]
+    queries = [[1, 0.2, 0.3], [-0.3, 1, 0.4], [0.2, -0.4, 1], [-1, -0.3, -0.2], [0.2, 0.3, -1], [1, 1, 1]]
+    return {
+        "mesh": {"xyz": xyz, "rings": rings, "edgeRad": 0.02, "indexResolution": 2},
+        "random": {"seed": 7821, "count": 5},
+        "noise": {"seed": 9876, "points": [[0.1, 0.2, 0.3], [-1.25, 2.5, 0.75], [12.125, -4.5, 9.75], [0, 0, 0]], "octaves": 5, "persistence": 2 / 3},
+        "geometry": {
+            "dotA": [1, 2, 3], "dotB": [-2, 0.5, 4],
+            "crossA": [1, 2, 3], "crossB": [-2, 0.5, 4],
+            "normalize": [2, -3, 6],
+            "angleOrigin": [1, 0, 0], "angleVectors": [[1, 0, 0], [0, 1, 0], [0, 0, -1]],
+            "tangent": [[0, 0, 1], [1, 0, 0], [0, 1, 0]],
+            "point": [0.2, -0.3, math.sqrt(0.87)], "destinationBearing": 1.234, "destinationDistance": 0.42,
+            "polarOrigin": [0.3, 0.4, math.sqrt(0.75)], "polarNorth": [0, 0, 1],
+            "polarPoints": [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0]],
+            "cellDistance": [0, 4], "centroidCells": [0, 2, 4],
+        },
+        "queries": queries,
+        "bfs": {"sourceCells": [0, 2], "blockedCell": 5, "withinKm": 9000, "maxHops": 2, "floodStart": 0, "touchesCell": 0, "touchesTarget": 4, "reachesStart": 0, "reachesTarget": 3, "pieces": [0, 2, 4, 1, 3]},
+        "heap": {"capacity": 2, "entries": [[7, 70], [1, 10], [4, 40], [1, 11], [3, 30], [0.5, 5], [9, 90]], "initialDistances": [0, "Infinity", "Infinity", "Infinity", "Infinity", "Infinity"], "maxKm": 12000},
+        "crustCopy": {"size": 3, "cell": 0, "type": CrustType["CRATON"], "longitude": -1.25, "terrane": 17, "fields": {"flags": 129, "slabKm": 23.5, "coverKm": 3.25, "geoFlags": 3, "oroType": 4, "farDx": 64, "farDy": -32, "farDz": 96}, "rotation": [0, -1, 0, 1, 0, 0, 0, 0, 1], "destinationCell": 1, "restoreCell": 2},
+        "world": {"seed": 77, "config": {"fixture": {"nested": 3}}, "plateName": "North", "crust": [[0, CrustType["CRATON"], -20, 11], [2, CrustType["CRATON"], -30, 12]], "terraneLetters": {"11": "B", "12": "A"}, "time": 12.5, "eventKind": "START", "eventMessage": "fixture event", "eventData": {"plate": 0, "area": 2}, "streams": ["rng", "rngSubduction", "rngMarginFounder", "rngOceanSplit", "rngHotspot", "rngVolcano", "rngBackArc", "rngMarginIsle", "rngCycle"], "streamCount": 4},
+    }
+
+
+@pytest.fixture(scope="module")
+def original_extended(extended_payload):
     node = shutil.which("node")
     if node is None:
         message = "Node.js is required for upstream JavaScript differential tests"
@@ -68,7 +96,8 @@ def original_extended():
             pytest.fail(message)
         pytest.skip(message)
     result = subprocess.run(
-        [node, str(RUNNER)], cwd=ROOT, check=False, capture_output=True, text=True
+        [node, str(RUNNER)], input=json.dumps(extended_payload), cwd=ROOT,
+        check=False, capture_output=True, text=True
     )
     assert result.returncode == 0, (
         f"upstream JS runner failed:\n{result.stderr}\n{result.stdout}"

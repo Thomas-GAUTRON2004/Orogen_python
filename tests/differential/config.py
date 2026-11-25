@@ -46,7 +46,7 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
 )
 from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import choose_step, fastest_speed\nfrom orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed\nfrom orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near\nfrom orogen.v2.tectonics.kinematics import (\n    advance_plates, lat_lon_to_xyz, omega_from_euler_pole, pose_at_constant_omega,\n    speed_cm_yr_at, surface_velocity, xyz_to_lat_lon,\n)
 
 JsonObject = dict[str, Any]
 
@@ -583,5 +583,71 @@ PAIRS = PAIRS + (
         ),
         atol=0.0,
         rtol=0.0,
+    ),
+)
+
+
+def _plate_kinematics(data: JsonObject) -> JsonObject:
+    origin = lat_lon_to_xyz(*data["origin"])
+    velocity_point = lat_lon_to_xyz(*data["velocityPoint"])
+    omega = omega_from_euler_pole(origin, data["eulerSpeed"])
+    velocity = surface_velocity(omega, *velocity_point)
+    q0 = quat_from_axis_angle(*data["poseAxis"], data["poseAngle"])
+    pose = pose_at_constant_omega(q0, omega, data["poseDt"])
+
+    class PlateState:
+        def __init__(self, alive, quaternion, angular_velocity):
+            self.alive = alive
+            self.quat = quaternion
+            self.omega = angular_velocity
+
+        def set_quat(self, quaternion):
+            self.quat = quaternion
+
+    world = SimpleNamespace(
+        plates=[
+            PlateState(True, q0, omega),
+            PlateState(False, q0, [1, 2, 3]),
+        ],
+        time=data["worldTime"],
+        step=data["worldStep"],
+    )
+    advance_plates(world, data["advanceDt"])
+    return {
+        "xyz": origin,
+        "latlon": xyz_to_lat_lon(*velocity_point),
+        "omega": omega,
+        "velocity": velocity,
+        "speed": speed_cm_yr_at(omega, *velocity_point),
+        "pose": pose,
+        "advanced": world.plates[0].quat,
+        "time": world.time,
+        "step": world.step,
+        "dead": world.plates[1].quat,
+    }
+
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Plate kinematics",
+        javascript_id="tectonics.plateKinematics",
+        python_call=_plate_kinematics,
+        cases=(
+            DifferentialCase(
+                id="euler-pole-and-time-integration",
+                input={
+                    "origin": [35, -120],
+                    "velocityPoint": [-12, 77],
+                    "eulerSpeed": 4.5,
+                    "poseAxis": [0, 1, 0],
+                    "poseAngle": 0.2,
+                    "poseDt": 3.25,
+                    "worldTime": 7,
+                    "worldStep": 2,
+                    "advanceDt": 1.75,
+                },
+            ),
+        ),
+        atol=1e-15,
     ),
 )

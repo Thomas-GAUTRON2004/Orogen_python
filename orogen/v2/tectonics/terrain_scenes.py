@@ -61,7 +61,8 @@ def _from_catalogue(
     catalogue: list[dict[str, Any]], scene_id: str, **overrides: Any
 ) -> dict[str, Any]:
     scene = next(item for item in catalogue if item["id"] == scene_id)
-    return {**scene, "drive": update_plate_motion, **overrides}
+    # Match upstream JS: default the drive only when the source scene has none.
+    return {"drive": update_plate_motion, **scene, **overrides}
 
 
 def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:

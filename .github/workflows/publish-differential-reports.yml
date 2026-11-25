@@ -1,0 +1,64 @@
+name: Publish differential reports
+
+on:
+  workflow_run:
+    workflows:
+      - Python tests
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: differential-reports-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish HTML test reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Download differential reports from the completed test run
+        uses: actions/download-artifact@v4
+        with:
+          name: differential-python-coverage
+          path: reports
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Prepare browsable report site
+        run: |
+          mkdir -p site/docs/coverage site/coverage
+          cp reports/pytest-report.html site/docs/index.html
+          cp -R reports/coverage-html/. site/docs/coverage/
+          # Keep the original root-level URLs available as aliases.
+          cp reports/pytest-report.html site/index.html
+          cp -R reports/coverage-html/. site/coverage/
+          cat > site/README.txt <<'EOF'
+          Pytest report: /docs/
+          Python coverage report: /docs/coverage/
+          Root aliases: / and /coverage/
+          EOF
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy reports to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

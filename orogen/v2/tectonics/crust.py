@@ -225,8 +225,8 @@ class CrustRaster:
     _numba_blocks: tuple[np.ndarray, ...]
 
     def __init__(self, num_cells: int):
-        if num_cells < 1:
-            raise ValueError("num_cells must be positive")
+        if num_cells < 0:
+            raise ValueError("num_cells must be non-negative")
         self.numCells = int(num_cells)
         self.mask = np.zeros(num_cells, dtype=np.uint8)
 

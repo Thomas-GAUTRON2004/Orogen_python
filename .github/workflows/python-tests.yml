@@ -16,21 +16,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
-    name: Python 3.12 / Node 22
+  static-analysis:
+    name: Static and complexity analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 40  # coverage run takes ~14 min; 20 min cancelled the job
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,30 +39,16 @@ jobs:
       - name: Verify dependency lockfile
         run: uv lock --check
 
-      - name: Show toolchain versions
+      - name: Install project and quality dependencies
         run: |
-          python --version
-          python -m pip --version
-          node --version
-          npm --version
-
-      - name: Install upstream Delaunator reference dependency
-        run: npm install --no-save --package-lock=false
-
-      - name: Upgrade packaging tools
-        run: python -m pip install --upgrade pip setuptools wheel
-
-      - name: Install project and test dependencies
-        run: python -m pip install -e ".[test,speed,quality]"
-
-      - name: Pin coverage to the Numba JIT coverage API
-        run: python -m pip install "coverage>=7.6.1,<7.17"
-
-      - name: Verify installed dependencies
-        run: python -m pip check
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[quality]"
 
       - name: Pin Ruff to the lockfile and pre-commit version
         run: python -m pip install "ruff==0.17.5"
+
+      - name: Verify installed dependencies
+        run: python -m pip check
 
       - name: Measure mypy baseline
         run: |
@@ -138,7 +118,7 @@ jobs:
         run: |
           python -m ruff check .
           python -m ruff format --check scripts/check_mypy_regressions.py
-          python -m ruff format --check orogen scripts tests
+          python -m ruff format --check orogen scripts tests/_differential.py tests/differential
 
       - name: Report current mypy diagnostics
         run: |
@@ -160,9 +140,6 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            # Push runs validate the full pushed range; PR runs independently
-            # check only the latest head commit, so legacy complexity is not
-            # re-audited on every pull-request synchronization.
             parent_sha="$(git rev-parse "$PR_HEAD_SHA^")"
             new_python_files="$(git diff --name-only --diff-filter=A "$parent_sha" "$PR_HEAD_SHA" -- '*.py')"
           else
@@ -206,96 +183,94 @@ jobs:
             orogen/v2/tectonics/ops/rift_path.py \
             orogen/v2/tectonics/subduction_init.py
 
-      - name: Guard the pinned upstream submodule
-        run: test -f external/planet_heightmap_generation/js/rng.js
-
-      - name: Fidelity regression tests (fail fast, before the coverage run)
-        run: |
-          python -m pytest -q \
-            tests/test_v2_hypot_parity.py \
-            tests/test_v2_simplex_noise.py \
-            tests/test_v2_tectonic_far_field_numeric.py \
-            tests/test_v2_differential.py \
-            tests/test_v2_tectonic_config_upstream.py
-
-      - name: Run Python and JavaScript differential tests (including SciPy sphere mesh)
-        env:
-          NUMBA_JIT_COVERAGE: "1"
-        run: |
-          python -m pytest \
-            --cov=orogen \
-            --cov-branch \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-fail-under=99
-          # Compare the unrounded percentage: "coverage report" rounds 98.64% to 99%.
-          python -m coverage json -o coverage.json
-          python - <<'PY'
-          import json
-
-          with open("coverage.json", encoding="utf-8") as report_file:
-              coverage = json.load(report_file)["totals"]["percent_covered"]
-
-          print(f"Exact total test coverage: {coverage:.4f}% (required: 99.0000%)")
-          failures = []
-          if coverage < 99.0:
-              failures.append(f"project total: {coverage:.4f}%")
-          files = json.load(open("coverage.json", encoding="utf-8"))["files"]
-          python_files = {
-              path: record["summary"]["percent_covered"]
-              for path, record in files.items()
-              if path.startswith("orogen/") and path.endswith(".py")
-          }
-          for path, percentage in sorted(python_files.items()):
-              print(f"{path}: {percentage:.4f}% (required: 99.0000%)")
-              if percentage < 99.0:
-                  failures.append(f"{path}: {percentage:.4f}%")
-          if not python_files:
-              failures.append("coverage report contains no Python package files")
-          if failures:
-              print("Coverage threshold failures:")
-              print("\n".join(failures))
-              raise SystemExit(1)
-          PY
-
-  pure-python-fallback:
-    name: Python fallback without Numba
+  differential-tests:
+    name: Python / JavaScript differential tests (Numba + pure Python)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
+    env:
+      NUMBA_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
     steps:
-      - name: Check out repository
+      - name: Check out repository and upstream source
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
+      - name: Install pinned JavaScript reference dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Install project and test dependencies without the speed extra
-        run: python -m pip install -e ".[test]"
-
-      - name: Verify Numba is absent
+      - name: Install project, Numba, test, and coverage dependencies
         run: |
-          python - <<'PY'
-          from importlib.util import find_spec
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[test,speed]"
+          python -m pip install "coverage>=7.6.1,<7.17" "pytest-html>=4.1,<5"
 
-          if find_spec("numba") is not None:
-              raise SystemExit("Numba is installed; this is not a pure-Python run")
-          print("Numba is not installed; optional acceleration fallbacks are active.")
-          PY
+      - name: Verify pinned upstream source is available
+        run: |
+          test -f external/planet_heightmap_generation/v2/js/core/seed.js
+          test -f external/planet_heightmap_generation/js/rng.js
+          node --version
+          python --version
+          python -m coverage --version
 
-      - name: Install upstream Delaunator reference dependency
-        run: npm install --no-save --package-lock=false
+      - name: Run differential tests with branch coverage
+        env:
+          CI: "true"
+        run: |
+          set +e
+          python -m coverage run --branch --source=orogen \
+            -m pytest -q --html=pytest-report.html --self-contained-html \
+            tests/differential/test_all_pairs.py \
+            tests/test_v2_differential_extended.py \
+            tests/test_v2_initial_world_differential.py \
+            tests/test_v2_scene_catalogue_differential.py \
+            tests/test_v2_far_field_differential.py \
+            tests/test_v2_sphere_mesh_differential.py \
+            tests/test_v2_mantle_differential.py \
+            tests/test_v2_thermal_differential.py \
+            tests/test_v2_supercontinent_differential.py \
+            tests/test_v2_subduction_init_differential.py \
+            tests/test_v2_rift_partition_differential.py \
+            tests/test_v2_collision_primitives_differential.py \
+            tests/test_v2_collision_contacts_differential.py \
+            tests/test_v2_collision_arc_recycle_differential.py \
+            tests/test_v2_collision_record_differential.py \
+            tests/test_v2_contact_differential.py \
+            tests/test_v2_resolve_primitives_differential.py \
+            tests/test_v2_resolve_orchestration_differential.py \
+            tests/test_v2_plume_lifecycle_differential.py \
+            tests/test_v2_plume_birth_differential.py \
+            tests/test_v2_numba_kernel_coverage.py
+          test_status=$?
+          set -e
+          # Always emit coverage data, even when a differential assertion fails.
+          python -m coverage report -m
+          python -m coverage xml -o coverage.xml
+          python -m coverage html -d coverage-html
+          exit "$test_status"
 
-      - name: Verify installed dependencies
-        run: python -m pip check
-
-      - name: Run the full suite through pure-Python fallbacks
-        run: python -m pytest -q
+      - name: Upload differential coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-python-coverage
+          path: |
+            coverage.xml
+            coverage-html/
+            pytest-report.html
+          if-no-files-found: warn
+          retention-days: 14

@@ -26,7 +26,7 @@ from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.plate import Plate
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "tests/reference/v2/sphere-mesh-runner.mjs"
+RUNNER = ROOT / "tests/js/sphere-mesh-differential-runner.mjs"
 
 
 @pytest.fixture(scope="module")

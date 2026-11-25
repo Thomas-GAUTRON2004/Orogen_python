@@ -19,7 +19,27 @@ from orogen.v2.core.rotation import (
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.crust import BeltSide, CrustType, OrogenyType
 from orogen.v2.tectonics.dynamics import solve3
-from orogen.v2.tectonics.geology import thicken_cover
+from orogen.v2.tectonics.geology import (
+    GEO_FRAME_FIELDS,
+    GEOLOGY_READS,
+    decode_age,
+    decode_arc_myr,
+    decode_cover_km,
+    decode_exhum_km,
+    decode_facies,
+    decode_flood_age,
+    decode_flood_myr,
+    decode_unroof_km,
+    encode_age,
+    encode_arc_myr,
+    encode_cover_km,
+    encode_exhum_km,
+    encode_facies,
+    encode_flood_age,
+    encode_flood_myr,
+    encode_unroof_km,
+    thicken_cover,
+)
 from orogen.v2.tectonics.heights import (
     DEFAULT_HEIGHTS,
     belt_relief_km,
@@ -397,5 +417,65 @@ PAIRS = PAIRS + (
             for index, case in enumerate(_HEIGHT_CASES)
         ),
         atol=2e-6,
+    ),
+)
+
+
+def _geology_codecs(data: JsonObject) -> JsonObject:
+    def pairs(values, encode, decode):
+        return [[encode(value), decode(encode(value))] for value in values]
+
+    flood_age = []
+    for last, time, ever in data["floodAge"]:
+        encoded = encode_flood_age(last, time, ever)
+        decoded = decode_flood_age(encoded)
+        flood_age.append([encoded, None if math.isinf(decoded) else decoded])
+
+    facies = []
+    for values in data["facies"]:
+        encoded = encode_facies(*values)
+        facies.append([encoded, decode_facies(encoded)])
+
+    return {
+        "cover": pairs(data["cover"], encode_cover_km, decode_cover_km),
+        "exhum": pairs(data["exhum"], encode_exhum_km, decode_exhum_km),
+        "unroof": pairs(data["unroof"], encode_unroof_km, decode_unroof_km),
+        "flood": pairs(data["flood"], encode_flood_myr, decode_flood_myr),
+        "arc": pairs(data["arc"], encode_arc_myr, decode_arc_myr),
+        "age": pairs(data["age"], encode_age, decode_age),
+        "floodAge": flood_age,
+        "facies": facies,
+        "decodeFacies": [decode_facies(value) for value in data["decodeFacies"]],
+        "fields": GEO_FRAME_FIELDS,
+        "reads": GEOLOGY_READS,
+    }
+
+
+_CODEC_INPUT = {
+    "cover": [-1.0, 0.0, 0.0001, 0.25, 1.0, 4.0, 16.0, 40.0],
+    "exhum": [-1.0, 0.0, 0.1, 0.25, 1.0, 20.0, 100.0],
+    "unroof": [-100.0, -31.125, -0.125, 0.0, 0.125, 31.125, 100.0],
+    "flood": [0.0, 0.5, 2.0, 15.0, 120.0, 800.0],
+    "arc": [0.0, 0.5, 2.0, 22.0, 130.0, 800.0],
+    "age": [0.0, 1.0, 4.0, 160.0, 2048.0, 4000.0],
+    "floodAge": [
+        [-10.0, 10.0, False], [10.0, 10.0, True],
+        [2.5, 12.5, True], [100.0, 10.0, True],
+        [-100.0, 10000.0, True],
+    ],
+    "facies": [
+        [0.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.25, 0.5],
+        [0.33, 0.66, 0.12, 0.91], [-1.0, 2.0, 0.5, 0.5],
+    ],
+    "decodeFacies": [0, 0x1234, 0xFFFF, 0x8001],
+}
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Geology frame encodings",
+        javascript_id="tectonics.geologyCodecs",
+        python_call=_geology_codecs,
+        cases=(DifferentialCase(id="codec-boundaries", input=_CODEC_INPUT),),
+        atol=1e-12,
     ),
 )

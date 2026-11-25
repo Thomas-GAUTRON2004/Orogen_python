@@ -76,9 +76,6 @@ const startState = {
   fractionMet: start.fractionMet,
   continentId: start.continentId,
   oceanId: start.oceanId,
-  landCells: start.landCells,
-  continentalFraction: start.continentalFraction,
-  apronCells: start.apronCells,
   trench: list(start.trench),
 };
 process.stdout.write(JSON.stringify({ start: startState, world: worldState, plates }));

@@ -29,18 +29,18 @@ crust.recordSubduction(crustInput.cell, crustInput.subduction);
 for (const [type, work, start, last] of crustInput.orogeny) {
   crust.recordOrogeny(crustInput.cell, type, work, start, last);
 }
-const snap = crust.snapshot(2);
+const snap = crust.snapshot(crustInput.cell);
 const crustOut = {
   fields: CELL_FIELDS,
   count: crust.count,
   mask: Array.from(crust.mask),
   snapshot: snap,
-  flags: crust.flags[2],
-  slabKm: crust.slabKm[2],
-  oroType: crust.oroType[2],
-  oroWork: crust.oroWork[2],
-  oroStart: crust.oroStart[2],
-  oroLast: crust.oroLast[2],
+  flags: crust.flags[crustInput.cell],
+  slabKm: crust.slabKm[crustInput.cell],
+  oroType: crust.oroType[crustInput.cell],
+  oroWork: crust.oroWork[crustInput.cell],
+  oroStart: crust.oroStart[crustInput.cell],
+  oroLast: crust.oroLast[crustInput.cell],
   flagTrench: CrustFlag.TRENCH,
 };
 
@@ -65,15 +65,16 @@ for (let i=0;i<branchInput.size;i++) branchCrust.create(i, CrustType.CONTINENT, 
 for (const [cell, type, work, start, last] of branchInput.operations) {
   branchCrust.recordOrogeny(cell, type, work, start, last);
 }
-const crustBranches = Array.from({length:5},(_,i)=>branchCrust.snapshot(i));
+const crustBranches = Array.from({length:branchInput.size},(_,i)=>branchCrust.snapshot(i));
 
 function extentCase({occupied, xyz:coords, types, numCells}) {
-  const p = new Plate(8, numCells, 2);
+  const extentPlate = input.extentPlate;
+  const p = new Plate(extentPlate.id, numCells, extentPlate.radius);
   p.setQuat(q1);
   for (const i of occupied) p.crust.create(i, types[i], -1, i+1);
   p.dirty = true;
   p.refreshExtent(new Float32Array(coords));
-  return {stats:p.stats,count:p.crust.count,dirty:p.dirty,capCenter:p.capCenter,capCos:p.capCos,cap:p.capInWorld({edgeRad:.015})};
+  return {stats:p.stats,count:p.crust.count,dirty:p.dirty,capCenter:p.capCenter,capCos:p.capCos,cap:p.capInWorld({edgeRad:extentPlate.edgeRad})};
 }
 const extents = Object.fromEntries(input.extentCases.map(({name, ...scenario}) => [name, extentCase(scenario)]));
 
@@ -96,7 +97,7 @@ const occMesh = {numCells:occInput.numCells, xyz:new Float32Array(occInput.xyz),
 const occBins = binIndex(occMesh);
 const occPlate = {};
 markBin(occPlate, occBins.binOf[0], occInput.terrane, occBins.count);
-const occupancy = {binOf:Array.from(occBins.binOf), counts:occBins.neighbours.map(x=>x.length), near:Array.from({length:occInput.numCells},(_,i)=>mayHaveCrustNear(occPlate,i,occInput.terrane,occBins)), absent:mayHaveCrustNear({},0,19,occBins), count:occBins.count};
+const occupancy = {binOf:Array.from(occBins.binOf), counts:occBins.neighbours.map(x=>x.length), near:Array.from({length:occInput.numCells},(_,i)=>mayHaveCrustNear(occPlate,i,occInput.terrane,occBins)), absent:mayHaveCrustNear({},0,occInput.terrane,occBins), count:occBins.count};
 
 console.log(JSON.stringify({
   extents, seeds, random, quaternion:q, integrated, matrix, euler, crust:crustOut, crustBranches, extents, kinematics, occupancy,

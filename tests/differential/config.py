@@ -46,7 +46,7 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
 )
 from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import choose_step, fastest_speed
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed\nfrom orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
 
 JsonObject = dict[str, Any]
 
@@ -536,5 +536,52 @@ PAIRS = PAIRS + (
         python_call=_adaptive_step,
         cases=(DifferentialCase(id="mixed-plate-states", input=_ADAPTIVE_STEP_INPUT),),
         atol=1e-12,
+    ),
+)
+
+
+def _occupancy_bins(data: JsonObject) -> JsonObject:
+    import numpy as np
+
+    mesh = SimpleNamespace(
+        num_cells=data["numCells"],
+        xyz=np.asarray(data["xyz"], dtype=np.float32),
+        edge_km=data["edgeKm"],
+    )
+    bins = bin_index(mesh)
+    plate = SimpleNamespace(bins=None)
+    mark_bin(plate, int(bins.bin_of[0]), data["terrane"], bins.count)
+    return {
+        "count": bins.count,
+        "binOf": bins.bin_of.tolist(),
+        "counts": [len(values) for values in bins.neighbours],
+        "near": [
+            may_have_crust_near(plate, index, data["terrane"], bins)
+            for index in range(data["numCells"])
+        ],
+        "absent": may_have_crust_near(
+            SimpleNamespace(bins=None), 0, data["terrane"], bins
+        ),
+    }
+
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Tectonic occupancy bins",
+        javascript_id="tectonics.occupancyBins",
+        python_call=_occupancy_bins,
+        cases=(
+            DifferentialCase(
+                id="small-spherical-mesh",
+                input={
+                    "numCells": 4,
+                    "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
+                    "edgeKm": 500.0,
+                    "terrane": 19,
+                },
+            ),
+        ),
+        atol=0.0,
+        rtol=0.0,
     ),
 )

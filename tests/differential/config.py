@@ -18,6 +18,8 @@ from orogen.v2.core.rotation import (
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.dynamics import solve3
+from orogen.v2.tectonics.crust import BeltSide
+from orogen.v2.tectonics.heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
 from orogen.v2.tectonics.geology import thicken_cover
 from orogen.v2.tectonics.segments import fracture_coordinate
 from orogen.v2.tectonics.simulation import fastest_speed
@@ -266,5 +268,65 @@ PAIRS = PAIRS + (
             for index, case in enumerate(_COVER_CASES)
         ),
         atol=2e-6,
+    ),
+)
+
+
+def _broad_profile(data: JsonObject) -> Any:
+    return broad_profile(
+        data["type"], data["side"], data["distance"], data["reach"],
+        data["jitter"], data["wear"],
+    )
+
+
+def _belt_relief(data: JsonObject) -> Any:
+    return belt_relief_km(data["type"], data["reach"], data["heights"])
+
+
+_PROFILE_CASES = tuple(
+    {
+        "type": oro_type,
+        "side": side,
+        "distance": distance,
+        "reach": reach,
+        "jitter": 0.08 if (oro_type + side) % 2 else 0.0,
+        "wear": 180.0 if side == BeltSide["LOWER"] else 0.0,
+    }
+    for oro_type in range(1, 9)
+    for side, distance, reach in (
+        (BeltSide["UPPER"], 0.18 * 500.0, 500.0),
+        (BeltSide["LOWER"], 0.76 * 850.0, 850.0),
+    )
+)
+_RELIEF_CASES = tuple(
+    {"type": oro_type, "reach": reach, "heights": DEFAULT_HEIGHTS}
+    for oro_type in range(1, 9)
+    for reach in (
+        0.0,
+        0.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type],
+        1.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type],
+    )
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Orogenic belt profile",
+        javascript_id="tectonics.broadProfile",
+        python_call=_broad_profile,
+        cases=tuple(
+            DifferentialCase(id=f"profile-{index}", input=case)
+            for index, case in enumerate(_PROFILE_CASES)
+        ),
+        atol=2e-12,
+    ),
+    DifferentialPair(
+        name="Orogenic belt relief",
+        javascript_id="tectonics.beltReliefKm",
+        python_call=_belt_relief,
+        cases=tuple(
+            DifferentialCase(id=f"relief-{index}", input=case)
+            for index, case in enumerate(_RELIEF_CASES)
+        ),
+        atol=2e-12,
     ),
 )

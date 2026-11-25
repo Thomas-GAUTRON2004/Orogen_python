@@ -228,6 +228,7 @@ jobs:
             tests/test_v2_initial_world_differential.py \
             tests/test_v2_scene_catalogue_differential.py \
             tests/test_v2_far_field_differential.py \
+            tests/test_v2_tectonics_primitives_differential.py \
             tests/test_v2_numba_kernel_coverage.py
           test_status=$?
           set -e

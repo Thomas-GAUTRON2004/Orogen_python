@@ -39,8 +39,10 @@ const world = {
   config: { collisionForgetMyr: spec.forgetAfter },
   time: spec.time,
 };
+const before = collisions.size;
 const merged = trackCollisions(world, 1);
+const forgotten = before - collisions.size;
 const remaining = Object.fromEntries(
   [...collisions.entries()].sort(([a], [b]) => a.localeCompare(b))
 );
-console.log(JSON.stringify({ young, stale: { merged, remaining } }));
+console.log(JSON.stringify({ young, stale: { merged, forgotten, remaining } }));

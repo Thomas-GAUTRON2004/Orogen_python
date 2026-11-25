@@ -145,14 +145,28 @@ def _suture_ring_case() -> dict[str, Any]:
         "plates": [
             {
                 "name": "Upper plate",
-                "type": [CrustType["CONTINENT"]],
-                "mask": [1],
+                "type": [
+                    CrustType["CONTINENT"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                ],
+                "mask": [1, 0, 0, 0, 0, 0],
                 "capCenter": [0.0, 0.8, 0.6],
             },
             {
                 "name": "Lower plate",
-                "type": [CrustType["CONTINENT"]],
-                "mask": [1],
+                "type": [
+                    CrustType["CONTINENT"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                    CrustType["OCEAN"],
+                ],
+                "mask": [1, 0, 0, 0, 0, 0],
                 "capCenter": [0.0, -0.8, 0.6],
             },
         ],

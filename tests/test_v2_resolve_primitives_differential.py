@@ -217,7 +217,7 @@ def _payload() -> dict[str, Any]:
                 "capFloor": -1.0,
                 "underCell": 0,
             },
-            "rival": null,
+            "rival": None,
         },
         {
             **mesh,
@@ -239,7 +239,7 @@ def _payload() -> dict[str, Any]:
                 "capFloor": -1.0,
                 "underCell": 0,
             },
-            "rival": null,
+            "rival": None,
         },
     ]
     return {"candidate": candidate, "decisions": decisions}

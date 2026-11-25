@@ -219,6 +219,7 @@ jobs:
         env:
           CI: "true"
         run: |
+          set +e
           python -m coverage run --branch --source=orogen \
             -m pytest -q tests/test_v2_differential_harness.py \
             tests/test_v2_differential.py \
@@ -227,9 +228,13 @@ jobs:
             tests/test_v2_scene_catalogue_differential.py \
             tests/test_v2_far_field_differential.py \
             tests/test_v2_numba_kernel_coverage.py
+          test_status=$?
+          set -e
+          # Always emit coverage data, even when a differential assertion fails.
           python -m coverage report -m
           python -m coverage xml -o coverage.xml
           python -m coverage html -d coverage-html
+          exit "$test_status"
 
       - name: Upload differential coverage report
         if: always()

@@ -37,7 +37,9 @@ CATALOGUES = {
     "rift": RIFT_SCENES,
     "terrain": TERRAIN_SCENES,
 }
-SKIP_SCENES = {"history", "cycle", "farfield"}
+# The small-mesh "start" force scene intentionally uses Python's coarse fallback;
+# production initial-world parity is tested separately at 512 cells.
+SKIP_SCENES = {"history", "cycle", "farfield", "start"}
 
 
 def _safe(value: Any) -> Any:

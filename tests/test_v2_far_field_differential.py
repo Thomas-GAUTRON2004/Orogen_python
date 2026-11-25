@@ -40,7 +40,9 @@ CONFIG = {
 
 def _mesh() -> SimpleNamespace:
     angle = np.arange(5, dtype=np.float64) * 0.01
-    xyz = np.column_stack((np.cos(angle), np.sin(angle), np.zeros(5))).astype(np.float32)
+    xyz = np.column_stack((np.cos(angle), np.sin(angle), np.zeros(5))).astype(
+        np.float32
+    )
     return SimpleNamespace(
         num_cells=5,
         xyz=xyz.reshape(-1),
@@ -130,22 +132,24 @@ def test_far_field_collection_spread_and_cell_records_match_upstream(
     due = evolve_far_field(world, 1)
     crust = {field: getattr(plate.crust, field) for field in CELL_FIELDS}
     crust["mask"] = plate.crust.mask
-    python = _safe({
-        "direct": {
-            "cells": direct["cells"],
-            "inc": direct["inc"],
-            "from": direct["from"],
-            "dist": direct["dist"],
-        },
-        "strike": strike,
-        "noStrike": no_strike,
-        "factors": factors,
-        "pending": pending,
-        "early": early,
-        "due": due,
-        "farClock": world.farClock,
-        "farLastWindow": world.farLastWindow,
-        "pendingAfter": list(world.farPending),
-        "crust": crust,
-    })
+    python = _safe(
+        {
+            "direct": {
+                "cells": direct["cells"],
+                "inc": direct["inc"],
+                "from": direct["from"],
+                "dist": direct["dist"],
+            },
+            "strike": strike,
+            "noStrike": no_strike,
+            "factors": factors,
+            "pending": pending,
+            "early": early,
+            "due": due,
+            "farClock": world.farClock,
+            "farLastWindow": world.farLastWindow,
+            "pendingAfter": list(world.farPending),
+            "crust": crust,
+        }
+    )
     assert_js_python_equal(python, javascript, rtol=3e-6, atol=3e-6)

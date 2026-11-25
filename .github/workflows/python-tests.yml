@@ -201,10 +201,11 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install project and test dependencies
+      - name: Install project, test, and coverage dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install -e ".[test,speed]"
+          python -m pip install "coverage>=7.6.1,<7.17"
 
       - name: Verify upstream JavaScript source
         run: |
@@ -212,8 +213,25 @@ jobs:
           test -f external/planet_heightmap_generation/js/rng.js
           node --version
           python --version
+          python -m coverage --version
 
-      - name: Run JavaScript / Python differential tests
+      - name: Run differential tests with branch coverage
         env:
           CI: "true"
-        run: python -m pytest -q tests/test_v2_differential_harness.py
+        run: |
+          python -m coverage run --branch --source=orogen \
+            -m pytest -q tests/test_v2_differential_harness.py
+          python -m coverage report -m
+          python -m coverage xml -o coverage.xml
+          python -m coverage html -d coverage-html
+
+      - name: Upload differential coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-python-coverage
+          path: |
+            coverage.xml
+            coverage-html/
+          if-no-files-found: warn
+          retention-days: 14

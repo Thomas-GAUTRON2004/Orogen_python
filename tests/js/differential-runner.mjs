@@ -67,11 +67,11 @@ for (const [cell, type, work, start, last] of branchInput.operations) {
 }
 const crustBranches = Array.from({length:branchInput.size},(_,i)=>branchCrust.snapshot(i));
 
-function extentCase({occupied, xyz:coords, types, numCells}) {
+function extentCase({occupied, xyz:coords, types, numCells, longitude, terraneStart}) {
   const extentPlate = input.extentPlate;
   const p = new Plate(extentPlate.id, numCells, extentPlate.radius);
   p.setQuat(q1);
-  for (const i of occupied) p.crust.create(i, types[i], scenario.longitude, scenario.terraneStart+i);
+  for (const i of occupied) p.crust.create(i, types[i], longitude, terraneStart+i);
   p.dirty = true;
   p.refreshExtent(new Float32Array(coords));
   return {stats:p.stats,count:p.crust.count,dirty:p.dirty,capCenter:p.capCenter,capCos:p.capCos,cap:p.capInWorld({edgeRad:extentPlate.edgeRad})};

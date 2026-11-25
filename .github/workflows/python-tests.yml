@@ -26,6 +26,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install pinned JavaScript reference dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

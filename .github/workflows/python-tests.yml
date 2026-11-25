@@ -224,7 +224,8 @@ jobs:
             tests/test_v2_differential.py \
             tests/test_v2_differential_extended.py \
             tests/test_v2_initial_world_differential.py \
-            tests/test_v2_scene_catalogue_differential.py
+            tests/test_v2_scene_catalogue_differential.py \
+            tests/test_v2_far_field_differential.py
           python -m coverage report -m
           python -m coverage xml -o coverage.xml
           python -m coverage html -d coverage-html

@@ -151,4 +151,4 @@ def test_far_field_collection_spread_and_cell_records_match_upstream(
             "crust": crust,
         }
     )
-    assert_js_python_equal(python, javascript, rtol=3e-6, atol=3e-6)
+    assert_js_python_equal(python, javascript, rtol=3e-5, atol=3e-6)

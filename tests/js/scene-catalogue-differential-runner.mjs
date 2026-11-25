@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { meshFromArrays } from "../../external/planet_heightmap_generation/v2/js/core/sim-mesh.js";
 import { CELL_FIELDS } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/crust.js";
 import { BUDGET_SCENES } from "../../external/planet_heightmap_generation/v2/js/tectonics/scenarios/budget-scenes.js";
@@ -9,7 +10,7 @@ import { MARGIN_SCENES } from "../../external/planet_heightmap_generation/v2/js/
 import { RIFT_SCENES } from "../../external/planet_heightmap_generation/v2/js/tectonics/scenarios/rift-scenes.js";
 import { TERRAIN_SCENES } from "../../external/planet_heightmap_generation/v2/js/tectonics/scenarios/terrain-scenes.js";
 
-const payload = JSON.parse(await new Response(process.stdin).text());
+const payload = JSON.parse(readFileSync(0, "utf8"));
 const source = payload.mesh;
 const mesh = meshFromArrays({
   numCells: source.numCells,

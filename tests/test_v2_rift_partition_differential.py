@@ -16,6 +16,7 @@ from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
     _crosses_rather_than_hugs,
+    grain_of,
     _is_monotone,
     _trace_parent_path,
     coast_distance,
@@ -337,3 +338,41 @@ def test_cheapest_paths_does_not_cross_an_unmasked_gap():
     assert math.isinf(result["cost"][9])
     assert result["from"][9] == -1
     assert math.isfinite(result["cost"][13])
+
+
+def test_grain_of_returns_unit_weight_when_rift_noise_is_disabled():
+    world = SimpleNamespace(
+        config={"riftCurveAmp": 0.0, "riftJagAmp": 0.0},
+    )
+
+    grain = grain_of(world)
+
+    assert grain(0) == 1.0
+    assert not hasattr(world, "riftGrain")
+
+
+def test_grain_of_caches_seeded_noise_per_cell():
+    xyz = np.asarray(
+        [coordinate for longitude in (0.0, 15.0, 30.0) for coordinate in _xyz(0.0, longitude)],
+        dtype=np.float64,
+    )
+    world = SimpleNamespace(
+        seed=12345,
+        mesh=SimpleNamespace(num_cells=3, xyz=xyz),
+        config={
+            "riftCurveAmp": 0.35,
+            "riftCurveKm": 1200.0,
+            "riftJagAmp": 0.15,
+            "riftJagKm": 450.0,
+        },
+    )
+
+    grain = grain_of(world)
+    first = grain(1)
+    second = grain(1)
+
+    assert first == second
+    assert 0.2 <= first
+    assert np.isnan(world.riftGrainOf[[0, 2]]).all()
+    assert world.riftGrainOf[1] == first
+    assert world.riftGrain is not None

@@ -80,6 +80,7 @@ def differential_payload():
                 [4, OrogenyType["HIMALAYAN"], 1, 11, 5],
             ],
         },
+        "extentPlate": {"id": 8, "radius": 2, "edgeRad": 0.015},
         "extentCases": [
             {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied)}
             for name, (occupied, xyz, types) in extent_cases.items()
@@ -143,13 +144,14 @@ def test_crust_raster_state_and_snapshot_match_original(original, differential_p
     assert expected["fields"] == CELL_FIELDS
     assert crust.count == expected["count"]
     assert crust.mask.tolist() == expected["mask"]
-    assert crust.flags[2] == expected["flags"] == CrustFlag["TRENCH"]
-    assert crust.slabKm[2] == pytest.approx(expected["slabKm"], abs=0)
-    assert crust.oroType[2] == expected["oroType"]
-    assert crust.oroWork[2] == pytest.approx(expected["oroWork"], abs=0)
-    assert crust.oroStart[2] == pytest.approx(expected["oroStart"], abs=0)
-    assert crust.oroLast[2] == pytest.approx(expected["oroLast"], abs=0)
-    assert crust.snapshot(2) == expected["snapshot"]
+    cell = scenario["cell"]
+    assert crust.flags[cell] == expected["flags"] == CrustFlag["TRENCH"]
+    assert crust.slabKm[cell] == pytest.approx(expected["slabKm"], abs=0)
+    assert crust.oroType[cell] == expected["oroType"]
+    assert crust.oroWork[cell] == pytest.approx(expected["oroWork"], abs=0)
+    assert crust.oroStart[cell] == pytest.approx(expected["oroStart"], abs=0)
+    assert crust.oroLast[cell] == pytest.approx(expected["oroLast"], abs=0)
+    assert crust.snapshot(cell) == expected["snapshot"]
 
 
 def test_crust_orogeny_branch_transitions_match_original(original, differential_payload):
@@ -159,7 +161,7 @@ def test_crust_orogeny_branch_transitions_match_original(original, differential_
         crust.create(i, CrustType["CONTINENT"], 0, i + 1)
     for cell, orogeny_type, work, start, last in scenario["operations"]:
         crust.record_orogeny(cell, orogeny_type, work, start, last)
-    assert [crust.snapshot(i) for i in range(5)] == original["crustBranches"]
+    assert [crust.snapshot(i) for i in range(scenario["size"])] == original["crustBranches"]
 
 
 def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differential_payload):
@@ -167,8 +169,10 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differe
     for case in differential_payload["extentCases"]:
         name = case["name"]
         occupied, xyz, types = case["occupied"], case["xyz"], case["types"]
-        plate = Plate(8, case["numCells"], 2)
-        plate.set_quat(quat_from_axis_angle(0, 0, 1, math.pi / 3))
+        extent_plate = differential_payload["extentPlate"]
+        q_input = differential_payload["quaternion"]
+        plate = Plate(extent_plate["id"], case["numCells"], extent_plate["radius"])
+        plate.set_quat(quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"]))
         for i in occupied:
             plate.crust.create(i, types[i], -1, i + 1)
         plate.dirty = True
@@ -179,7 +183,7 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differe
         assert plate.dirty is got["dirty"]
         _assert_close(plate.capCenter, got["capCenter"], atol=2e-7)
         assert plate.capCos == pytest.approx(got["capCos"], abs=2e-7)
-        _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad": 0.015})()), got["cap"], atol=2e-7)
+        _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad": differential_payload["extentPlate"]["edgeRad"]})()), got["cap"], atol=2e-7)
 
 
 def test_plate_frame_transform_and_extent_match_original(original, differential_payload):
@@ -284,6 +288,6 @@ def test_tectonic_occupancy_bins_match_original(original, differential_payload):
         "near"
     ]
     assert (
-        may_have_crust_near(SimpleNamespace(bins=None), 0, 19, bins)
+        may_have_crust_near(SimpleNamespace(bins=None), 0, scenario["terrane"], bins)
         is expected["absent"]
     )

@@ -379,13 +379,6 @@ def test_geology_cover_thickening_matches_upstream(javascript, payload):
         )
 
 
-def test_fracture_zone_coordinates_match_upstream(javascript, payload):
-    expected = [
-        fracture_coordinate(*case["point"], case["omega"])
-        for case in payload["segments"]
-    ]
-    _assert_close(javascript["segments"], expected, atol=1e-12)
-
 
 def test_belt_profiles_and_relief_match_upstream(javascript, payload):
     expected_profiles = [

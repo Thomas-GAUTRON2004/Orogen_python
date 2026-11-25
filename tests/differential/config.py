@@ -803,3 +803,59 @@ PAIRS = PAIRS + (
         atol=2e-7,
     ),
 )
+
+
+def _plate_frame_transform(data: JsonObject) -> JsonObject:
+    import numpy as np
+
+    q1 = quat_from_axis_angle(*data["q1Axis"], data["q1Angle"])
+    q2 = quat_from_axis_angle(*data["q2Axis"], data["q2Angle"])
+    integrated = quat_integrate(
+        quat_normalize(quat_mul(q1, q2)), data["omega"], data["dt"]
+    )
+    plate_data = data["plate"]
+    plate = Plate(plate_data["id"], plate_data["numCells"], plate_data["radius"])
+    plate.set_quat(integrated)
+    world = plate.to_world(*plate_data["worldPoint"])
+    local = plate.to_plate_frame(*world)
+    xyz = np.asarray(plate_data["xyz"], dtype=np.float32)
+    for cell, crust_type, longitude, terrane in plate_data["crustCells"]:
+        plate.crust.create(cell, crust_type, longitude, terrane)
+    plate.refresh_extent(xyz)
+    other = Plate(plate_data["otherId"], plate_data["otherNumCells"])
+    other.set_quat(q1)
+    rotation = frame_rotation(plate, other)
+    return {
+        "world": world,
+        "local": local,
+        "matrix": plate.mat.reshape(-1),
+        "stats": plate.stats,
+        "capCenter": plate.capCenter,
+        "capCos": plate.capCos,
+        "cap": plate.cap_in_world(SimpleNamespace(edge_rad=plate_data["capEdgeRad"])),
+        "frameRotation": rotation.reshape(-1),
+    }
+
+
+_PLATE_FRAME_INPUT = {
+    "q1Axis": [0, 0, 1], "q1Angle": math.pi / 3,
+    "q2Axis": [1, 0, 0], "q2Angle": -math.pi / 7,
+    "omega": [0.001, -0.002, 0.003], "dt": 12.5,
+    "plate": {
+        "id": 3, "numCells": 6, "radius": 4.5,
+        "worldPoint": [0.25, -0.5, 0.75],
+        "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, 0, 0, -1],
+        "crustCells": [[0, CrustType["CRATON"], -10, 1], [1, CrustType["OCEAN"], -5, 2]],
+        "otherId": 4, "otherNumCells": 6, "capEdgeRad": 0.02,
+    },
+}
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Plate frame transform and extent",
+        javascript_id="tectonics.plateFrameTransform",
+        python_call=_plate_frame_transform,
+        cases=(DifferentialCase(id="integrated-rotation", input=_PLATE_FRAME_INPUT),),
+        atol=2e-7,
+    ),
+)

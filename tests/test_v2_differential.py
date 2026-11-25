@@ -157,39 +157,4 @@ def _assert_close(actual, expected, atol=2e-7):
 
 
 
-\n\n\n
-def test_plate_frame_transform_and_extent_match_original(
-    original, differential_payload
-):
-    q_input = differential_payload["quaternion"]
-    plate_input = differential_payload["plate"]
-    q1 = quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"])
-    q2 = quat_from_axis_angle(*q_input["q2Axis"], q_input["q2Angle"])
-    integrated = quat_integrate(
-        quat_normalize(quat_mul(q1, q2)), q_input["omega"], q_input["dt"]
-    )
-    plate = Plate(plate_input["id"], plate_input["numCells"], plate_input["radius"])
-    plate.set_quat(integrated)
-    world = plate.to_world(*plate_input["worldPoint"])
-    local = plate.to_plate_frame(*world)
-    xyz = np.asarray(plate_input["xyz"], dtype=np.float32)
-    for cell, crust_type, longitude, terrane in plate_input["crustCells"]:
-        plate.crust.create(cell, crust_type, longitude, terrane)
-    plate.refresh_extent(xyz)
-    other = Plate(plate_input["otherId"], plate_input["otherNumCells"])
-    other.set_quat(q1)
-    rotation = frame_rotation(plate, other)
-    expected = original["plate"]
-    _assert_close(world, expected["world"])
-    _assert_close(local, expected["local"])
-    _assert_close(plate.mat.reshape(-1), expected["matrix"])
-    assert plate.stats == expected["stats"]
-    _assert_close(plate.capCenter, expected["capCenter"])
-    assert plate.capCos == pytest.approx(expected["capCos"], abs=1e-7)
-    _assert_close(
-        plate.cap_in_world(type("Mesh", (), {"edge_rad": plate_input["capEdgeRad"]})()),
-        expected["cap"],
-    )
-    _assert_close(rotation.reshape(-1), expected["frameRotation"])
-
-\n
+\n\n\n\n

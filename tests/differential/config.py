@@ -192,3 +192,32 @@ PAIRS = PAIRS + (
         atol=1e-12,
     ),
 )
+
+
+from types import SimpleNamespace
+from orogen.v2.tectonics.simulation import fastest_speed
+
+
+def _fastest_speed(data: JsonObject) -> Any:
+    plate = SimpleNamespace(capCos=data["capCos"])
+    return fastest_speed(data["omega"], plate, data["centre"])
+
+
+_SPEED_CASES = (
+    {"omega": [0.0, 0.0, 0.0], "capCos": 0.8, "centre": [0, 0, 1]},
+    {"omega": [0.2, -0.3, 0.4], "capCos": 0.98, "centre": [0, 0, 1]},
+    {"omega": [0.7, 0.0, 0.1], "capCos": -0.2, "centre": [0, 1, 0]},
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Fastest plate speed",
+        javascript_id="tectonics.fastestSpeed",
+        python_call=_fastest_speed,
+        cases=tuple(
+            DifferentialCase(id=f"plate-speed-{index}", input=case)
+            for index, case in enumerate(_SPEED_CASES)
+        ),
+        atol=1e-12,
+    ),
+)

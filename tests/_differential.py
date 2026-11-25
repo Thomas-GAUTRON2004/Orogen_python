@@ -39,7 +39,9 @@ def run_js_reference(
     runner_path = Path(runner)
     if not runner_path.is_absolute():
         runner_path = ROOT / runner_path
-    request = json.dumps(_to_json_value(payload), allow_nan=False, separators=(",", ":"))
+    request = json.dumps(
+        _to_json_value(payload), allow_nan=False, separators=(",", ":")
+    )
     result = subprocess.run(
         [node, str(runner_path)],
         input=request,
@@ -57,7 +59,9 @@ def run_js_reference(
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        pytest.fail(f"JavaScript reference emitted invalid JSON: {error}\n{result.stdout}")
+        pytest.fail(
+            f"JavaScript reference emitted invalid JSON: {error}\n{result.stdout}"
+        )
 
 
 def assert_js_python_equal(
@@ -85,8 +89,7 @@ def assert_js_python_equal(
 
     if isinstance(left, list) and isinstance(right, list):
         assert len(left) == len(right), (
-            f"{path}: array lengths differ: Python={len(left)}, "
-            f"JavaScript={len(right)}"
+            f"{path}: array lengths differ: Python={len(left)}, JavaScript={len(right)}"
         )
         for index, (py_item, js_item) in enumerate(zip(left, right, strict=True)):
             assert_js_python_equal(
@@ -99,7 +102,12 @@ def assert_js_python_equal(
         return
 
     if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-        if math.isinf(left) or math.isinf(right) or math.isnan(left) or math.isnan(right):
+        if (
+            math.isinf(left)
+            or math.isinf(right)
+            or math.isnan(left)
+            or math.isnan(right)
+        ):
             assert left == right, f"{path}: Python={left!r}, JavaScript={right!r}"
         else:
             assert math.isclose(left, right, rel_tol=rtol, abs_tol=atol), (

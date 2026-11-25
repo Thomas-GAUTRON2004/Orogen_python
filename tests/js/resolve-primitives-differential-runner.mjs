@@ -28,7 +28,7 @@ function makePlate(spec) {
   return {
     id: spec.id,
     isBackground: false,
-    omega: [0, 0, 0],
+    omega: spec.omega ?? [0, 0, 0],
     bins: new Uint32Array([7]),
     crust: {
       mask: new Uint8Array(spec.mask),
@@ -38,7 +38,7 @@ function makePlate(spec) {
     },
     capInWorld() { return [0, 0, 1, spec.capFloor]; },
     cellAt() { return spec.underCell; },
-    toWorld(x, y, z) { return [x, y, z]; },
+    toWorld(x, y, z) { return [x, y - (spec.worldYOffset ?? 0), z]; },
     toPlateFrame(x, y, z) { return [x, y, z]; },
   };
 }

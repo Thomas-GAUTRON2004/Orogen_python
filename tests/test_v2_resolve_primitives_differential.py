@@ -118,6 +118,58 @@ def _payload() -> dict[str, Any]:
                 "underCell": 1,
             },
         },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.9995, 0.01, 0.0,
+                0.9992, 0.04, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 0,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "omega": [0.0, 0.0, 1.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": {
+                "id": 1,
+                "mask": [0, 0, 1, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 1,
+            },
+        },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.9995, 0.01, 0.0,
+                0.9992, 0.04, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 0,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "omega": [0.0, 0.0, 1.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": {
+                "id": 1,
+                "mask": [0, 0, 1, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 1,
+            },
+        },
     ]
     return {"candidate": candidate, "decisions": decisions}
 
@@ -154,7 +206,7 @@ def _plate(spec: dict[str, Any]):
     return SimpleNamespace(
         id=spec["id"],
         isBackground=False,
-        omega=np.zeros(3, dtype=np.float64),
+        omega=np.asarray(spec.get("omega", [0.0, 0.0, 0.0]), dtype=np.float64),
         bins=np.asarray([7], dtype=np.uint32),
         crust=SimpleNamespace(
             mask=np.asarray(spec["mask"], dtype=np.uint8),
@@ -166,7 +218,9 @@ def _plate(spec: dict[str, Any]):
             [0.0, 0.0, 1.0, spec["capFloor"]]
         ),
         cell_at=lambda *_args: spec["underCell"],
-        to_world=lambda x, y, z: np.asarray([x, y, z]),
+        to_world=lambda x, y, z: np.asarray(
+            [x, y - spec.get("worldYOffset", 0.0), z]
+        ),
         to_plate_frame=lambda x, y, z: np.asarray([x, y, z]),
     )
 
@@ -219,6 +273,8 @@ def test_divergence_birth_rejection_rules_match_javascript(javascript, payload):
         "not a gap: another plate has crust here",
         None,
         "too close to the mid-line",
+        "closing boundary",
     ]
     assert expected[2]["trenchParent"] == 0
     assert expected[3]["born"] is False
+    assert expected[4]["born"] is False

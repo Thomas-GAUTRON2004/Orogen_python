@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from _differential import run_js_reference
+
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,
     quat_integrate,

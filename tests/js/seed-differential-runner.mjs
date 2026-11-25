@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { isWordSeed, seedOf } from "../../external/planet_heightmap_generation/v2/js/core/seed.js";
 import { makeRng } from "../../external/planet_heightmap_generation/js/rng.js";
 

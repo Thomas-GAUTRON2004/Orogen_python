@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";\nimport { solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/dynamics.js";\nimport { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
+import { readFileSync } from "node:fs";\nimport { solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";\nimport { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
 
 import { isWordSeed, seedOf } from
   "../../external/planet_heightmap_generation/v2/js/core/seed.js";

@@ -12,11 +12,11 @@ import {
 } from "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 import { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
 import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";
-import { thickenCover } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/geology.js";
+import { thickenCover } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/geology.js";\nimport { beltReliefKm } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/heights.js";\nimport { broadProfile } from "../../external/planet_heightmap_generation/v2/js/terrain/profiles.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {
+const functions = {\n  "tectonics.broadProfile": (input) => broadProfile(input.type, input.side, input.distance, input.reach, input.jitter, input.wear),\n  "tectonics.beltReliefKm": (input) => beltReliefKm(input.type, input.reach, input.heights),
   "tectonics.thickenCover": (input) => {
     const crust = {
       coverKm: new Float32Array(input.coverKm),

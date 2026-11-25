@@ -17,7 +17,6 @@ from orogen.v2.core.rotation import (
     quat_to_euler_pole,
     quat_to_mat3,
 )
-from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.crust import (
     CELL_FIELDS,
     CrustFlag,

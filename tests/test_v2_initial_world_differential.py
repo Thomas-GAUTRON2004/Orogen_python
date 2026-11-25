@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 from _differential import assert_js_python_equal, run_js_reference
+
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.config import TECTONICS
 from orogen.v2.tectonics.crust import CELL_FIELDS

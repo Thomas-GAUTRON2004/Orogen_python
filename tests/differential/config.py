@@ -17,10 +17,14 @@ from orogen.v2.core.rotation import (
     quat_to_mat3,
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
-from orogen.v2.tectonics.dynamics import solve3
 from orogen.v2.tectonics.crust import BeltSide
-from orogen.v2.tectonics.heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
+from orogen.v2.tectonics.dynamics import solve3
 from orogen.v2.tectonics.geology import thicken_cover
+from orogen.v2.tectonics.heights import (
+    DEFAULT_HEIGHTS,
+    belt_relief_km,
+    broad_profile,
+)
 from orogen.v2.tectonics.segments import fracture_coordinate
 from orogen.v2.tectonics.simulation import fastest_speed
 

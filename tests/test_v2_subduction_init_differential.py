@@ -218,7 +218,7 @@ def _world(spec: dict[str, Any]):
         cycle=spec["cycle"],
         rngSubduction=lambda: next(draws, 0.0),
         log=lambda kind, message, data: events.append(
-            {"kind": int(kind), "message": message, "data": data}
+            {"kind": kind, "message": message, "data": data}
         ),
     )
     return world, events

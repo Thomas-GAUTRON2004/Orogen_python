@@ -1272,6 +1272,7 @@ def _process_collision_overlap(
             "contactMyr": 0.0,
             "cells": 0,
             "sutured": False,
+            "ringLogged": False,
             "announce": True,
             "underthrustDue": 0.0,
             "underthrustCells": 0,

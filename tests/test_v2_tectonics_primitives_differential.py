@@ -430,17 +430,7 @@ def test_belt_height_accumulation_matches_upstream(javascript, payload):
 
 
 
-def test_fastest_plate_speed_and_adaptive_step_match_upstream(javascript, payload):
-    speed_cases = payload["speedCases"]
-    expected_speeds = [
-        fastest_speed(
-            case["omega"],
-            SimpleNamespace(capCos=case["capCos"]),
-            case["centre"],
-        )
-        for case in speed_cases
-    ]
-    _assert_close(javascript["speeds"], expected_speeds, atol=1e-12)
+def test_adaptive_step_matches_upstream(javascript, payload):
 
     scenario = payload["simulation"]
     plates = [

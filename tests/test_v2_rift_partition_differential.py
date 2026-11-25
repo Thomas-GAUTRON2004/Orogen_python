@@ -12,7 +12,11 @@ import pytest
 from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.tectonics.crust import CrustType
-from orogen.v2.tectonics.ops.rift_path import coast_distance
+from orogen.v2.tectonics.ops.rift_path import (
+    _cheapest_paths,
+    _crosses_rather_than_hugs,
+    coast_distance,
+)
 from orogen.v2.tectonics.ops.rift_partition import (
     elongation_of,
     exterior_sea,
@@ -198,3 +202,53 @@ def test_coast_distance_propagates_inland_from_exterior_ocean():
         expected[row * 6 + 5] = 1
 
     np.testing.assert_array_equal(distance, expected)
+
+
+
+def test_coast_distance_leaves_ocean_and_unreachable_land_unassigned():
+    spec = _base_case()
+    mesh = _mesh(spec)
+    crust = _crust(spec)
+    crust.mask[0] = 0
+    crust.mask[1] = 0
+    exterior = np.zeros(spec["numCells"], dtype=np.bool_)
+
+    distance = coast_distance(mesh, crust, exterior)
+
+    assert np.all(distance == -1)
+
+
+def test_cheapest_paths_never_enters_ocean_cratons_or_unmasked_cells():
+    spec = _base_case()
+    mesh = _mesh(spec)
+    crust = _crust(spec)
+    crust.mask[2] = 0
+
+    result = _cheapest_paths(mesh, crust, 8, lambda _cell: 1.0)
+
+    assert result["cost"][8] == 0.0
+    assert math.isfinite(result["cost"][9])
+    assert math.isinf(result["cost"][2])
+    assert math.isinf(result["cost"][10])
+    assert math.isinf(result["cost"][3])
+    assert result["from"][8] == -1
+
+
+@pytest.mark.parametrize(
+    ("distances", "expected"),
+    [
+        ([9, 9, 0, 9, 9, 9, 9], True),
+        ([9, 9, 0, 1, 9, 9, 9], False),
+        ([9, 9, 0, 2, 0, 9, 9], True),
+        ([9, 9, -1, 0, 9, 9, 9], True),
+    ],
+)
+def test_rift_path_rejects_long_coastal_hugs(distances, expected):
+    mesh = SimpleNamespace(edge_km=10.0)
+    path = list(range(len(distances)))
+    config = {
+        "riftCoastClearanceKm": 20.0,
+        "riftCoastHugKm": 10.0,
+    }
+
+    assert _crosses_rather_than_hugs(mesh, path, distances, config) is expected

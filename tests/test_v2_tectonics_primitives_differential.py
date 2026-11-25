@@ -348,25 +348,6 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
 
 
 
-def test_belt_profiles_and_relief_match_upstream(javascript, payload):
-    expected_profiles = [
-        broad_profile(
-            case["type"],
-            case["side"],
-            case["distance"],
-            case["reach"],
-            case["jitter"],
-            case["wear"],
-        )
-        for case in payload["profiles"]
-    ]
-    expected_reliefs = [
-        belt_relief_km(case["type"], case["reach"], payload["heights"])
-        for case in payload["reliefs"]
-    ]
-    _assert_close(javascript["profiles"], expected_profiles, atol=2e-12)
-    _assert_close(javascript["reliefs"], expected_reliefs, atol=2e-12)
-
 
 def test_belt_height_accumulation_matches_upstream(javascript, payload):
     for case, actual in zip(

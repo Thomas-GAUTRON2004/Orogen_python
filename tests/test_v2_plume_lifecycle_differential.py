@@ -24,6 +24,7 @@ def _payload() -> dict[str, Any]:
             "heat": [0.25, 0.75],
             "plume": {
                 "name": "Kavora",
+                "xyz": [2.0, 0.0, 0.0],
                 "lifeMyr": 0.0,
                 "strength": 1.2,
             },
@@ -48,7 +49,7 @@ def test_scheduled_plume_birth_and_expiration_match_pinned_javascript(
     events = []
     scheduled = {
         "time": spec["time"],
-        "xyz": spec["plume"]["xyz"] if "xyz" in spec["plume"] else [2.0, 0.0, 0.0],
+        "xyz": spec["plume"]["xyz"],
         "head": False,
         "rift": False,
         "name": spec["plume"]["name"],

@@ -40,8 +40,6 @@ from orogen.v2.tectonics.geology import (
 )
 from orogen.v2.tectonics.heights import (
     DEFAULT_HEIGHTS,
-    belt_relief_km,
-    broad_profile,
     build_heights,
 )
 from orogen.v2.tectonics.simulation import choose_step

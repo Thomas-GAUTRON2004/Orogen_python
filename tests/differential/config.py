@@ -46,7 +46,7 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
 )
 from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import fastest_speed
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed
 
 JsonObject = dict[str, Any]
 
@@ -476,6 +476,65 @@ PAIRS = PAIRS + (
         javascript_id="tectonics.geologyCodecs",
         python_call=_geology_codecs,
         cases=(DifferentialCase(id="codec-boundaries", input=_CODEC_INPUT),),
+        atol=1e-12,
+    ),
+)
+
+
+def _adaptive_step(data: JsonObject) -> Any:
+    plates = [
+        SimpleNamespace(
+            alive=case["alive"],
+            omega=case["omega"],
+            capCos=case["capCos"],
+            capCenter=case["capCenter"],
+            crust=SimpleNamespace(count=case["count"]),
+        )
+        for case in data["plates"]
+    ]
+    for plate in plates:
+        plate.to_world = lambda x, y, z: (x, y, z)
+    world = SimpleNamespace(
+        config=data["config"],
+        mesh=SimpleNamespace(edge_rad=data["edgeRad"]),
+        plates=plates,
+    )
+    return choose_step(world)
+
+
+_ADAPTIVE_STEP_INPUT = {
+    "edgeRad": 0.012,
+    "config": {
+        "maxStepMyr": 4.0,
+        "maxCellsPerStep": 1.5,
+        "maxSpeedOceanic": 15.0,
+    },
+    "plates": [
+        {
+            "alive": True, "count": 4, "omega": [0.002, 0.001, -0.003],
+            "capCos": 0.85, "capCenter": [0.0, 0.0, 1.0],
+        },
+        {
+            "alive": True, "count": 2, "omega": [-0.001, 0.003, 0.002],
+            "capCos": 0.72, "capCenter": [0.0, 1.0, 0.0],
+        },
+        {
+            "alive": True, "count": 0, "omega": [0.5, 0.5, 0.5],
+            "capCos": 0.9, "capCenter": [1.0, 0.0, 0.0],
+        },
+        {
+            "alive": False, "count": 5, "omega": [1.0, 1.0, 1.0],
+            "capCos": 0.9, "capCenter": [0.0, 0.0, 1.0],
+        },
+    ],
+}
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Adaptive tectonic simulation step",
+        javascript_id="tectonics.chooseStep",
+        python_call=_adaptive_step,
+        cases=(DifferentialCase(id="mixed-plate-states", input=_ADAPTIVE_STEP_INPUT),),
         atol=1e-12,
     ),
 )

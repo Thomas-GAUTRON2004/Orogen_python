@@ -78,7 +78,8 @@ def _python_results(cases: list[dict[str, Any]]) -> list[int]:
                 "riftWeaknessCost": spec["riftWeaknessCost"],
             },
         )
-        results.append(choose_junction(world, SimpleNamespace(crust=crust), lambda: spec["rng"]))
+        plate = SimpleNamespace(crust=crust)
+        results.append(choose_junction(world, plate, lambda: spec["rng"]))
     return results
 
 

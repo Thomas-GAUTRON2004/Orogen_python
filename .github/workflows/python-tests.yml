@@ -252,6 +252,7 @@ jobs:
             tests/test_v2_collision_arc_recycle_differential.py \
             tests/test_v2_resolve_primitives_differential.py \
             tests/test_v2_plume_lifecycle_differential.py \
+            tests/test_v2_plume_birth_differential.py \
             tests/test_v2_numba_kernel_coverage.py
           test_status=$?
           set -e

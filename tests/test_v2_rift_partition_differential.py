@@ -536,3 +536,107 @@ def test_coast_candidates_keep_only_reachable_distant_exterior_coast_cells():
 
     assert [item["cell"] for item in candidates] == [1, 2]
     assert [item["score"] for item in candidates] == pytest.approx([1.5, 3.0])
+
+
+def _rift_search_case() -> dict[str, Any]:
+    rows = columns = 8
+    xyz = [
+        _xyz(-35.0 + row * 10.0, -35.0 + column * 10.0)
+        for row in range(rows)
+        for column in range(columns)
+    ]
+    adjacency = []
+    offsets = [0]
+    mask = [0] * (rows * columns)
+    crust_type = [CrustType["OCEAN"]] * (rows * columns)
+    for row in range(rows):
+        for column in range(columns):
+            neighbours = []
+            for dr, dc in ((-1, 0), (0, -1), (0, 1), (1, 0)):
+                nr, nc = row + dr, column + dc
+                if 0 <= nr < rows and 0 <= nc < columns:
+                    neighbours.append(nr * columns + nc)
+            adjacency.extend(neighbours)
+            offsets.append(len(adjacency))
+            if 1 <= row < rows - 1 and 1 <= column < columns - 1:
+                cell = row * columns + column
+                mask[cell] = 1
+                crust_type[cell] = CrustType["CONTINENT"]
+    return {
+        "numCells": rows * columns,
+        "xyz": [value for point in xyz for value in point],
+        "adjOffset": offsets,
+        "adjList": adjacency,
+        "edgeKm": 1000.0,
+        "edgeRad": 0.1,
+        "mask": mask,
+        "type": crust_type,
+        "terrane": [0] * (rows * columns),
+        "flags": [0] * (rows * columns),
+        "junction": 3 * columns + 3,
+        "pullAxis": None,
+        "needCratonsBothSides": False,
+        "seed": 941,
+        "config": {
+            "riftCurveAmp": 0.0,
+            "riftCurveKm": 1200.0,
+            "riftJagAmp": 0.0,
+            "riftJagKm": 450.0,
+            "riftWeaknessCost": 0.2,
+            "riftMinArmKm": 0.0,
+            "riftAcrossPullBias": 0.0,
+            "riftArmEndCoastKm": 20000.0,
+            "riftMinChordKm": 0.0,
+            "riftTortuosityMax": 100.0,
+            "riftCostSlack": 100.0,
+            "riftOverhangKm": 1000.0,
+            "riftCoastClearanceKm": 0.0,
+            "riftCoastHugKm": 1000.0,
+            "riftMinPieceShare": 0.0,
+            "riftElongationBias": 0.0,
+            "riftFailedArms": 1,
+            "riftFailedArmKm": 10000.0,
+        },
+    }
+
+
+def test_find_rift_matches_pinned_javascript():
+    spec = _rift_search_case()
+    javascript = run_js_reference(RUNNER, {"cases": [], "rift": spec})
+
+    mesh = SimpleNamespace(
+        num_cells=spec["numCells"],
+        xyz=np.asarray(spec["xyz"], dtype=np.float64),
+        adj_offset=np.asarray(spec["adjOffset"], dtype=np.int32),
+        adj_list=np.asarray(spec["adjList"], dtype=np.int32),
+        edge_km=spec["edgeKm"],
+        edge_rad=spec["edgeRad"],
+    )
+    mask = np.asarray(spec["mask"], dtype=np.uint8)
+    crust = SimpleNamespace(
+        count=int(mask.sum()),
+        mask=mask,
+        type=np.asarray(spec["type"], dtype=np.uint8),
+        terrane=np.asarray(spec["terrane"], dtype=np.int32),
+        flags=np.asarray(spec["flags"], dtype=np.uint8),
+    )
+    world = SimpleNamespace(mesh=mesh, config=spec["config"], seed=spec["seed"])
+    actual = find_rift(
+        world,
+        SimpleNamespace(crust=crust),
+        spec["junction"],
+        spec["pullAxis"],
+        spec["needCratonsBothSides"],
+    )
+    if actual is not None:
+        actual = {
+            "path": actual["path"],
+            "failedArm": actual["failed_arm"],
+            "arms": actual["arms"],
+            "across": actual["across"],
+            "value": actual["value"],
+        }
+
+    assert actual is not None
+    assert javascript["rift"] is not None
+    assert_js_python_equal(actual, javascript["rift"], atol=2e-7)

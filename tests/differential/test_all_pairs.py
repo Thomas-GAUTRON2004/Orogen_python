@@ -9,7 +9,7 @@ from _differential import assert_js_python_equal, run_js_reference
 from .config import PAIRS
 
 
-RUNNER = "tests/js/differential-runner.mjs"
+RUNNER = "tests/js/generic-differential-runner.mjs"
 
 
 @pytest.mark.parametrize(

@@ -213,6 +213,13 @@ def _mariana(sim_mesh: Any, seed: int):
     return world
 
 
+def _drive_laramide(world: Any) -> None:
+    point = lat_lon_to_xyz(42.0, LARAMIDE["trenchLon"])
+    speed = float(LARAMIDE["speedCmYr"])
+    _set_motion(world, "Laurentia", point, -90.0, speed)
+    _set_motion(world, "Farallona", point, 90.0, speed)
+
+
 def _drive_mariana(world: Any) -> None:
     point = lat_lon_to_xyz(15.0, 150.0)
     _set_motion(world, "Philippina", point, -90.0, 3.0)
@@ -283,9 +290,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
         "speedCmYr": 5.0,
         "trenchLon": -118.0,
         "build": _laramide,
-        "drive": lambda world: _set_motion(
-            world, "Laurentia", lat_lon_to_xyz(42.0, -118.0), -90.0, 5.0
-        ),
+        "drive": _drive_laramide,
     },
     {
         "id": "mariana",

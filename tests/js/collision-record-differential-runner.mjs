@@ -77,7 +77,10 @@ function run(spec) {
       ? null
       : Object.fromEntries(RECORD_FIELDS.map((field) => {
           const value = record[field];
-          return [field, Number.isFinite(value) ? value : value ?? null];
+          const normalized = field === "weldCandidate"
+            ? Boolean(value)
+            : Number.isFinite(value) ? value : value ?? null;
+          return [field, normalized];
         })),
     events,
   };

@@ -251,6 +251,7 @@ jobs:
             tests/test_v2_collision_contacts_differential.py \
             tests/test_v2_collision_arc_recycle_differential.py \
             tests/test_v2_collision_record_differential.py \
+            tests/test_v2_contact_differential.py \
             tests/test_v2_resolve_primitives_differential.py \
             tests/test_v2_resolve_orchestration_differential.py \
             tests/test_v2_plume_lifecycle_differential.py \

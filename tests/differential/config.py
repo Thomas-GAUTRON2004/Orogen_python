@@ -46,7 +46,7 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
 )
 from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import choose_step, fastest_speed\nfrom orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near\nfrom orogen.v2.tectonics.kinematics import (\n    advance_plates, lat_lon_to_xyz, omega_from_euler_pole, pose_at_constant_omega,\n    speed_cm_yr_at, surface_velocity, xyz_to_lat_lon,\n)
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed\nfrom orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near\nfrom orogen.v2.tectonics.plate import Plate, frame_rotation\nfrom orogen.v2.tectonics.kinematics import (\n    advance_plates, lat_lon_to_xyz, omega_from_euler_pole, pose_at_constant_omega,\n    speed_cm_yr_at, surface_velocity, xyz_to_lat_lon,\n)
 
 JsonObject = dict[str, Any]
 
@@ -737,5 +737,69 @@ PAIRS = PAIRS + (
         cases=(DifferentialCase(id="successive-orogeny-types", input=_CRUST_BRANCH_INPUT),),
         atol=0.0,
         rtol=0.0,
+    ),
+)
+
+
+def _plate_extents(data: JsonObject) -> JsonObject:
+    import numpy as np
+
+    q = quat_from_axis_angle(*data["qAxis"], data["qAngle"])
+    results = {}
+    for case in data["cases"]:
+        plate = Plate(data["id"], case["numCells"], data["radius"])
+        plate.set_quat(q)
+        for cell in case["occupied"]:
+            plate.crust.create(
+                cell, case["types"][cell], case["longitude"],
+                case["terraneStart"] + cell,
+            )
+        plate.dirty = True
+        plate.refresh_extent(np.asarray(case["xyz"], dtype=np.float32))
+        results[case["name"]] = {
+            "stats": plate.stats,
+            "count": plate.crust.count,
+            "dirty": plate.dirty,
+            "capCenter": plate.capCenter,
+            "capCos": plate.capCos,
+            "cap": plate.cap_in_world(SimpleNamespace(edge_rad=data["edgeRad"])),
+        }
+    return results
+
+
+_EXTENT_CASES = (
+    {
+        "name": "empty", "occupied": [], "xyz": [1, 0, 0, 0, 1, 0],
+        "types": [0, 0], "numCells": 0, "longitude": -1, "terraneStart": 1,
+    },
+    {
+        "name": "antipodal", "occupied": [0, 1],
+        "xyz": [1, 0, 0, -1, 0, 0], "types": [2, 0],
+        "numCells": 2, "longitude": -1, "terraneStart": 1,
+    },
+    {
+        "name": "mixed", "occupied": [0, 1, 2],
+        "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
+        "types": [2, 0, 1, 0], "numCells": 3,
+        "longitude": -1, "terraneStart": 1,
+    },
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Plate extent and occupied-cell statistics",
+        javascript_id="tectonics.plateExtents",
+        python_call=_plate_extents,
+        cases=(
+            DifferentialCase(
+                id="empty-antipodal-and-mixed",
+                input={
+                    "id": 8, "radius": 2, "edgeRad": 0.015,
+                    "qAxis": [0, 0, 1], "qAngle": math.pi / 3,
+                    "cases": _EXTENT_CASES,
+                },
+            ),
+        ),
+        atol=2e-7,
     ),
 )

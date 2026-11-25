@@ -101,8 +101,25 @@ def _payload() -> dict[str, Any]:
         "cells": [],
     }
     single_cell_path = {**base, "path": [9]}
+    interior_ocean_hole = {**base, "mask": list(base["mask"])}
+    interior_ocean_hole["mask"][14] = 0
+    interior_ocean_hole["type"] = list(base["type"])
+    interior_ocean_hole["type"][14] = CrustType["OCEAN"]
+    disconnected_land = {**base, "mask": [0] * base["numCells"]}
+    for cell in (7, 8, 13, 14, 19, 20, 25, 26):
+        disconnected_land["mask"][cell] = 1
+    explicit_cells = {**base, "cells": [8, 9, 10, 14, 15, 16, 20, 21, 22]}
     return {
-        "cases": [base, outside_sea, all_ocean, empty, single_cell_path]
+        "cases": [
+            base,
+            outside_sea,
+            all_ocean,
+            empty,
+            single_cell_path,
+            interior_ocean_hole,
+            disconnected_land,
+            explicit_cells,
+        ]
     }
 
 

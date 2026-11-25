@@ -19,6 +19,7 @@ from orogen.v2.tectonics.ops.rift_path import (
     _is_monotone,
     _trace_parent_path,
     coast_distance,
+    find_rift,
     grain_of,
     rift_context,
 )
@@ -405,3 +406,31 @@ def test_rift_context_precomputes_coast_and_cell_data_once():
         coast_distance(mesh, crust, context["exterior"]),
     )
     assert context["grain"](0) == 1.0
+
+
+@pytest.mark.parametrize(
+    ("junction", "mask"),
+    [
+        (0, [0, 1, 1]),
+        (1, [1, 1, 1]),
+        (2, [1, 1, 1]),
+    ],
+)
+def test_find_rift_rejects_unmasked_ocean_and_craton_junctions(junction, mask):
+    crust = SimpleNamespace(
+        mask=np.asarray(mask, dtype=np.uint8),
+        type=np.asarray(
+            [
+                CrustType["CONTINENT"],
+                CrustType["OCEAN"],
+                CrustType["CRATON"],
+            ],
+            dtype=np.uint8,
+        ),
+    )
+    world = SimpleNamespace(
+        mesh=SimpleNamespace(xyz=np.empty(0, dtype=np.float64)),
+        config={},
+    )
+
+    assert find_rift(world, SimpleNamespace(crust=crust), junction) is None

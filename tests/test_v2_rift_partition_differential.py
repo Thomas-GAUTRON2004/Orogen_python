@@ -14,8 +14,8 @@ from _differential import assert_js_python_equal, run_js_reference
 from orogen.v2.core.sphere_geometry import cell_distance_km
 from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.ops.rift_path import (
-    _cheapest_paths,
     _coast_candidates,
+    _cheapest_paths,
     _crosses_rather_than_hugs,
     _is_monotone,
     _trace_parent_path,

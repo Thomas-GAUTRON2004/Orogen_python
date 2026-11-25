@@ -12,6 +12,7 @@ import pytest
 from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.ops.rift_path import coast_distance
 from orogen.v2.tectonics.ops.rift_partition import (
     elongation_of,
     exterior_sea,
@@ -177,3 +178,23 @@ def _evaluate(spec: dict[str, Any]) -> dict[str, Any]:
 def test_rift_partition_and_exterior_sea_match_pinned_javascript(javascript, payload):
     expected = [_evaluate(case) for case in payload["cases"]]
     assert_js_python_equal(expected, javascript, atol=3e-6)
+
+
+
+def test_coast_distance_propagates_inland_from_exterior_ocean():
+    spec = _base_case()
+    mesh = _mesh(spec)
+    crust = _crust(spec)
+    exterior = exterior_sea(mesh, crust)
+
+    distance = coast_distance(mesh, crust, exterior)
+
+    expected = np.full(spec["numCells"], -1, dtype=np.int16)
+    for row in range(6):
+        expected[row * 6 + 2] = 0
+        expected[row * 6 + 1] = 1
+        expected[row * 6] = 2
+        expected[row * 6 + 4] = 0
+        expected[row * 6 + 5] = 1
+
+    np.testing.assert_array_equal(distance, expected)

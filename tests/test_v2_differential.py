@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import math
-import os
-import shutil
 from pathlib import Path
 
 import numpy as np
 import pytest
 
+from _differential import run_js_reference
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,
     quat_integrate,
@@ -28,7 +26,6 @@ from orogen.v2.tectonics.crust import (
     OrogenyType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
-from _differential import run_js_reference
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/differential-runner.mjs"

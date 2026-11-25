@@ -191,9 +191,26 @@ def test_rift_partition_and_exterior_sea_match_pinned_javascript(javascript, pay
     assert_js_python_equal(expected, javascript, atol=3e-6)
 
 
-def test_rift_context_matches_pinned_javascript():
+@pytest.mark.parametrize(
+    "config",
+    [
+        pytest.param(
+            {"riftCurveAmp": 0.0, "riftJagAmp": 0.0},
+            id="grain-disabled",
+        ),
+        pytest.param(
+            {
+                "riftCurveAmp": 0.35,
+                "riftCurveKm": 1200.0,
+                "riftJagAmp": 0.15,
+                "riftJagKm": 450.0,
+            },
+            id="seeded-grain",
+        ),
+    ],
+)
+def test_rift_context_matches_pinned_javascript(config):
     spec = _base_case()
-    config = {"riftCurveAmp": 0.0, "riftJagAmp": 0.0}
     scenario = {**spec, "config": config, "seed": 941}
     javascript = run_js_reference(
         RUNNER,

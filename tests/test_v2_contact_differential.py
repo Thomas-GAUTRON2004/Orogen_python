@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-
-from dataclasses import dataclass
 
 import numpy as np
 import pytest

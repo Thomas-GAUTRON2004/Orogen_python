@@ -79,7 +79,7 @@ def _python_results(cases: list[dict[str, Any]]) -> list[int]:
             },
         )
         plate = SimpleNamespace(crust=crust)
-        results.append(choose_junction(world, plate, lambda: spec["rng"]))
+        results.append(choose_junction(world, plate, lambda value=float(spec["rng"]): value))
     return results
 
 

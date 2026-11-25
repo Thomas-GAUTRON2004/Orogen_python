@@ -16,10 +16,10 @@ from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
     _crosses_rather_than_hugs,
-    grain_of,
     _is_monotone,
     _trace_parent_path,
     coast_distance,
+    grain_of,
 )
 from orogen.v2.tectonics.ops.rift_partition import (
     elongation_of,
@@ -292,7 +292,11 @@ def test_rift_path_monotonicity_rejects_large_backtracking(longitudes, expected)
 def test_cheapest_paths_prefers_lower_weighted_route_and_records_predecessors():
     positions = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0), (1.0, 2.0)]
     xyz = np.asarray(
-        [coordinate for latitude, longitude in positions for coordinate in _xyz(latitude, longitude)],
+        [
+            coordinate
+            for latitude, longitude in positions
+            for coordinate in _xyz(latitude, longitude)
+        ],
         dtype=np.float64,
     )
     neighbours = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
@@ -353,7 +357,11 @@ def test_grain_of_returns_unit_weight_when_rift_noise_is_disabled():
 
 def test_grain_of_caches_seeded_noise_per_cell():
     xyz = np.asarray(
-        [coordinate for longitude in (0.0, 15.0, 30.0) for coordinate in _xyz(0.0, longitude)],
+        [
+            coordinate
+            for longitude in (0.0, 15.0, 30.0)
+            for coordinate in _xyz(0.0, longitude)
+        ],
         dtype=np.float64,
     )
     world = SimpleNamespace(

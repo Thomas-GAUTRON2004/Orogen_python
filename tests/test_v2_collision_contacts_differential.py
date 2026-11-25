@@ -95,7 +95,7 @@ def _payload() -> dict[str, Any]:
             base["plates"][2],
         ],
     }
-        jitter_cases = [
+    jitter_cases = [
         {
             "flagsA": CrustFlag["RIFT_MARGIN"],
             "flagsB": CrustFlag["RIFT_MARGIN"],

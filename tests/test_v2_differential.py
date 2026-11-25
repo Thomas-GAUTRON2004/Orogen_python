@@ -66,7 +66,7 @@ def differential_payload():
             "otherId": 4, "otherNumCells": 6, "capEdgeRad": 0.02,
         },
         "crustBranches": {
-            "size": 5,
+            "size": 5, "baseType": CrustType["CONTINENT"], "longitude": 0, "terraneStart": 1,
             "operations": [
                 [0, OrogenyType["INTRAPLATE"], 2, 10, 5],
                 [0, OrogenyType["ANDEAN"], 3, 12, 5],
@@ -82,7 +82,7 @@ def differential_payload():
         },
         "extentPlate": {"id": 8, "radius": 2, "edgeRad": 0.015},
         "extentCases": [
-            {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied)}
+            {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied), "longitude": -1, "terraneStart": 1}
             for name, (occupied, xyz, types) in extent_cases.items()
         ],
         "kinematics": {
@@ -158,7 +158,7 @@ def test_crust_orogeny_branch_transitions_match_original(original, differential_
     scenario = differential_payload["crustBranches"]
     crust = CrustRaster(scenario["size"])
     for i in range(scenario["size"]):
-        crust.create(i, CrustType["CONTINENT"], 0, i + 1)
+        crust.create(i, scenario["baseType"], scenario["longitude"], scenario["terraneStart"] + i)
     for cell, orogeny_type, work, start, last in scenario["operations"]:
         crust.record_orogeny(cell, orogeny_type, work, start, last)
     assert [crust.snapshot(i) for i in range(scenario["size"])] == original["crustBranches"]
@@ -174,7 +174,7 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differe
         plate = Plate(extent_plate["id"], case["numCells"], extent_plate["radius"])
         plate.set_quat(quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"]))
         for i in occupied:
-            plate.crust.create(i, types[i], -1, i + 1)
+            plate.crust.create(i, types[i], case["longitude"], case["terraneStart"] + i)
         plate.dirty = True
         plate.refresh_extent(np.asarray(xyz, dtype=np.float32))
         got = expected[name]

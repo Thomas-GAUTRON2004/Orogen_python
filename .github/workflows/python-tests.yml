@@ -257,6 +257,9 @@ jobs:
     name: Publish HTML test reports
     runs-on: ubuntu-latest
     needs: differential-tests
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     if: always() && needs.differential-tests.result != 'cancelled' && github.event_name != 'pull_request'
     steps:
       - name: Configure GitHub Pages

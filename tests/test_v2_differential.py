@@ -35,20 +35,50 @@ RUNNER = ROOT / "tests/js/differential-runner.mjs"
 def differential_payload():
     extent_cases = {
         "empty": ([], [1, 0, 0, 0, 1, 0], [0, 0]),
-        "antipodal": ([0, 1], [1, 0, 0, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"]]),
-        "mixed": ([0, 1, 2], [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"], CrustType["CONTINENT"], CrustType["OCEAN"]]),
+        "antipodal": (
+            [0, 1],
+            [1, 0, 0, -1, 0, 0],
+            [CrustType["CRATON"], CrustType["OCEAN"]],
+        ),
+        "mixed": (
+            [0, 1, 2],
+            [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
+            [
+                CrustType["CRATON"],
+                CrustType["OCEAN"],
+                CrustType["CONTINENT"],
+                CrustType["OCEAN"],
+            ],
+        ),
     }
     return {
-        "seedTexts": ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"],
+        "seedTexts": [
+            "",
+            "0",
+            "42",
+            "-17",
+            "3.14159",
+            "0x10",
+            "hello",
+            "Orogen 3.0.1",
+            "é",
+        ],
         "random": {"seed": 123456, "count": 12},
         "quaternion": {
-            "q1Axis": [0, 0, 1], "q1Angle": math.pi / 3,
-            "q2Axis": [1, 0, 0], "q2Angle": -math.pi / 7,
-            "omega": [0.001, -0.002, 0.003], "dt": 12.5,
+            "q1Axis": [0, 0, 1],
+            "q1Angle": math.pi / 3,
+            "q2Axis": [1, 0, 0],
+            "q2Angle": -math.pi / 7,
+            "omega": [0.001, -0.002, 0.003],
+            "dt": 12.5,
         },
         "crust": {
-            "size": 6, "cell": 2, "type": CrustType["CONTINENT"],
-            "longitude": -120.25, "terrane": 17, "trenchDepth": 35.5,
+            "size": 6,
+            "cell": 2,
+            "type": CrustType["CONTINENT"],
+            "longitude": -120.25,
+            "terrane": 17,
+            "trenchDepth": 35.5,
             "subduction": 2.75,
             "orogeny": [
                 [OrogenyType["ANDEAN"], 8.125, 20, 15],
@@ -56,14 +86,24 @@ def differential_payload():
             ],
         },
         "plate": {
-            "id": 3, "numCells": 6, "radius": 4.5,
+            "id": 3,
+            "numCells": 6,
+            "radius": 4.5,
             "worldPoint": [0.25, -0.5, 0.75],
             "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, 0, 0, -1],
-            "crustCells": [[0, CrustType["CRATON"], -10, 1], [1, CrustType["OCEAN"], -5, 2]],
-            "otherId": 4, "otherNumCells": 6, "capEdgeRad": 0.02,
+            "crustCells": [
+                [0, CrustType["CRATON"], -10, 1],
+                [1, CrustType["OCEAN"], -5, 2],
+            ],
+            "otherId": 4,
+            "otherNumCells": 6,
+            "capEdgeRad": 0.02,
         },
         "crustBranches": {
-            "size": 5, "baseType": CrustType["CONTINENT"], "longitude": 0, "terraneStart": 1,
+            "size": 5,
+            "baseType": CrustType["CONTINENT"],
+            "longitude": 0,
+            "terraneStart": 1,
             "operations": [
                 [0, OrogenyType["INTRAPLATE"], 2, 10, 5],
                 [0, OrogenyType["ANDEAN"], 3, 12, 5],
@@ -79,17 +119,33 @@ def differential_payload():
         },
         "extentPlate": {"id": 8, "radius": 2, "edgeRad": 0.015},
         "extentCases": [
-            {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied), "longitude": -1, "terraneStart": 1}
+            {
+                "name": name,
+                "occupied": occupied,
+                "xyz": xyz,
+                "types": types,
+                "numCells": len(occupied),
+                "longitude": -1,
+                "terraneStart": 1,
+            }
             for name, (occupied, xyz, types) in extent_cases.items()
         ],
         "kinematics": {
-            "origin": [35, -120], "velocityPoint": [-12, 77], "eulerSpeed": 4.5,
-            "poseAxis": [0, 1, 0], "poseAngle": 0.2, "poseDt": 3.25,
-            "worldTime": 7, "worldStep": 2, "advanceDt": 1.75,
+            "origin": [35, -120],
+            "velocityPoint": [-12, 77],
+            "eulerSpeed": 4.5,
+            "poseAxis": [0, 1, 0],
+            "poseAngle": 0.2,
+            "poseDt": 3.25,
+            "worldTime": 7,
+            "worldStep": 2,
+            "advanceDt": 1.75,
         },
         "occupancy": {
-            "numCells": 4, "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
-            "edgeKm": 500.0, "terrane": 19,
+            "numCells": 4,
+            "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
+            "edgeKm": 500.0,
+            "terrane": 19,
         },
     }
 
@@ -111,7 +167,11 @@ def test_seed_parsing_and_park_miller_match_original(original, differential_payl
         assert is_word_seed(item["text"]) is item["word"]
         assert seed_of(item["text"]) == item["seed"]
     py_rng = make_rng(differential_payload["random"]["seed"])
-    _assert_close([py_rng() for _ in range(differential_payload["random"]["count"])], original["random"], atol=0)
+    _assert_close(
+        [py_rng() for _ in range(differential_payload["random"]["count"])],
+        original["random"],
+        atol=0,
+    )
 
 
 def test_quaternion_operations_match_original(original, differential_payload):
@@ -132,7 +192,9 @@ def test_quaternion_operations_match_original(original, differential_payload):
 def test_crust_raster_state_and_snapshot_match_original(original, differential_payload):
     scenario = differential_payload["crust"]
     crust = CrustRaster(scenario["size"])
-    crust.create(scenario["cell"], scenario["type"], scenario["longitude"], scenario["terrane"])
+    crust.create(
+        scenario["cell"], scenario["type"], scenario["longitude"], scenario["terrane"]
+    )
     crust.arm_trench(scenario["cell"], scenario["trenchDepth"])
     crust.record_subduction(scenario["cell"], scenario["subduction"])
     for orogeny_type, work, start, last in scenario["orogeny"]:
@@ -151,17 +213,25 @@ def test_crust_raster_state_and_snapshot_match_original(original, differential_p
     assert crust.snapshot(cell) == expected["snapshot"]
 
 
-def test_crust_orogeny_branch_transitions_match_original(original, differential_payload):
+def test_crust_orogeny_branch_transitions_match_original(
+    original, differential_payload
+):
     scenario = differential_payload["crustBranches"]
     crust = CrustRaster(scenario["size"])
     for i in range(scenario["size"]):
-        crust.create(i, scenario["baseType"], scenario["longitude"], scenario["terraneStart"] + i)
+        crust.create(
+            i, scenario["baseType"], scenario["longitude"], scenario["terraneStart"] + i
+        )
     for cell, orogeny_type, work, start, last in scenario["operations"]:
         crust.record_orogeny(cell, orogeny_type, work, start, last)
-    assert [crust.snapshot(i) for i in range(scenario["size"])] == original["crustBranches"]
+    assert [crust.snapshot(i) for i in range(scenario["size"])] == original[
+        "crustBranches"
+    ]
 
 
-def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differential_payload):
+def test_plate_extent_empty_antipodal_and_mixed_match_original(
+    original, differential_payload
+):
     expected = original["extents"]
     for case in differential_payload["extentCases"]:
         name = case["name"]
@@ -180,10 +250,22 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differe
         assert plate.dirty is got["dirty"]
         _assert_close(plate.capCenter, got["capCenter"], atol=2e-7)
         assert plate.capCos == pytest.approx(got["capCos"], abs=2e-7)
-        _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad": differential_payload["extentPlate"]["edgeRad"]})()), got["cap"], atol=2e-7)
+        _assert_close(
+            plate.cap_in_world(
+                type(
+                    "Mesh",
+                    (),
+                    {"edge_rad": differential_payload["extentPlate"]["edgeRad"]},
+                )()
+            ),
+            got["cap"],
+            atol=2e-7,
+        )
 
 
-def test_plate_frame_transform_and_extent_match_original(original, differential_payload):
+def test_plate_frame_transform_and_extent_match_original(
+    original, differential_payload
+):
     q_input = differential_payload["quaternion"]
     plate_input = differential_payload["plate"]
     q1 = quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"])
@@ -210,7 +292,8 @@ def test_plate_frame_transform_and_extent_match_original(original, differential_
     _assert_close(plate.capCenter, expected["capCenter"])
     assert plate.capCos == pytest.approx(expected["capCos"], abs=1e-7)
     _assert_close(
-        plate.cap_in_world(type("Mesh", (), {"edge_rad": plate_input["capEdgeRad"]})()), expected["cap"]
+        plate.cap_in_world(type("Mesh", (), {"edge_rad": plate_input["capEdgeRad"]})()),
+        expected["cap"],
     )
     _assert_close(rotation.reshape(-1), expected["frameRotation"])
 
@@ -237,10 +320,18 @@ def test_plate_kinematics_match_original(original, differential_payload):
     assert ll["lon"] == pytest.approx(expected["latlon"]["lon"], abs=1e-13)
     omega = omega_from_euler_pole(xyz, kin_input["eulerSpeed"])
     _assert_close(omega, expected["omega"], atol=1e-18)
-    _assert_close(surface_velocity(omega, *velocity_point), expected["velocity"], atol=1e-18)
-    assert speed_cm_yr_at(omega, *velocity_point) == pytest.approx(expected["speed"], abs=1e-13)
+    _assert_close(
+        surface_velocity(omega, *velocity_point), expected["velocity"], atol=1e-18
+    )
+    assert speed_cm_yr_at(omega, *velocity_point) == pytest.approx(
+        expected["speed"], abs=1e-13
+    )
     q0 = quat_from_axis_angle(*kin_input["poseAxis"], kin_input["poseAngle"])
-    _assert_close(pose_at_constant_omega(q0, omega, kin_input["poseDt"]), expected["pose"], atol=1e-15)
+    _assert_close(
+        pose_at_constant_omega(q0, omega, kin_input["poseDt"]),
+        expected["pose"],
+        atol=1e-15,
+    )
 
     class World:
         pass
@@ -281,9 +372,10 @@ def test_tectonic_occupancy_bins_match_original(original, differential_payload):
     assert bins.count == expected["count"]
     assert bins.bin_of.tolist() == expected["binOf"]
     assert [len(x) for x in bins.neighbours] == expected["counts"]
-    assert [may_have_crust_near(plate, i, scenario["terrane"], bins) for i in range(scenario["numCells"])] == expected[
-        "near"
-    ]
+    assert [
+        may_have_crust_near(plate, i, scenario["terrane"], bins)
+        for i in range(scenario["numCells"])
+    ] == expected["near"]
     assert (
         may_have_crust_near(SimpleNamespace(bins=None), 0, scenario["terrane"], bins)
         is expected["absent"]

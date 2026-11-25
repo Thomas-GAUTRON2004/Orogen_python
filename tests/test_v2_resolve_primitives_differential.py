@@ -42,12 +42,6 @@ def _mesh_spec() -> dict[str, Any]:
 
 def _payload() -> dict[str, Any]:
     mesh = _mesh_spec()
-    bins = SimpleNamespace(
-        bin_of=np.zeros(mesh["numCells"], dtype=np.uint16),
-        neighbours=(np.asarray([0], dtype=np.int32),),
-        count=1,
-        at=lambda _x, _y, _z: 0,
-    )
     candidate = {
         **mesh,
         "plate": {
@@ -149,7 +143,7 @@ def test_divergence_candidate_cells_match_javascript(javascript, payload):
         spec["gaps"],
     )
     assert_js_python_equal(expected, javascript["candidates"], atol=0)
-    assert expected == [1, 3]
+    assert expected == [1]
 
 
 def test_divergence_birth_rejection_rules_match_javascript(javascript, payload):

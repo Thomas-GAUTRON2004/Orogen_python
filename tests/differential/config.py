@@ -18,7 +18,12 @@ from orogen.v2.core.rotation import (
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.crust import (
-    CELL_FIELDS, BeltSide, CrustFlag, CrustRaster, CrustType, OrogenyType,
+    CELL_FIELDS,
+    BeltSide,
+    CrustFlag,
+    CrustRaster,
+    CrustType,
+    OrogenyType,
 )
 from orogen.v2.tectonics.dynamics import solve3
 from orogen.v2.tectonics.geology import (
@@ -48,14 +53,19 @@ from orogen.v2.tectonics.heights import (
     broad_profile,
     build_heights,
 )
-from orogen.v2.tectonics.segments import fracture_coordinate
-from orogen.v2.tectonics.simulation import choose_step, fastest_speed
+from orogen.v2.tectonics.kinematics import (
+    advance_plates,
+    lat_lon_to_xyz,
+    omega_from_euler_pole,
+    pose_at_constant_omega,
+    speed_cm_yr_at,
+    surface_velocity,
+    xyz_to_lat_lon,
+)
 from orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
 from orogen.v2.tectonics.plate import Plate, frame_rotation
-from orogen.v2.tectonics.kinematics import (
-    advance_plates, lat_lon_to_xyz, omega_from_euler_pole, pose_at_constant_omega,
-    speed_cm_yr_at, surface_velocity, xyz_to_lat_lon,
-)
+from orogen.v2.tectonics.segments import fracture_coordinate
+from orogen.v2.tectonics.simulation import choose_step, fastest_speed
 
 JsonObject = dict[str, Any]
 

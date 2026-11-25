@@ -94,6 +94,7 @@ def numerical_backend(request, monkeypatch):
             monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
     return request.param
 
+
 @dataclass(eq=False)
 class _Mesh:
     num_cells: int
@@ -176,7 +177,9 @@ def test_fast_and_simplex_noise_match_original(original_extended, numerical_back
         assert simplex.ridged_fbm(*item["p"]) == pytest.approx(item["r"], abs=1e-15)
 
 
-def test_sphere_index_cube_table_and_nearest_match_original(original_extended, numerical_backend):
+def test_sphere_index_cube_table_and_nearest_match_original(
+    original_extended, numerical_backend
+):
     mesh = _mesh()
     expected = original_extended["index"]
     assert mesh.index.res == expected["res"]
@@ -255,7 +258,9 @@ def test_barycentric_point_location_matches_original(original_extended):
         _close(weights, expected["weights"])
 
 
-def test_breadth_first_mesh_operations_match_original(original_extended, numerical_backend):
+def test_breadth_first_mesh_operations_match_original(
+    original_extended, numerical_backend
+):
     mesh = _mesh()
 
     def source(c):
@@ -285,7 +290,9 @@ def test_precomputed_rings_match_original(original_extended):
     assert r["cells"].tolist() == e["cells"]
 
 
-def test_min_heap_order_and_dijkstra_match_original(original_extended, numerical_backend):
+def test_min_heap_order_and_dijkstra_match_original(
+    original_extended, numerical_backend
+):
     h = MinHeap(2)
     for key, i in [[7, 70], [1, 10], [4, 40], [1, 11], [3, 30], [0.5, 5], [9, 90]]:
         h.push(key, i)
@@ -303,7 +310,9 @@ def test_min_heap_order_and_dijkstra_match_original(original_extended, numerical
     _close(d, expected, atol=1e-8)
 
 
-def test_tectonic_world_state_and_rng_streams_match_original(original_extended, numerical_backend):
+def test_tectonic_world_state_and_rng_streams_match_original(
+    original_extended, numerical_backend
+):
     m = _mesh()
     w = TectonicWorld(
         m, 77, overrides={"fixture": {"nested": 3}}

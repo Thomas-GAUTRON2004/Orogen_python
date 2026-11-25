@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -220,6 +221,15 @@ def javascript(payload: dict[str, Any]) -> dict[str, Any]:
     return run_js_reference(RUNNER, payload)
 
 
+@dataclass(eq=False)
+class _Mesh:
+    num_cells: int
+    adj_offset: np.ndarray
+    adj_list: np.ndarray
+    cell_area_km2: float
+    xyz: np.ndarray
+
+
 def _world(spec: dict[str, Any]):
     plates = [
         SimpleNamespace(
@@ -228,7 +238,7 @@ def _world(spec: dict[str, Any]):
         )
         for plate in spec["plates"]
     ]
-    mesh = SimpleNamespace(
+    mesh = _Mesh(
         num_cells=len(spec["owners"]),
         adj_offset=np.asarray(spec["adjOffset"], dtype=np.int32),
         adj_list=np.asarray(spec["adjList"], dtype=np.int32),
@@ -238,9 +248,13 @@ def _world(spec: dict[str, Any]):
     draws = iter(spec.get("rng", []))
     return SimpleNamespace(
         config=dict(spec["config"]),
-        time=spec["time"],
-        events=[dict(event) for event in spec["events"]],
-        cycle=None if spec["cycle"] is None else dict(spec["cycle"]),
+        time=spec.get("time", 0.0),
+        events=[dict(event) for event in spec.get("events", [])],
+        cycle=(
+            None
+            if spec.get("cycle") is None
+            else dict(spec["cycle"])
+        ),
         mesh=mesh,
         owner=np.asarray(spec["owners"], dtype=np.int16),
         ownerCell=np.asarray(spec["ownerCells"], dtype=np.int32),

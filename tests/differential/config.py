@@ -5,8 +5,8 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 from types import SimpleNamespace
+from typing import Any
 
 from orogen.v2.core.rotation import (
     quat_from_axis_angle,

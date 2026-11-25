@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
+import pytest
 from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.tectonics.crust import CELL_FIELDS, CrustFlag, CrustType
@@ -60,7 +61,14 @@ def _safe(value: Any) -> Any:
     return value
 
 
-def test_far_field_collection_spread_and_cell_records_match_upstream() -> None:
+@pytest.mark.parametrize("numerical_backend", ("numba", "python"))
+def test_far_field_collection_spread_and_cell_records_match_upstream(
+    numerical_backend: str, monkeypatch
+) -> None:
+    from orogen.v2.tectonics import far_field as far_field_module
+
+    if numerical_backend == "python":
+        monkeypatch.setattr(far_field_module, "NUMBA_AVAILABLE", False)
     mesh = _mesh()
     payload_mesh = {
         "numCells": mesh.num_cells,

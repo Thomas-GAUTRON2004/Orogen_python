@@ -1,4 +1,4 @@
-"""Expanded differential suite against vendored Orogen V2 JavaScript modules."""
+"""Expanded differential suite against the pinned upstream Orogen V2 JavaScript source."""
 
 from __future__ import annotations
 

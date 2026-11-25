@@ -12,13 +12,24 @@ import {
 } from "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 import { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
 import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";
+import {
+  encodeCoverKm, decodeCoverKm,
+  encodeExhumKm, decodeExhumKm,
+  encodeUnroofKm, decodeUnroofKm,
+  encodeFloodMyr, decodeFloodMyr,
+  encodeArcMyr, decodeArcMyr,
+  encodeAge, decodeAge,
+  encodeFloodAge, decodeFloodAge,
+  encodeFacies, decodeFacies,
+  GEO_FRAME_FIELDS, GEOLOGY_READS,
+} from "../../external/planet_heightmap_generation/v2/js/tectonics/model/geology.js";
 import { thickenCover } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/geology.js";
 import { beltReliefKm, buildHeights } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/heights.js";
 import { broadProfile } from "../../external/planet_heightmap_generation/v2/js/terrain/profiles.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {\n  "tectonics.buildHeights": (input) => {\n    const crust = {\n      type: Uint8Array.of(input.crustType),\n      rootKm: Float32Array.of(input.rootKm),\n      upliftKm: Float32Array.of(input.upliftKm),\n      rugged: Float32Array.of(input.rugged),\n    };\n    buildHeights(crust, 0, input.type, input.side, input.u, input.reach, input.work, input.thickened, { heights: input.heights }, input.amp);\n    return { rootKm: crust.rootKm[0], upliftKm: crust.upliftKm[0], rugged: crust.rugged[0] };\n  },
+const functions = {\n  "tectonics.geologyCodecs": (input) => {\n    const pairs = (values, encode, decode) => values.map((value) => { const encoded = encode(value); return [encoded, decode(encoded)]; });\n    const floodAge = input.floodAge.map(([last, time, ever]) => { const encoded = encodeFloodAge(last, time, ever); const decoded = decodeFloodAge(encoded); return [encoded, Number.isFinite(decoded) ? decoded : null]; });\n    const facies = input.facies.map((values) => { const encoded = encodeFacies(...values); return [encoded, decodeFacies(encoded)]; });\n    return {\n      cover: pairs(input.cover, encodeCoverKm, decodeCoverKm),\n      exhum: pairs(input.exhum, encodeExhumKm, decodeExhumKm),\n      unroof: pairs(input.unroof, encodeUnroofKm, decodeUnroofKm),\n      flood: pairs(input.flood, encodeFloodMyr, decodeFloodMyr),\n      arc: pairs(input.arc, encodeArcMyr, decodeArcMyr),\n      age: pairs(input.age, encodeAge, decodeAge),\n      floodAge, facies,\n      decodeFacies: input.decodeFacies.map((value) => decodeFacies(value)),\n      fields: GEO_FRAME_FIELDS, reads: GEOLOGY_READS,\n    };\n  },\n  "tectonics.buildHeights": (input) => {\n    const crust = {\n      type: Uint8Array.of(input.crustType),\n      rootKm: Float32Array.of(input.rootKm),\n      upliftKm: Float32Array.of(input.upliftKm),\n      rugged: Float32Array.of(input.rugged),\n    };\n    buildHeights(crust, 0, input.type, input.side, input.u, input.reach, input.work, input.thickened, { heights: input.heights }, input.amp);\n    return { rootKm: crust.rootKm[0], upliftKm: crust.upliftKm[0], rugged: crust.rugged[0] };\n  },
   "tectonics.broadProfile": (input) =>
     broadProfile(input.type, input.side, input.distance, input.reach, input.jitter, input.wear),
   "tectonics.beltReliefKm": (input) =>

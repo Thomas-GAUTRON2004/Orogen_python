@@ -28,6 +28,8 @@ def _case(
     minimum_area: float = 0.0,
     heat: float = 0.9,
     head: bool = False,
+    life_myr: float = 0.0,
+    dt: float = 0.0,
 ) -> dict[str, Any]:
     plate = None
     if owner >= 0:
@@ -53,6 +55,8 @@ def _case(
         "riftHeatPower": 1.0,
         "heat": heat,
         "head": head,
+        "lifeMyr": life_myr,
+        "dt": dt,
         "lipAreaMinMkm2": 0.000001,
         "lipAreaMaxMkm2": 0.000001,
         "lipLobes": 0.0,
@@ -82,6 +86,13 @@ def _payload() -> dict[str, Any]:
                 name="Kavora",
                 draws=[0.2],
                 head=True,
+            ),
+            _case(
+                xyz=[1.0, 0.0, 0.0],
+                rift=False,
+                name="Kavora",
+                life_myr=100.0,
+                dt=10.0,
             ),
         ]
     }
@@ -116,6 +127,8 @@ def _world(spec: dict[str, Any]):
                 volcKm=np.zeros(1, dtype=np.float32),
                 volcSource=np.zeros(1, dtype=np.uint16),
             ),
+            cell_at=lambda *_args: 0,
+            to_plate_frame=lambda x, y, z: np.asarray([x, y, z]),
         )
         plates.append(plate)
 
@@ -134,7 +147,7 @@ def _world(spec: dict[str, Any]):
         "head": spec["head"],
         "rift": spec["rift"],
         "name": spec["name"],
-        "lifeMyr": 0.0,
+        "lifeMyr": spec["lifeMyr"],
         "strength": 1.2,
     }
     events = []
@@ -153,6 +166,14 @@ def _world(spec: dict[str, Any]):
             "lipLobes": spec["lipLobes"],
             "lipEdgeNoise": spec["lipEdgeNoise"],
             "lipThicknessKm": spec["lipThicknessKm"],
+            "hotspotTrackKm": 1000.0,
+            "hotspotEdificeKm": 100.0,
+            "hotspotBuildKmPerMyr": 1.0,
+            "hotspotMaxKm": 50.0,
+            "hotspotQuietMinMyr": 1.0,
+            "hotspotQuietMaxMyr": 4.0,
+            "hotspotBurstMinMyr": 1.0,
+            "hotspotBurstMaxMyr": 3.0,
         },
         time=spec["time"],
         mesh=mesh,
@@ -209,7 +230,7 @@ def test_plume_birth_and_rift_eligibility_match_javascript(javascript, payload):
     expected = []
     for spec in payload["cases"]:
         world, scheduled, events = _world(spec)
-        update_plumes(world, 0.0)
+        update_plumes(world, spec["dt"])
         expected.append(_snapshot(world, scheduled, events))
 
     assert_js_python_equal(expected, javascript, atol=1e-7)
@@ -222,9 +243,19 @@ def test_plume_birth_and_rift_eligibility_match_javascript(javascript, payload):
         0,
         0,
         0,
+        0,
     ]
-    assert javascript[-2]["hotspots"][0]["name"] != "Kavora"
-    lip_case = javascript[-1]
+    assert javascript[-3]["hotspots"][0]["name"] != "Kavora"
+    lip_case = javascript[-2]
     assert lip_case["hotspots"][0]["lip"]["name"] == "Kavora Traps"
     assert lip_case["hotspots"][0]["lip"]["cells"] == 1
     assert lip_case["crust"][0]["volcType"] == [VolcanicType["LIP"]]
+
+    track_case = javascript[-1]
+    assert track_case["summary"] == {"born": 1, "expired": 0, "alive": 1}
+    assert track_case["crust"][0]["volcType"] == [VolcanicType["TRACK"]]
+    assert track_case["crust"][0]["volcAt"] == [25.0]
+    assert track_case["crust"][0]["volcSource"] == [1]
+    assert track_case["crust"][0]["volcKm"][0] == pytest.approx(4.56, abs=1e-6)
+    assert track_case["hotspots"][0]["pulseUntil"] == pytest.approx(26.5, abs=1e-8)
+    assert track_case["hotspots"][0]["bursting"] is False

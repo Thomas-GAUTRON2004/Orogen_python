@@ -28,6 +28,8 @@ function run(spec) {
           volcKm: new Float32Array([0]),
           volcSource: new Uint16Array([0]),
         },
+        cellAt() { return 0; },
+        toPlateFrame(x, y, z) { return [x, y, z]; },
       }]
     : [];
   const draws = [...spec.draws];
@@ -39,7 +41,7 @@ function run(spec) {
     head: spec.head ?? false,
     rift: spec.rift,
     name: spec.name,
-    lifeMyr: 0,
+    lifeMyr: spec.lifeMyr ?? 0,
     strength: 1.2,
   };
   const world = {
@@ -57,6 +59,14 @@ function run(spec) {
       lipLobes: spec.lipLobes,
       lipEdgeNoise: spec.lipEdgeNoise,
       lipThicknessKm: spec.lipThicknessKm,
+      hotspotTrackKm: 1000,
+      hotspotEdificeKm: 100,
+      hotspotBuildKmPerMyr: 1,
+      hotspotMaxKm: 50,
+      hotspotQuietMinMyr: 1,
+      hotspotQuietMaxMyr: 4,
+      hotspotBurstMinMyr: 1,
+      hotspotBurstMaxMyr: 3,
     },
     time: spec.time,
     mesh,
@@ -75,7 +85,7 @@ function run(spec) {
       events.push({ kind, text, data });
     },
   };
-  updateHotspots(world, 0);
+  updateHotspots(world, spec.dt ?? 0);
   return {
     summary: {
       born: world.hotspots.length,

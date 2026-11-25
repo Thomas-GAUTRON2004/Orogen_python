@@ -13,12 +13,12 @@ import {
 import { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
 import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";
 import { thickenCover } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/geology.js";
-import { beltReliefKm } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/heights.js";
+import { beltReliefKm, buildHeights } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/heights.js";
 import { broadProfile } from "../../external/planet_heightmap_generation/v2/js/terrain/profiles.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {
+const functions = {\n  "tectonics.buildHeights": (input) => {\n    const crust = {\n      type: Uint8Array.of(input.crustType),\n      rootKm: Float32Array.of(input.rootKm),\n      upliftKm: Float32Array.of(input.upliftKm),\n      rugged: Float32Array.of(input.rugged),\n    };\n    buildHeights(crust, 0, input.type, input.side, input.u, input.reach, input.work, input.thickened, { heights: input.heights }, input.amp);\n    return { rootKm: crust.rootKm[0], upliftKm: crust.upliftKm[0], rugged: crust.rugged[0] };\n  },
   "tectonics.broadProfile": (input) =>
     broadProfile(input.type, input.side, input.distance, input.reach, input.jitter, input.wear),
   "tectonics.beltReliefKm": (input) =>

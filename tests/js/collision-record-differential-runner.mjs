@@ -9,7 +9,7 @@ const RECORD_FIELDS = [
   "closingCmYr", "meanRateCmYr", "stalledMyr", "contactMyr", "cells",
   "sutured", "underthrustDue", "underthrustCells", "frontMaxKm",
   "gapKm2", "gapWidestKm", "checkedAt", "gapBestKm2", "gapShrankAt",
-  "ringKm2", "weldCandidate", "weldBlockedByRing", "mergeEligible", "ringLogged",
+  "ringKm2", "ringLogged",
 ];
 
 function run(spec) {

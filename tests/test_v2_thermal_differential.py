@@ -136,9 +136,7 @@ def _world(spec: dict[str, Any]):
         ownerCell=np.asarray(spec["ownerCells"], dtype=np.int32),
         plates=[
             SimpleNamespace(
-                crust=SimpleNamespace(
-                    type=np.asarray(plate["types"], dtype=np.uint8)
-                )
+                crust=SimpleNamespace(type=np.asarray(plate["types"], dtype=np.uint8))
             )
             for plate in spec["plates"]
         ],
@@ -150,9 +148,7 @@ def _world(spec: dict[str, Any]):
 
 def test_initial_mantle_insulation_matches_upstream(javascript, payload):
     world = _world(payload["insulation"])
-    flags = [
-        is_continental(world, cell) for cell in range(len(world.owner))
-    ]
+    flags = [is_continental(world, cell) for cell in range(len(world.owner))]
     insulate_at_start(world)
     assert_js_python_equal(
         {"continental": flags, "heat": world.mantleHeat},

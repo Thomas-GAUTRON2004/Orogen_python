@@ -14,8 +14,6 @@ from orogen.v2.core.rotation import (
     quat_integrate,
     quat_mul,
     quat_normalize,
-    quat_to_euler_pole,
-    quat_to_mat3,
 )
 from orogen.v2.tectonics.crust import (
     CELL_FIELDS,

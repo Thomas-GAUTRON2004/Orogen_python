@@ -94,7 +94,12 @@ PAIRS = (
         name="Quaternion composition and integration",
         javascript_id="rotation.quaternionOperations",
         python_call=_quaternion_operations,
-        cases=(DifferentialCase(id="composition-and-integration", input=_QUATERNION_INPUT),),
+        cases=(
+            DifferentialCase(
+                id="composition-and-integration",
+                input=_QUATERNION_INPUT,
+            ),
+        ),
         atol=1e-15,
     ),
     DifferentialPair(

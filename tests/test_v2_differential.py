@@ -105,23 +105,24 @@ def _assert_close(actual, expected, atol=2e-7):
     np.testing.assert_allclose(actual, expected, rtol=2e-7, atol=atol)
 
 
-def test_seed_parsing_and_park_miller_match_original(original):
-    texts = ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"]
+def test_seed_parsing_and_park_miller_match_original(original, differential_payload):
+    texts = differential_payload["seedTexts"]
     expected = original["seeds"]
     assert [x["text"] for x in expected] == texts
     for item in expected:
         assert is_word_seed(item["text"]) is item["word"]
         assert seed_of(item["text"]) == item["seed"]
-    py_rng = make_rng(123456)
-    _assert_close([py_rng() for _ in range(12)], original["random"], atol=0)
+    py_rng = make_rng(differential_payload["random"]["seed"])
+    _assert_close([py_rng() for _ in range(differential_payload["random"]["count"])], original["random"], atol=0)
 
 
-def test_quaternion_operations_match_original(original):
-    q1 = quat_from_axis_angle(0, 0, 1, math.pi / 3)
-    q2 = quat_from_axis_angle(1, 0, 0, -math.pi / 7)
+def test_quaternion_operations_match_original(original, differential_payload):
+    q_input = differential_payload["quaternion"]
+    q1 = quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"])
+    q2 = quat_from_axis_angle(*q_input["q2Axis"], q_input["q2Angle"])
     q = quat_normalize(quat_mul(q1, q2))
-    omega = [0.001, -0.002, 0.003]
-    integrated = quat_integrate(q, omega, 12.5)
+    omega = q_input["omega"]
+    integrated = quat_integrate(q, omega, q_input["dt"])
     _assert_close(q, original["quaternion"], atol=1e-15)
     _assert_close(integrated, original["integrated"], atol=1e-15)
     _assert_close(quat_to_mat3(integrated), original["matrix"], atol=1e-15)
@@ -130,13 +131,14 @@ def test_quaternion_operations_match_original(original):
         assert pole[key] == pytest.approx(original["euler"][key], abs=1e-13)
 
 
-def test_crust_raster_state_and_snapshot_match_original(original):
-    crust = CrustRaster(6)
-    crust.create(2, CrustType["CONTINENT"], -120.25, 17)
-    crust.arm_trench(2, 35.5)
-    crust.record_subduction(2, 2.75)
-    crust.record_orogeny(2, OrogenyType["ANDEAN"], 8.125, 20, 15)
-    crust.record_orogeny(2, OrogenyType["HIMALAYAN"], 1.5, 25, 15)
+def test_crust_raster_state_and_snapshot_match_original(original, differential_payload):
+    scenario = differential_payload["crust"]
+    crust = CrustRaster(scenario["size"])
+    crust.create(scenario["cell"], scenario["type"], scenario["longitude"], scenario["terrane"])
+    crust.arm_trench(scenario["cell"], scenario["trenchDepth"])
+    crust.record_subduction(scenario["cell"], scenario["subduction"])
+    for orogeny_type, work, start, last in scenario["orogeny"]:
+        crust.record_orogeny(scenario["cell"], orogeny_type, work, start, last)
     expected = original["crust"]
     assert expected["fields"] == CELL_FIELDS
     assert crust.count == expected["count"]
@@ -150,26 +152,19 @@ def test_crust_raster_state_and_snapshot_match_original(original):
     assert crust.snapshot(2) == expected["snapshot"]
 
 
-def test_crust_orogeny_branch_transitions_match_original(original):
-    crust = CrustRaster(5)
-    for i in range(5):
+def test_crust_orogeny_branch_transitions_match_original(original, differential_payload):
+    scenario = differential_payload["crustBranches"]
+    crust = CrustRaster(scenario["size"])
+    for i in range(scenario["size"]):
         crust.create(i, CrustType["CONTINENT"], 0, i + 1)
-    crust.record_orogeny(0, OrogenyType["INTRAPLATE"], 2, 10, 5)
-    crust.record_orogeny(0, OrogenyType["ANDEAN"], 3, 12, 5)
-    crust.record_orogeny(1, OrogenyType["HIMALAYAN"], 4, 10, 5)
-    crust.record_orogeny(1, OrogenyType["ARC"], 1, 11, 5)
-    crust.record_orogeny(2, OrogenyType["ANDEAN"], 4, 10, 5)
-    crust.record_orogeny(2, OrogenyType["RIFT"], 1, 30, 5)
-    crust.record_orogeny(3, OrogenyType["TRANSPRESSION"], 4, 10, 5)
-    crust.record_orogeny(3, OrogenyType["URAL"], 1, 11, 5)
-    crust.record_orogeny(4, OrogenyType["ANDEAN"], 4, 10, 5)
-    crust.record_orogeny(4, OrogenyType["HIMALAYAN"], 1, 11, 5)
+    for cell, orogeny_type, work, start, last in scenario["operations"]:
+        crust.record_orogeny(cell, orogeny_type, work, start, last)
     assert [crust.snapshot(i) for i in range(5)] == original["crustBranches"]
 
 
-def test_plate_extent_empty_antipodal_and_mixed_match_original(original, extent_payload):
+def test_plate_extent_empty_antipodal_and_mixed_match_original(original, differential_payload):
     expected = original["extents"]
-    for case in extent_payload["extentCases"]:
+    for case in differential_payload["extentCases"]:
         name = case["name"]
         occupied, xyz, types = case["occupied"], case["xyz"], case["types"]
         plate = Plate(8, case["numCells"], 2)
@@ -187,23 +182,23 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original, extent_
         _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad": 0.015})()), got["cap"], atol=2e-7)
 
 
-def test_plate_frame_transform_and_extent_match_original(original):
-    q1 = quat_from_axis_angle(0, 0, 1, math.pi / 3)
-    q2 = quat_from_axis_angle(1, 0, 0, -math.pi / 7)
+def test_plate_frame_transform_and_extent_match_original(original, differential_payload):
+    q_input = differential_payload["quaternion"]
+    plate_input = differential_payload["plate"]
+    q1 = quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"])
+    q2 = quat_from_axis_angle(*q_input["q2Axis"], q_input["q2Angle"])
     integrated = quat_integrate(
-        quat_normalize(quat_mul(q1, q2)), [0.001, -0.002, 0.003], 12.5
+        quat_normalize(quat_mul(q1, q2)), q_input["omega"], q_input["dt"]
     )
-    plate = Plate(3, 6, 4.5)
+    plate = Plate(plate_input["id"], plate_input["numCells"], plate_input["radius"])
     plate.set_quat(integrated)
-    world = plate.to_world(0.25, -0.5, 0.75)
+    world = plate.to_world(*plate_input["worldPoint"])
     local = plate.to_plate_frame(*world)
-    xyz = np.array(
-        [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, 0, 0, -1], dtype=np.float32
-    )
-    plate.crust.create(0, CrustType["CRATON"], -10, 1)
-    plate.crust.create(1, CrustType["OCEAN"], -5, 2)
+    xyz = np.asarray(plate_input["xyz"], dtype=np.float32)
+    for cell, crust_type, longitude, terrane in plate_input["crustCells"]:
+        plate.crust.create(cell, crust_type, longitude, terrane)
     plate.refresh_extent(xyz)
-    other = Plate(4, 6)
+    other = Plate(plate_input["otherId"], plate_input["otherNumCells"])
     other.set_quat(q1)
     rotation = frame_rotation(plate, other)
     expected = original["plate"]
@@ -214,12 +209,12 @@ def test_plate_frame_transform_and_extent_match_original(original):
     _assert_close(plate.capCenter, expected["capCenter"])
     assert plate.capCos == pytest.approx(expected["capCos"], abs=1e-7)
     _assert_close(
-        plate.cap_in_world(type("Mesh", (), {"edge_rad": 0.02})()), expected["cap"]
+        plate.cap_in_world(type("Mesh", (), {"edge_rad": plate_input["capEdgeRad"]})()), expected["cap"]
     )
     _assert_close(rotation.reshape(-1), expected["frameRotation"])
 
 
-def test_plate_kinematics_match_original(original):
+def test_plate_kinematics_match_original(original, differential_payload):
     from orogen.v2.core.rotation import quat_from_axis_angle
     from orogen.v2.tectonics.kinematics import (
         advance_plates,
@@ -232,18 +227,19 @@ def test_plate_kinematics_match_original(original):
     )
 
     expected = original["kinematics"]
-    xyz = lat_lon_to_xyz(35, -120)
+    kin_input = differential_payload["kinematics"]
+    xyz = lat_lon_to_xyz(*kin_input["origin"])
+    velocity_point = lat_lon_to_xyz(*kin_input["velocityPoint"])
     _assert_close(xyz, expected["xyz"], atol=1e-15)
-    ll = xyz_to_lat_lon(*lat_lon_to_xyz(-12, 77))
+    ll = xyz_to_lat_lon(*velocity_point)
     assert ll["lat"] == pytest.approx(expected["latlon"]["lat"], abs=1e-13)
     assert ll["lon"] == pytest.approx(expected["latlon"]["lon"], abs=1e-13)
-    omega = omega_from_euler_pole(xyz, 4.5)
+    omega = omega_from_euler_pole(xyz, kin_input["eulerSpeed"])
     _assert_close(omega, expected["omega"], atol=1e-18)
-    point = lat_lon_to_xyz(-12, 77)
-    _assert_close(surface_velocity(omega, *point), expected["velocity"], atol=1e-18)
-    assert speed_cm_yr_at(omega, *point) == pytest.approx(expected["speed"], abs=1e-13)
-    q0 = quat_from_axis_angle(0, 1, 0, 0.2)
-    _assert_close(pose_at_constant_omega(q0, omega, 3.25), expected["pose"], atol=1e-15)
+    _assert_close(surface_velocity(omega, *velocity_point), expected["velocity"], atol=1e-18)
+    assert speed_cm_yr_at(omega, *velocity_point) == pytest.approx(expected["speed"], abs=1e-13)
+    q0 = quat_from_axis_angle(*kin_input["poseAxis"], kin_input["poseAngle"])
+    _assert_close(pose_at_constant_omega(q0, omega, kin_input["poseDt"]), expected["pose"], atol=1e-15)
 
     class World:
         pass
@@ -258,32 +254,33 @@ def test_plate_kinematics_match_original(original):
     dead = P(False, q0, [1, 2, 3])
     world = World()
     world.plates = [P(True, q0, omega), dead]
-    world.time = 7
-    world.step = 2
-    advance_plates(world, 1.75)
+    world.time = kin_input["worldTime"]
+    world.step = kin_input["worldStep"]
+    advance_plates(world, kin_input["advanceDt"])
     _assert_close(world.plates[0].quat, expected["advanced"], atol=1e-15)
     _assert_close(world.plates[1].quat, expected["dead"], atol=0)
     assert world.time == expected["time"] and world.step == expected["step"]
 
 
-def test_tectonic_occupancy_bins_match_original(original):
+def test_tectonic_occupancy_bins_match_original(original, differential_payload):
     from types import SimpleNamespace
 
     from orogen.v2.tectonics.occupancy import bin_index, mark_bin, may_have_crust_near
 
+    scenario = differential_payload["occupancy"]
     mesh = SimpleNamespace(
-        num_cells=4,
-        xyz=np.asarray([1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0], dtype=np.float32),
-        edge_km=500.0,
+        num_cells=scenario["numCells"],
+        xyz=np.asarray(scenario["xyz"], dtype=np.float32),
+        edge_km=scenario["edgeKm"],
     )
     bins = bin_index(mesh)
     plate = SimpleNamespace(bins=None)
-    mark_bin(plate, int(bins.bin_of[0]), 19, bins.count)
+    mark_bin(plate, int(bins.bin_of[0]), scenario["terrane"], bins.count)
     expected = original["occupancy"]
     assert bins.count == expected["count"]
     assert bins.bin_of.tolist() == expected["binOf"]
     assert [len(x) for x in bins.neighbours] == expected["counts"]
-    assert [may_have_crust_near(plate, i, 19, bins) for i in range(4)] == expected[
+    assert [may_have_crust_near(plate, i, scenario["terrane"], bins) for i in range(scenario["numCells"])] == expected[
         "near"
     ]
     assert (

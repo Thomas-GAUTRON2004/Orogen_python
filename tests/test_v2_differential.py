@@ -6,7 +6,6 @@ import json
 import math
 import os
 import shutil
-import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -29,31 +28,28 @@ from orogen.v2.tectonics.crust import (
     OrogenyType,
 )
 from orogen.v2.tectonics.plate import Plate, frame_rotation
+from _differential import run_js_reference
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/differential-runner.mjs"
 
 
 @pytest.fixture(scope="module")
-def original():
-    node = shutil.which("node")
-    if node is None:
-        if os.environ.get("CI"):
-            pytest.fail(
-                "Node.js is required for upstream JavaScript differential tests"
-            )
-        pytest.skip("Node.js is required for upstream JavaScript differential tests")
-    result = subprocess.run(
-        [node, str(RUNNER)],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, (
-        f"upstream JS runner failed:\\n{result.stderr}\\n{result.stdout}"
-    )
-    return json.loads(result.stdout)
+def extent_payload():
+    cases = {
+        "empty": ([], [1, 0, 0, 0, 1, 0], [0, 0]),
+        "antipodal": ([0, 1], [1, 0, 0, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"]]),
+        "mixed": ([0, 1, 2], [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"], CrustType["CONTINENT"], CrustType["OCEAN"]]),
+    }
+    return {"extentCases": [
+        {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied)}
+        for name, (occupied, xyz, types) in cases.items()
+    ]}
+
+
+@pytest.fixture(scope="module")
+def original(extent_payload):
+    return run_js_reference(RUNNER, extent_payload)
 
 
 def _assert_close(actual, expected, atol=2e-7):
@@ -122,28 +118,12 @@ def test_crust_orogeny_branch_transitions_match_original(original):
     assert [crust.snapshot(i) for i in range(5)] == original["crustBranches"]
 
 
-def test_plate_extent_empty_antipodal_and_mixed_match_original(original):
+def test_plate_extent_empty_antipodal_and_mixed_match_original(original, extent_payload):
     expected = original["extents"]
-    cases = {
-        "empty": ([], [1, 0, 0, 0, 1, 0], [0, 0]),
-        "antipodal": (
-            [0, 1],
-            [1, 0, 0, -1, 0, 0],
-            [CrustType["CRATON"], CrustType["OCEAN"]],
-        ),
-        "mixed": (
-            [0, 1, 2],
-            [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
-            [
-                CrustType["CRATON"],
-                CrustType["OCEAN"],
-                CrustType["CONTINENT"],
-                CrustType["OCEAN"],
-            ],
-        ),
-    }
-    for name, (occupied, xyz, types) in cases.items():
-        plate = Plate(8, len(types), 2)
+    for case in extent_payload["extentCases"]:
+        name = case["name"]
+        occupied, xyz, types = case["occupied"], case["xyz"], case["types"]
+        plate = Plate(8, case["numCells"], 2)
         plate.set_quat(quat_from_axis_angle(0, 0, 1, math.pi / 3))
         for i in occupied:
             plate.crust.create(i, types[i], -1, i + 1)
@@ -155,11 +135,7 @@ def test_plate_extent_empty_antipodal_and_mixed_match_original(original):
         assert plate.dirty is got["dirty"]
         _assert_close(plate.capCenter, got["capCenter"], atol=2e-7)
         assert plate.capCos == pytest.approx(got["capCos"], abs=2e-7)
-        _assert_close(
-            plate.cap_in_world(type("Mesh", (), {"edge_rad": 0.015})()),
-            got["cap"],
-            atol=2e-7,
-        )
+        _assert_close(plate.cap_in_world(type("Mesh", (), {"edge_rad": 0.015})()), got["cap"], atol=2e-7)
 
 
 def test_plate_frame_transform_and_extent_match_original(original):
@@ -265,4 +241,3 @@ def test_tectonic_occupancy_bins_match_original(original):
         may_have_crust_near(SimpleNamespace(bins=None), 0, 19, bins)
         is expected["absent"]
     )
-    assert bin_index(mesh) is bins

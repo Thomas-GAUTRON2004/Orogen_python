@@ -21,6 +21,8 @@ def _line_case(
     min_arm_km: float = 2.0,
     craton_cells: tuple[int, ...] = (),
     weak_cells: tuple[int, ...] = (3, 5),
+    weak_flag: int = 2,
+    weakness_cost: float = 0.2,
     land_cells: tuple[int, ...] = tuple(range(1, 8)),
 ) -> dict[str, Any]:
     num_cells = 9
@@ -42,7 +44,7 @@ def _line_case(
     for cell in craton_cells:
         crust_type[cell] = 2
     for cell in weak_cells:
-        flags[cell] = 2
+        flags[cell] = weak_flag
 
     return {
         "adjOffset": offsets,
@@ -52,7 +54,7 @@ def _line_case(
         "flags": flags,
         "edgeKm": 1.0,
         "riftMinArmKm": min_arm_km,
-        "riftWeaknessCost": 0.2,
+        "riftWeaknessCost": weakness_cost,
         "rng": rng,
     }
 
@@ -101,6 +103,20 @@ def test_rift_junction_returns_minus_one_when_no_interior_candidate_exists():
         _line_case(rng=0.5, land_cells=()),
         _line_case(rng=0.5, min_arm_km=4.0),
         _line_case(rng=0.5, craton_cells=(3, 4, 5)),
+    ]
+    python_result = _python_results(cases)
+    javascript = run_js_reference(RUNNER, {"cases": cases})
+
+    assert_js_python_equal(python_result, javascript)
+
+
+def test_rift_junction_weights_each_weak_flag_like_upstream_javascript():
+    cases = [
+        _line_case(rng=0.0, weak_flag=4),
+        _line_case(rng=0.35, weak_flag=6),
+        _line_case(rng=0.8, weak_flag=4, weakness_cost=0.0),
+        _line_case(rng=0.8, weak_flag=2, weakness_cost=2.0),
+        _line_case(rng=0.5, weak_cells=()),
     ]
     python_result = _python_results(cases)
     javascript = run_js_reference(RUNNER, {"cases": cases})

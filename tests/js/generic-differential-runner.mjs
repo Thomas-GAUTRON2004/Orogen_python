@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";\nimport { fastestSpeed } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";\nimport { solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";\nimport { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
+import { readFileSync } from "node:fs";
 
-import { isWordSeed, seedOf } from
-  "../../external/planet_heightmap_generation/v2/js/core/seed.js";
-import { makeRng } from
-  "../../external/planet_heightmap_generation/js/rng.js";
+import { isWordSeed, seedOf } from "../../external/planet_heightmap_generation/v2/js/core/seed.js";
+import { makeRng } from "../../external/planet_heightmap_generation/js/rng.js";
 import {
   quatFromAxisAngle,
   quatIntegrate,
@@ -12,10 +10,17 @@ import {
   quatToEulerPole,
   quatToMat3,
 } from "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
+import { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
+import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {\n  "tectonics.fastestSpeed": (input) => fastestSpeed(input.omega, { capCos: input.capCos }, input.centre),\n  "tectonics.solve3": (input) => solve3(input.matrix, input.vector),\n  "tectonics.fractureCoordinate": (input) => fractureCoordinate(...input.point, input.omega),
+const functions = {
+  "tectonics.fastestSpeed": (input) =>
+    fastestSpeed(input.omega, { capCos: input.capCos }, input.centre),
+  "tectonics.solve3": (input) => solve3(input.matrix, input.vector),
+  "tectonics.fractureCoordinate": (input) =>
+    fractureCoordinate(...input.point, input.omega),
   "rotation.quaternionOperations": (input) => {
     const q1 = quatFromAxisAngle(...input.q1Axis, input.q1Angle);
     const q2 = quatFromAxisAngle(...input.q2Axis, input.q2Angle);

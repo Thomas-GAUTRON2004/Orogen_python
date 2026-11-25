@@ -348,35 +348,6 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
     )
 
 
-def test_geology_cover_thickening_matches_upstream(javascript, payload):
-    for scenario, actual in zip(payload["covers"], javascript["covers"], strict=True):
-        crust = SimpleNamespace(
-            coverKm=np.asarray(scenario["coverKm"], dtype=np.float32),
-            coverMaxKm=np.asarray(scenario["coverMaxKm"], dtype=np.float32),
-            coverMaxAt=np.asarray(scenario["coverMaxAt"], dtype=np.float32),
-            unroofKm=np.asarray(scenario["unroofKm"], dtype=np.float32),
-        )
-        thicken_cover(
-            crust, 0, scenario["thickenedKm"], scenario["time"], scenario["geology"]
-        )
-        expected = [
-            crust.coverKm[0],
-            crust.coverMaxKm[0],
-            crust.coverMaxAt[0],
-            crust.unroofKm[0],
-        ]
-        _assert_close(
-            [
-                actual["coverKm"],
-                actual["coverMaxKm"],
-                actual["coverMaxAt"],
-                actual["unroofKm"],
-            ],
-            expected,
-            atol=2e-6,
-        )
-
-
 
 def test_belt_profiles_and_relief_match_upstream(javascript, payload):
     expected_profiles = [

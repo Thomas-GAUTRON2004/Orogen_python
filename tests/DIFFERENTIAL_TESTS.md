@@ -120,15 +120,28 @@ Example:
 ```python
 # tests/differential/config.py
 
+from __future__ import annotations
+
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from orogen.v2.core.rotation import quat_from_axis_angle, quat_integrate, quat_mul, quat_normalize
+from orogen.v2.core.rotation import (
+    quat_from_axis_angle,
+    quat_integrate,
+    quat_mul,
+    quat_normalize,
+)
 
 
 JsonObject = dict[str, Any]
+
+
+@dataclass(frozen=True)
+class DifferentialCase:
+    id: str
+    input: JsonObject
 
 
 @dataclass(frozen=True)
@@ -141,16 +154,12 @@ class DifferentialPair:
     atol: float = 2e-9
 
 
-@dataclass(frozen=True)
-class DifferentialCase:
-    id: str
-    input: JsonObject
-
-
 def _python_rotation(data: JsonObject) -> list[float]:
     q1 = quat_from_axis_angle(*data["axis"], data["angle"])
     q2 = quat_from_axis_angle(*data["other_axis"], data["other_angle"])
-    return quat_integrate(quat_normalize(quat_mul(q1, q2)), [0.0, 0.0, 0.0], 1.0)
+    return quat_integrate(
+        quat_normalize(quat_mul(q1, q2)), [0.0, 0.0, 0.0], 1.0
+    )
 
 
 PAIRS = (
@@ -210,14 +219,23 @@ Conceptually:
 ```javascript
 // tests/js/generic-differential-runner.mjs
 
-import { readFileSync } from "node:fs";\n\nimport { quatFromAxisAngle, quatIntegrate, quatMul, quatNormalize } from
+import { readFileSync } from "node:fs";
+
+import {
+  quatFromAxisAngle,
+  quatIntegrate,
+  quatMul,
+  quatNormalize,
+} from
   "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 
 const FUNCTIONS = {
   "rotation.integrate": (input) => {
     const q1 = quatFromAxisAngle(...input.axis, input.angle);
     const q2 = quatFromAxisAngle(...input.other_axis, input.other_angle);
-    return Array.from(quatIntegrate(quatNormalize(quatMul(q1, q2)), [0, 0, 0], 1));
+    return Array.from(
+      quatIntegrate(quatNormalize(quatMul(q1, q2)), [0, 0, 0], 1)
+    );
   },
 };
 

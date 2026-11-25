@@ -152,9 +152,7 @@ def _world(dispersal: dict[str, Any]):
     plates = [
         SimpleNamespace(
             isBackground=plate["isBackground"],
-            crust=SimpleNamespace(
-                type=np.asarray(plate["types"], dtype=np.uint8)
-            ),
+            crust=SimpleNamespace(type=np.asarray(plate["types"], dtype=np.uint8)),
         )
         for plate in dispersal["plates"]
     ]
@@ -202,12 +200,16 @@ def test_dispersal_field_and_repulsion_match_upstream(javascript, payload):
     dispersal = payload["mantle"]["dispersal"]
     world = _world(dispersal)
     field = dispersal_field(world)
-    expected_field = None if field is None else {
-        "centres": field["centres"],
-        "touching": sorted(field["touching"]),
-        "k": field["k"],
-        "reach": field["reach"],
-    }
+    expected_field = (
+        None
+        if field is None
+        else {
+            "centres": field["centres"],
+            "touching": sorted(field["touching"]),
+            "k": field["k"],
+            "reach": field["reach"],
+        }
+    )
     assert_js_python_equal(expected_field, javascript["field"], atol=2e-12)
 
     expected_pushes = [
@@ -218,16 +220,20 @@ def test_dispersal_field_and_repulsion_match_upstream(javascript, payload):
 
     assert javascript["disabledByConfig"] is True
     assert javascript["disabledByPhase"] is True
-    assert dispersal_field(
-        SimpleNamespace(
-            **{
-                **world.__dict__,
-                "config": {**world.config, "dispersalRepulsion": 0.0},
-            }
+    assert (
+        dispersal_field(
+            SimpleNamespace(
+                **{
+                    **world.__dict__,
+                    "config": {**world.config, "dispersalRepulsion": 0.0},
+                }
+            )
         )
-    ) is None
-    assert dispersal_field(
-        SimpleNamespace(
-            **{**world.__dict__, "cycle": {"phase": "assembled"}}
+        is None
+    )
+    assert (
+        dispersal_field(
+            SimpleNamespace(**{**world.__dict__, "cycle": {"phase": "assembled"}})
         )
-    ) is None
+        is None
+    )

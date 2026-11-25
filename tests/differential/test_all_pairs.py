@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from _differential import assert_js_python_equal, run_js_reference
-
 from .config import PAIRS
+from _differential import assert_js_python_equal, run_js_reference
 
 
 RUNNER = "tests/js/generic-differential-runner.mjs"

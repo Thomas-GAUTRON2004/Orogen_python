@@ -136,3 +136,50 @@ def test_back_arc_strip_steering_matches_upstream_javascript():
     javascript = run_js_reference(RUNNER, payload)
 
     assert_js_python_equal(python_result, javascript["steering"])
+
+
+
+def test_back_arc_rollback_rate_matches_upstream_with_zero_maximum():
+    payload = _payload()
+    payload["rollback"]["config"]["rollbackMaxCmYr"] = 0.0
+    config = payload["rollback"]["config"]
+    python_result = [
+        rollback_cm_yr(age, config) for age in payload["rollback"]["ages"]
+    ]
+
+    javascript = run_js_reference(RUNNER, payload)
+
+    assert_js_python_equal(python_result, javascript["rollback"], atol=0.0)
+
+
+def test_back_arc_strip_steering_stops_at_the_active_window_boundary():
+    payload = _payload()
+    payload["steering"]["time"] = 13.0
+    plates = []
+    for spec in payload["steering"]["plates"]:
+        plates.append(
+            SimpleNamespace(
+                alive=spec["alive"],
+                backArcOf=spec["backArcOf"],
+                backArcPushDir=spec["backArcPushDir"],
+                born=spec["born"],
+                rollbackCmYr=spec["rollbackCmYr"],
+                capCenter=spec["capCenter"],
+                omega=list(spec["omega"]),
+                to_world=lambda x, y, z: np.asarray(
+                    [x, y, z], dtype=np.float64
+                ),
+            )
+        )
+
+    world = SimpleNamespace(
+        plates=plates,
+        config={"backArcActiveMyr": payload["steering"]["activeMyr"]},
+        time=payload["steering"]["time"],
+    )
+    steer_back_arc_strips(world)
+    python_result = [plate.omega for plate in plates]
+
+    javascript = run_js_reference(RUNNER, payload)
+
+    assert_js_python_equal(python_result, javascript["steering"])

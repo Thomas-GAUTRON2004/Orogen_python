@@ -1,9 +1,9 @@
 # Generic Python/JavaScript Differential Tests
 
-This guide describes the target format for adding differential tests to
-Orogen_python: one central Python configuration file lists the Python/JavaScript
-function pairs and their test cases, while one generic pytest module executes
-every configured pair.
+This guide describes the differential test format used by Orogen_python: a JSON
+file declares the Python/JavaScript pairs, adapter names, tolerances and case IDs;
+Python adapters construct domain objects and call production functions, while one
+generic pytest module executes every configured pair.
 
 > **Status:** the generic registry and dispatcher are active under
 > `tests/differential/` and `tests/js/generic-differential-runner.mjs`. The
@@ -41,14 +41,17 @@ not replace a comparison between the two implementations.
 
 ## 2. Directory layout
 
-The generic format centralizes the function pairs and their cases:
+The generic format centralizes pair metadata in JSON and keeps executable Python
+adapters separate:
 
 ```text
 tests/
 ├── _differential.py
 ├── differential/
 │   ├── __init__.py
-│   ├── config.py
+│   ├── config.json
+│   ├── config.py       # JSON loader and consistency checks
+│   ├── adapters.py     # Python adapters and case payloads
 │   └── test_all_pairs.py
 └── js/
     └── generic-differential-runner.mjs
@@ -59,13 +62,15 @@ Responsibilities:
 | File | Responsibility |
 | --- | --- |
 | `_differential.py` | Shared process execution and recursive result comparison. |
-| `differential/config.py` | The central registry of Python/JavaScript pairs. |
+| `differential/config.json` | Declarative pair names, stable JS IDs, Python adapter names, tolerances and case IDs. |\n| `differential/config.py` | Loads the JSON registry and checks it against the executable adapters. |\n| `differential/adapters.py` | Calls production Python functions and builds their domain inputs; case payloads currently live here. |
 | `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
 | `js/generic-differential-runner.mjs` | Explicit mapping from stable IDs to upstream JavaScript functions. |
 
-The registry is Python code, not JSON. It needs to hold Python callables,
-adapters and tolerances, which cannot be represented reliably in a plain JSON
-file. Test input data itself should remain JSON-serializable.
+The registry metadata is JSON. JSON cannot represent Python callables or construct
+NumPy-backed/domain objects, so `adapters.py` retains those executable adapters
+and the current case payloads. The JSON file lists each case ID; the loader fails
+if a pair, adapter name or case ID is missing or out of sync. Inputs remain
+JSON-serializable and are sent unchanged to both language implementations.
 
 ## 3. Define one uniform input protocol
 

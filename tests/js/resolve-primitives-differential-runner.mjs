@@ -33,8 +33,8 @@ function makePlate(spec) {
     crust: {
       mask: new Uint8Array(spec.mask),
       type: new Uint8Array(spec.mask.length),
-      flags: new Uint16Array(spec.mask.length),
-      wingKm: new Float32Array(spec.mask.length),
+      flags: new Uint16Array(spec.flags ?? spec.mask.length),
+      wingKm: new Float32Array(spec.wingKm ?? spec.mask.length),
     },
     capInWorld() { return [0, 0, 1, spec.capFloor]; },
     cellAt() { return spec.underCell; },

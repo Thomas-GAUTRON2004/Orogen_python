@@ -80,6 +80,44 @@ def _payload() -> dict[str, Any]:
                 "underCell": 1,
             },
         },
+        {
+            **mesh,
+            "cell": 0,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "flags": [1, 0, 0, 0, 0, 0],
+                "wingKm": [0.0] * 6,
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": None,
+        },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.9999995, 0.001, 0.0,
+                0.9999995, 0.001, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 0,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": {
+                "id": 1,
+                "mask": [0, 0, 1, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 1,
+            },
+        },
     ]
     return {"candidate": candidate, "decisions": decisions}
 
@@ -121,8 +159,8 @@ def _plate(spec: dict[str, Any]):
         crust=SimpleNamespace(
             mask=np.asarray(spec["mask"], dtype=np.uint8),
             type=np.zeros(len(spec["mask"]), dtype=np.uint8),
-            flags=np.zeros(len(spec["mask"]), dtype=np.uint16),
-            wingKm=np.zeros(len(spec["mask"]), dtype=np.float32),
+            flags=np.asarray(spec.get("flags", [0] * len(spec["mask"])), dtype=np.uint16),
+            wingKm=np.asarray(spec.get("wingKm", [0.0] * len(spec["mask"])), dtype=np.float32),
         ),
         cap_in_world=lambda _mesh: np.asarray(
             [0.0, 0.0, 1.0, spec["capFloor"]]
@@ -179,4 +217,8 @@ def test_divergence_birth_rejection_rules_match_javascript(javascript, payload):
     assert [item["why"] for item in expected] == [
         "not-attached",
         "not a gap: another plate has crust here",
+        None,
+        "too close to the mid-line",
     ]
+    assert expected[2]["trenchParent"] == 0
+    assert expected[3]["born"] is False

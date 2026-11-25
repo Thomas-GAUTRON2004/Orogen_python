@@ -1,5 +1,6 @@
 import { makeRng } from "../../external/planet_heightmap_generation/js/rng.js";
 import { FastNoise } from "../../external/planet_heightmap_generation/v2/js/core/fast-noise.js";
+import { SimplexNoise } from "../../external/planet_heightmap_generation/js/simplex-noise.js";
 import * as geom from "../../external/planet_heightmap_generation/v2/js/core/sphere-geom.js";
 import * as bfs from "../../external/planet_heightmap_generation/v2/js/core/mesh-bfs.js";
 import { ringsOf } from "../../external/planet_heightmap_generation/v2/js/core/mesh-rings.js";
@@ -18,6 +19,8 @@ mesh.index=new SphereIndex(xyz,mesh,2);
 const rng=makeRng(7821),randomPoints=Array.from({length:5},()=>geom.randomPoint(rng));
 const noise=new FastNoise(9876),noisePoints=[[.1,.2,.3],[-1.25,2.5,.75],[12.125,-4.5,9.75],[0,0,0]];
 const noiseOut=noisePoints.map(p=>({p,n:noise.noise3D(...p),f:noise.fbm(...p,5,2/3)}));
+const simplex=new SimplexNoise(9876);
+const simplexOut=noisePoints.map(p=>({p,n:simplex.noise3D(...p),f:simplex.fbm(...p,5,2/3),r:simplex.ridgedFbm(...p)}));
 const p=[.2,-.3,Math.sqrt(.87)],polar=geom.polarFrame([.3,.4,Math.sqrt(.75)],[0,0,1]);
 const geomOut={dot:geom.dot([1,2,3],[-2,.5,4]),cross:geom.cross([1,2,3],[-2,.5,4]),normalize:geom.normalize([2,-3,6]),angles:[[1,0,0],[0,1,0],[0,0,-1]].map(v=>geom.angleBetween([1,0,0],v)),tangent:geom.tangentToward([0,0,1],[1,0,0],[0,1,0]),randomPoints,basis:geom.tangentBasis(p),destination:geom.destination(p,1.234,.42),bearing:geom.bearingTo(p,geom.destination(p,1.234,.42)),cap:geom.capFraction(.75),polar:[[1,0,0],[0,1,0],[0,0,1],[-1,0,0]].map(v=>polar(...v)),cellDistance:geom.cellDistanceKm(xyz,0,4),centroid:geom.centroidOfCells(xyz,[0,2,4])};
 const queries=[[1,.2,.3],[-.3,1,.4],[.2,-.4,1],[-1,-.3,-.2],[.2,.3,-1],[1,1,1]];
@@ -44,4 +47,4 @@ plate.crust.create(0,CrustType.CRATON,-20,11);plate.crust.create(2,CrustType.CRA
 world.terraneLetters={11:"B",12:"A"};world.time=12.5;world.log(EventKind.START,"fixture event",{plate:0,area:2});
 const streams=["rng","rngSubduction","rngMarginFounder","rngOceanSplit","rngHotspot","rngVolcano","rngBackArc","rngMarginIsle","rngCycle"];
 const worldOut={cellAt:plate.cellAt(mesh.index,1,0,0),config:world.config,owner:Array.from(world.owner),ownerCell:Array.from(world.ownerCell),claimCount:Array.from(world.claimCount),landClaims:Array.from(world.landClaims),collider:Array.from(world.collider),oceanOverrider:Array.from(world.oceanOverrider),consumedAt:Array.from(world.consumedAt),provisional:Array.from(world.provisional),provisionalLike:Array.from(world.provisionalLike),boundaryKind:Array.from(world.boundaryKind),convergence:Array.from(world.convergence),mantleHeat:Array.from(world.mantleHeat),budget:world.budget,events:world.events,plate:{id:plate.id,name:plate.name,born:plate.born,crustCount:plate.crust.count},nextTerrane:world.nextTerraneId(),name:world.nameByCratons(plate,"fallback"),streams:Object.fromEntries(streams.map(k=>[k,Array.from({length:4},()=>world[k]())])),constants:{collision:BoundaryKind.COLLISION,provisional:Provisional.LIKE_NEIGHBOUR}};
-console.log(JSON.stringify({geom:geomOut,noise:noiseOut,index:indexOut,rebuilt:rebuiltOut,locate:locateOut,bfs:bfsOut,rings:ringsOut,heap:heapOut,spread:Array.from(dist,v=>Number.isFinite(v)?v:"Infinity"),crustCopy:crustCopyOut,world:worldOut}));
+console.log(JSON.stringify({geom:geomOut,noise:noiseOut,simplex:simplexOut,index:indexOut,rebuilt:rebuiltOut,locate:locateOut,bfs:bfsOut,rings:ringsOut,heap:heapOut,spread:Array.from(dist,v=>Number.isFinite(v)?v:"Infinity"),crustCopy:crustCopyOut,world:worldOut}));

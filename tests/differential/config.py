@@ -165,3 +165,30 @@ PAIRS = PAIRS + (
         atol=1e-12,
     ),
 )
+
+
+from orogen.v2.tectonics.dynamics import solve3
+
+
+def _solve3(data: JsonObject) -> Any:
+    return solve3(data["matrix"], data["vector"])
+
+
+_LINEAR_SYSTEM_CASES = (
+    {"matrix": [3, 1, 0, 1, 4, 1, 0, 1, 2], "vector": [7, 8, 3]},
+    {"matrix": [2, 0, 0, 0, 5, 0, 0, 0, 4], "vector": [6, 10, -8]},
+    {"matrix": [1, 2, 3, 2, 4, 6, 0, 0, 0], "vector": [1, 2, 0]},
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Force-balance linear solver",
+        javascript_id="tectonics.solve3",
+        python_call=_solve3,
+        cases=tuple(
+            DifferentialCase(id=f"system-{index}", input=case)
+            for index, case in enumerate(_LINEAR_SYSTEM_CASES)
+        ),
+        atol=1e-12,
+    ),
+)

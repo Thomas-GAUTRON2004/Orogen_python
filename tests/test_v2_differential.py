@@ -35,21 +35,70 @@ RUNNER = ROOT / "tests/js/differential-runner.mjs"
 
 
 @pytest.fixture(scope="module")
-def extent_payload():
-    cases = {
+def differential_payload():
+    extent_cases = {
         "empty": ([], [1, 0, 0, 0, 1, 0], [0, 0]),
         "antipodal": ([0, 1], [1, 0, 0, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"]]),
         "mixed": ([0, 1, 2], [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0], [CrustType["CRATON"], CrustType["OCEAN"], CrustType["CONTINENT"], CrustType["OCEAN"]]),
     }
-    return {"extentCases": [
-        {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied)}
-        for name, (occupied, xyz, types) in cases.items()
-    ]}
+    return {
+        "seedTexts": ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"],
+        "random": {"seed": 123456, "count": 12},
+        "quaternion": {
+            "q1Axis": [0, 0, 1], "q1Angle": math.pi / 3,
+            "q2Axis": [1, 0, 0], "q2Angle": -math.pi / 7,
+            "omega": [0.001, -0.002, 0.003], "dt": 12.5,
+        },
+        "crust": {
+            "size": 6, "cell": 2, "type": CrustType["CONTINENT"],
+            "longitude": -120.25, "terrane": 17, "trenchDepth": 35.5,
+            "subduction": 2.75,
+            "orogeny": [
+                [OrogenyType["ANDEAN"], 8.125, 20, 15],
+                [OrogenyType["HIMALAYAN"], 1.5, 25, 15],
+            ],
+        },
+        "plate": {
+            "id": 3, "numCells": 6, "radius": 4.5,
+            "worldPoint": [0.25, -0.5, 0.75],
+            "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, -1, 0, 0, 0, -1],
+            "crustCells": [[0, CrustType["CRATON"], -10, 1], [1, CrustType["OCEAN"], -5, 2]],
+            "otherId": 4, "otherNumCells": 6, "capEdgeRad": 0.02,
+        },
+        "crustBranches": {
+            "size": 5,
+            "operations": [
+                [0, OrogenyType["INTRAPLATE"], 2, 10, 5],
+                [0, OrogenyType["ANDEAN"], 3, 12, 5],
+                [1, OrogenyType["HIMALAYAN"], 4, 10, 5],
+                [1, OrogenyType["ARC"], 1, 11, 5],
+                [2, OrogenyType["ANDEAN"], 4, 10, 5],
+                [2, OrogenyType["RIFT"], 1, 30, 5],
+                [3, OrogenyType["TRANSPRESSION"], 4, 10, 5],
+                [3, OrogenyType["URAL"], 1, 11, 5],
+                [4, OrogenyType["ANDEAN"], 4, 10, 5],
+                [4, OrogenyType["HIMALAYAN"], 1, 11, 5],
+            ],
+        },
+        "extentCases": [
+            {"name": name, "occupied": occupied, "xyz": xyz, "types": types, "numCells": len(occupied)}
+            for name, (occupied, xyz, types) in extent_cases.items()
+        ],
+        "kinematics": {
+            "origin": [35, -120], "velocityPoint": [-12, 77], "eulerSpeed": 4.5,
+            "poseAxis": [0, 1, 0], "poseAngle": 0.2, "poseDt": 3.25,
+            "worldTime": 7, "worldStep": 2, "advanceDt": 1.75,
+        },
+        "occupancy": {
+            "numCells": 4, "xyz": [1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0],
+            "edgeKm": 500.0, "terrane": 19,
+        },
+    }
 
 
 @pytest.fixture(scope="module")
-def original(extent_payload):
-    return run_js_reference(RUNNER, extent_payload)
+def original(differential_payload):
+    return run_js_reference(RUNNER, differential_payload)
 
 
 def _assert_close(actual, expected, atol=2e-7):

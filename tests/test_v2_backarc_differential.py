@@ -23,7 +23,7 @@ def _payload() -> dict[str, Any]:
                 "rollbackFullAgeMyr": 30.0,
                 "rollbackMaxCmYr": 6.0,
             },
-            "ages": [5.0, 10.0, 15.0, 20.0, 30.0, 50.0],
+            "ages": [0.0, 9.999, 10.0, 10.0001, 11.0, 15.0, 19.999, 20.0, 29.999, 30.0, 30.001, 50.0, 1_000_000.0],
         },
         "steering": {
             "time": 10.0,
@@ -53,7 +53,7 @@ def _payload() -> dict[str, Any]:
                     "backArcPushDir": [0.0, 1.0, 0.0],
                     "born": 0.0,
                     "rollbackCmYr": 4.0,
-                    "capCenter": [1.0, 0.0, 0.0],
+                    "capCenter": [0.6, 0.8, 0.0],
                     "omega": [1.0, 2.0, 3.0],
                 },
                 {
@@ -62,7 +62,7 @@ def _payload() -> dict[str, Any]:
                     "backArcPushDir": [0.0, 1.0, 0.0],
                     "born": 5.0,
                     "rollbackCmYr": 2.0,
-                    "capCenter": [1.0, 0.0, 0.0],
+                    "capCenter": [0.0, 0.6, 0.8],
                     "omega": [4.0, 5.0, 6.0],
                 },
                 {
@@ -89,7 +89,7 @@ def _payload() -> dict[str, Any]:
                     "backArcPushDir": [0.0, 1.0, 0.0],
                     "born": 5.0,
                     "rollbackCmYr": 2.0,
-                    "capCenter": [1.0, 0.0, 0.0],
+                    "capCenter": [0.0, 0.0, 1.0],
                     "omega": [10.0, 11.0, 12.0],
                 },
             ],

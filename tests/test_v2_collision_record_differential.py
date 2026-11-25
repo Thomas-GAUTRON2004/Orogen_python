@@ -17,6 +17,8 @@ from orogen.v2.tectonics.crust import CrustType
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/collision-record-differential-runner.mjs"
 
+# Compare only state represented by the JavaScript record. The Python port keeps
+# additional merge-gating diagnostics internally; they are not upstream JS fields.
 RECORD_FIELDS = (
     "upper",
     "lower",
@@ -39,9 +41,6 @@ RECORD_FIELDS = (
     "gapBestKm2",
     "gapShrankAt",
     "ringKm2",
-    "weldCandidate",
-    "weldBlockedByRing",
-    "mergeEligible",
     "ringLogged",
 )
 
@@ -301,7 +300,4 @@ def test_collision_record_progress_and_suture_ring_block_match_javascript(
     assert second["record"]["gapKm2"] == pytest.approx(10000.0)
     assert second["record"]["gapWidestKm"] == pytest.approx(100.0)
     assert second["record"]["ringKm2"] == pytest.approx(10000.0)
-    assert second["record"]["weldCandidate"] is True
-    assert second["record"]["weldBlockedByRing"] is True
-    assert second["record"]["mergeEligible"] is False
     assert second["record"]["sutured"] is False

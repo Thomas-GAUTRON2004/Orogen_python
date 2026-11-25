@@ -91,7 +91,7 @@ def test_small_arc_fragment_is_recycled_like_javascript(javascript, payload):
         "donorMask": donor.crust.mask.tolist(),
         "donorCount": donor.crust.count,
         "donorReshaped": bool(getattr(donor, "reshaped", False)),
-        "donorOmega": donor.omega.tolist(),
+        "donorOmega": list(donor.omega),
         "recycledCells": world.budget["recycledCells"],
         "hostAlive": host.alive,
     }

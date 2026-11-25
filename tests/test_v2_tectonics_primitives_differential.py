@@ -318,9 +318,7 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
         wanted = expected[key]
         assert [x[0] for x in actual] == [x[0] for x in wanted]
         if key == "floodAge":
-            assert [x[1] is None for x in actual] == [
-                x[1] is None for x in wanted
-            ]
+            assert [x[1] is None for x in actual] == [x[1] is None for x in wanted]
             actual_finite = [x[1] for x in actual if x[1] is not None]
             wanted_finite = [x[1] for x in wanted if x[1] is not None]
             _assert_close(actual_finite, wanted_finite, atol=1e-12)

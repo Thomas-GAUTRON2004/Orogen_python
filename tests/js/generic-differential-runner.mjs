@@ -11,11 +11,11 @@ import {
   quatToMat3,
 } from "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 import { fractureCoordinate } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/segments.js";
-import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";
+import { fastestSpeed, solve3 } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/torque-balance.js";\nimport { thickenCover } from "../../external/planet_heightmap_generation/v2/js/tectonics/step/geology.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
-const functions = {
+const functions = {\n  "tectonics.thickenCover": (input) => {\n    const crust = {\n      coverKm: new Float32Array(input.coverKm),\n      coverMaxKm: new Float32Array(input.coverMaxKm),\n      coverMaxAt: new Float32Array(input.coverMaxAt),\n      unroofKm: new Float32Array(input.unroofKm),\n    };\n    thickenCover(crust, 0, input.thickenedKm, input.time, input.geology);\n    return {\n      coverKm: crust.coverKm[0],\n      coverMaxKm: crust.coverMaxKm[0],\n      coverMaxAt: crust.coverMaxAt[0],\n      unroofKm: crust.unroofKm[0],\n    };\n  },
   "tectonics.fastestSpeed": (input) =>
     fastestSpeed(input.omega, { capCos: input.capCos }, input.centre),
   "tectonics.solve3": (input) => solve3(input.matrix, input.vector),

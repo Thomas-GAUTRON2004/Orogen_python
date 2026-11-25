@@ -134,26 +134,19 @@ class _Mesh:
     index: object = None
 
 
-def _mesh():
-    xyz = np.asarray(
-        [1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1], dtype=np.float32
-    )
-    rings = [
-        [2, 4, 3, 5],
-        [2, 5, 3, 4],
-        [4, 0, 5, 1],
-        [4, 1, 5, 0],
-        [3, 0, 2, 1],
-        [2, 0, 3, 1],
-    ]
+def _mesh(payload):
+    scenario = payload["mesh"]
+    xyz = np.asarray(scenario["xyz"], dtype=np.float32)
+    rings = scenario["rings"]
+    offsets = np.asarray([i * len(rings[0]) for i in range(len(rings) + 1)], dtype=np.int32)
     mesh = _Mesh(
-        6,
+        xyz.size // 3,
         xyz,
-        np.asarray([0, 4, 8, 12, 16, 20, 24], dtype=np.int32),
+        offsets,
         np.asarray([x for ring in rings for x in ring], dtype=np.int32),
-        0.02,
+        scenario["edgeRad"],
     )
-    mesh.index = SphereIndex(xyz, mesh, 2)
+    mesh.index = SphereIndex(xyz, mesh, scenario["indexResolution"])
     return mesh
 
 
@@ -161,22 +154,23 @@ def _close(a, b, atol=2e-12):
     np.testing.assert_allclose(a, b, rtol=2e-12, atol=atol)
 
 
-def test_spherical_geometry_matches_original(original_extended, numerical_backend):
+def test_spherical_geometry_matches_original(original_extended, numerical_backend, extended_payload):
     g = original_extended["geom"]
-    assert dot([1, 2, 3], [-2, 0.5, 4]) == g["dot"]
-    assert cross([1, 2, 3], [-2, 0.5, 4]) == g["cross"]
-    _close(normalize([2, -3, 6]), g["normalize"])
+    scenario = extended_payload["geometry"]
+    assert dot(scenario["dotA"], scenario["dotB"]) == g["dot"]
+    assert cross(scenario["crossA"], scenario["crossB"]) == g["cross"]
+    _close(normalize(scenario["normalize"]), g["normalize"])
     _close(
-        [angle_between([1, 0, 0], p) for p in [[1, 0, 0], [0, 1, 0], [0, 0, -1]]],
+        [angle_between(scenario["angleOrigin"], p) for p in scenario["angleVectors"]],
         g["angles"],
     )
-    _close(tangent_toward([0, 0, 1], [1, 0, 0], [0, 1, 0]), g["tangent"])
-    rng = make_rng(7821)
-    _close([random_point(rng) for _ in range(5)], g["randomPoints"])
-    p = [0.2, -0.3, math.sqrt(0.87)]
+    _close(tangent_toward(*scenario["tangent"]), g["tangent"])
+    rng = make_rng(extended_payload["random"]["seed"])
+    _close([random_point(rng) for _ in range(extended_payload["random"]["count"])], g["randomPoints"])
+    p = scenario["point"]
     e, n = tangent_basis(p)
     _close([e, n], g["basis"])
-    dest = destination(p, 1.234, 0.42)
+    dest = destination(p, scenario["destinationBearing"], scenario["destinationDistance"])
     _close(dest, g["destination"])
     assert bearing_to(p, dest) == pytest.approx(g["bearing"], abs=2e-12)
     assert cap_fraction(0.75) == pytest.approx(g["cap"], abs=2e-15)
@@ -189,46 +183,40 @@ def test_spherical_geometry_matches_original(original_extended, numerical_backen
         actual = polar(*point)
         assert actual["colat"] == pytest.approx(expected["colat"], abs=2e-12)
         assert actual["azimuth"] == pytest.approx(expected["azimuth"], abs=2e-12)
-    m = _mesh()
+    m = _mesh(extended_payload)
     assert cell_distance_km(m.xyz, 0, 4) == pytest.approx(g["cellDistance"], abs=0)
     _close(centroid_of_cells(m.xyz, [0, 2, 4]), g["centroid"])
 
 
-def test_fast_and_simplex_noise_match_original(original_extended, numerical_backend):
-    fast = FastNoise(9876)
-    simplex = SimplexNoise(9876)
+def test_fast_and_simplex_noise_match_original(original_extended, numerical_backend, extended_payload):
+    noise_input = extended_payload["noise"]
+    fast = FastNoise(noise_input["seed"])
+    simplex = SimplexNoise(noise_input["seed"])
     for item in original_extended["noise"]:
         assert fast.noise3d(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
-        assert fast.fbm(*item["p"], 5, 2 / 3) == pytest.approx(item["f"], abs=1e-15)
+        assert fast.fbm(*item["p"], noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
     for item in original_extended["simplex"]:
         assert simplex.noise3D(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
-        assert simplex.fbm(*item["p"], 5, 2 / 3) == pytest.approx(item["f"], abs=1e-15)
+        assert simplex.fbm(*item["p"], noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
         assert simplex.ridged_fbm(*item["p"]) == pytest.approx(item["r"], abs=1e-15)
 
 
 def test_sphere_index_cube_table_and_nearest_match_original(
-    original_extended, numerical_backend
+    original_extended, numerical_backend, extended_payload
 ):
-    mesh = _mesh()
+    mesh = _mesh(extended_payload)
     expected = original_extended["index"]
     assert mesh.index.res == expected["res"]
     assert mesh.index.table.tolist() == expected["table"]
-    queries = [
-        [1, 0.2, 0.3],
-        [-0.3, 1, 0.4],
-        [0.2, -0.4, 1],
-        [-1, -0.3, -0.2],
-        [0.2, 0.3, -1],
-        [1, 1, 1],
-    ]
+    queries = extended_payload["queries"]
     assert [mesh.index.start(*p) for p in queries] == expected["starts"]
     assert [mesh.index.nearest(*p) for p in queries] == expected["nearest"]
 
 
-def test_mesh_from_arrays_matches_original(original_extended, numerical_backend):
-    mesh = _mesh()
+def test_mesh_from_arrays_matches_original(original_extended, numerical_backend, extended_payload):
+    mesh = _mesh(extended_payload)
     rebuilt = mesh_from_arrays(
-        num_cells=6, xyz=mesh.xyz, adj_offset=mesh.adj_offset, adj_list=mesh.adj_list
+        num_cells=mesh.num_cells, xyz=mesh.xyz, adj_offset=mesh.adj_offset, adj_list=mesh.adj_list
     )
     expected = original_extended["rebuilt"]
     assert rebuilt.num_cells == expected["numCells"]
@@ -246,23 +234,17 @@ def test_mesh_from_arrays_matches_original(original_extended, numerical_backend)
     assert [rebuilt.index.nearest(*p) for p in queries] == expected["nearest"]
 
 
-def test_crust_copy_restore_remove_match_original(original_extended, numerical_backend):
-    source = CrustRaster(3)
-    destination = CrustRaster(3)
-    source.create(0, CrustType["CRATON"], -1.25, 17)
-    source.flags[0] = 129
-    source.slabKm[0] = 23.5
-    source.coverKm[0] = 3.25
-    source.geoFlags[0] = 3
-    source.oroType[0] = 4
-    source.farDx[0] = 64
-    source.farDy[0] = -32
-    source.farDz[0] = 96
-    source_snapshot = source.snapshot(0)
-    rotation = [0, -1, 0, 1, 0, 0, 0, 0, 1]
-    destination.copy_from(1, source, 0, rotation)
-    destination.restore(2, source_snapshot)
-    destination.remove(1)
+def test_crust_copy_restore_remove_match_original(original_extended, numerical_backend, extended_payload):
+    scenario = extended_payload["crustCopy"]
+    source = CrustRaster(scenario["size"])
+    destination = CrustRaster(scenario["size"])
+    source.create(scenario["cell"], scenario["type"], scenario["longitude"], scenario["terrane"])
+    for field, value in scenario["fields"].items():
+        getattr(source, field)[scenario["cell"]] = value
+    source_snapshot = source.snapshot(scenario["cell"])
+    destination.copy_from(scenario["destinationCell"], source, scenario["cell"], scenario["rotation"])
+    destination.restore(scenario["restoreCell"], source_snapshot)
+    destination.remove(scenario["destinationCell"])
     expected = original_extended["crustCopy"]
     assert source_snapshot == expected["source"]
     assert destination.snapshot(1) == expected["copied"]
@@ -271,16 +253,9 @@ def test_crust_copy_restore_remove_match_original(original_extended, numerical_b
     assert destination.count == expected["count"]
 
 
-def test_barycentric_point_location_matches_original(original_extended):
-    mesh = _mesh()
-    queries = [
-        [1, 0.2, 0.3],
-        [-0.3, 1, 0.4],
-        [0.2, -0.4, 1],
-        [-1, -0.3, -0.2],
-        [0.2, 0.3, -1],
-        [1, 1, 1],
-    ]
+def test_barycentric_point_location_matches_original(original_extended, extended_payload):
+    mesh = _mesh(extended_payload)
+    queries = extended_payload["queries"]
     for point, expected in zip(queries, original_extended["locate"], strict=False):
         cells, weights = locate(mesh, *point)
         assert cells.tolist() == expected["cells"]
@@ -288,31 +263,32 @@ def test_barycentric_point_location_matches_original(original_extended):
 
 
 def test_breadth_first_mesh_operations_match_original(
-    original_extended, numerical_backend
+    original_extended, numerical_backend, extended_payload
 ):
-    mesh = _mesh()
+    mesh = _mesh(extended_payload)
+    scenario = extended_payload["bfs"]
 
     def source(c):
-        return c in (0, 2)
+        return c in scenario["sourceCells"]
 
     def enter(c):
-        return c != 5
+        return c != scenario["blockedCell"]
 
     e = original_extended["bfs"]
-    assert within_km(mesh, source, 9000).tolist() == e["within"]
-    assert hop_distance(mesh, source, 2, enter).tolist() == e["hops"]
-    assert flood_from(mesh, 0, enter).tolist() == e["flood"]
-    assert touches(mesh, 0, lambda c: c == 4) is e["touches"]
-    d, s = hops_from(mesh, [0, 2], enter, 2)
+    assert within_km(mesh, source, scenario["withinKm"]).tolist() == e["within"]
+    assert hop_distance(mesh, source, scenario["maxHops"], enter).tolist() == e["hops"]
+    assert flood_from(mesh, scenario["floodStart"], enter).tolist() == e["flood"]
+    assert touches(mesh, scenario["touchesCell"], lambda c: c == scenario["touchesTarget"]) is e["touches"]
+    d, s = hops_from(mesh, scenario["sourceCells"], enter, scenario["maxHops"])
     assert d.tolist() == e["from"]["dist"]
     assert s.tolist() == e["from"]["source"]
-    assert reaches_within(mesh, 0, 2, enter, lambda c: c == 3) is e["reaches"]
-    assert pieces_of(mesh, [0, 2, 4, 1, 3]) == e["pieces"]
-    assert largest_piece_of(mesh, [0, 2, 4, 1, 3]) == e["largest"]
+    assert reaches_within(mesh, scenario["reachesStart"], scenario["maxHops"], enter, lambda c: c == scenario["reachesTarget"]) is e["reaches"]
+    assert pieces_of(mesh, scenario["pieces"]) == e["pieces"]
+    assert largest_piece_of(mesh, scenario["pieces"]) == e["largest"]
 
 
-def test_precomputed_rings_match_original(original_extended):
-    r = rings_of(_mesh())
+def test_precomputed_rings_match_original(original_extended, extended_payload):
+    r = rings_of(_mesh(extended_payload))
     e = original_extended["rings"]
     assert r["stride"] == e["stride"]
     assert r["start"].tolist() == e["start"]
@@ -320,38 +296,36 @@ def test_precomputed_rings_match_original(original_extended):
 
 
 def test_min_heap_order_and_dijkstra_match_original(
-    original_extended, numerical_backend
+    original_extended, numerical_backend, extended_payload
 ):
-    h = MinHeap(2)
-    for key, i in [[7, 70], [1, 10], [4, 40], [1, 11], [3, 30], [0.5, 5], [9, 90]]:
+    heap_input = extended_payload["heap"]
+    h = MinHeap(heap_input["capacity"])
+    for key, i in heap_input["entries"]:
         h.push(key, i)
     actual = []
     while h.size:
         i = h.pop()
         actual.append([h.last_key, i])
     assert actual == original_extended["heap"]
-    m = _mesh()
-    d = np.asarray(
-        [0, math.inf, math.inf, math.inf, math.inf, math.inf], dtype=np.float64
-    )
-    spread_km(m, d, max_km=12000, can_enter=lambda a, b: b != 5)
+    m = _mesh(extended_payload)
+    d = np.asarray([math.inf if x == "Infinity" else x for x in heap_input["initialDistances"]], dtype=np.float64)
+    spread_km(m, d, max_km=heap_input["maxKm"], can_enter=lambda a, b: b != extended_payload["bfs"]["blockedCell"])
     expected = [math.inf if x == "Infinity" else x for x in original_extended["spread"]]
     _close(d, expected, atol=1e-8)
 
 
 def test_tectonic_world_state_and_rng_streams_match_original(
-    original_extended, numerical_backend
+    original_extended, numerical_backend, extended_payload
 ):
-    m = _mesh()
-    w = TectonicWorld(
-        m, 77, overrides={"fixture": {"nested": 3}}
-    )  # as upstream: defaults merged with overrides
-    p = w.add_plate("North")
-    p.crust.create(0, CrustType["CRATON"], -20, 11)
-    p.crust.create(2, CrustType["CRATON"], -30, 12)
-    w.terraneLetters = {11: "B", 12: "A"}
-    w.time = 12.5
-    w.log(EventKind["START"], "fixture event", {"plate": 0, "area": 2})
+    scenario = extended_payload["world"]
+    m = _mesh(extended_payload)
+    w = TectonicWorld(m, scenario["seed"], overrides=scenario["config"])
+    p = w.add_plate(scenario["plateName"])
+    for cell, crust_type, longitude, terrane in scenario["crust"]:
+        p.crust.create(cell, crust_type, longitude, terrane)
+    w.terraneLetters = scenario["terraneLetters"]
+    w.time = scenario["time"]
+    w.log(EventKind[scenario["eventKind"]], scenario["eventMessage"], scenario["eventData"])
     e = original_extended["world"]
     for field in [
         "owner",
@@ -381,6 +355,6 @@ def test_tectonic_world_state_and_rng_streams_match_original(
     assert w.next_terrane_id() == e["nextTerrane"]
     assert w.name_by_cratons(p, "fallback") == e["name"]
     for stream, values in e["streams"].items():
-        _close([getattr(w, stream)() for _ in range(4)], values, atol=0)
+        _close([getattr(w, stream)() for _ in range(scenario["streamCount"])], values, atol=0)
     assert BoundaryKind["COLLISION"] == e["constants"]["collision"]
     assert Provisional["LIKE_NEIGHBOUR"] == e["constants"]["provisional"]

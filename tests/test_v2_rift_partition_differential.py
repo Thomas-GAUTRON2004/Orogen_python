@@ -20,6 +20,7 @@ from orogen.v2.tectonics.ops.rift_path import (
     _trace_parent_path,
     coast_distance,
     grain_of,
+    rift_context,
 )
 from orogen.v2.tectonics.ops.rift_partition import (
     elongation_of,
@@ -384,3 +385,23 @@ def test_grain_of_caches_seeded_noise_per_cell():
     assert np.isnan(world.riftGrainOf[[0, 2]]).all()
     assert world.riftGrainOf[1] == first
     assert world.riftGrain is not None
+
+
+def test_rift_context_precomputes_coast_and_cell_data_once():
+    spec = _base_case()
+    mesh = _mesh(spec)
+    crust = _crust(spec)
+    world = SimpleNamespace(
+        mesh=mesh,
+        config={"riftCurveAmp": 0.0, "riftJagAmp": 0.0},
+    )
+
+    context = rift_context(world, SimpleNamespace(crust=crust))
+
+    np.testing.assert_array_equal(context["cells"], masked_cells(crust))
+    np.testing.assert_array_equal(context["exterior"], exterior_sea(mesh, crust))
+    np.testing.assert_array_equal(
+        context["from_coast"],
+        coast_distance(mesh, crust, context["exterior"]),
+    )
+    assert context["grain"](0) == 1.0

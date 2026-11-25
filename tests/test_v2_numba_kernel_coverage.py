@@ -55,9 +55,7 @@ def test_numba_kernel_python_bodies_cover_noise_geometry_and_graph_branches():
     assert kernels.largest_piece_numba.py_func(
         offsets, adjacency, selected
     ).tolist() == [0, 1, 2]
-    kernels.pieces_of_numba.py_func(
-        offsets, adjacency, np.asarray([], dtype=np.int32)
-    )
+    kernels.pieces_of_numba.py_func(offsets, adjacency, np.asarray([], dtype=np.int32))
     kernels._tangent_basis_components.py_func(1.0, 0.0, 0.95)
     kernels._tangent_basis_components.py_func(1.0, 0.0, 0.0)
     points_array = np.asarray([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]], dtype=np.float64)

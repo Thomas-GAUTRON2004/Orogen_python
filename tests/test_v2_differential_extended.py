@@ -75,6 +75,33 @@ def original_extended():
     return json.loads(result.stdout)
 
 
+@pytest.fixture(params=("numba", "python"))
+def numerical_backend(request, monkeypatch):
+    """Run public parity scenarios through both accelerated and Python code paths."""
+    if request.param == "python":
+        from orogen.v2.core import (
+            fast_noise as fast_noise_module,
+            mesh_bfs as mesh_bfs_module,
+            min_heap as min_heap_module,
+            simplex_noise as simplex_noise_module,
+            sphere_geometry as sphere_geometry_module,
+            sphere_index as sphere_index_module,
+        )
+        from orogen.v2.tectonics import crust as crust_module
+
+        for module in (
+            fast_noise_module,
+            mesh_bfs_module,
+            min_heap_module,
+            simplex_noise_module,
+            sphere_geometry_module,
+            sphere_index_module,
+            crust_module,
+        ):
+            monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
+    return request.param
+
+
 @dataclass(eq=False)
 class _Mesh:
     num_cells: int
@@ -112,7 +139,7 @@ def _close(a, b, atol=2e-12):
     np.testing.assert_allclose(a, b, rtol=2e-12, atol=atol)
 
 
-def test_spherical_geometry_matches_original(original_extended):
+def test_spherical_geometry_matches_original(original_extended, numerical_backend):
     g = original_extended["geom"]
     assert dot([1, 2, 3], [-2, 0.5, 4]) == g["dot"]
     assert cross([1, 2, 3], [-2, 0.5, 4]) == g["cross"]
@@ -145,7 +172,7 @@ def test_spherical_geometry_matches_original(original_extended):
     _close(centroid_of_cells(m.xyz, [0, 2, 4]), g["centroid"])
 
 
-def test_fast_and_simplex_noise_match_original(original_extended):
+def test_fast_and_simplex_noise_match_original(original_extended, numerical_backend):
     fast = FastNoise(9876)
     simplex = SimplexNoise(9876)
     for item in original_extended["noise"]:
@@ -157,7 +184,7 @@ def test_fast_and_simplex_noise_match_original(original_extended):
         assert simplex.ridged_fbm(*item["p"]) == pytest.approx(item["r"], abs=1e-15)
 
 
-def test_sphere_index_cube_table_and_nearest_match_original(original_extended):
+def test_sphere_index_cube_table_and_nearest_match_original(original_extended, numerical_backend):
     mesh = _mesh()
     expected = original_extended["index"]
     assert mesh.index.res == expected["res"]
@@ -174,7 +201,7 @@ def test_sphere_index_cube_table_and_nearest_match_original(original_extended):
     assert [mesh.index.nearest(*p) for p in queries] == expected["nearest"]
 
 
-def test_mesh_from_arrays_matches_original(original_extended):
+def test_mesh_from_arrays_matches_original(original_extended, numerical_backend):
     mesh = _mesh()
     rebuilt = mesh_from_arrays(
         num_cells=6, xyz=mesh.xyz, adj_offset=mesh.adj_offset, adj_list=mesh.adj_list
@@ -195,7 +222,7 @@ def test_mesh_from_arrays_matches_original(original_extended):
     assert [rebuilt.index.nearest(*p) for p in queries] == expected["nearest"]
 
 
-def test_crust_copy_restore_remove_match_original(original_extended):
+def test_crust_copy_restore_remove_match_original(original_extended, numerical_backend):
     source = CrustRaster(3)
     destination = CrustRaster(3)
     source.create(0, CrustType["CRATON"], -1.25, 17)
@@ -236,7 +263,7 @@ def test_barycentric_point_location_matches_original(original_extended):
         _close(weights, expected["weights"])
 
 
-def test_breadth_first_mesh_operations_match_original(original_extended):
+def test_breadth_first_mesh_operations_match_original(original_extended, numerical_backend):
     mesh = _mesh()
 
     def source(c):
@@ -266,7 +293,7 @@ def test_precomputed_rings_match_original(original_extended):
     assert r["cells"].tolist() == e["cells"]
 
 
-def test_min_heap_order_and_dijkstra_match_original(original_extended):
+def test_min_heap_order_and_dijkstra_match_original(original_extended, numerical_backend):
     h = MinHeap(2)
     for key, i in [[7, 70], [1, 10], [4, 40], [1, 11], [3, 30], [0.5, 5], [9, 90]]:
         h.push(key, i)
@@ -284,7 +311,7 @@ def test_min_heap_order_and_dijkstra_match_original(original_extended):
     _close(d, expected, atol=1e-8)
 
 
-def test_tectonic_world_state_and_rng_streams_match_original(original_extended):
+def test_tectonic_world_state_and_rng_streams_match_original(original_extended, numerical_backend):
     m = _mesh()
     w = TectonicWorld(
         m, 77, overrides={"fixture": {"nested": 3}}

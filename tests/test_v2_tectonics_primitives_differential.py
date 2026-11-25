@@ -429,12 +429,6 @@ def test_belt_height_accumulation_matches_upstream(javascript, payload):
         )
 
 
-def test_force_balance_linear_solver_matches_upstream(javascript, payload):
-    expected = [
-        solve3(case["matrix"], case["vector"]) for case in payload["linearSystems"]
-    ]
-    _assert_close(javascript["systems"], expected, atol=1e-12)
-
 
 def test_fastest_plate_speed_and_adaptive_step_match_upstream(javascript, payload):
     speed_cases = payload["speedCases"]

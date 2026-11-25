@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { meshFromArrays } from "../../external/planet_heightmap_generation/v2/js/core/sim-mesh.js";
 import { buildStartWorld } from "../../external/planet_heightmap_generation/v2/js/tectonics/init/start-world.js";
-import { CELL_FIELDS } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/crust.js";
+import { CELL_FIELDS, CrustFlag, CrustType } from "../../external/planet_heightmap_generation/v2/js/tectonics/model/crust.js";
 
 const payload = JSON.parse(readFileSync(0, "utf8"));
 const source = payload.mesh;
@@ -49,8 +49,18 @@ const worldState = {
     ring: list(world.startSeamKm.ring),
   },
 };
+const continentCrust = world.plates[0].crust;
+const landCells = list(continentCrust.type).filter(
+  (type, cell) => continentCrust.mask[cell] && type !== CrustType.OCEAN,
+).length;
+const apronCells = list(continentCrust.flags).filter(
+  flags => (flags & CrustFlag.APRON) !== 0,
+).length;
 const startState = {
   cratons: start.cratons,
+  landCells,
+  continentalFraction: landCells / mesh.numCells,
+  apronCells,
   centre: start.centre,
   rimCentre: start.rimCentre,
   reference: start.reference,

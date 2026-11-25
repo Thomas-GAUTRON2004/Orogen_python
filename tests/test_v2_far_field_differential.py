@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 from _differential import assert_js_python_equal, run_js_reference
+
 from orogen.v2.tectonics.crust import CELL_FIELDS, CrustFlag, CrustType
 from orogen.v2.tectonics.far_field import (
     evolve_far_field,

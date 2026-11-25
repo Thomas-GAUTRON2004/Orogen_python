@@ -14,7 +14,17 @@ RUNNER = ROOT / "tests/js/seed-differential-runner.mjs"
 
 def test_seed_and_rng_behavior_matches_upstream_javascript():
     payload = {
-        "texts": ["", "0", "42", "-17", "3.14159", "0x10", "hello", "Orogen 3.0.1", "é"],
+        "texts": [
+            "",
+            "0",
+            "42",
+            "-17",
+            "3.14159",
+            "0x10",
+            "hello",
+            "Orogen 3.0.1",
+            "é",
+        ],
         "rngSeed": 123456,
         "randomCount": 12,
     }

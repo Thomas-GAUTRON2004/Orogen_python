@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -269,12 +270,16 @@ jobs:
 
       - name: Prepare browsable report site
         run: |
-          mkdir -p site/coverage
+          mkdir -p site/docs/coverage site/coverage
+          cp reports/pytest-report.html site/docs/index.html
+          cp -R reports/coverage-html/. site/docs/coverage/
+          # Keep the original root-level URLs available as aliases.
           cp reports/pytest-report.html site/index.html
           cp -R reports/coverage-html/. site/coverage/
           cat > site/README.txt <<'EOF'
-          Latest Python differential test report: /
-          Python coverage report: /coverage/
+          Pytest report: /docs/
+          Python coverage report: /docs/coverage/
+          Root aliases: / and /coverage/
           EOF
 
       - name: Upload GitHub Pages artifact

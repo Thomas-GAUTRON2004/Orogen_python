@@ -74,7 +74,7 @@ def extended_payload():
             "normalize": [2, -3, 6],
             "angleOrigin": [1, 0, 0], "angleVectors": [[1, 0, 0], [0, 1, 0], [0, 0, -1]],
             "tangent": [[0, 0, 1], [1, 0, 0], [0, 1, 0]],
-            "point": [0.2, -0.3, math.sqrt(0.87)], "destinationBearing": 1.234, "destinationDistance": 0.42,
+            "point": [0.2, -0.3, math.sqrt(0.87)], "destinationBearing": 1.234, "destinationDistance": 0.42, "capFraction": 0.75,
             "polarOrigin": [0.3, 0.4, math.sqrt(0.75)], "polarNorth": [0, 0, 1],
             "polarPoints": [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0]],
             "cellDistance": [0, 4], "centroidCells": [0, 2, 4],
@@ -83,7 +83,7 @@ def extended_payload():
         "bfs": {"sourceCells": [0, 2], "blockedCell": 5, "withinKm": 9000, "maxHops": 2, "floodStart": 0, "touchesCell": 0, "touchesTarget": 4, "reachesStart": 0, "reachesTarget": 3, "pieces": [0, 2, 4, 1, 3]},
         "heap": {"capacity": 2, "entries": [[7, 70], [1, 10], [4, 40], [1, 11], [3, 30], [0.5, 5], [9, 90]], "initialDistances": [0, "Infinity", "Infinity", "Infinity", "Infinity", "Infinity"], "maxKm": 12000},
         "crustCopy": {"size": 3, "cell": 0, "type": CrustType["CRATON"], "longitude": -1.25, "terrane": 17, "fields": {"flags": 129, "slabKm": 23.5, "coverKm": 3.25, "geoFlags": 3, "oroType": 4, "farDx": 64, "farDy": -32, "farDz": 96}, "rotation": [0, -1, 0, 1, 0, 0, 0, 0, 1], "destinationCell": 1, "restoreCell": 2},
-        "world": {"seed": 77, "config": {"fixture": {"nested": 3}}, "plateName": "North", "crust": [[0, CrustType["CRATON"], -20, 11], [2, CrustType["CRATON"], -30, 12]], "terraneLetters": {"11": "B", "12": "A"}, "time": 12.5, "eventKind": "START", "eventMessage": "fixture event", "eventData": {"plate": 0, "area": 2}, "streams": ["rng", "rngSubduction", "rngMarginFounder", "rngOceanSplit", "rngHotspot", "rngVolcano", "rngBackArc", "rngMarginIsle", "rngCycle"], "streamCount": 4},
+        "world": {"seed": 77, "config": {"fixture": {"nested": 3}}, "plateName": "North", "crust": [[0, CrustType["CRATON"], -20, 11], [2, CrustType["CRATON"], -30, 12]], "terraneLetters": {"11": "B", "12": "A"}, "time": 12.5, "eventKind": "START", "eventMessage": "fixture event", "eventData": {"plate": 0, "area": 2}, "cellAtPoint": [1, 0, 0], "fallbackName": "fallback", "streams": ["rng", "rngSubduction", "rngMarginFounder", "rngOceanSplit", "rngHotspot", "rngVolcano", "rngBackArc", "rngMarginIsle", "rngCycle"], "streamCount": 4},
     }
 
 
@@ -173,10 +173,10 @@ def test_spherical_geometry_matches_original(original_extended, numerical_backen
     dest = destination(p, scenario["destinationBearing"], scenario["destinationDistance"])
     _close(dest, g["destination"])
     assert bearing_to(p, dest) == pytest.approx(g["bearing"], abs=2e-12)
-    assert cap_fraction(0.75) == pytest.approx(g["cap"], abs=2e-15)
-    polar = polar_frame([0.3, 0.4, math.sqrt(0.75)], [0, 0, 1])
+    assert cap_fraction(scenario["capFraction"]) == pytest.approx(g["cap"], abs=2e-15)
+    polar = polar_frame(scenario["polarOrigin"], scenario["polarNorth"])
     for point, expected in zip(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0]],
+        scenario["polarPoints"],
         g["polar"],
         strict=False,
     ):
@@ -184,8 +184,8 @@ def test_spherical_geometry_matches_original(original_extended, numerical_backen
         assert actual["colat"] == pytest.approx(expected["colat"], abs=2e-12)
         assert actual["azimuth"] == pytest.approx(expected["azimuth"], abs=2e-12)
     m = _mesh(extended_payload)
-    assert cell_distance_km(m.xyz, 0, 4) == pytest.approx(g["cellDistance"], abs=0)
-    _close(centroid_of_cells(m.xyz, [0, 2, 4]), g["centroid"])
+    assert cell_distance_km(m.xyz, *scenario["cellDistance"]) == pytest.approx(g["cellDistance"], abs=0)
+    _close(centroid_of_cells(m.xyz, scenario["centroidCells"]), g["centroid"])
 
 
 def test_fast_and_simplex_noise_match_original(original_extended, numerical_backend, extended_payload):
@@ -223,14 +223,7 @@ def test_mesh_from_arrays_matches_original(original_extended, numerical_backend,
     assert rebuilt.edge_rad == expected["edgeRad"]
     assert rebuilt.edge_km == pytest.approx(expected["edgeKm"], rel=2e-15)
     assert rebuilt.cell_area_km2 == pytest.approx(expected["cellAreaKm2"], rel=2e-15)
-    queries = [
-        [1, 0.2, 0.3],
-        [-0.3, 1, 0.4],
-        [0.2, -0.4, 1],
-        [-1, -0.3, -0.2],
-        [0.2, 0.3, -1],
-        [1, 1, 1],
-    ]
+    queries = extended_payload["queries"]
     assert [rebuilt.index.nearest(*p) for p in queries] == expected["nearest"]
 
 
@@ -247,8 +240,8 @@ def test_crust_copy_restore_remove_match_original(original_extended, numerical_b
     destination.remove(scenario["destinationCell"])
     expected = original_extended["crustCopy"]
     assert source_snapshot == expected["source"]
-    assert destination.snapshot(1) == expected["copied"]
-    assert destination.snapshot(2) == expected["restored"]
+    assert destination.snapshot(scenario["destinationCell"]) == expected["copied"]
+    assert destination.snapshot(scenario["restoreCell"]) == expected["restored"]
     assert destination.mask.tolist() == expected["mask"]
     assert destination.count == expected["count"]
 
@@ -323,7 +316,7 @@ def test_tectonic_world_state_and_rng_streams_match_original(
     p = w.add_plate(scenario["plateName"])
     for cell, crust_type, longitude, terrane in scenario["crust"]:
         p.crust.create(cell, crust_type, longitude, terrane)
-    w.terraneLetters = scenario["terraneLetters"]
+    w.terraneLetters = {int(key): value for key, value in scenario["terraneLetters"].items()}
     w.time = scenario["time"]
     w.log(EventKind[scenario["eventKind"]], scenario["eventMessage"], scenario["eventData"])
     e = original_extended["world"]
@@ -342,7 +335,7 @@ def test_tectonic_world_state_and_rng_streams_match_original(
         "mantleHeat",
     ]:
         _close(getattr(w, field).tolist(), e[field], atol=0)
-    assert p.cell_at(m.index, 1, 0, 0) == e["cellAt"]
+    assert p.cell_at(m.index, *scenario["cellAtPoint"]) == e["cellAt"]
     assert w.config == e["config"]
     assert w.budget == e["budget"]
     assert w.events == e["events"]
@@ -353,7 +346,7 @@ def test_tectonic_world_state_and_rng_streams_match_original(
         "crustCount": p.crust.count,
     } == e["plate"]
     assert w.next_terrane_id() == e["nextTerrane"]
-    assert w.name_by_cratons(p, "fallback") == e["name"]
+    assert w.name_by_cratons(p, scenario["fallbackName"]) == e["name"]
     for stream, values in e["streams"].items():
         _close([getattr(w, stream)() for _ in range(scenario["streamCount"])], values, atol=0)
     assert BoundaryKind["COLLISION"] == e["constants"]["collision"]

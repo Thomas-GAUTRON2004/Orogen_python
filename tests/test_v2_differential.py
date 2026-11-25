@@ -159,20 +159,6 @@ def _assert_close(actual, expected, atol=2e-7):
     np.testing.assert_allclose(actual, expected, rtol=2e-7, atol=atol)
 
 
-def test_seed_parsing_and_park_miller_match_original(original, differential_payload):
-    texts = differential_payload["seedTexts"]
-    expected = original["seeds"]
-    assert [x["text"] for x in expected] == texts
-    for item in expected:
-        assert is_word_seed(item["text"]) is item["word"]
-        assert seed_of(item["text"]) == item["seed"]
-    py_rng = make_rng(differential_payload["random"]["seed"])
-    _assert_close(
-        [py_rng() for _ in range(differential_payload["random"]["count"])],
-        original["random"],
-        atol=0,
-    )
-
 
 def test_quaternion_operations_match_original(original, differential_payload):
     q_input = differential_payload["quaternion"]

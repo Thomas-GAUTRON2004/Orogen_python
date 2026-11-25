@@ -72,39 +72,77 @@ def _payload() -> dict[str, Any]:
     reliefs = [
         {"type": oro_type, "reach": reach}
         for oro_type in range(1, 9)
-        for reach in (0.0, 0.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type],
-                      1.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type])
+        for reach in (
+            0.0,
+            0.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type],
+            1.5 * DEFAULT_HEIGHTS["fullReachKm"][oro_type],
+        )
     ]
     height_cases = [
         {
-            "type": OrogenyType["ANDEAN"], "side": BeltSide["LOWER"],
-            "u": 0.28, "reach": 620.0, "work": 65.0, "thickened": 2.4,
-            "amp": 1.0, "crustType": CrustType["CONTINENT"],
-            "rootKm": 1.2, "upliftKm": 0.1, "rugged": 0.2,
+            "type": OrogenyType["ANDEAN"],
+            "side": BeltSide["LOWER"],
+            "u": 0.28,
+            "reach": 620.0,
+            "work": 65.0,
+            "thickened": 2.4,
+            "amp": 1.0,
+            "crustType": CrustType["CONTINENT"],
+            "rootKm": 1.2,
+            "upliftKm": 0.1,
+            "rugged": 0.2,
         },
         {
-            "type": OrogenyType["URAL"], "side": BeltSide["LOWER"],
-            "u": 0.82, "reach": 320.0, "work": 90.0, "thickened": 1.1,
-            "amp": 0.85, "crustType": CrustType["CONTINENT"],
-            "rootKm": 0.5, "upliftKm": -0.02, "rugged": 0.05,
+            "type": OrogenyType["URAL"],
+            "side": BeltSide["LOWER"],
+            "u": 0.82,
+            "reach": 320.0,
+            "work": 90.0,
+            "thickened": 1.1,
+            "amp": 0.85,
+            "crustType": CrustType["CONTINENT"],
+            "rootKm": 0.5,
+            "upliftKm": -0.02,
+            "rugged": 0.05,
         },
         {
-            "type": OrogenyType["ARC"], "side": BeltSide["UPPER"],
-            "u": 0.2, "reach": 240.0, "work": 30.0, "thickened": 0.7,
-            "amp": 0.75, "crustType": CrustType["ARC"],
-            "rootKm": 0.0, "upliftKm": 0.0, "rugged": 0.0,
+            "type": OrogenyType["ARC"],
+            "side": BeltSide["UPPER"],
+            "u": 0.2,
+            "reach": 240.0,
+            "work": 30.0,
+            "thickened": 0.7,
+            "amp": 0.75,
+            "crustType": CrustType["ARC"],
+            "rootKm": 0.0,
+            "upliftKm": 0.0,
+            "rugged": 0.0,
         },
         {
-            "type": OrogenyType["RIFT"], "side": BeltSide["UPPER"],
-            "u": 0.48, "reach": 260.0, "work": 18.0, "thickened": 0.9,
-            "amp": 1.1, "crustType": CrustType["CONTINENT"],
-            "rootKm": 0.2, "upliftKm": 0.0, "rugged": 0.1,
+            "type": OrogenyType["RIFT"],
+            "side": BeltSide["UPPER"],
+            "u": 0.48,
+            "reach": 260.0,
+            "work": 18.0,
+            "thickened": 0.9,
+            "amp": 1.1,
+            "crustType": CrustType["CONTINENT"],
+            "rootKm": 0.2,
+            "upliftKm": 0.0,
+            "rugged": 0.1,
         },
         {
-            "type": OrogenyType["INTRAPLATE"], "side": BeltSide["LOWER"],
-            "u": 0.64, "reach": 410.0, "work": 52.0, "thickened": 1.6,
-            "amp": 0.9, "crustType": CrustType["CRATON"],
-            "rootKm": 2.0, "upliftKm": 0.4, "rugged": 0.6,
+            "type": OrogenyType["INTRAPLATE"],
+            "side": BeltSide["LOWER"],
+            "u": 0.64,
+            "reach": 410.0,
+            "work": 52.0,
+            "thickened": 1.6,
+            "amp": 0.9,
+            "crustType": CrustType["CRATON"],
+            "rootKm": 2.0,
+            "upliftKm": 0.4,
+            "rugged": 0.6,
         },
     ]
     return {
@@ -132,18 +170,30 @@ def _payload() -> dict[str, Any]:
         },
         "covers": [
             {
-                "coverKm": [2.0], "coverMaxKm": [2.5], "coverMaxAt": [4.0],
-                "unroofKm": [-1.0], "thickenedKm": 3.0, "time": 30.0,
+                "coverKm": [2.0],
+                "coverMaxKm": [2.5],
+                "coverMaxAt": [4.0],
+                "unroofKm": [-1.0],
+                "thickenedKm": 3.0,
+                "time": 30.0,
                 "geology": {"crustKm": 30.0},
             },
             {
-                "coverKm": [8.0], "coverMaxKm": [4.0], "coverMaxAt": [10.0],
-                "unroofKm": [0.5], "thickenedKm": 2.0, "time": 42.0,
+                "coverKm": [8.0],
+                "coverMaxKm": [4.0],
+                "coverMaxAt": [10.0],
+                "unroofKm": [0.5],
+                "thickenedKm": 2.0,
+                "time": 42.0,
                 "geology": {"crustKm": 25.0},
             },
             {
-                "coverKm": [0.0], "coverMaxKm": [0.0], "coverMaxAt": [0.0],
-                "unroofKm": [0.0], "thickenedKm": 4.0, "time": 50.0,
+                "coverKm": [0.0],
+                "coverMaxKm": [0.0],
+                "coverMaxAt": [0.0],
+                "unroofKm": [0.0],
+                "thickenedKm": 4.0,
+                "time": 50.0,
                 "geology": {"crustKm": 30.0},
             },
         ],
@@ -177,20 +227,32 @@ def _payload() -> dict[str, Any]:
             },
             "plates": [
                 {
-                    "alive": True, "count": 4, "omega": [0.002, 0.001, -0.003],
-                    "capCos": 0.85, "capCenter": [0.0, 0.0, 1.0],
+                    "alive": True,
+                    "count": 4,
+                    "omega": [0.002, 0.001, -0.003],
+                    "capCos": 0.85,
+                    "capCenter": [0.0, 0.0, 1.0],
                 },
                 {
-                    "alive": True, "count": 2, "omega": [-0.001, 0.003, 0.002],
-                    "capCos": 0.72, "capCenter": [0.0, 1.0, 0.0],
+                    "alive": True,
+                    "count": 2,
+                    "omega": [-0.001, 0.003, 0.002],
+                    "capCos": 0.72,
+                    "capCenter": [0.0, 1.0, 0.0],
                 },
                 {
-                    "alive": True, "count": 0, "omega": [0.5, 0.5, 0.5],
-                    "capCos": 0.9, "capCenter": [1.0, 0.0, 0.0],
+                    "alive": True,
+                    "count": 0,
+                    "omega": [0.5, 0.5, 0.5],
+                    "capCos": 0.9,
+                    "capCenter": [1.0, 0.0, 0.0],
                 },
                 {
-                    "alive": False, "count": 5, "omega": [1.0, 1.0, 1.0],
-                    "capCos": 0.9, "capCenter": [0.0, 0.0, 1.0],
+                    "alive": False,
+                    "count": 5,
+                    "omega": [1.0, 1.0, 1.0],
+                    "capCos": 0.9,
+                    "capCenter": [0.0, 0.0, 1.0],
                 },
             ],
         },
@@ -242,7 +304,16 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
         expected["facies"].append([packed, decode_facies(packed)])
     assert javascript["codecs"]["fields"] == expected["fields"]
     assert javascript["codecs"]["reads"] == expected["reads"]
-    for key in ("cover", "exhum", "unroof", "flood", "arc", "age", "floodAge", "facies"):
+    for key in (
+        "cover",
+        "exhum",
+        "unroof",
+        "flood",
+        "arc",
+        "age",
+        "floodAge",
+        "facies",
+    ):
         actual = javascript["codecs"][key]
         wanted = expected[key]
         assert [x[0] for x in actual] == [x[0] for x in wanted]
@@ -252,12 +323,16 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
             atol=1e-12,
         )
     _assert_close(
-        [javascript["codecs"]["decodeFacies"][i][field]
-         for i in range(len(codecs["decodeFacies"]))
-         for field in ("carb", "salt", "coal", "organic")],
-        [decode_facies(value)[field]
-         for value in codecs["decodeFacies"]
-         for field in ("carb", "salt", "coal", "organic")],
+        [
+            javascript["codecs"]["decodeFacies"][i][field]
+            for i in range(len(codecs["decodeFacies"]))
+            for field in ("carb", "salt", "coal", "organic")
+        ],
+        [
+            decode_facies(value)[field]
+            for value in codecs["decodeFacies"]
+            for field in ("carb", "salt", "coal", "organic")
+        ],
         atol=1e-12,
     )
 
@@ -280,7 +355,12 @@ def test_geology_cover_thickening_matches_upstream(javascript, payload):
             crust.unroofKm[0],
         ]
         _assert_close(
-            [actual["coverKm"], actual["coverMaxKm"], actual["coverMaxAt"], actual["unroofKm"]],
+            [
+                actual["coverKm"],
+                actual["coverMaxKm"],
+                actual["coverMaxAt"],
+                actual["unroofKm"],
+            ],
             expected,
             atol=2e-6,
         )
@@ -297,8 +377,12 @@ def test_fracture_zone_coordinates_match_upstream(javascript, payload):
 def test_belt_profiles_and_relief_match_upstream(javascript, payload):
     expected_profiles = [
         broad_profile(
-            case["type"], case["side"], case["distance"], case["reach"],
-            case["jitter"], case["wear"],
+            case["type"],
+            case["side"],
+            case["distance"],
+            case["reach"],
+            case["jitter"],
+            case["wear"],
         )
         for case in payload["profiles"]
     ]
@@ -311,7 +395,9 @@ def test_belt_profiles_and_relief_match_upstream(javascript, payload):
 
 
 def test_belt_height_accumulation_matches_upstream(javascript, payload):
-    for case, actual in zip(payload["heightCases"], javascript["heightStates"], strict=True):
+    for case, actual in zip(
+        payload["heightCases"], javascript["heightStates"], strict=True
+    ):
         crust = SimpleNamespace(
             type=np.asarray([case["crustType"]], dtype=np.uint8),
             rootKm=np.asarray([case["rootKm"]], dtype=np.float32),
@@ -339,8 +425,7 @@ def test_belt_height_accumulation_matches_upstream(javascript, payload):
 
 def test_force_balance_linear_solver_matches_upstream(javascript, payload):
     expected = [
-        solve3(case["matrix"], case["vector"])
-        for case in payload["linearSystems"]
+        solve3(case["matrix"], case["vector"]) for case in payload["linearSystems"]
     ]
     _assert_close(javascript["systems"], expected, atol=1e-12)
 

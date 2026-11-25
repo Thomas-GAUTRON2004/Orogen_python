@@ -17,7 +17,7 @@ from orogen.v2.core.rotation import (
     quat_to_mat3,
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
-from orogen.v2.tectonics.crust import BeltSide, CrustType, OrogenyType
+from orogen.v2.tectonics.crust import (\n    CELL_FIELDS, BeltSide, CrustFlag, CrustRaster, CrustType, OrogenyType,\n)
 from orogen.v2.tectonics.dynamics import solve3
 from orogen.v2.tectonics.geology import (
     GEO_FRAME_FIELDS,
@@ -649,5 +649,93 @@ PAIRS = PAIRS + (
             ),
         ),
         atol=1e-15,
+    ),
+)
+
+
+def _crust_snapshot(data: JsonObject) -> JsonObject:
+    crust = CrustRaster(data["size"])
+    cell = data["cell"]
+    crust.create(cell, data["type"], data["longitude"], data["terrane"])
+    crust.arm_trench(cell, data["trenchDepth"])
+    crust.record_subduction(cell, data["subduction"])
+    for oro_type, work, start, last in data["orogeny"]:
+        crust.record_orogeny(cell, oro_type, work, start, last)
+    return {
+        "fields": CELL_FIELDS,
+        "count": crust.count,
+        "mask": crust.mask.tolist(),
+        "snapshot": crust.snapshot(cell),
+        "flags": int(crust.flags[cell]),
+        "slabKm": float(crust.slabKm[cell]),
+        "oroType": int(crust.oroType[cell]),
+        "oroWork": float(crust.oroWork[cell]),
+        "oroStart": float(crust.oroStart[cell]),
+        "oroLast": float(crust.oroLast[cell]),
+        "flagTrench": CrustFlag["TRENCH"],
+    }
+
+
+_CRUST_INPUT = {
+    "size": 6,
+    "cell": 2,
+    "type": CrustType["CONTINENT"],
+    "longitude": -120.25,
+    "terrane": 17,
+    "trenchDepth": 35.5,
+    "subduction": 2.75,
+    "orogeny": [
+        [OrogenyType["ANDEAN"], 8.125, 20, 15],
+        [OrogenyType["HIMALAYAN"], 1.5, 25, 15],
+    ],
+}
+
+
+def _crust_branches(data: JsonObject) -> Any:
+    crust = CrustRaster(data["size"])
+    for index in range(data["size"]):
+        crust.create(
+            index, data["baseType"], data["longitude"], data["terraneStart"] + index
+        )
+    for cell, oro_type, work, start, last in data["operations"]:
+        crust.record_orogeny(cell, oro_type, work, start, last)
+    return [crust.snapshot(index) for index in range(data["size"])]
+
+
+_CRUST_BRANCH_INPUT = {
+    "size": 5,
+    "baseType": CrustType["CONTINENT"],
+    "longitude": 0,
+    "terraneStart": 1,
+    "operations": [
+        [0, OrogenyType["INTRAPLATE"], 2, 10, 5],
+        [0, OrogenyType["ANDEAN"], 3, 12, 5],
+        [1, OrogenyType["HIMALAYAN"], 4, 10, 5],
+        [1, OrogenyType["ARC"], 1, 11, 5],
+        [2, OrogenyType["ANDEAN"], 4, 10, 5],
+        [2, OrogenyType["RIFT"], 1, 30, 5],
+        [3, OrogenyType["TRANSPRESSION"], 4, 10, 5],
+        [3, OrogenyType["URAL"], 1, 11, 5],
+        [4, OrogenyType["ANDEAN"], 4, 10, 5],
+        [4, OrogenyType["HIMALAYAN"], 1, 11, 5],
+    ],
+}
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Crust raster snapshot",
+        javascript_id="tectonics.crustSnapshot",
+        python_call=_crust_snapshot,
+        cases=(DifferentialCase(id="trench-and-orogeny", input=_CRUST_INPUT),),
+        atol=0.0,
+        rtol=0.0,
+    ),
+    DifferentialPair(
+        name="Crust orogeny branch transitions",
+        javascript_id="tectonics.crustBranches",
+        python_call=_crust_branches,
+        cases=(DifferentialCase(id="successive-orogeny-types", input=_CRUST_BRANCH_INPUT),),
+        atol=0.0,
+        rtol=0.0,
     ),
 )

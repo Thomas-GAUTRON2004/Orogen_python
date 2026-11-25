@@ -29,12 +29,28 @@ if _missing or _unconfigured:
         f"unconfigured adapters={sorted(_unconfigured)}"
     )
 
-PAIRS = tuple(
-    replace(
-        _ADAPTERS[entry["javascript_id"]],
-        name=entry["name"],
-        rtol=entry["rtol"],
-        atol=entry["atol"],
+_pairs = []
+for entry in _CONFIG["pairs"]:
+    adapter = _ADAPTERS[entry["javascript_id"]]
+    if adapter.python_call.__name__ != entry["python_adapter"]:
+        raise ValueError(
+            f"Python adapter mismatch for {entry['javascript_id']!r}: "
+            f"expected {entry['python_adapter']!r}, "
+            f"found {adapter.python_call.__name__!r}"
+        )
+    case_ids = [case.id for case in adapter.cases]
+    if case_ids != entry["cases"]:
+        raise ValueError(
+            f"Case IDs mismatch for {entry['javascript_id']!r}: "
+            f"JSON={entry['cases']!r}, Python={case_ids!r}"
+        )
+    _pairs.append(
+        replace(
+            adapter,
+            name=entry["name"],
+            rtol=entry["rtol"],
+            atol=entry["atol"],
+        )
     )
-    for entry in _CONFIG["pairs"]
-)
+
+PAIRS = tuple(_pairs)

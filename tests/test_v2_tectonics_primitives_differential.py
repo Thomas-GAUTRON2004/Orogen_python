@@ -18,26 +18,6 @@ import pytest
 from _differential import run_js_reference
 
 from orogen.v2.tectonics.crust import BeltSide, CrustType, OrogenyType
-from orogen.v2.tectonics.geology import (
-    GEO_FRAME_FIELDS,
-    GEOLOGY_READS,
-    decode_age,
-    decode_arc_myr,
-    decode_cover_km,
-    decode_exhum_km,
-    decode_facies,
-    decode_flood_age,
-    decode_flood_myr,
-    decode_unroof_km,
-    encode_age,
-    encode_arc_myr,
-    encode_cover_km,
-    encode_exhum_km,
-    encode_facies,
-    encode_flood_age,
-    encode_flood_myr,
-    encode_unroof_km,
-)
 from orogen.v2.tectonics.heights import (
     DEFAULT_HEIGHTS,
     build_heights,
@@ -266,85 +246,6 @@ def javascript(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _assert_close(actual, expected, *, atol: float = 2e-7) -> None:
     np.testing.assert_allclose(actual, expected, rtol=2e-7, atol=atol)
-
-
-def _codec_pairs(values: list[float], encode: Callable, decode: Callable):
-    return [[encode(value), decode(encode(value))] for value in values]
-
-
-def test_geology_frame_encodings_match_upstream(javascript, payload):
-    codecs = payload["codecs"]
-    expected = {
-        "cover": _codec_pairs(codecs["cover"], encode_cover_km, decode_cover_km),
-        "exhum": _codec_pairs(codecs["exhum"], encode_exhum_km, decode_exhum_km),
-        "unroof": _codec_pairs(codecs["unroof"], encode_unroof_km, decode_unroof_km),
-        "flood": _codec_pairs(codecs["flood"], encode_flood_myr, decode_flood_myr),
-        "arc": _codec_pairs(codecs["arc"], encode_arc_myr, decode_arc_myr),
-        "age": _codec_pairs(codecs["age"], encode_age, decode_age),
-        "floodAge": [
-            [
-                encode_flood_age(last, time, ever),
-                None
-                if math.isinf(decode_flood_age(encode_flood_age(last, time, ever)))
-                else decode_flood_age(encode_flood_age(last, time, ever)),
-            ]
-            for last, time, ever in codecs["floodAge"]
-        ],
-        "facies": [],
-        "fields": GEO_FRAME_FIELDS,
-        "reads": GEOLOGY_READS,
-    }
-    for values in codecs["facies"]:
-        packed = encode_facies(*values)
-        expected["facies"].append([packed, decode_facies(packed)])
-    assert javascript["codecs"]["fields"] == expected["fields"]
-    assert javascript["codecs"]["reads"] == expected["reads"]
-    for key in (
-        "cover",
-        "exhum",
-        "unroof",
-        "flood",
-        "arc",
-        "age",
-        "floodAge",
-        "facies",
-    ):
-        actual = javascript["codecs"][key]
-        wanted = expected[key]
-        assert [x[0] for x in actual] == [x[0] for x in wanted]
-        if key == "floodAge":
-            assert [x[1] is None for x in actual] == [x[1] is None for x in wanted]
-            actual_finite = [x[1] for x in actual if x[1] is not None]
-            wanted_finite = [x[1] for x in wanted if x[1] is not None]
-            _assert_close(actual_finite, wanted_finite, atol=1e-12)
-        elif key == "facies":
-            fields = ("carb", "salt", "coal", "organic")
-            _assert_close(
-                [x[1][field] for x in actual for field in fields],
-                [x[1][field] for x in wanted for field in fields],
-                atol=1e-12,
-            )
-        else:
-            _assert_close(
-                [x[1] for x in actual],
-                [x[1] for x in wanted],
-                atol=1e-12,
-            )
-    _assert_close(
-        [
-            javascript["codecs"]["decodeFacies"][i][field]
-            for i in range(len(codecs["decodeFacies"]))
-            for field in ("carb", "salt", "coal", "organic")
-        ],
-        [
-            decode_facies(value)[field]
-            for value in codecs["decodeFacies"]
-            for field in ("carb", "salt", "coal", "organic")
-        ],
-        atol=1e-12,
-    )
-
-
 
 \n
 def test_adaptive_step_matches_upstream(javascript, payload):

@@ -118,7 +118,7 @@ jobs:
         run: |
           python -m ruff check .
           python -m ruff format --check scripts/check_mypy_regressions.py
-          python -m ruff format --check orogen scripts tests --exclude tests/test_v2_differential.py --exclude tests/test_v2_differential_extended.py
+          python -m ruff format --check orogen scripts tests --exclude 'tests/test_v2_differential*.py'
 
       - name: Report current mypy diagnostics
         run: |

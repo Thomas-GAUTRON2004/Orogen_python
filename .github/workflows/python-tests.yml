@@ -260,8 +260,6 @@ jobs:
     steps:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Download differential reports
         uses: actions/download-artifact@v4

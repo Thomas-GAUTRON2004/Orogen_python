@@ -144,6 +144,103 @@ def _payload() -> dict[str, Any]:
                 "underCell": 1,
             },
         },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.9995, 0.01, 0.0,
+                0.9992, 0.04, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 0,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "omega": [0.0, 0.0, -1.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": {
+                "id": 1,
+                "mask": [0, 0, 1, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 1,
+            },
+        },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.9995, 0.01, 0.0,
+                0.9992, 0.04, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 0,
+            "closingCmYr": 0.01,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "omega": [0.0, 0.0, 0.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": {
+                "id": 1,
+                "mask": [0, 0, 1, 0, 0, 0],
+                "capFloor": -1.0,
+                "underCell": 1,
+            },
+        },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.999, 0.045, 0.0,
+                0.999, -0.045, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 1,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "flags": [1, 0, 0, 0, 0, 0],
+                "wingKm": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": null,
+        },
+        {
+            **mesh,
+            "xyz": [
+                1.0, 0.0, 0.0,
+                0.999, 0.045, 0.0,
+                0.999, -0.045, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0,
+                -1.0, 0.0, 0.0,
+            ],
+            "edgeRad": 0.02,
+            "cell": 2,
+            "grower": {
+                "id": 0,
+                "mask": [1, 0, 0, 0, 0, 0],
+                "flags": [1, 0, 0, 0, 0, 0],
+                "wingKm": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "capFloor": -1.0,
+                "underCell": 0,
+            },
+            "rival": null,
+        },
     ]
     return {"candidate": candidate, "decisions": decisions}
 
@@ -248,7 +345,19 @@ def test_divergence_birth_rejection_rules_match_javascript(javascript, payload):
         None,
         "too close to the mid-line",
         "closing boundary",
+        None,
+        None,
+        None,
+        None,
     ]
     assert expected[2]["trenchParent"] == 0
     assert expected[3]["born"] is False
     assert expected[4]["born"] is False
+    assert expected[5] == {
+        "born": True,
+        "why": None,
+        "trenchParent": -1,
+    }
+    assert expected[6]["born"] is True
+    assert expected[7]["trenchParent"] == 0
+    assert expected[8]["trenchParent"] == -1

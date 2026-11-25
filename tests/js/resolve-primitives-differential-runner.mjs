@@ -59,7 +59,11 @@ const decisions = input.decisions.map((spec) => {
   const everyone = [{ plate: grower, cap: [0, 0, 1, -1] }];
   if (rival) everyone.push({ plate: rival, cap: [0, 0, 1, -1] });
   const result = decideBirth(
-    { mesh, occupancyStamp: 7, config: { closingCmYr: 0 } },
+    {
+      mesh,
+      occupancyStamp: 7,
+      config: { closingCmYr: spec.closingCmYr ?? 0 },
+    },
     grower,
     spec.cell,
     everyone

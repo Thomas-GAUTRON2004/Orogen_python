@@ -260,7 +260,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    if: always() && needs.differential-tests.result != 'cancelled' && github.event_name != 'pull_request'
+    if: always() && needs.differential-tests.result != 'cancelled' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     steps:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

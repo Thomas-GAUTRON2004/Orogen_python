@@ -48,7 +48,7 @@ tests/
 │   ├── cases.py
 │   └── test_all_pairs.py
 └── js/
-    └── differential-runner.mjs
+    └── generic-differential-runner.mjs
 ```
 
 Responsibilities:
@@ -59,7 +59,7 @@ Responsibilities:
 | `differential/config.py` | The central registry of Python/JavaScript pairs. |
 | `differential/cases.py` | Reusable, deterministic input cases. |
 | `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
-| `js/differential-runner.mjs` | Explicit mapping from stable IDs to upstream JavaScript functions. |
+| `js/generic-differential-runner.mjs` | Explicit mapping from stable IDs to upstream JavaScript functions. |
 
 The registry is Python code, not JSON. It needs to hold Python callables,
 adapters and tolerances, which cannot be represented reliably in a plain JSON
@@ -268,7 +268,7 @@ from _differential import assert_js_python_equal, run_js_reference
 from .config import PAIRS
 
 
-RUNNER = "tests/js/differential-runner.mjs"
+RUNNER = "tests/js/generic-differential-runner.mjs"
 
 
 def _parameters():

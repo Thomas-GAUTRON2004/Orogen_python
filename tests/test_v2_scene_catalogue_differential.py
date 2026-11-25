@@ -65,7 +65,11 @@ def _mesh_payload(mesh) -> dict[str, Any]:
 
 def _cases() -> list[dict[str, Any]]:
     return [
-        {"catalogue": catalogue, "id": scene["id"], "drive": callable(scene.get("drive"))}
+        {
+            "catalogue": catalogue,
+            "id": scene["id"],
+            "drive": callable(scene.get("drive")),
+        }
         for catalogue, scenes in CATALOGUES.items()
         for scene in scenes
         if scene["id"] not in SKIP_SCENES and callable(scene.get("build"))

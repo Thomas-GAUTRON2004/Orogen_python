@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 
 import numpy as np
@@ -77,30 +78,21 @@ def original_extended():
 
 @pytest.fixture(params=("numba", "python"))
 def numerical_backend(request, monkeypatch):
-    """Run public parity scenarios through both accelerated and Python code paths."""
+    """Run parity scenarios through both Numba and pure-Python implementations."""
     if request.param == "python":
-        from orogen.v2.core import (
-            fast_noise as fast_noise_module,
-            mesh_bfs as mesh_bfs_module,
-            min_heap as min_heap_module,
-            simplex_noise as simplex_noise_module,
-            sphere_geometry as sphere_geometry_module,
-            sphere_index as sphere_index_module,
+        modules = (
+            "orogen.v2.core.fast_noise",
+            "orogen.v2.core.mesh_bfs",
+            "orogen.v2.core.min_heap",
+            "orogen.v2.core.simplex_noise",
+            "orogen.v2.core.sphere_geometry",
+            "orogen.v2.core.sphere_index",
+            "orogen.v2.tectonics.crust",
         )
-        from orogen.v2.tectonics import crust as crust_module
-
-        for module in (
-            fast_noise_module,
-            mesh_bfs_module,
-            min_heap_module,
-            simplex_noise_module,
-            sphere_geometry_module,
-            sphere_index_module,
-            crust_module,
-        ):
+        for module_name in modules:
+            module = import_module(module_name)
             monkeypatch.setattr(module, "NUMBA_AVAILABLE", False)
     return request.param
-
 
 @dataclass(eq=False)
 class _Mesh:

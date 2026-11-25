@@ -7,7 +7,7 @@ import {
   exteriorSea,
   elongationOf,
 } from "../../external/planet_heightmap_generation/v2/js/tectonics/ops/rift-partition.js";
-import { riftContext } from "../../external/planet_heightmap_generation/v2/js/tectonics/ops/rift-path.js";
+import { findRift, riftContext } from "../../external/planet_heightmap_generation/v2/js/tectonics/ops/rift-path.js";
 
 const input = JSON.parse(readFileSync(0, "utf8"));
 
@@ -72,10 +72,45 @@ function evaluateContext(spec) {
   };
 }
 
+function evaluateRift(spec) {
+  const mesh = {
+    numCells: spec.numCells,
+    xyz: new Float64Array(spec.xyz),
+    adjOffset: new Int32Array(spec.adjOffset),
+    adjList: new Int32Array(spec.adjList),
+    edgeKm: spec.edgeKm,
+    edgeRad: spec.edgeRad,
+  };
+  const crust = {
+    count: spec.mask.reduce((sum, value) => sum + value, 0),
+    mask: new Uint8Array(spec.mask),
+    type: new Uint8Array(spec.type),
+    terrane: new Int32Array(spec.terrane),
+    flags: new Uint8Array(spec.flags),
+  };
+  const world = { mesh, config: spec.config, seed: spec.seed };
+  const result = findRift(
+    world,
+    { crust },
+    spec.junction,
+    spec.pullAxis,
+    spec.needCratonsBothSides,
+  );
+  return result
+    ? {
+        path: result.path,
+        failedArm: result.failedArm,
+        arms: result.arms,
+        across: result.across,
+        value: result.value,
+      }
+    : null;
+}
+
 const cases = input.cases.map(evaluate);
 console.log(
   JSON.stringify(
-    input.context ? { cases, context: evaluateContext(input.context) } : cases,
+    input.rift ? { cases, context: input.context ? evaluateContext(input.context) : null, rift: evaluateRift(input.rift) } : input.context ? { cases, context: evaluateContext(input.context) } : cases,
   ),
 );
 

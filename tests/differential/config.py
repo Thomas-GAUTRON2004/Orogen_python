@@ -334,3 +334,68 @@ PAIRS = PAIRS + (
         atol=2e-12,
     ),
 )
+
+
+from orogen.v2.tectonics.heights import build_heights
+
+
+def _build_heights(data: JsonObject) -> JsonObject:
+    import numpy as np
+
+    crust = SimpleNamespace(
+        type=np.asarray([data["crustType"]], dtype=np.uint8),
+        rootKm=np.asarray([data["rootKm"]], dtype=np.float32),
+        upliftKm=np.asarray([data["upliftKm"]], dtype=np.float32),
+        rugged=np.asarray([data["rugged"]], dtype=np.float32),
+    )
+    build_heights(
+        crust, 0, data["type"], data["side"], data["u"], data["reach"],
+        data["work"], data["thickened"], {"heights": DEFAULT_HEIGHTS}, data["amp"],
+    )
+    return {
+        "rootKm": float(crust.rootKm[0]),
+        "upliftKm": float(crust.upliftKm[0]),
+        "rugged": float(crust.rugged[0]),
+    }
+
+
+_HEIGHT_CASES = (
+    {
+        "type": 1, "side": BeltSide["LOWER"], "u": 0.28, "reach": 620.0,
+        "work": 65.0, "thickened": 2.4, "amp": 1.0,
+        "crustType": 2, "rootKm": 1.2, "upliftKm": 0.1, "rugged": 0.2,
+    },
+    {
+        "type": 2, "side": BeltSide["LOWER"], "u": 0.82, "reach": 320.0,
+        "work": 90.0, "thickened": 1.1, "amp": 0.85,
+        "crustType": 2, "rootKm": 0.5, "upliftKm": -0.02, "rugged": 0.05,
+    },
+    {
+        "type": 3, "side": BeltSide["UPPER"], "u": 0.2, "reach": 240.0,
+        "work": 30.0, "thickened": 0.7, "amp": 0.75,
+        "crustType": 3, "rootKm": 0.0, "upliftKm": 0.0, "rugged": 0.0,
+    },
+    {
+        "type": 4, "side": BeltSide["UPPER"], "u": 0.48, "reach": 260.0,
+        "work": 18.0, "thickened": 0.9, "amp": 1.1,
+        "crustType": 2, "rootKm": 0.2, "upliftKm": 0.0, "rugged": 0.1,
+    },
+    {
+        "type": 5, "side": BeltSide["LOWER"], "u": 0.64, "reach": 410.0,
+        "work": 52.0, "thickened": 1.6, "amp": 0.9,
+        "crustType": 1, "rootKm": 2.0, "upliftKm": 0.4, "rugged": 0.6,
+    },
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Belt height accumulation",
+        javascript_id="tectonics.buildHeights",
+        python_call=_build_heights,
+        cases=tuple(
+            DifferentialCase(id=f"height-{index}", input=case)
+            for index, case in enumerate(_HEIGHT_CASES)
+        ),
+        atol=2e-6,
+    ),
+)

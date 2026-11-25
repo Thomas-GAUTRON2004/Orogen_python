@@ -191,6 +191,27 @@ def test_rift_partition_and_exterior_sea_match_pinned_javascript(javascript, pay
     assert_js_python_equal(expected, javascript, atol=3e-6)
 
 
+def test_rift_context_matches_pinned_javascript():
+    spec = _base_case()
+    config = {"riftCurveAmp": 0.0, "riftJagAmp": 0.0}
+    scenario = {**spec, "config": config, "seed": 941}
+    javascript = run_js_reference(
+        RUNNER,
+        {"cases": [], "context": scenario},
+    )
+
+    world = SimpleNamespace(mesh=_mesh(spec), config=config, seed=941)
+    context = rift_context(world, SimpleNamespace(crust=_crust(spec)))
+    actual = {
+        "cells": context["cells"],
+        "exterior": context["exterior"],
+        "fromCoast": context["from_coast"],
+        "grain": [context["grain"](cell) for cell in range(spec["numCells"])],
+    }
+
+    assert_js_python_equal(actual, javascript["context"], atol=2e-7)
+
+
 
 def test_coast_distance_propagates_inland_from_exterior_ocean():
     spec = _base_case()

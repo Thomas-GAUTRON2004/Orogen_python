@@ -37,7 +37,6 @@ from orogen.v2.tectonics.geology import (
     encode_flood_age,
     encode_flood_myr,
     encode_unroof_km,
-    thicken_cover,
 )
 from orogen.v2.tectonics.heights import (
     DEFAULT_HEIGHTS,

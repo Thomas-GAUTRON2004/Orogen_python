@@ -9,6 +9,8 @@ function run(spec) {
     numCells: 1,
     xyz: new Float64Array(spec.xyz),
     index: { nearest: () => 0 },
+    adjOffset: new Uint32Array([0, 0]),
+    adjList: new Int32Array(0),
     cellAreaKm2: spec.cellAreaKm2,
   };
   const plates = spec.plate
@@ -20,6 +22,11 @@ function run(spec) {
         crust: {
           mask: new Uint8Array(spec.plate.mask),
           type: new Uint8Array(spec.plate.type),
+          flags: new Uint16Array([0]),
+          volcType: new Uint8Array([0]),
+          volcAt: new Float64Array([0]),
+          volcKm: new Float32Array([0]),
+          volcSource: new Uint16Array([0]),
         },
       }]
     : [];
@@ -29,7 +36,7 @@ function run(spec) {
   const scheduled = {
     time: spec.time,
     xyz: spec.xyz,
-    head: false,
+    head: spec.head ?? false,
     rift: spec.rift,
     name: spec.name,
     lifeMyr: 0,
@@ -45,6 +52,11 @@ function run(spec) {
       riftHeatGain: spec.riftHeatGain,
       riftHeatFloor: spec.riftHeatFloor,
       riftHeatPower: spec.riftHeatPower,
+      lipAreaMinMkm2: spec.lipAreaMinMkm2,
+      lipAreaMaxMkm2: spec.lipAreaMaxMkm2,
+      lipLobes: spec.lipLobes,
+      lipEdgeNoise: spec.lipEdgeNoise,
+      lipThicknessKm: spec.lipThicknessKm,
     },
     time: spec.time,
     mesh,
@@ -52,6 +64,8 @@ function run(spec) {
     ownerCell: new Int32Array([0]),
     plates,
     mantleHeat: new Float32Array([spec.heat]),
+    provisional: new Uint8Array([0]),
+    rngVolcano: () => 0.5,
     hotspotsReady: true,
     hotspots: [],
     pendingPlumeRifts: [],
@@ -84,6 +98,13 @@ function run(spec) {
     pendingPlumeRifts: world.pendingPlumeRifts,
     scheduledDone: scheduled.done,
     heat: Array.from(world.mantleHeat),
+    crust: world.plates.map((plate) => ({
+      volcType: Array.from(plate.crust.volcType),
+      volcAt: Array.from(plate.crust.volcAt),
+      volcKm: Array.from(plate.crust.volcKm),
+      volcSource: Array.from(plate.crust.volcSource),
+      flags: Array.from(plate.crust.flags),
+    })),
     events,
   };
 }

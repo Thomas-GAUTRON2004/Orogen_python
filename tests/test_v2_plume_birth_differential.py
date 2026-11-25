@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from _differential import assert_js_python_equal, run_js_reference
 
-from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.crust import CrustType, VolcanicType
 from orogen.v2.tectonics.plumes import update_plumes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,7 @@ RUNNER = ROOT / "tests/js/plume-birth-differential-runner.mjs"
 
 def _case(
     *,
+    xyz: list[float] | None = None,
     owner: int = 0,
     rift: bool | str = False,
     name: str | None = "Kavora",
@@ -26,6 +27,7 @@ def _case(
     draws: list[float] | None = None,
     minimum_area: float = 0.0,
     heat: float = 0.9,
+    head: bool = False,
 ) -> dict[str, Any]:
     plate = None
     if owner >= 0:
@@ -37,7 +39,7 @@ def _case(
         }
     return {
         "time": 25.0,
-        "xyz": [2.0, 0.0, 0.0],
+        "xyz": xyz if xyz is not None else [2.0, 0.0, 0.0],
         "cellAreaKm2": 1_000_000.0,
         "owner": owner,
         "plate": plate,
@@ -50,6 +52,12 @@ def _case(
         "riftHeatFloor": 0.1,
         "riftHeatPower": 1.0,
         "heat": heat,
+        "head": head,
+        "lipAreaMinMkm2": 0.000001,
+        "lipAreaMaxMkm2": 0.000001,
+        "lipLobes": 0.0,
+        "lipEdgeNoise": 0.0,
+        "lipThicknessKm": 10.0,
     }
 
 
@@ -67,6 +75,13 @@ def _payload() -> dict[str, Any]:
                 rift=False,
                 name=None,
                 draws=[0.8, 0.2, 0.3, 0.4, 0.5, 0.6],
+            ),
+            _case(
+                xyz=[1.0, 0.0, 0.0],
+                rift=False,
+                name="Kavora",
+                draws=[0.2],
+                head=True,
             ),
         ]
     }
@@ -95,6 +110,11 @@ def _world(spec: dict[str, Any]):
             crust=SimpleNamespace(
                 mask=np.asarray(source["mask"], dtype=np.uint8),
                 type=np.asarray(source["type"], dtype=np.uint8),
+                flags=np.zeros(1, dtype=np.uint16),
+                volcType=np.zeros(1, dtype=np.uint8),
+                volcAt=np.zeros(1, dtype=np.float64),
+                volcKm=np.zeros(1, dtype=np.float32),
+                volcSource=np.zeros(1, dtype=np.uint16),
             ),
         )
         plates.append(plate)
@@ -102,6 +122,8 @@ def _world(spec: dict[str, Any]):
     mesh = SimpleNamespace(
         num_cells=1,
         xyz=np.asarray(spec["xyz"], dtype=np.float64),
+        adj_offset=np.asarray([0, 0], dtype=np.int32),
+        adj_list=np.asarray([], dtype=np.int32),
         index=SimpleNamespace(nearest=lambda *_point: 0),
         cell_area_km2=spec["cellAreaKm2"],
     )
@@ -109,7 +131,7 @@ def _world(spec: dict[str, Any]):
     scheduled = {
         "time": spec["time"],
         "xyz": list(spec["xyz"]),
-        "head": False,
+        "head": spec["head"],
         "rift": spec["rift"],
         "name": spec["name"],
         "lifeMyr": 0.0,
@@ -126,6 +148,11 @@ def _world(spec: dict[str, Any]):
             "riftHeatGain": spec["riftHeatGain"],
             "riftHeatFloor": spec["riftHeatFloor"],
             "riftHeatPower": spec["riftHeatPower"],
+            "lipAreaMinMkm2": spec["lipAreaMinMkm2"],
+            "lipAreaMaxMkm2": spec["lipAreaMaxMkm2"],
+            "lipLobes": spec["lipLobes"],
+            "lipEdgeNoise": spec["lipEdgeNoise"],
+            "lipThicknessKm": spec["lipThicknessKm"],
         },
         time=spec["time"],
         mesh=mesh,
@@ -133,6 +160,8 @@ def _world(spec: dict[str, Any]):
         ownerCell=np.asarray([0], dtype=np.int32),
         plates=plates,
         mantleHeat=np.asarray([spec["heat"]], dtype=np.float32),
+        provisional=np.zeros(1, dtype=np.uint8),
+        rngVolcano=lambda: 0.5,
         hotspotsReady=True,
         hotspots=[],
         pendingPlumeRifts=[],
@@ -162,6 +191,16 @@ def _snapshot(world, scheduled, events):
         "pendingPlumeRifts": world.pendingPlumeRifts,
         "scheduledDone": scheduled["done"],
         "heat": world.mantleHeat.tolist(),
+        "crust": [
+            {
+                "volcType": plate.crust.volcType.tolist(),
+                "volcAt": plate.crust.volcAt.tolist(),
+                "volcKm": plate.crust.volcKm.tolist(),
+                "volcSource": plate.crust.volcSource.tolist(),
+                "flags": plate.crust.flags.tolist(),
+            }
+            for plate in world.plates
+        ],
         "events": events,
     }
 
@@ -182,5 +221,10 @@ def test_plume_birth_and_rift_eligibility_match_javascript(javascript, payload):
         0,
         0,
         0,
+        0,
     ]
-    assert javascript[-1]["hotspots"][0]["name"] != "Kavora"
+    assert javascript[-2]["hotspots"][0]["name"] != "Kavora"
+    lip_case = javascript[-1]
+    assert lip_case["hotspots"][0]["lip"]["name"] == "Kavora Traps"
+    assert lip_case["hotspots"][0]["lip"]["cells"] == 1
+    assert lip_case["crust"][0]["volcType"] == [VolcanicType["LIP"]]

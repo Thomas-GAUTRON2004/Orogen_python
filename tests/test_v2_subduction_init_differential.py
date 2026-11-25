@@ -189,7 +189,7 @@ def payload() -> dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def javascript(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    return run_js_reference(RUNNER, payload)["results"]
+    return run_js_reference(RUNNER, payload)
 
 
 def _world(spec: dict[str, Any]):

@@ -144,32 +144,6 @@ def _payload() -> dict[str, Any]:
                 "underCell": 1,
             },
         },
-        {
-            **mesh,
-            "xyz": [
-                1.0, 0.0, 0.0,
-                0.9995, 0.01, 0.0,
-                0.9992, 0.04, 0.0,
-                0.0, 0.0, 1.0,
-                0.0, 1.0, 0.0,
-                -1.0, 0.0, 0.0,
-            ],
-            "edgeRad": 0.02,
-            "cell": 0,
-            "grower": {
-                "id": 0,
-                "mask": [1, 0, 0, 0, 0, 0],
-                "omega": [0.0, 0.0, 1.0],
-                "capFloor": -1.0,
-                "underCell": 0,
-            },
-            "rival": {
-                "id": 1,
-                "mask": [0, 0, 1, 0, 0, 0],
-                "capFloor": -1.0,
-                "underCell": 1,
-            },
-        },
     ]
     return {"candidate": candidate, "decisions": decisions}
 

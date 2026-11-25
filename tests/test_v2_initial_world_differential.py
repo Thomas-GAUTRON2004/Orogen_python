@@ -16,8 +16,8 @@ import numpy as np
 from _differential import assert_js_python_equal, run_js_reference
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.config import TECTONICS
-from orogen.v2.tectonics.initial_world import build_start_world
 from orogen.v2.tectonics.crust import CELL_FIELDS
+from orogen.v2.tectonics.initial_world import build_start_world
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/initial-world-differential-runner.mjs"

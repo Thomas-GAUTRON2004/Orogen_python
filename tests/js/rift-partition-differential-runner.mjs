@@ -7,6 +7,7 @@ import {
   exteriorSea,
   elongationOf,
 } from "../../external/planet_heightmap_generation/v2/js/tectonics/ops/rift-partition.js";
+import { riftContext } from "../../external/planet_heightmap_generation/v2/js/tectonics/ops/rift-path.js";
 
 const input = JSON.parse(readFileSync(0, "utf8"));
 
@@ -42,4 +43,39 @@ function evaluate(spec) {
   };
 }
 
-console.log(JSON.stringify(input.cases.map(evaluate)));
+function evaluateContext(spec) {
+  const mesh = {
+    numCells: spec.numCells,
+    xyz: new Float64Array(spec.xyz),
+    adjOffset: new Int32Array(spec.adjOffset),
+    adjList: new Int32Array(spec.adjList),
+    edgeKm: spec.edgeKm,
+  };
+  const crust = {
+    count: spec.mask.reduce((sum, value) => sum + value, 0),
+    mask: new Uint8Array(spec.mask),
+    type: new Uint8Array(spec.type),
+    terrane: new Int32Array(spec.terrane),
+  };
+  const context = riftContext(
+    { mesh, config: spec.config, seed: spec.seed },
+    { crust },
+  );
+  return {
+    cells: Array.from(context.cells),
+    exterior: Array.from(context.exterior),
+    fromCoast: Array.from(context.fromCoast),
+    grain: Array.from(
+      { length: spec.numCells },
+      (_value, cell) => context.grain(cell),
+    ),
+  };
+}
+
+const cases = input.cases.map(evaluate);
+console.log(
+  JSON.stringify(
+    input.context ? { cases, context: evaluateContext(input.context) } : cases,
+  ),
+);
+

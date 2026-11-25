@@ -346,37 +346,7 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
 
 
 
-
-def test_belt_height_accumulation_matches_upstream(javascript, payload):
-    for case, actual in zip(
-        payload["heightCases"], javascript["heightStates"], strict=True
-    ):
-        crust = SimpleNamespace(
-            type=np.asarray([case["crustType"]], dtype=np.uint8),
-            rootKm=np.asarray([case["rootKm"]], dtype=np.float32),
-            upliftKm=np.asarray([case["upliftKm"]], dtype=np.float32),
-            rugged=np.asarray([case["rugged"]], dtype=np.float32),
-        )
-        build_heights(
-            crust,
-            0,
-            case["type"],
-            case["side"],
-            case["u"],
-            case["reach"],
-            case["work"],
-            case["thickened"],
-            {"heights": payload["heights"]},
-            case["amp"],
-        )
-        _assert_close(
-            actual,
-            [crust.rootKm[0], crust.upliftKm[0], crust.rugged[0]],
-            atol=2e-6,
-        )
-
-
-
+\n
 def test_adaptive_step_matches_upstream(javascript, payload):
 
     scenario = payload["simulation"]

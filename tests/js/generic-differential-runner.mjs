@@ -4,10 +4,36 @@ import { isWordSeed, seedOf } from
   "../../external/planet_heightmap_generation/v2/js/core/seed.js";
 import { makeRng } from
   "../../external/planet_heightmap_generation/js/rng.js";
+import {
+  quatFromAxisAngle,
+  quatIntegrate,
+  quatMul,
+  quatNormalize,
+  quatToEulerPole,
+  quatToMat3,
+} from "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 
 const request = JSON.parse(readFileSync(0, "utf8"));
 
 const functions = {
+  "rotation.quaternionOperations": (input) => {
+    const q1 = quatFromAxisAngle(...input.q1Axis, input.q1Angle);
+    const q2 = quatFromAxisAngle(...input.q2Axis, input.q2Angle);
+    const quaternion = quatNormalize(quatMul(q1, q2));
+    const integrated = quatIntegrate(quaternion, input.omega, input.dt);
+    return {
+      quaternion: Array.from(quaternion),
+      integrated: Array.from(integrated),
+      matrix: Array.from(quatToMat3(integrated, new Float64Array(9))),
+    };
+  },
+  "rotation.eulerPole": (input) => {
+    const q1 = quatFromAxisAngle(...input.q1Axis, input.q1Angle);
+    const q2 = quatFromAxisAngle(...input.q2Axis, input.q2Angle);
+    const quaternion = quatNormalize(quatMul(q1, q2));
+    const integrated = quatIntegrate(quaternion, input.omega, input.dt);
+    return quatToEulerPole(integrated);
+  },
   "seed.seedAndRng": (input) => {
     const rng = makeRng(input.rngSeed);
     return {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -80,9 +81,9 @@ def _quaternion_euler_pole(data: JsonObject) -> JsonObject:
 
 _QUATERNION_INPUT = {
     "q1Axis": [0, 0, 1],
-    "q1Angle": 3.141592653589793 / 3,
+    "q1Angle": math.pi / 3,
     "q2Axis": [1, 0, 0],
-    "q2Angle": -3.141592653589793 / 7,
+    "q2Angle": -math.pi / 7,
     "omega": [0.001, -0.002, 0.003],
     "dt": 12.5,
 }

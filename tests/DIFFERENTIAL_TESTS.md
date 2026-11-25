@@ -8,8 +8,8 @@ every configured pair.
 > **Status:** the generic registry and dispatcher have been introduced under
 > `tests/differential/` and `tests/js/generic-differential-runner.mjs`. Seed/RNG
 > and quaternion comparisons, fracture-zone coordinates, the force-balance
-> linear solver, fastest-plate-speed and geology cover-thickening comparisons
-> now use the generic registry. Other differential suites still use
+> linear solver, fastest-plate-speed, geology cover-thickening, orogenic belt
+> profile and belt-relief comparisons now use the generic registry. Other differential suites still use
 > domain-specific runners and will be migrated incrementally.
 > The shared helpers in `tests/_differential.py` remain the common execution and
 > comparison layer.

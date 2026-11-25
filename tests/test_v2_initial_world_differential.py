@@ -87,7 +87,6 @@ def _python_snapshot(result: dict[str, Any]) -> dict[str, Any]:
         "landCells": start["landCells"],
         "continentalFraction": start["continentalFraction"],
         "apronCells": start["apronCells"],
-        "trench": start["trench"],
     }
     world_state = {
         "budget": world.budget,

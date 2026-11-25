@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from _differential import assert_js_python_equal, run_js_reference
+
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 
 ROOT = Path(__file__).resolve().parents[1]

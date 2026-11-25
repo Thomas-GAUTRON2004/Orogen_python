@@ -12,6 +12,7 @@ import pytest
 from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.core.sphere_geometry import cell_distance_km
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
     _crosses_rather_than_hugs,
@@ -285,3 +286,54 @@ def test_rift_path_monotonicity_rejects_large_backtracking(longitudes, expected)
     path = list(range(len(longitudes)))
 
     assert _is_monotone(mesh, path, config) is expected
+
+
+def test_cheapest_paths_prefers_lower_weighted_route_and_records_predecessors():
+    longitudes = [0.0, 1.0, 0.0, 1.0, 2.0]
+    xyz = np.asarray(
+        [coordinate for longitude in longitudes for coordinate in _xyz(0.0, longitude)],
+        dtype=np.float64,
+    )
+    neighbours = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
+    adjacency = [cell for group in neighbours for cell in group]
+    offsets = [0]
+    for group in neighbours:
+        offsets.append(offsets[-1] + len(group))
+    mesh = SimpleNamespace(
+        num_cells=5,
+        xyz=xyz,
+        adj_offset=np.asarray(offsets, dtype=np.int32),
+        adj_list=np.asarray(adjacency, dtype=np.int32),
+        edge_km=100.0,
+    )
+    crust = SimpleNamespace(
+        mask=np.ones(5, dtype=np.uint8),
+        type=np.full(5, CrustType["CONTINENT"], dtype=np.uint8),
+    )
+
+    result = _cheapest_paths(
+        mesh,
+        crust,
+        0,
+        lambda cell: 10.0 if cell == 1 else 1.0,
+    )
+
+    assert result["from"].tolist() == [-1, 0, 0, 2, 3]
+    expected = sum(
+        cell_distance_km(xyz, first, second) / mesh.edge_km
+        for first, second in ((0, 2), (2, 3), (3, 4))
+    )
+    assert result["cost"][4] == pytest.approx(expected)
+
+
+def test_cheapest_paths_does_not_cross_an_unmasked_gap():
+    spec = _base_case()
+    mesh = _mesh(spec)
+    crust = _crust(spec)
+    crust.mask[8] = 0
+
+    result = _cheapest_paths(mesh, crust, 7, lambda _cell: 1.0)
+
+    assert math.isinf(result["cost"][9])
+    assert result["from"][9] == -1
+    assert math.isfinite(result["cost"][13])

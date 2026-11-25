@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from orogen.v2.core.fast_noise import FastNoise
+from orogen.v2.core.simplex_noise import SimplexNoise
 from orogen.v2.core.mesh_bfs import (
     flood_from,
     hop_distance,
@@ -144,11 +145,16 @@ def test_spherical_geometry_matches_original(original_extended):
     _close(centroid_of_cells(m.xyz, [0, 2, 4]), g["centroid"])
 
 
-def test_simplex_noise_and_fbm_match_original(original_extended):
-    noise = FastNoise(9876)
+def test_fast_and_simplex_noise_match_original(original_extended):
+    fast = FastNoise(9876)
+    simplex = SimplexNoise(9876)
     for item in original_extended["noise"]:
-        assert noise.noise3d(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
-        assert noise.fbm(*item["p"], 5, 2 / 3) == pytest.approx(item["f"], abs=1e-15)
+        assert fast.noise3d(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
+        assert fast.fbm(*item["p"], 5, 2 / 3) == pytest.approx(item["f"], abs=1e-15)
+    for item in original_extended["simplex"]:
+        assert simplex.noise3D(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
+        assert simplex.fbm(*item["p"], 5, 2 / 3) == pytest.approx(item["f"], abs=1e-15)
+        assert simplex.ridged_fbm(*item["p"]) == pytest.approx(item["r"], abs=1e-15)
 
 
 def test_sphere_index_cube_table_and_nearest_match_original(original_extended):

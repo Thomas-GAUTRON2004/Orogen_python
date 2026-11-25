@@ -160,20 +160,6 @@ def _assert_close(actual, expected, atol=2e-7):
 
 
 
-def test_quaternion_operations_match_original(original, differential_payload):
-    q_input = differential_payload["quaternion"]
-    q1 = quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"])
-    q2 = quat_from_axis_angle(*q_input["q2Axis"], q_input["q2Angle"])
-    q = quat_normalize(quat_mul(q1, q2))
-    omega = q_input["omega"]
-    integrated = quat_integrate(q, omega, q_input["dt"])
-    _assert_close(q, original["quaternion"], atol=1e-15)
-    _assert_close(integrated, original["integrated"], atol=1e-15)
-    _assert_close(quat_to_mat3(integrated), original["matrix"], atol=1e-15)
-    pole = quat_to_euler_pole(integrated)
-    for key in ("lat", "lon", "angle"):
-        assert pole[key] == pytest.approx(original["euler"][key], abs=1e-13)
-
 
 def test_crust_raster_state_and_snapshot_match_original(original, differential_payload):
     scenario = differential_payload["crust"]

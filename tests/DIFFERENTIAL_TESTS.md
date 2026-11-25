@@ -5,11 +5,12 @@ Orogen_python: one central Python configuration file lists the Python/JavaScript
 function pairs and their test cases, while one generic pytest module executes
 every configured pair.
 
-> **Status:** this is the proposed generic format. The current test suite still
-> contains domain-specific JavaScript runners and pytest modules. The shared
-> helpers in `tests/_differential.py` are already available and should be reused.
-> Do not assume that the generic registry or runner described below already
-> exists.
+> **Status:** the generic registry and dispatcher have been introduced under
+> `tests/differential/` and `tests/js/generic-differential-runner.mjs`. Seed/RNG
+> and quaternion comparisons are the first migrated pairs. Other differential
+> suites still use domain-specific runners and will be migrated incrementally.
+> The shared helpers in `tests/_differential.py` remain the common execution and
+> comparison layer.
 
 ## 1. Purpose and definition
 
@@ -45,7 +46,6 @@ tests/
 ├── differential/
 │   ├── __init__.py
 │   ├── config.py
-│   ├── cases.py
 │   └── test_all_pairs.py
 └── js/
     └── generic-differential-runner.mjs
@@ -57,8 +57,7 @@ Responsibilities:
 | --- | --- |
 | `_differential.py` | Shared process execution and recursive result comparison. |
 | `differential/config.py` | The central registry of Python/JavaScript pairs. |
-| `differential/cases.py` | Reusable, deterministic input cases. |
-| `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
+| | `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
 | `js/generic-differential-runner.mjs` | Explicit mapping from stable IDs to upstream JavaScript functions. |
 
 The registry is Python code, not JSON. It needs to hold Python callables,

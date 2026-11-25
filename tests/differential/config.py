@@ -18,6 +18,7 @@ from orogen.v2.core.rotation import (
 )
 from orogen.v2.core.seed import is_word_seed, make_rng, seed_of
 from orogen.v2.tectonics.dynamics import solve3
+from orogen.v2.tectonics.geology import thicken_cover
 from orogen.v2.tectonics.segments import fracture_coordinate
 from orogen.v2.tectonics.simulation import fastest_speed
 
@@ -213,5 +214,57 @@ PAIRS = PAIRS + (
             for index, case in enumerate(_SPEED_CASES)
         ),
         atol=1e-12,
+    ),
+)
+
+
+def _thicken_cover(data: JsonObject) -> JsonObject:
+    import numpy as np
+
+    crust = SimpleNamespace(
+        coverKm=np.asarray(data["coverKm"], dtype=np.float32),
+        coverMaxKm=np.asarray(data["coverMaxKm"], dtype=np.float32),
+        coverMaxAt=np.asarray(data["coverMaxAt"], dtype=np.float32),
+        unroofKm=np.asarray(data["unroofKm"], dtype=np.float32),
+    )
+    thicken_cover(
+        crust, 0, data["thickenedKm"], data["time"], data["geology"]
+    )
+    return {
+        "coverKm": float(crust.coverKm[0]),
+        "coverMaxKm": float(crust.coverMaxKm[0]),
+        "coverMaxAt": float(crust.coverMaxAt[0]),
+        "unroofKm": float(crust.unroofKm[0]),
+    }
+
+
+_COVER_CASES = (
+    {
+        "coverKm": [2.0], "coverMaxKm": [2.5], "coverMaxAt": [4.0],
+        "unroofKm": [-1.0], "thickenedKm": 3.0, "time": 30.0,
+        "geology": {"crustKm": 30.0},
+    },
+    {
+        "coverKm": [8.0], "coverMaxKm": [4.0], "coverMaxAt": [10.0],
+        "unroofKm": [0.5], "thickenedKm": 2.0, "time": 42.0,
+        "geology": {"crustKm": 25.0},
+    },
+    {
+        "coverKm": [0.0], "coverMaxKm": [0.0], "coverMaxAt": [0.0],
+        "unroofKm": [0.0], "thickenedKm": 4.0, "time": 50.0,
+        "geology": {"crustKm": 30.0},
+    },
+)
+
+PAIRS = PAIRS + (
+    DifferentialPair(
+        name="Geology cover thickening",
+        javascript_id="tectonics.thickenCover",
+        python_call=_thicken_cover,
+        cases=tuple(
+            DifferentialCase(id=f"cover-{index}", input=case)
+            for index, case in enumerate(_COVER_CASES)
+        ),
+        atol=2e-6,
     ),
 )

@@ -123,9 +123,7 @@ def _payload() -> dict[str, Any]:
     empty = {
         **grid,
         "plates": [
-            {
-                "types": [CrustType["OCEAN"]] * len(plate["types"])
-            }
+            {"types": [CrustType["OCEAN"]] * len(plate["types"])}
             for plate in grid["plates"]
         ],
         "config": config,
@@ -226,9 +224,7 @@ def _world(spec: dict[str, Any]):
     plates = [
         SimpleNamespace(
             isBackground=False,
-            crust=SimpleNamespace(
-                type=np.asarray(plate["types"], dtype=np.uint8)
-            ),
+            crust=SimpleNamespace(type=np.asarray(plate["types"], dtype=np.uint8)),
         )
         for plate in spec["plates"]
     ]
@@ -271,9 +267,7 @@ def test_continental_landmasses_and_narrow_neck_match_upstream(javascript, paylo
     assert_js_python_equal(expected, javascript["masses"], atol=2e-6)
 
 
-def test_supercontinent_formation_and_breakup_clock_match_upstream(
-    javascript, payload
-):
+def test_supercontinent_formation_and_breakup_clock_match_upstream(javascript, payload):
     expected = []
     for scenario in payload["cycleCases"]:
         world = _world(scenario)

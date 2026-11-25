@@ -61,7 +61,7 @@ const cap = plate.capInWorld({edgeRad:plateInput.capEdgeRad});
 
 const branchInput = input.crustBranches;
 const branchCrust = new CrustRaster(branchInput.size);
-for (let i=0;i<branchInput.size;i++) branchCrust.create(i, CrustType.CONTINENT, 0, i+1);
+for (let i=0;i<branchInput.size;i++) branchCrust.create(i, branchInput.baseType, branchInput.longitude, branchInput.terraneStart+i);
 for (const [cell, type, work, start, last] of branchInput.operations) {
   branchCrust.recordOrogeny(cell, type, work, start, last);
 }
@@ -71,7 +71,7 @@ function extentCase({occupied, xyz:coords, types, numCells}) {
   const extentPlate = input.extentPlate;
   const p = new Plate(extentPlate.id, numCells, extentPlate.radius);
   p.setQuat(q1);
-  for (const i of occupied) p.crust.create(i, types[i], -1, i+1);
+  for (const i of occupied) p.crust.create(i, types[i], scenario.longitude, scenario.terraneStart+i);
   p.dirty = true;
   p.refreshExtent(new Float32Array(coords));
   return {stats:p.stats,count:p.crust.count,dirty:p.dirty,capCenter:p.capCenter,capCos:p.capCos,cap:p.capInWorld({edgeRad:extentPlate.edgeRad})};

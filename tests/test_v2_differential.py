@@ -1,8 +1,4 @@
-"""Differential checks against the unmodified Orogen V2 JavaScript reference.
-
-The .mjs files in tests/reference/v2 re-export the upstream v3.0.1 modules of the
-pinned submodule (ed466f9); they do not copy them.
-"""
+"""Differential checks against the pinned upstream Orogen V2 JavaScript source."""
 
 from __future__ import annotations
 

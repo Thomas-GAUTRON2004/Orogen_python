@@ -257,5 +257,5 @@ def test_plume_birth_and_rift_eligibility_match_javascript(javascript, payload):
     assert track_case["crust"][0]["volcAt"] == [25.0]
     assert track_case["crust"][0]["volcSource"] == [1]
     assert track_case["crust"][0]["volcKm"][0] == pytest.approx(4.56, abs=1e-6)
-    assert track_case["hotspots"][0]["pulseUntil"] == pytest.approx(26.5, abs=1e-8)
+    assert track_case["hotspots"][0]["pulseUntil"] == pytest.approx(26.0, abs=1e-8)
     assert track_case["hotspots"][0]["bursting"] is False

@@ -231,6 +231,7 @@ jobs:
             tests/test_v2_tectonics_primitives_differential.py \
             tests/test_v2_mantle_differential.py \
             tests/test_v2_thermal_differential.py \
+            tests/test_v2_supercontinent_differential.py \
             tests/test_v2_numba_kernel_coverage.py
           test_status=$?
           set -e

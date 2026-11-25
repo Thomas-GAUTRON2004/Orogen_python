@@ -322,6 +322,13 @@ def test_geology_frame_encodings_match_upstream(javascript, payload):
             actual_finite = [x[1] for x in actual if x[1] is not None]
             wanted_finite = [x[1] for x in wanted if x[1] is not None]
             _assert_close(actual_finite, wanted_finite, atol=1e-12)
+        elif key == "facies":
+            fields = ("carb", "salt", "coal", "organic")
+            _assert_close(
+                [x[1][field] for x in actual for field in fields],
+                [x[1][field] for x in wanted for field in fields],
+                atol=1e-12,
+            )
         else:
             _assert_close(
                 [x[1] for x in actual],

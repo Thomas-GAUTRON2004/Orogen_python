@@ -15,6 +15,8 @@ from orogen.v2.tectonics.crust import CrustType
 from orogen.v2.tectonics.ops.rift_path import (
     _cheapest_paths,
     _crosses_rather_than_hugs,
+    _is_monotone,
+    _trace_parent_path,
     coast_distance,
 )
 from orogen.v2.tectonics.ops.rift_partition import (
@@ -252,3 +254,34 @@ def test_rift_path_rejects_long_coastal_hugs(distances, expected):
     }
 
     assert _crosses_rather_than_hugs(mesh, path, distances, config) is expected
+
+
+
+def test_trace_parent_path_reconstructs_root_to_endpoint_order():
+    parent = np.asarray([-1, 0, 1, 1, 3, 4], dtype=np.int32)
+
+    assert _trace_parent_path(5, parent) == [0, 1, 3, 4, 5]
+    assert _trace_parent_path(2, parent) == [0, 1, 2]
+
+
+@pytest.mark.parametrize(
+    ("longitudes", "expected"),
+    [
+        ([0.0, 10.0, 20.0, 30.0], True),
+        ([0.0, 10.0, 20.0, 15.0, 30.0], False),
+    ],
+)
+def test_rift_path_monotonicity_rejects_large_backtracking(longitudes, expected):
+    xyz = [
+        coordinate
+        for longitude in longitudes
+        for coordinate in _xyz(0.0, longitude)
+    ]
+    mesh = SimpleNamespace(
+        xyz=np.asarray(xyz, dtype=np.float64),
+        edge_rad=0.001,
+    )
+    config = {"riftOverhangKm": 1.0}
+    path = list(range(len(longitudes)))
+
+    assert _is_monotone(mesh, path, config) is expected

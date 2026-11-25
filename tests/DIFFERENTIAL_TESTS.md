@@ -5,14 +5,15 @@ Orogen_python: one central Python configuration file lists the Python/JavaScript
 function pairs and their test cases, while one generic pytest module executes
 every configured pair.
 
-> **Status:** the generic registry and dispatcher have been introduced under
-> `tests/differential/` and `tests/js/generic-differential-runner.mjs`. Seed/RNG
-> and quaternion comparisons, fracture-zone coordinates, the force-balance
-> linear solver, fastest-plate-speed, geology cover-thickening, orogenic belt
-> profile and belt-relief comparisons now use the generic registry. Other differential suites still use
-> domain-specific runners and will be migrated incrementally.
-> The shared helpers in `tests/_differential.py` remain the common execution and
-> comparison layer.
+> **Status:** the generic registry and dispatcher are active under
+> `tests/differential/` and `tests/js/generic-differential-runner.mjs`. The
+> seed/RNG and quaternion pairs, tectonic primitives, geology codecs, belt
+> profiles/relief/height accumulation, adaptive step, crust state transitions,
+> plate extent/frame transforms, plate kinematics and occupancy bins have been
+> migrated. The former `test_v2_differential.py` and
+> `test_v2_tectonics_primitives_differential.py` modules have been replaced by
+> the generic suite. The expanded mesh/noise/world-state, rift and other
+> domain-specific differential suites remain to be migrated incrementally.
 
 ## 1. Purpose and definition
 

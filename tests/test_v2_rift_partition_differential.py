@@ -13,9 +13,16 @@ from _differential import assert_js_python_equal, run_js_reference
 
 from orogen.v2.core.sphere_geometry import cell_distance_km
 from orogen.v2.tectonics.crust import CrustType
+from orogen.v2.tectonics.ops.rift_partition import (
+    elongation_of,
+    exterior_sea,
+    masked_cells,
+    partition,
+    sides_of,
+)
 from orogen.v2.tectonics.ops.rift_path import (
-    _coast_candidates,
     _cheapest_paths,
+    _coast_candidates,
     _crosses_rather_than_hugs,
     _is_monotone,
     _trace_parent_path,
@@ -23,13 +30,6 @@ from orogen.v2.tectonics.ops.rift_path import (
     find_rift,
     grain_of,
     rift_context,
-)
-from orogen.v2.tectonics.ops.rift_partition import (
-    elongation_of,
-    exterior_sea,
-    masked_cells,
-    partition,
-    sides_of,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -383,7 +383,7 @@ def test_grain_of_caches_seeded_noise_per_cell():
     second = grain(1)
 
     assert first == second
-    assert 0.2 <= first
+    assert first >= 0.2
     assert np.isnan(world.riftGrainOf[[0, 2]]).all()
     assert world.riftGrainOf[1] == first
     assert world.riftGrain is not None

@@ -17,8 +17,8 @@ from orogen.v2.tectonics.crust import CrustType
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/collision-record-differential-runner.mjs"
 
-# Match the JavaScript runner's projected record shape, including boolean
-# merge-gating flags (which normalize to false when unset in JavaScript).
+# Compare only fields represented by the upstream JavaScript collision record.
+# Python's merge-gating diagnostics are implementation details, not JS record state.
 RECORD_FIELDS = (
     "upper",
     "lower",
@@ -41,9 +41,6 @@ RECORD_FIELDS = (
     "gapBestKm2",
     "gapShrankAt",
     "ringKm2",
-    "weldCandidate",
-    "weldBlockedByRing",
-    "mergeEligible",
     "ringLogged",
 )
 

@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-
 from _differential import assert_js_python_equal, run_js_reference
 from orogen.v2.core.sim_mesh import build_sim_mesh
+from orogen.v2.tectonics.crust import CELL_FIELDS
 from orogen.v2.tectonics.budget_scenes import BUDGET_SCENES
 from orogen.v2.tectonics.collision_scenes import COLLISION_SCENES
 from orogen.v2.tectonics.event_scenes import EVENT_SCENES
@@ -23,7 +23,6 @@ from orogen.v2.tectonics.hotspot_scenes import HOTSPOT_SCENES
 from orogen.v2.tectonics.margin_scenes import MARGIN_SCENES
 from orogen.v2.tectonics.rift_scenes import RIFT_SCENES
 from orogen.v2.tectonics.terrain_scenes import TERRAIN_SCENES
-from orogen.v2.tectonics.crust import CELL_FIELDS
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/scene-catalogue-differential-runner.mjs"

@@ -41,7 +41,7 @@ const rd=ringsOf(mesh),ringsOut={start:Array.from(rd.start),cells:Array.from(rd.
 const heapInput=input.heap;
 const heap=new MinHeap(heapInput.capacity);for(const [key,id] of heapInput.entries)heap.push(key,id);
 const heapOut=[];while(heap.size){const id=heap.pop();heapOut.push([heap.lastKey,id]);}
-const dist=new Float64Array(heapInput.initialDistances.map(v=>v==="Infinity"?Infinity:v));spreadKm(mesh,dist,{maxKm:heapInput.maxKm,canEnter:(a,b)=>b!==bfs.blockedCell});
+const dist=new Float64Array(heapInput.initialDistances.map(v=>v==="Infinity"?Infinity:v));spreadKm(mesh,dist,{maxKm:heapInput.maxKm,canEnter:(a,b)=>b!==input.bfs.blockedCell});
 const crustInput=input.crustCopy;
 const sourceCrust=new CrustRaster(crustInput.size),destCrust=new CrustRaster(crustInput.size);
 sourceCrust.create(crustInput.cell,crustInput.type,crustInput.longitude,crustInput.terrane);

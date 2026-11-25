@@ -36,7 +36,7 @@ These are **not** differential tests:
 Hard-coded expected values remain useful for ordinary unit tests, but they do
 not replace a comparison between the two implementations.
 
-## 2. Proposed directory layout
+## 2. Directory layout
 
 The generic format centralizes the function pairs and their cases:
 
@@ -57,7 +57,7 @@ Responsibilities:
 | --- | --- |
 | `_differential.py` | Shared process execution and recursive result comparison. |
 | `differential/config.py` | The central registry of Python/JavaScript pairs. |
-| | `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
+| `differential/test_all_pairs.py` | Generic pytest parametrization and execution. |
 | `js/generic-differential-runner.mjs` | Explicit mapping from stable IDs to upstream JavaScript functions. |
 
 The registry is Python code, not JSON. It needs to hold Python callables,
@@ -120,13 +120,12 @@ Example:
 ```python
 # tests/differential/config.py
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from orogen.v2.core.sphere_geometry import cell_distance_km
-
-from .cases import CASES
+from orogen.v2.core.rotation import quat_from_axis_angle, quat_integrate, quat_mul, quat_normalize
 
 
 JsonObject = dict[str, Any]
@@ -137,38 +136,40 @@ class DifferentialPair:
     name: str
     javascript_id: str
     python_call: Callable[[JsonObject], Any]
-    cases: tuple[JsonObject, ...]
+    cases: tuple[DifferentialCase, ...]
     rtol: float = 2e-7
     atol: float = 2e-9
 
 
-def _python_distance(data: JsonObject) -> float:
-    # Adapt the JSON case to the production Python function's real signature.
-    # This example is illustrative: use the actual function signature and
-    # required domain objects in the real adapter.
-    return cell_distance_km(
-        data["xyz"],
-        data["first"],
-        data["second"],
-    )
+@dataclass(frozen=True)
+class DifferentialCase:
+    id: str
+    input: JsonObject
+
+
+def _python_rotation(data: JsonObject) -> list[float]:
+    q1 = quat_from_axis_angle(*data["axis"], data["angle"])
+    q2 = quat_from_axis_angle(*data["other_axis"], data["other_angle"])
+    return quat_integrate(quat_normalize(quat_mul(q1, q2)), [0.0, 0.0, 0.0], 1.0)
 
 
 PAIRS = (
     DifferentialPair(
-        name="Spherical cell distance",
-        javascript_id="sphere.cellDistanceKm",
-        python_call=_python_distance,
+        name="Quaternion rotation",
+        javascript_id="rotation.integrate",
+        python_call=_python_rotation,
         cases=(
-            {
-                "id": "basic",
-                "input": {
-                    "xyz": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                    "first": 0,
-                    "second": 1,
+            DifferentialCase(
+                id="basic",
+                input={
+                    "axis": [0.0, 0.0, 1.0],
+                    "angle": math.pi / 4,
+                    "other_axis": [1.0, 0.0, 0.0],
+                    "other_angle": math.pi / 6,
                 },
-            },
+            ),
         ),
-        atol=1e-7,
+        atol=1e-12,
     ),
 )
 ```
@@ -207,17 +208,20 @@ and expose a fixed registry of supported function IDs.
 Conceptually:
 
 ```javascript
-// tests/js/differential-runner.mjs
+// tests/js/generic-differential-runner.mjs
 
-import { cellDistanceKm } from
-  "../../external/planet_heightmap_generation/v2/js/core/sphere-geometry.js";
+import { readFileSync } from "node:fs";\n\nimport { quatFromAxisAngle, quatIntegrate, quatMul, quatNormalize } from
+  "../../external/planet_heightmap_generation/v2/js/core/rotation.js";
 
 const FUNCTIONS = {
-  "sphere.cellDistanceKm": (input) =>
-    cellDistanceKm(input.xyz, input.first, input.second),
+  "rotation.integrate": (input) => {
+    const q1 = quatFromAxisAngle(...input.axis, input.angle);
+    const q2 = quatFromAxisAngle(...input.other_axis, input.other_angle);
+    return Array.from(quatIntegrate(quatNormalize(quatMul(q1, q2)), [0, 0, 0], 1));
+  },
 };
 
-const request = JSON.parse(await readStdin());
+const request = JSON.parse(readFileSync(0, "utf8"));
 const fn = FUNCTIONS[request.function];
 
 if (typeof fn !== "function") {
@@ -276,13 +280,13 @@ def _parameters():
             yield pytest.param(
                 pair,
                 case,
-                id=f"{pair.javascript_id}::{case['id']}",
+                id=f"{pair.javascript_id}::{case.id}",
             )
 
 
 @pytest.mark.parametrize(("pair", "case"), list(_parameters()))
 def test_python_matches_upstream_javascript(pair, case):
-    data = case["input"]
+    data = case.input
 
     python_result = pair.python_call(data)
     javascript_result = run_js_reference(

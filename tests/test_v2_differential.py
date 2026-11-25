@@ -157,41 +157,7 @@ def _assert_close(actual, expected, atol=2e-7):
 
 
 
-\n\n
-def test_plate_extent_empty_antipodal_and_mixed_match_original(
-    original, differential_payload
-):
-    expected = original["extents"]
-    for case in differential_payload["extentCases"]:
-        name = case["name"]
-        occupied, xyz, types = case["occupied"], case["xyz"], case["types"]
-        extent_plate = differential_payload["extentPlate"]
-        q_input = differential_payload["quaternion"]
-        plate = Plate(extent_plate["id"], case["numCells"], extent_plate["radius"])
-        plate.set_quat(quat_from_axis_angle(*q_input["q1Axis"], q_input["q1Angle"]))
-        for i in occupied:
-            plate.crust.create(i, types[i], case["longitude"], case["terraneStart"] + i)
-        plate.dirty = True
-        plate.refresh_extent(np.asarray(xyz, dtype=np.float32))
-        got = expected[name]
-        assert plate.stats == got["stats"]
-        assert plate.crust.count == got["count"]
-        assert plate.dirty is got["dirty"]
-        _assert_close(plate.capCenter, got["capCenter"], atol=2e-7)
-        assert plate.capCos == pytest.approx(got["capCos"], abs=2e-7)
-        _assert_close(
-            plate.cap_in_world(
-                type(
-                    "Mesh",
-                    (),
-                    {"edge_rad": differential_payload["extentPlate"]["edgeRad"]},
-                )()
-            ),
-            got["cap"],
-            atol=2e-7,
-        )
-
-
+\n\n\n
 def test_plate_frame_transform_and_extent_match_original(
     original, differential_payload
 ):

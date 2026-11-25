@@ -147,7 +147,7 @@ def test_far_field_collection_spread_and_cell_records_match_upstream(
             "early": early,
             "due": due,
             "farClock": world.farClock,
-                "pendingAfter": list(world.farPending),
+            "pendingAfter": list(world.farPending),
             "crust": crust,
         }
     )

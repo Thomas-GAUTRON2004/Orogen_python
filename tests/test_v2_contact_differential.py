@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
 from _differential import assert_js_python_equal, run_js_reference
@@ -14,6 +16,14 @@ from orogen.v2.tectonics.contact import contact_at
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests/js/contact-differential-runner.mjs"
+
+
+@dataclass(eq=False)
+class _Mesh:
+    num_cells: int
+    xyz: np.ndarray
+    adj_offset: np.ndarray
+    adj_list: np.ndarray
 
 
 def _payload() -> dict[str, Any]:
@@ -91,7 +101,7 @@ def javascript(payload: dict[str, Any]) -> list[list[dict[str, Any]]]:
 
 
 def _run_case(spec: dict[str, Any]) -> list[dict[str, Any]]:
-    mesh = SimpleNamespace(
+    mesh = _Mesh(
         num_cells=spec["numCells"],
         xyz=np.asarray(spec["xyz"], dtype=np.float64),
         adj_offset=np.asarray(spec["adjOffset"], dtype=np.int32),

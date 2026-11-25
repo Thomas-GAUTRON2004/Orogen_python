@@ -77,7 +77,14 @@ function run(spec) {
       ? null
       : Object.fromEntries(RECORD_FIELDS.map((field) => {
           const value = record[field];
-          const normalized = field === "weldCandidate"
+          const booleanFields = new Set([
+            "weldCandidate",
+            "weldBlockedByRing",
+            "mergeEligible",
+            "ringLogged",
+            "sutured",
+          ]);
+          const normalized = booleanFields.has(field)
             ? Boolean(value)
             : Number.isFinite(value) ? value : value ?? null;
           return [field, normalized];

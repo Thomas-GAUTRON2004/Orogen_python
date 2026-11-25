@@ -138,7 +138,7 @@ def _mesh(payload):
     scenario = payload["mesh"]
     xyz = np.asarray(scenario["xyz"], dtype=np.float32)
     rings = scenario["rings"]
-    offsets = np.asarray([i * len(rings[0]) for i in range(len(rings) + 1)], dtype=np.int32)
+    offsets = np.asarray([0, *np.cumsum([len(ring) for ring in rings])], dtype=np.int32)
     mesh = _Mesh(
         xyz.size // 3,
         xyz,
@@ -192,13 +192,13 @@ def test_fast_and_simplex_noise_match_original(original_extended, numerical_back
     noise_input = extended_payload["noise"]
     fast = FastNoise(noise_input["seed"])
     simplex = SimplexNoise(noise_input["seed"])
-    for item in original_extended["noise"]:
-        assert fast.noise3d(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
-        assert fast.fbm(*item["p"], noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
-    for item in original_extended["simplex"]:
-        assert simplex.noise3D(*item["p"]) == pytest.approx(item["n"], abs=1e-15)
-        assert simplex.fbm(*item["p"], noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
-        assert simplex.ridged_fbm(*item["p"]) == pytest.approx(item["r"], abs=1e-15)
+    for point, item in zip(noise_input["points"], original_extended["noise"], strict=True):
+        assert fast.noise3d(*point) == pytest.approx(item["n"], abs=1e-15)
+        assert fast.fbm(*point, noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
+    for point, item in zip(noise_input["points"], original_extended["simplex"], strict=True):
+        assert simplex.noise3D(*point) == pytest.approx(item["n"], abs=1e-15)
+        assert simplex.fbm(*point, noise_input["octaves"], noise_input["persistence"]) == pytest.approx(item["f"], abs=1e-15)
+        assert simplex.ridged_fbm(*point) == pytest.approx(item["r"], abs=1e-15)
 
 
 def test_sphere_index_cube_table_and_nearest_match_original(

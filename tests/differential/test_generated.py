@@ -155,7 +155,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
 @given(data=st.data())
 def test_generated_differential_cases(
     target_config: dict[str, Any],
-    data: st.DataObject,
+    data: Any,
     javascript: JavaScriptSession,
 ) -> None:
     target_id = target_config["id"]

@@ -1,10 +1,25 @@
 import readline from "node:readline";
-import { isWordSeed, seedOf } from "./core/seed.mjs";
+import * as seed from "./core/seed.mjs";
 
-const targets = {
-  seed_of: seedOf,
-  is_word_seed: isWordSeed,
-};
+// Static allowlist of modules, mirroring TARGET_MODULES in test_generated.py.
+const modules = { seed };
+
+// Map a snake_case target id to the camelCase export name, e.g. seed_of -> seedOf.
+function jsName(snake) {
+  return snake.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+}
+
+function resolve(moduleId, targetId) {
+  const namespace = modules[moduleId ?? "seed"];
+  if (namespace === undefined) {
+    throw new Error(`Unknown differential module: ${moduleId}`);
+  }
+  const target = namespace[jsName(targetId)];
+  if (typeof target !== "function") {
+    throw new Error(`Unknown differential target: ${moduleId}.${targetId}`);
+  }
+  return target;
+}
 
 function encode(value) {
   if (typeof value === "number" && !Number.isFinite(value)) {
@@ -21,10 +36,7 @@ const input = readline.createInterface({
 for await (const line of input) {
   try {
     const request = JSON.parse(line);
-    const target = targets[request.target];
-    if (target === undefined) {
-      throw new Error(`Unknown differential target: ${request.target}`);
-    }
+    const target = resolve(request.module, request.target);
     const result = encode(target(request.value));
     process.stdout.write(JSON.stringify({ ok: true, result }) + "\n");
   } catch (error) {

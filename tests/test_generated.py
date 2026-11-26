@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import math
+import re
 import shutil
 import subprocess
 from collections.abc import Iterator
@@ -14,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from orogen.v2.core.seed import is_word_seed, seed_of
+from orogen.v2.core import seed as core_seed
 
 hypothesis = pytest.importorskip(
     "hypothesis",
@@ -31,12 +32,34 @@ JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
-# The registry is deliberately static: config files select known callables and
-# strategies; they cannot import arbitrary modules or execute user-supplied code.
-TARGETS = {
-    "seed_of": seed_of,
-    "is_word_seed": is_word_seed,
+# Modules are a static allowlist: a config target names one of these modules and
+# a function inside it. The function is resolved automatically by name, so adding
+# a target needs no per-function registration. Config cannot import arbitrary code.
+TARGET_MODULES = {
+    "seed": core_seed,
 }
+DEFAULT_TARGET_MODULE = "seed"
+
+
+def _js_name(snake: str) -> str:
+    """Map a snake_case Python target id to the camelCase JavaScript export name."""
+    return re.sub(r"_([a-z0-9])", lambda match: match.group(1).upper(), snake)
+
+
+def _target_module(target_config: dict[str, Any]) -> str:
+    module_id = target_config.get("module", DEFAULT_TARGET_MODULE)
+    if module_id not in TARGET_MODULES:
+        raise AssertionError(f"Unknown differential module: {module_id}")
+    return module_id
+
+
+def _resolve_python_target(target_config: dict[str, Any]) -> Any:
+    name = target_config["id"]
+    function = getattr(TARGET_MODULES[_target_module(target_config)], name, None)
+    if name.startswith("_") or not callable(function):
+        raise AssertionError(f"Differential target is not a public function: {name}")
+    return function
+
 
 STRATEGIES = {
     "seed_text": lambda: st.one_of(
@@ -99,11 +122,11 @@ class JavaScriptSession:
             bufsize=1,
         )
 
-    def call(self, target: str, value: str) -> Any:
+    def call(self, module: str, target: str, value: str) -> Any:
         if self.process.stdin is None or self.process.stdout is None:
             raise RuntimeError("JavaScript runner streams are unavailable")
         request = json.dumps(
-            {"target": target, "value": value},
+            {"module": module, "target": target, "value": value},
             ensure_ascii=False,
             allow_nan=False,
         )
@@ -143,16 +166,15 @@ class JSPyBridgeSession:
             ) from exc
 
         self._bridge = javascript
-        module = javascript.require("./jspybridge-loader.cjs", __file__)
-        self._targets = {
-            "seed_of": module.seedOf,
-            "is_word_seed": module.isWordSeed,
-        }
+        self._loader = javascript.require("./jspybridge-loader.cjs", __file__)
 
-    def call(self, target: str, value: str) -> Any:
-        function = self._targets.get(target)
+    def call(self, module: str, target: str, value: str) -> Any:
+        namespace = getattr(self._loader, module, None)
+        if namespace is None:
+            raise RuntimeError(f"Unknown JSPyBridge module: {module}")
+        function = getattr(namespace, _js_name(target), None)
         if function is None:
-            raise RuntimeError(f"Unknown JSPyBridge target: {target}")
+            raise RuntimeError(f"Unknown JSPyBridge target: {module}.{target}")
         return function(value)
 
     def close(self) -> None:
@@ -225,12 +247,14 @@ def test_generated_differential_cases(
 ) -> None:
     target_id = target_config["id"]
     strategy_id = target_config["strategy"]
-    assert target_id in TARGETS, f"Unknown differential target: {target_id}"
     assert strategy_id in STRATEGIES, f"Unknown Hypothesis strategy: {strategy_id}"
 
+    python_target = _resolve_python_target(target_config)
+    module_id = _target_module(target_config)
+
     value = data.draw(STRATEGIES[strategy_id](), label=strategy_id)
-    python_result = _normalise(TARGETS[target_id](value))
-    javascript_result = _normalise(javascript.call(target_id, value))
+    python_result = _normalise(python_target(value))
+    javascript_result = _normalise(javascript.call(module_id, target_id, value))
     _assert_equivalent(
         python_result,
         javascript_result,

@@ -39,18 +39,28 @@ two backends disagree.
 
 ## Configuration
 
-Edit `tests/differential/config.json`:
+Edit `tests/config.json`:
 
 - `settings.max_examples`: generated examples per target and backend.
 - `settings.deadline_ms`: per-example deadline in milliseconds.
 - `settings.seed`: fixed Hypothesis seed; use `null` for derandomized runs.
 - `settings.backends`: any combination of `node` and `jspybridge`.
-- `targets`: target IDs, strategy IDs and comparison settings.
+- `targets`: one entry per generated comparison test.
 
-The Python callable, JavaScript callable and Hypothesis strategy are selected
-through static registries in `test_generated.py` and
-`tests/reference/v2/property-runner.mjs`. Configuration cannot import
-arbitrary code.
+Each target is resolved automatically:
+
+- `id` is the snake_case name of a public function in the module (`seed_of`).
+- `module` (optional, default `seed`) selects one of the modules allowlisted in
+  `TARGET_MODULES` (`test_generated.py`). The Node runner and the JSPyBridge
+  loader expose the same module names.
+- The JavaScript export is derived from `id` in camelCase (`seed_of` becomes
+  `seedOf`). No per-function registration is needed on the JavaScript side.
+- `strategy` selects a Hypothesis strategy from `STRATEGIES`, since input
+  domains are the only part that must be written by hand.
+
+A target that does not resolve to a public function fails its generated test
+with an explicit error on the Python side, or on the JavaScript side for the
+Node and JSPyBridge backends.
 
 Comparison modes currently supported are:
 
@@ -58,9 +68,10 @@ Comparison modes currently supported are:
 - `approx`: scalar numeric comparison using configurable `rel_tol` and
   `abs_tol`.
 
-To add a target, add its Python callable to `TARGETS`, its JavaScript export to
-`JSPyBridgeSession`, its Node counterpart to the Node runner, and a suitable
-strategy to `STRATEGIES`. Then register it in the JSON configuration.
+To add a comparison, make sure the function is exported with the same name
+(snake_case in Python, camelCase in the pinned JavaScript module), add it to
+`tests/config.json`, and add a strategy to `STRATEGIES` if the existing ones
+do not fit.
 
 Hypothesis drives the same generated input through both implementations and
 shrinks a failing input to a smaller counterexample. JSPyBridge is an

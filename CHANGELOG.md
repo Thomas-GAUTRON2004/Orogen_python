@@ -9,6 +9,7 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Added a configurable Hypothesis-based differential harness that feeds generated seed inputs to the Python port and the pinned upstream JavaScript implementation, with exact or tolerance-based comparisons.
 - Added a production initial-world benchmark comparing a pinned pre-optimization revision with the PR head on the same runner at 512, 1,024, 4,096 and 40,000 cells; mesh construction is timed separately and plate-partition correctness is checked.
 - Added a full-suite CI run without the optional Numba extra to exercise pure-Python fallbacks.
 - Complete shared V2 tectonic configuration defaults and mechanism controls, with isolated per-world overrides and validation.

@@ -28,7 +28,7 @@ from orogen.v2.core.seed import is_word_seed, seed_of
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "tests" / "differential" / "config.json"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
-JS_SEED_MODULE = ROOT / "tests" / "reference" / "v2" / "core" / "seed.mjs"
+JS_BRIDGE_MODULE = ROOT / "tests" / "differential" / "jspybridge-loader.cjs"
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 # The registry is deliberately static: config files select known callables and
@@ -146,7 +146,7 @@ class JSPyBridgeSession:
             ) from exc
 
         self._bridge = javascript
-        module = javascript.require(str(JS_SEED_MODULE))
+        module = javascript.require(str(JS_BRIDGE_MODULE))
         self._targets = {
             "seed_of": module.seedOf,
             "is_word_seed": module.isWordSeed,
@@ -179,7 +179,7 @@ _BACKEND_PARAMETERS = [
 ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def javascript(request: pytest.FixtureRequest) -> Iterator[Any]:
     """Create one persistent JavaScript runtime for a complete Hypothesis run."""
     backend_id = request.param

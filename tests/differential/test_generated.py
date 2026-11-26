@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
 import shutil
@@ -27,6 +28,7 @@ from orogen.v2.core.seed import is_word_seed, seed_of
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "tests" / "differential" / "config.json"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
+JS_SEED_MODULE = ROOT / "tests" / "reference" / "v2" / "core" / "seed.mjs"
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 # The registry is deliberately static: config files select known callables and
@@ -131,9 +133,62 @@ class JavaScriptSession:
             self.process.wait()
 
 
+class JSPyBridgeSession:
+    """Call the upstream ES module through JSPyBridge's persistent Node process."""
+
+    def __init__(self) -> None:
+        try:
+            import javascript
+        except ImportError as exc:
+            raise RuntimeError(
+                "JSPyBridge is optional; install it with "
+                "'python -m pip install javascript==1!1.2.6'"
+            ) from exc
+
+        self._bridge = javascript
+        module = javascript.require(str(JS_SEED_MODULE))
+        self._targets = {
+            "seed_of": module.seedOf,
+            "is_word_seed": module.isWordSeed,
+        }
+
+    def call(self, target: str, value: str) -> Any:
+        function = self._targets.get(target)
+        if function is None:
+            raise RuntimeError(f"Unknown JSPyBridge target: {target}")
+        return function(value)
+
+    def close(self) -> None:
+        self._bridge.terminate()
+
+
+_BACKEND_PARAMETERS = [
+    pytest.param(
+        backend_id,
+        marks=(
+            pytest.mark.skipif(
+                importlib.util.find_spec("javascript") is None,
+                reason="install JSPyBridge with 'python -m pip install javascript==1!1.2.6'",
+            )
+            if backend_id == "jspybridge"
+            else ()
+        ),
+        id=backend_id,
+    )
+    for backend_id in CONFIG["settings"].get("backends", ["node"])
+]
+
+
 @pytest.fixture
-def javascript() -> Iterator[JavaScriptSession]:
-    session = JavaScriptSession()
+def javascript(request: pytest.FixtureRequest) -> Iterator[Any]:
+    """Create one persistent JavaScript runtime for a complete Hypothesis run."""
+    backend_id = request.param
+    if backend_id == "node":
+        session = JavaScriptSession()
+    elif backend_id == "jspybridge":
+        session = JSPyBridgeSession()
+    else:
+        raise ValueError(f"Unsupported JavaScript backend: {backend_id}")
     yield session
     session.close()
 
@@ -157,6 +212,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
 
 
 @pytest.mark.parametrize("target_config", CONFIG["targets"], ids=lambda item: item["id"])
+@pytest.mark.parametrize("javascript", _BACKEND_PARAMETERS, indirect=True)
 @settings(
     max_examples=CONFIG["settings"]["max_examples"],
     deadline=timedelta(milliseconds=CONFIG["settings"]["deadline_ms"]),
@@ -166,7 +222,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
 def test_generated_differential_cases(
     target_config: dict[str, Any],
     data: Any,
-    javascript: JavaScriptSession,
+    javascript: Any,
 ) -> None:
     target_id = target_config["id"]
     strategy_id = target_config["strategy"]
@@ -175,7 +231,7 @@ def test_generated_differential_cases(
 
     value = data.draw(STRATEGIES[strategy_id](), label=strategy_id)
     python_result = _normalise(TARGETS[target_id](value))
-    javascript_result = javascript.call(target_id, value)
+    javascript_result = _normalise(javascript.call(target_id, value))
     _assert_equivalent(
         python_result,
         javascript_result,

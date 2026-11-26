@@ -27,9 +27,10 @@ the Node.js oracle tests still run.
 
 - `node`: starts the persistent `property-runner.mjs` process. This remains
   the official reference path and preserves the existing JSON-lines protocol.
-- `jspybridge`: imports the same `tests/reference/v2/core/seed.mjs` pointer
-  through JSPyBridge and invokes its exported functions directly. JSPyBridge
-  starts and manages its own persistent Node.js process.
+- `jspybridge`: loads `tests/differential/jspybridge-loader.cjs` through
+  JSPyBridge. That CommonJS adapter exposes the same exports from the pinned
+  `tests/reference/v2/core/seed.mjs` pointer using Node 22's synchronous
+  CommonJS-to-ESM interop. JSPyBridge manages its own persistent Node.js process.
 
 The two backends are not treated as independent JavaScript engines: both
 execute Node.js. The comparison isolates the bridge/transport path, not V8

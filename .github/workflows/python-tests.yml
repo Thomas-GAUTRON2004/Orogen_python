@@ -8,6 +8,7 @@ on:
   pull_request:
     paths-ignore:
       - ".github/workflows/differential-jspybridge.yml"
+      - ".github/workflows/python-tests.yml"
       - "tests/differential/**"
       - "CHANGELOG.md"
   workflow_dispatch:

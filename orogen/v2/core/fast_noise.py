@@ -4,6 +4,8 @@ The permutation is derived from the shared Orogen Park–Miller RNG. Arithmetic
 order follows the JavaScript implementation to preserve seeded output.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math

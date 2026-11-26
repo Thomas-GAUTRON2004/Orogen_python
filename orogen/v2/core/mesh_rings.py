@@ -1,5 +1,7 @@
 """Precomputed concentric mesh neighbourhoods from V2 mesh-rings.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 from typing import Any

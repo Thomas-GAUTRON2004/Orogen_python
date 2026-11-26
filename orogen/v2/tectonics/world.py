@@ -1,5 +1,7 @@
 """Mutable tectonic-world state container ported from Orogen V2 model/world.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 from typing import Any

@@ -1,0 +1,24 @@
+{
+  "module": "orogen.v2.core.fast_noise",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 60,
+    "input_sha256": "8f55e09069f0fbded7bb4841f16571bf32fa1955312bd1d6ff82dd75914acf20",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/fast_noise.py",
+      "orogen/v2/core/seed.py"
+    ]
+  },
+  "stats": {
+    "calls": 0,
+    "unique": 0,
+    "unsupported_calls": 0
+  },
+  "entries": {}
+}

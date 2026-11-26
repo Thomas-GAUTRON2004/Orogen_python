@@ -1,5 +1,7 @@
 """Fixed-resolution simulation mesh helpers from V2 sim-mesh.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -4,6 +4,8 @@ Port of v2/js/core/mesh-bfs.js. Mesh adjacency is stored in CSR form:
 adj_offset has num_cells + 1 entries and adj_list stores neighbour indices.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math

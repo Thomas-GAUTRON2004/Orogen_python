@@ -1,0 +1,258 @@
+{
+  "module": "orogen.v2.tectonics.kinematics",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 20,
+    "input_sha256": "e62c17e9853cdb1345af2097df46f51708721dd53cf7e4b276623e3b7bd8688a",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/rotation.py",
+      "orogen/v2/tectonics/__init__.py",
+      "orogen/v2/tectonics/kinematics.py"
+    ]
+  },
+  "stats": {
+    "calls": 10,
+    "unique": 10,
+    "unsupported_calls": 0
+  },
+  "entries": {
+    "omega_from_euler_pole": [
+      {
+        "args": [
+          [
+            300,
+            819.0,
+            -177.97
+          ],
+          -1515.2
+        ],
+        "raised": null
+      }
+    ],
+    "surface_velocity": [
+      {
+        "args": [
+          -319.94711172595976,
+          null,
+          {
+            "__repr__": "(-945.5-280.6239235j)"
+          },
+          {
+            "__repr__": "(3114.5058529+615.07j)"
+          }
+        ],
+        "raised": "TypeError"
+      },
+      {
+        "args": [
+          {},
+          null,
+          {
+            "closingCmYr": 420,
+            " ": 1436,
+            "mantle flow": "}"
+          },
+          [
+            true
+          ],
+          {
+            "__repr__": "{53}"
+          }
+        ],
+        "raised": "KeyError"
+      },
+      {
+        "args": [
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          null
+        ],
+        "raised": "TypeError"
+      }
+    ],
+    "pose_at_constant_omega": [
+      {
+        "args": [
+          [
+            32
+          ],
+          [],
+          -550.26
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          {
+            "__bytes__": "5c8b8ed8cdb981af94079e4e72ae212713e9"
+          },
+          {},
+          2
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "+6'H&\nMzUw+x",
+          {
+            "__bytes__": "c845"
+          },
+          {
+            "__repr__": "(447-1112.79j)"
+          }
+        ],
+        "raised": "IndexError"
+      }
+    ],
+    "lat_lon_to_xyz": [
+      {
+        "args": [
+          1324.49,
+          -1639.37
+        ],
+        "raised": null
+      }
+    ],
+    "xyz_to_lat_lon": [
+      {
+        "args": [
+          78.99,
+          false,
+          1689
+        ],
+        "raised": null
+      }
+    ],
+    "speed_cm_yr_at": [
+      {
+        "args": [
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          [
+            92,
+            139,
+            142,
+            216,
+            205,
+            185,
+            129,
+            175,
+            148,
+            7,
+            158,
+            78,
+            114,
+            174,
+            33,
+            39,
+            19,
+            233
+          ],
+          null
+        ],
+        "raised": "TypeError"
+      }
+    ]
+  }
+}

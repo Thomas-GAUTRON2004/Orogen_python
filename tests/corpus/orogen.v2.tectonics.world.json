@@ -1,0 +1,29 @@
+{
+  "module": "orogen.v2.tectonics.world",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 20,
+    "input_sha256": "75db93df53762a329f78dfb47c0a553882fb466c2bdbb3eaa1078c4f19fb6080",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/rotation.py",
+      "orogen/v2/core/seed.py",
+      "orogen/v2/tectonics/__init__.py",
+      "orogen/v2/tectonics/config.py",
+      "orogen/v2/tectonics/crust.py",
+      "orogen/v2/tectonics/plate.py",
+      "orogen/v2/tectonics/world.py"
+    ]
+  },
+  "stats": {
+    "calls": 0,
+    "unique": 0,
+    "unsupported_calls": 0
+  },
+  "entries": {}
+}

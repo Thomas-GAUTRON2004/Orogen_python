@@ -1,5 +1,7 @@
 """Plate kinematics and time integration ported from V2 step/kinematics.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 import math

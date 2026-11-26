@@ -1,0 +1,56 @@
+{
+  "module": "orogen.v2.core.device",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 60,
+    "input_sha256": "8e22a795a968d56b2a9b67a5266e75945ece960d982c9363108d6fc3f2a8987e",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/device.py"
+    ]
+  },
+  "stats": {
+    "calls": 17,
+    "unique": 5,
+    "unsupported_calls": 5
+  },
+  "entries": {
+    "is_small_device": [
+      {
+        "args": [
+          1230.48,
+          false
+        ],
+        "raised": null
+      },
+      {
+        "args": [],
+        "raised": null
+      },
+      {
+        "args": [
+          {
+            "__repr__": "(259.29-85.2j)"
+          }
+        ],
+        "raised": "TypeError"
+      },
+      {
+        "args": [
+          -425.11
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          false
+        ],
+        "raised": null
+      }
+    ]
+  }
+}

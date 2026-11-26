@@ -1,0 +1,59 @@
+{
+  "module": "orogen.v2.core.mesh_bfs",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 60,
+    "input_sha256": "15db2d6b43084fb072c9082816a2d08dca03e5d059bbc4d7d193e86f87a9331e",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/mesh_bfs.py",
+      "orogen/v2/core/sphere_geometry.py"
+    ]
+  },
+  "stats": {
+    "calls": 3,
+    "unique": 3,
+    "unsupported_calls": 1
+  },
+  "entries": {
+    "touches": [
+      {
+        "args": [
+          "farFrontRefKm",
+          {
+            "__repr__": "(37.92024+50.22j)"
+          },
+          1436.49
+        ],
+        "raised": "AttributeError"
+      }
+    ],
+    "largest_piece_of": [
+      {
+        "args": [
+          true,
+          [
+            true,
+            false,
+            -3033
+          ]
+        ],
+        "raised": "AttributeError"
+      },
+      {
+        "args": [
+          {
+            "__repr__": "<class 'dict'>"
+          },
+          []
+        ],
+        "raised": "AttributeError"
+      }
+    ]
+  }
+}

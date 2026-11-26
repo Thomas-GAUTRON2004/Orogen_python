@@ -4,6 +4,8 @@ Port of v2/js/core/sphere-index.js. The index operates on unit-vector cell
 centres and CSR neighbour adjacency.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math

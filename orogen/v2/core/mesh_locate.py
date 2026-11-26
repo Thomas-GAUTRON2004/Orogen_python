@@ -1,5 +1,7 @@
 """Piecewise-linear point location on a spherical mesh, ported from V2."""
 
+# differential-module:
+
 from __future__ import annotations
 
 from typing import Any

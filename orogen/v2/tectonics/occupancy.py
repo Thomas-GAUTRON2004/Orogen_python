@@ -4,6 +4,8 @@ Port of V2 step/occupancy.js. The index is conservative: it may retain extra
 candidate plates, but must never exclude a plate within the configured reach.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math

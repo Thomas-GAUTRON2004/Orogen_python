@@ -1,5 +1,7 @@
 """Small spherical-geometry helpers ported from V2 sphere-geom.js."""
 
+# differential-module: js_module=sphere-geom.mjs
+
 from __future__ import annotations
 
 import math

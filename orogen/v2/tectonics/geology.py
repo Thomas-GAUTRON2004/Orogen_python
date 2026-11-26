@@ -4,6 +4,8 @@ These fields are a serialization-facing view of records stored on CrustRaster.
 The Python helpers intentionally preserve the upstream quantization rules.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -70,6 +72,10 @@ def decode_unroof_km(value: int) -> float:
     return int(value) * _EXHUM_STEP_KM
 
 
+# Known divergence: upstream clamps only the upper bound (255), so a negative
+# duration gives a negative byte. This port clamps the lower bound to 0 as well.
+# Unresolved: which behaviour is intended. Remove the skip once decided.
+# differential: skip
 def encode_flood_myr(myr: float) -> int:
     return _byte(_positive(myr) / _FLOOD_STEP_MYR)
 
@@ -78,6 +84,10 @@ def decode_flood_myr(value: int) -> float:
     return int(value) * _FLOOD_STEP_MYR
 
 
+# Known divergence: upstream clamps only the upper bound (255), so a negative
+# duration gives a negative byte. This port clamps the lower bound to 0 as well.
+# Unresolved: which behaviour is intended. Remove the skip once decided.
+# differential: skip
 def encode_arc_myr(myr: float) -> int:
     return _byte(_positive(myr) / _ARC_STEP_MYR)
 

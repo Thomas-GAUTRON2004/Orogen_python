@@ -50,6 +50,9 @@ from differential_support import (  # noqa: E402
     opted_in_modules,
 )
 
+# Per test case, in seconds. The default of 5 lets a few slow inputs stall a run.
+TEST_CASE_TIMEOUT_S = 2
+
 
 def encode(value: Any) -> Any:
     """Turn a call argument or result into JSON, keeping what JSON cannot express."""
@@ -126,8 +129,14 @@ def run_pynguin(dotted: str, seconds: int, seed: int, out_dir: Path) -> Path:
         str(seconds),
         "--seed",
         str(seed),
+        # A single test case that hangs must not stall the whole run.
+        "--maximum-test-execution-timeout",
+        str(TEST_CASE_TIMEOUT_S),
     ]
-    subprocess.run(command, check=True, cwd=ROOT)
+    try:
+        subprocess.run(command, check=True, cwd=ROOT, timeout=seconds * 3 + 120)
+    except subprocess.TimeoutExpired as exc:
+        raise SystemExit(f"Pynguin exceeded its wall-clock limit on {dotted}") from exc
     generated = sorted(out_dir.glob("test_*.py"))
     if len(generated) != 1:
         raise SystemExit(f"Pynguin produced {len(generated)} test files for {dotted}")

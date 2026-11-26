@@ -1,0 +1,35 @@
+{
+  "module": "orogen.v2.core.min_heap",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 10,
+    "input_sha256": "4c5a3ad58566e28249167c1cdbd0dcf0a54babc7640d403f8725288dc3d7438a",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/min_heap.py",
+      "orogen/v2/core/sphere_geometry.py"
+    ]
+  },
+  "stats": {
+    "calls": 1,
+    "unique": 1,
+    "unsupported_calls": 0
+  },
+  "entries": {
+    "forget_edge_km": [
+      {
+        "args": [
+          {
+            "__repr__": "<class 'set'>"
+          }
+        ],
+        "raised": null
+      }
+    ]
+  }
+}

@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/differential-jspybridge.yml"
       - "tests/differential/**"
+      - "tests/test_v2_seed.py"
       - "tests/reference/v2/**"
       - "orogen/v2/core/seed.py"
       - ".gitmodules"
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   differential:
-    name: Hypothesis / Node 22 / JSPyBridge
+    name: Seed tests / coverage / Node 22 / JSPyBridge
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -38,11 +39,18 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install only the project and differential-test dependencies
+      - name: Install project and focused test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install "pytest>=8" "hypothesis>=6.100,<7" "javascript==1!1.2.6"
+          python -m pip install -e ".[test]"
+          python -m pip install "hypothesis>=6.100,<7" "javascript==1!1.2.6"
 
-      - name: Run only the generated differential tests
-        run: python -m pytest -q tests/differential/test_generated.py
+      - name: Run seed regression and generated differential tests with coverage
+        run: |
+          python -m pytest -q \
+            --cov=orogen.v2.core.seed \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-seed.xml \
+            tests/test_v2_seed.py \
+            tests/differential/test_generated.py

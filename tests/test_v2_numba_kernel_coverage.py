@@ -641,6 +641,7 @@ def test_numba_emit_far_pushes_python_body_covers_filter_and_take_paths():
     assert out_cells[:written].tolist() == [1, 2, 3]
     np.testing.assert_allclose(out_inc[:written], [1.0, 0.25, 1.5])
 
+
 def test_hypot3_python_body_covers_zero_and_scaled_norm():
     hypot3 = kernels._hypot3.py_func
 

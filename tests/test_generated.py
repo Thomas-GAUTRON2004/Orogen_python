@@ -208,7 +208,9 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
     raise ValueError(f"Unsupported comparison mode: {mode}")
 
 
-@pytest.mark.parametrize("target_config", CONFIG["targets"], ids=lambda item: item["id"])
+@pytest.mark.parametrize(
+    "target_config", CONFIG["targets"], ids=lambda item: item["id"]
+)
 @pytest.mark.parametrize("javascript", _BACKEND_PARAMETERS, indirect=True)
 @settings(
     max_examples=CONFIG["settings"]["max_examples"],

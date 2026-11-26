@@ -4,9 +4,14 @@ on:
   pull_request:
     paths:
       - ".github/workflows/differential-jspybridge.yml"
-      - "tests/differential/**"
+      - "tests/test_generated.py"
+      - "tests/pynguin_corpus.py"
+      - "tests/corpus/**"
+      - "tests/jspybridge-loader.cjs"
       - "tests/reference/v2/**"
+      - "tests/README.md"
       - "orogen/v2/core/seed.py"
+      - "orogen/v2/core/rotation.py"
       - ".gitmodules"
   workflow_dispatch:
 
@@ -48,6 +53,5 @@ jobs:
         run: |
           python -m pytest --cov=orogen \
               --cov-branch \
-              --cov-report=term-missing \
               --cov-report=term-missing \
               tests/test_generated.py

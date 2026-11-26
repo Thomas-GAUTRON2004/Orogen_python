@@ -127,7 +127,7 @@ def run_pynguin(module: str, seconds: int, seed: int, out_dir: Path) -> Path:
     return generated
 
 
-def replay(generated: Path, recorder: Recorder) -> None:
+def replay(generated: Path) -> None:
     """Run each Pynguin test. Exceptions are expected; the calls are already recorded."""
     spec = importlib.util.spec_from_file_location("pynguin_generated", generated)
     assert spec is not None and spec.loader is not None
@@ -167,7 +167,7 @@ def main() -> None:
         if name.startswith("_") or function.__module__ != module.__name__:
             continue
         setattr(module, name, recorder.wrap(name, function))
-    replay(generated, recorder)
+    replay(generated)
 
     entries: dict[str, list[dict[str, Any]]] = {}
     seen: set[str] = set()

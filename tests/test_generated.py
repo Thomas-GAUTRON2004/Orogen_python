@@ -47,7 +47,6 @@ ROOT = Path(__file__).resolve().parents[1]
 THIS_FILE = Path(__file__).resolve()
 JS_CORE_DIR = ROOT / "tests" / "reference" / "v2" / "core"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
-JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
 
 _SETTING_DEFAULTS = {
     "source": "orogen/v2/core",
@@ -85,7 +84,6 @@ def _read_settings() -> dict[str, Any]:
 SETTINGS = _read_settings()
 SOURCE_DIR = ROOT / SETTINGS["source"]
 PACKAGE = ".".join(SOURCE_DIR.relative_to(ROOT).parts)
-DEFAULT_TARGET_MODULE = "seed"
 
 # Strategies are the only hand-written part of the input domains. A parameter
 # gets one of these from its name (params= in the module comment) or, failing
@@ -281,63 +279,65 @@ def _import_python_module(stem: str) -> Any:
     return _PY_MODULES[stem]
 
 
+def _module_targets(path: Path) -> list[dict[str, Any]]:
+    """Generate the comparisons for one opted-in source module, or none."""
+    module_settings = _module_settings(path)
+    if module_settings is None:
+        return []
+    stem = path.stem
+    js_file = _js_module_file(stem, module_settings.get("js_module"))
+    if js_file is None:
+        raise AssertionError(f"{stem}: opted in but no JavaScript module exists")
+    js_exports = _js_export_names(js_file)
+    overrides = module_settings.get("params", {})
+    comparison: dict[str, Any] = {"mode": module_settings.get("mode", "approx")}
+    for key in ("rel_tol", "abs_tol"):
+        if key in module_settings:
+            comparison[key] = module_settings[key]
+
+    module = _import_python_module(stem)
+    markers = _markers(path)
+    targets: list[dict[str, Any]] = []
+    for name, function in inspect.getmembers(module, inspect.isfunction):
+        if name.startswith("_") or function.__module__ != module.__name__:
+            continue
+        marker = markers.get(name, {})
+        if marker.get("skip"):
+            continue
+        js_name = marker.get("js", _js_name(name))
+        if js_name not in js_exports:
+            if "js" in marker:
+                raise AssertionError(
+                    f"{stem}.{name} names JavaScript export {js_name!r}, "
+                    f"which {js_file} does not export"
+                )
+            continue
+        strategies = marker.get("strategies") or _strategies_for(function, overrides)
+        if strategies is None:
+            continue
+        function_comparison = dict(comparison)
+        if "mode" in marker:
+            function_comparison["mode"] = marker["mode"]
+        targets.append(
+            {
+                "id": name,
+                "module": stem,
+                "js": js_name,
+                "js_file": js_file,
+                "strategies": strategies,
+                "comparison": function_comparison,
+            }
+        )
+    return targets
+
+
 def _generated_targets() -> list[dict[str, Any]]:
     """Generate one comparison per public function of each opted-in source module."""
-    generated: list[dict[str, Any]] = []
-
+    targets: list[dict[str, Any]] = []
     for path in sorted(SOURCE_DIR.glob("*.py")):
-        stem = path.stem
-        if stem.startswith("_"):
-            continue
-        module_settings = _module_settings(path)
-        if module_settings is None:
-            continue
-
-        js_file = _js_module_file(stem, module_settings.get("js_module"))
-        if js_file is None:
-            raise AssertionError(f"{stem}: opted in but no JavaScript module exists")
-        js_exports = _js_export_names(js_file)
-        overrides = module_settings.get("params", {})
-        comparison: dict[str, Any] = {"mode": module_settings.get("mode", "approx")}
-        for key in ("rel_tol", "abs_tol"):
-            if key in module_settings:
-                comparison[key] = module_settings[key]
-
-        module = _import_python_module(stem)
-        markers = _markers(path)
-        for name, function in inspect.getmembers(module, inspect.isfunction):
-            if name.startswith("_") or function.__module__ != module.__name__:
-                continue
-            marker = markers.get(name, {})
-            if marker.get("skip"):
-                continue
-            js_name = marker.get("js", _js_name(name))
-            if js_name not in js_exports:
-                if "js" in marker:
-                    raise AssertionError(
-                        f"{stem}.{name} names JavaScript export {js_name!r}, "
-                        f"which {js_file} does not export"
-                    )
-                continue
-            strategies = marker.get("strategies") or _strategies_for(
-                function, overrides
-            )
-            if strategies is None:
-                continue
-            function_comparison = dict(comparison)
-            if "mode" in marker:
-                function_comparison["mode"] = marker["mode"]
-            generated.append(
-                {
-                    "id": name,
-                    "module": stem,
-                    "js": js_name,
-                    "js_file": js_file,
-                    "strategies": strategies,
-                    "comparison": function_comparison,
-                }
-            )
-    return generated
+        if not path.stem.startswith("_"):
+            targets.extend(_module_targets(path))
+    return targets
 
 
 def _target_label(target_config: dict[str, Any]) -> str:

@@ -45,12 +45,14 @@ jobs:
           python -m pip install -e ".[test]"
           python -m pip install "hypothesis>=6.100,<7" "javascript==1!1.2.6"
 
-      - name: Run seed regression and generated differential tests with coverage
+      - name: Run static seed regression tests with branch coverage
         run: |
           python -m pytest -q \
             --cov=orogen.v2.core.seed \
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml:coverage-seed.xml \
-            tests/test_v2_seed.py \
-            tests/differential/test_generated.py
+            tests/test_v2_seed.py
+
+      - name: Run generated differential tests in an isolated Python process
+        run: python -m pytest -q tests/differential/test_generated.py

@@ -9,6 +9,7 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Added an optional JSPyBridge backend to the generated differential harness. It invokes the same pinned upstream ES module as the persistent Node.js runner, allowing the bridge/transport path to be compared without changing the Node.js oracle.
 - Added a configurable Hypothesis-based differential harness that feeds generated seed inputs to the Python port and the pinned upstream JavaScript implementation, with exact or tolerance-based comparisons.
 - Added a production initial-world benchmark comparing a pinned pre-optimization revision with the PR head on the same runner at 512, 1,024, 4,096 and 40,000 cells; mesh construction is timed separately and plate-partition correctness is checked.
 - Added a full-suite CI run without the optional Numba extra to exercise pure-Python fallbacks.

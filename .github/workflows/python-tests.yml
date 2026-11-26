@@ -1,4 +1,4 @@
-name: Static quality checks
+name: Static quality and focused regression checks
 
 on:
   push:
@@ -6,10 +6,6 @@ on:
       - main
       - "port/**"
   pull_request:
-    paths-ignore:
-      - ".github/workflows/differential-jspybridge.yml"
-      - "tests/differential/**"
-      - "CHANGELOG.md"
   workflow_dispatch:
 
 permissions:
@@ -53,7 +49,7 @@ jobs:
         run: python -m pip install --upgrade pip setuptools wheel
 
       - name: Install project quality dependencies
-        run: python -m pip install -e ".[quality]"
+        run: python -m pip install -e ".[test,quality]"
 
       - name: Verify installed dependencies
         run: python -m pip check
@@ -182,6 +178,9 @@ jobs:
           cat "$RUNNER_TEMP/mypy-current.txt"
           echo "::endgroup::"
 
+
+      - name: Run authored seed regression tests
+        run: python -m pytest -q tests/test_v2_seed.py
       - name: Audit remaining complexity hotspots
         run: |
           radon cc -s -a \

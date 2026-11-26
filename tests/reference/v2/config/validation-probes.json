@@ -1,0 +1,669 @@
+{
+  "mesh": "512 cells, seed 911",
+  "probe": "buildStartWorld(mesh, 911, {key: value})",
+  "results": [
+    {
+      "key": "beltSpeedRefCmYr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "beltSpeedRefCmYr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxCellsPerStep",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxCellsPerStep",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxSpeedContinental",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxSpeedContinental",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxSpeedOceanic",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxSpeedOceanic",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxStepMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "maxStepMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "mobility",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "mobility",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "relaxMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "relaxMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "ridgeMaxAgeMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "ridgeMaxAgeMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "simCells",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "simCells",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabMatureKm",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabMatureKm",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabPullAgeRefMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabPullAgeRefMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "snapshotEveryMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "snapshotEveryMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "startMaxLatitudeDeg",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "TIMEOUT",
+      "js_detail": null
+    },
+    {
+      "key": "startMaxLatitudeDeg",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "TIMEOUT",
+      "js_detail": null
+    },
+    {
+      "key": "stepGridMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "stepGridMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureContactMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureContactMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureStallMyr",
+      "rule": "POSITIVE",
+      "value": 0,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureStallMyr",
+      "rule": "POSITIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "beltSpeedExponent",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "boundaryActiveCmYr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "closingCmYr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "coastUnionSoftnessKm",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "degraded_result",
+      "js_detail": {
+        "attempts": 24,
+        "fractionMet": false,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "collisionResistance",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "continentalSoftCmYr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "dragContinent",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "dragCraton",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "dragOcean",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "oceanicSoftCmYr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "orogenyQuietMyr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "ridgePush",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabPull",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabResistance",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slabSuction",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "slowRulesEveryMyr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "startGrowthBias",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureOverlapKm2",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureShorteningKm",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureStallCmYr",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "sutureStallMinKm",
+      "rule": "NON_NEGATIVE",
+      "value": -1,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "collisionSeparateShare",
+      "rule": "UNIT",
+      "value": -0.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "collisionSeparateShare",
+      "rule": "UNIT",
+      "value": 1.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "collisionShearShare",
+      "rule": "UNIT",
+      "value": -0.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "collisionShearShare",
+      "rule": "UNIT",
+      "value": 1.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "continentalPlateShare",
+      "rule": "UNIT",
+      "value": -0.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "continentalPlateShare",
+      "rule": "UNIT",
+      "value": 1.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "obliqueLimit",
+      "rule": "UNIT",
+      "value": -0.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    },
+    {
+      "key": "obliqueLimit",
+      "rule": "UNIT",
+      "value": 1.001,
+      "js_outcome": "no_visible_effect",
+      "js_detail": {
+        "attempts": 1,
+        "fractionMet": true,
+        "areaScale": 1
+      }
+    }
+  ]
+}

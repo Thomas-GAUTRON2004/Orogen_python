@@ -25,7 +25,7 @@ seed = hypothesis.seed
 settings = hypothesis.settings
 st = hypothesis.strategies
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "tests" / "config.json"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
@@ -143,7 +143,7 @@ class JSPyBridgeSession:
             ) from exc
 
         self._bridge = javascript
-        module = javascript.require(str(JS_BRIDGE_MODULE))
+        module = javascript.require("./jspybridge-loader.cjs", __file__)
         self._targets = {
             "seed_of": module.seedOf,
             "is_word_seed": module.isWordSeed,

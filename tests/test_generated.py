@@ -1,12 +1,18 @@
 """Property-based comparisons against the upstream JavaScript, generated from source.
 
-Tests are discovered at collection time from the Python source directory named in
-config.json (generate.source). A public function gets a test when a JavaScript
-module of the same name exists under tests/reference/v2/core and exports the
-camelCase name. Comments above a function can refine the generated test:
+All configuration lives in comments.
 
-    # differential: js=quatMul strategies=quaternion,quaternion mode=approx
-    # differential: skip
+Global settings are the single line below (defaults apply to missing keys):
+
+# differential-settings: source=orogen/v2/core max_examples=250 deadline_ms=1000 seed=20261126 backends=node,jspybridge
+
+A source module opts in with a comment line near the top of its file:
+
+# differential-module: js_module=sphere-geom.mjs mode=approx rel_tol=1e-9 abs_tol=1e-9 params=q:quaternion,omega:vec3
+
+Each public function of an opted-in module gets a test when a JavaScript module
+of the same name exports its camelCase name. A comment directly above a function
+refines that test: js=<export>, strategies=<a>,<b>, mode=<exact|approx>, or skip.
 """
 
 from __future__ import annotations
@@ -20,7 +26,6 @@ import math
 import re
 import shutil
 import subprocess
-import warnings
 from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
@@ -38,24 +43,48 @@ settings = hypothesis.settings
 st = hypothesis.strategies
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "tests" / "config.json"
+THIS_FILE = Path(__file__).resolve()
 JS_CORE_DIR = ROOT / "tests" / "reference" / "v2" / "core"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
-CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-SETTINGS = CONFIG["settings"]
-GENERATE = CONFIG.get("generate", {})
 
-SOURCE_DIR = ROOT / GENERATE.get("source", "orogen/v2/core")
+_SETTING_DEFAULTS = {
+    "source": "orogen/v2/core",
+    "max_examples": "250",
+    "deadline_ms": "1000",
+    "seed": "20261126",
+    "backends": "node,jspybridge",
+}
+
+
+def _read_settings() -> dict[str, Any]:
+    """Read the '# differential-settings:' line of this file."""
+    values = dict(_SETTING_DEFAULTS)
+    for line in THIS_FILE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("# differential-settings:"):
+            for token in line.split(":", 1)[1].split():
+                key, _, value = token.partition("=")
+                if key not in values:
+                    raise AssertionError(f"Unknown differential setting: {key!r}")
+                values[key] = value
+            break
+    return {
+        "source": values["source"],
+        "max_examples": int(values["max_examples"]),
+        "deadline_ms": int(values["deadline_ms"]),
+        "seed": None if values["seed"] == "none" else int(values["seed"]),
+        "backends": [item for item in values["backends"].split(",") if item],
+    }
+
+
+SETTINGS = _read_settings()
+SOURCE_DIR = ROOT / SETTINGS["source"]
 PACKAGE = ".".join(SOURCE_DIR.relative_to(ROOT).parts)
-JS_MODULE_OVERRIDES: dict[str, str] = GENERATE.get("js_modules", {})
 DEFAULT_TARGET_MODULE = "seed"
 
-_JS_FILE = re.compile(r"^[A-Za-z0-9_-]+\.mjs$")
-
 # Strategies are the only hand-written part of the input domains. A parameter
-# gets one of these from its name (config "param_strategies") or, failing that,
-# from its annotation (_ANNOTATION_STRATEGIES).
+# gets one of these from its name (params= in the module comment) or, failing
+# that, from its annotation (_ANNOTATION_STRATEGIES).
 STRATEGIES = {
     "seed_text": lambda: st.one_of(
         st.text(
@@ -106,21 +135,22 @@ _ANNOTATION_STRATEGIES = {
     "object": "seed_text",
 }
 
+_MODULE_KEYS = {"js_module", "mode", "rel_tol", "abs_tol", "params"}
+
 
 def _js_name(snake: str) -> str:
     """Map a snake_case Python name to the camelCase JavaScript export name."""
     return re.sub(r"_([a-z0-9])", lambda match: match.group(1).upper(), snake)
 
 
-def _js_module_file(stem: str) -> str | None:
+def _js_module_file(stem: str, explicit: str | None) -> str | None:
     """Return the JavaScript module file for a Python module stem, if one exists."""
-    candidates = [
-        JS_MODULE_OVERRIDES.get(stem),
-        f"{stem}.mjs",
-        f"{stem.replace('_', '-')}.mjs",
-    ]
-    for name in candidates:
-        if name and (JS_CORE_DIR / name).is_file():
+    if explicit is not None:
+        if not (JS_CORE_DIR / explicit).is_file():
+            raise AssertionError(f"{stem}: js_module {explicit!r} does not exist")
+        return explicit
+    for name in (f"{stem}.mjs", f"{stem.replace('_', '-')}.mjs"):
+        if (JS_CORE_DIR / name).is_file():
             return name
     return None
 
@@ -148,6 +178,29 @@ def _js_export_names(js_file: str) -> set[str]:
         )
         _JS_EXPORTS_CACHE[js_file] = set(json.loads(completed.stdout))
     return _JS_EXPORTS_CACHE[js_file]
+
+
+def _module_settings(path: Path) -> dict[str, Any] | None:
+    """Read the '# differential-module:' comment of a source file, if present."""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("# differential-module:"):
+            continue
+        settings: dict[str, Any] = {}
+        for token in stripped.split(":", 1)[1].split():
+            key, _, value = token.partition("=")
+            if key not in _MODULE_KEYS:
+                raise AssertionError(f"{path.name}: unknown module setting {key!r}")
+            if key == "params":
+                settings[key] = dict(
+                    item.split(":", 1) for item in value.split(",") if item
+                )
+            elif key in ("rel_tol", "abs_tol"):
+                settings[key] = float(value)
+            else:
+                settings[key] = value
+        return settings
+    return None
 
 
 def _parse_marker(text: str) -> dict[str, Any]:
@@ -219,61 +272,43 @@ _PY_MODULES: dict[str, Any] = {}
 
 def _import_python_module(stem: str) -> Any:
     if stem not in _PY_MODULES:
-        if not (SOURCE_DIR / f"{stem}.py").is_file():
-            raise AssertionError(f"No Python module {stem}.py under {SOURCE_DIR}")
         _PY_MODULES[stem] = importlib.import_module(f"{PACKAGE}.{stem}")
     return _PY_MODULES[stem]
 
 
-def _discover_stems() -> list[str]:
-    """Return the Python module stems selected by generate.modules."""
-    available = sorted(
-        path.stem for path in SOURCE_DIR.glob("*.py") if not path.stem.startswith("_")
-    )
-    selected = GENERATE.get("modules", "all")
-    if selected == "all":
-        return available
-    unknown = sorted(set(selected) - set(available))
-    if unknown:
-        raise AssertionError(f"generate.modules names unknown modules: {unknown}")
-    return list(selected)
-
-
 def _generated_targets() -> list[dict[str, Any]]:
-    """Generate one comparison per eligible public function in the source directory."""
-    excluded = set(GENERATE.get("exclude", []))
-    overrides = GENERATE.get("param_strategies", {})
-    default_comparison = GENERATE.get("comparison", {"mode": "approx"})
+    """Generate one comparison per public function of each opted-in source module."""
     generated: list[dict[str, Any]] = []
 
-    for stem in _discover_stems():
-        js_file = _js_module_file(stem)
-        if js_file is None:
+    for path in sorted(SOURCE_DIR.glob("*.py")):
+        stem = path.stem
+        if stem.startswith("_"):
             continue
-        markers = _markers(SOURCE_DIR / f"{stem}.py")
-        try:
-            module = _import_python_module(stem)
-        except ImportError as exc:
-            warnings.warn(
-                f"Skipping differential tests for {stem}: {exc}", stacklevel=2
-            )
+        module_settings = _module_settings(path)
+        if module_settings is None:
             continue
-        js_exports = _js_export_names(js_file)
 
+        js_file = _js_module_file(stem, module_settings.get("js_module"))
+        if js_file is None:
+            raise AssertionError(f"{stem}: opted in but no JavaScript module exists")
+        js_exports = _js_export_names(js_file)
+        overrides = module_settings.get("params", {})
+        comparison: dict[str, Any] = {"mode": module_settings.get("mode", "approx")}
+        for key in ("rel_tol", "abs_tol"):
+            if key in module_settings:
+                comparison[key] = module_settings[key]
+
+        module = _import_python_module(stem)
+        markers = _markers(path)
         for name, function in inspect.getmembers(module, inspect.isfunction):
-            if (
-                name.startswith("_")
-                or name in excluded
-                or function.__module__ != module.__name__
-            ):
+            if name.startswith("_") or function.__module__ != module.__name__:
                 continue
             marker = markers.get(name, {})
             if marker.get("skip"):
                 continue
             js_name = marker.get("js", _js_name(name))
-            explicit = "js" in marker
             if js_name not in js_exports:
-                if explicit:
+                if "js" in marker:
                     raise AssertionError(
                         f"{stem}.{name} names JavaScript export {js_name!r}, "
                         f"which {js_file} does not export"
@@ -284,62 +319,34 @@ def _generated_targets() -> list[dict[str, Any]]:
             )
             if strategies is None:
                 continue
+            function_comparison = dict(comparison)
+            if "mode" in marker:
+                function_comparison["mode"] = marker["mode"]
             generated.append(
                 {
                     "id": name,
                     "module": stem,
                     "js": js_name,
+                    "js_file": js_file,
                     "strategies": strategies,
-                    "comparison": {
-                        "mode": marker.get("mode", default_comparison["mode"]),
-                        **{
-                            key: value
-                            for key, value in default_comparison.items()
-                            if key != "mode"
-                        },
-                    },
-                    "generated": True,
+                    "comparison": function_comparison,
                 }
             )
     return generated
 
 
-def _target_module(target_config: dict[str, Any]) -> str:
-    return target_config.get("module", DEFAULT_TARGET_MODULE)
-
-
-def _target_js_name(target_config: dict[str, Any]) -> str:
-    return target_config.get("js", _js_name(target_config["id"]))
-
-
-def _target_strategies(target_config: dict[str, Any]) -> list[str]:
-    if "strategies" in target_config:
-        return list(target_config["strategies"])
-    return [target_config["strategy"]]
-
-
 def _target_label(target_config: dict[str, Any]) -> str:
-    prefix = "generated" if target_config.get("generated") else "configured"
-    return f"{prefix}:{_target_module(target_config)}.{target_config['id']}"
+    return f"{target_config['module']}.{target_config['id']}"
 
 
 def _resolve_python_target(target_config: dict[str, Any]) -> Any:
     name = target_config["id"]
     if name.startswith("_"):
         raise AssertionError(f"Differential target is private: {name}")
-    function = getattr(_import_python_module(_target_module(target_config)), name, None)
+    function = getattr(_import_python_module(target_config["module"]), name, None)
     if not callable(function):
         raise AssertionError(f"Differential target is not a function: {name}")
     return function
-
-
-def _js_file_for(target_config: dict[str, Any]) -> str:
-    js_file = _js_module_file(_target_module(target_config))
-    if js_file is None:
-        raise AssertionError(
-            f"No JavaScript module for {_target_module(target_config)}"
-        )
-    return js_file
 
 
 def _normalise(value: Any) -> Any:
@@ -445,7 +452,7 @@ _BACKEND_PARAMETERS = [
         ),
         id=backend_id,
     )
-    for backend_id in SETTINGS.get("backends", ["node"])
+    for backend_id in SETTINGS["backends"]
 ]
 
 
@@ -500,9 +507,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
     _assert_node(actual, expected, mode, comparison, "result")
 
 
-CONFIGURED_TARGETS = list(CONFIG["targets"])
-GENERATED_TARGETS = _generated_targets() if GENERATE else []
-ALL_TARGETS = CONFIGURED_TARGETS + GENERATED_TARGETS
+ALL_TARGETS = _generated_targets()
 
 
 @pytest.mark.parametrize("target_config", ALL_TARGETS, ids=_target_label)
@@ -510,7 +515,7 @@ ALL_TARGETS = CONFIGURED_TARGETS + GENERATED_TARGETS
 @settings(
     max_examples=SETTINGS["max_examples"],
     deadline=timedelta(milliseconds=SETTINGS["deadline_ms"]),
-    derandomize=SETTINGS.get("seed") is None,
+    derandomize=SETTINGS["seed"] is None,
 )
 @given(data=st.data())
 def test_generated_differential_cases(
@@ -518,29 +523,22 @@ def test_generated_differential_cases(
     data: Any,
     javascript: Any,
 ) -> None:
-    strategy_ids = _target_strategies(target_config)
-    for strategy_id in strategy_ids:
+    for strategy_id in target_config["strategies"]:
         assert strategy_id in STRATEGIES, f"Unknown Hypothesis strategy: {strategy_id}"
 
     python_target = _resolve_python_target(target_config)
     args = [
         data.draw(STRATEGIES[strategy_id](), label=strategy_id)
-        for strategy_id in strategy_ids
+        for strategy_id in target_config["strategies"]
     ]
     python_result = _normalise(python_target(*args))
     javascript_result = _normalise(
-        javascript.call(
-            _js_file_for(target_config), _target_js_name(target_config), args
-        )
+        javascript.call(target_config["js_file"], target_config["js"], args)
     )
-    _assert_equivalent(
-        python_result,
-        javascript_result,
-        target_config.get("comparison", {}),
-    )
+    _assert_equivalent(python_result, javascript_result, target_config["comparison"])
 
 
-if SETTINGS.get("seed") is not None:
+if SETTINGS["seed"] is not None:
     test_generated_differential_cases = seed(SETTINGS["seed"])(
         test_generated_differential_cases
     )

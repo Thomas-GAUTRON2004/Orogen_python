@@ -4,6 +4,8 @@ Constants and arithmetic are compatible with the upstream JavaScript files.
 Changing them changes generated worlds.
 """
 
+# differential-module: mode=exact
+
 from __future__ import annotations
 
 import math

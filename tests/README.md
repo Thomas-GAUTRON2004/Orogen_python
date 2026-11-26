@@ -1,99 +1,102 @@
 # Generated JavaScript/Python differential tests
 
-The generated differential suite uses Hypothesis to explore inputs and sends
-each generated value to the Python implementation and to one or more JavaScript
-backends. The Node.js runner is the reference oracle; JSPyBridge is an
-experimental second access path into the same pinned upstream ES module.
+Property-based comparisons between the Python port in `orogen/v2/core` and the
+pinned upstream JavaScript. Hypothesis generates inputs, each input is sent to
+the Python function and to one or more JavaScript backends, and the results are
+compared. Node.js is the reference oracle. JSPyBridge is a second access path
+into the same Node.js runtime, not an independent JavaScript engine.
 
-## Install and run
-
-Install the normal project test dependencies, Node.js 22, Hypothesis and the
-optional JSPyBridge package:
+## Run
 
 ```bash
-python -m pip install -e ".[test]"
-python -m pip install hypothesis
-python -m pip install "javascript==1!1.2.6"
+python -m pip install -e ".[test]" hypothesis "javascript==1!1.2.6"
 npm install --no-save --package-lock=false
-python -m pytest tests/differential -q
+python -m pytest tests/test_generated.py -q
 ```
 
-JSPyBridge requires Node.js 18 or newer. It is deliberately kept out of the
-runtime dependencies: it is an optional test backend. If the `javascript`
-package is not installed, only the JSPyBridge parametrizations are skipped;
-the Node.js oracle tests still run.
+List the generated tests without running them:
 
-## Backends
+```bash
+python -m pytest tests/test_generated.py --collect-only -q
+```
 
-- `node`: starts the persistent `property-runner.mjs` process. This remains
-  the official reference path and preserves the existing JSON-lines protocol.
-- `jspybridge`: loads `tests/differential/jspybridge-loader.cjs` through
-  JSPyBridge. That CommonJS adapter exposes the same exports from the pinned
-  `tests/reference/v2/core/seed.mjs` pointer using Node 22's synchronous
-  CommonJS-to-ESM interop. JSPyBridge manages its own persistent Node.js process.
+Node.js 22 is required. JSPyBridge needs Node.js 18 or newer. If the
+`javascript` package is missing, only its backend is skipped.
 
-The two backends are not treated as independent JavaScript engines: both
-execute Node.js. The comparison isolates the bridge/transport path, not V8
-semantics versus another JavaScript engine. Node remains the authority if the
-two backends disagree.
+## Configuration lives in comments
 
-## Configuration
+There is no configuration file.
 
-Edit `tests/config.json`:
+**Global settings** are one comment line in `tests/test_generated.py`. Missing
+keys keep their defaults:
 
-- `settings.max_examples`: generated examples per target and backend.
-- `settings.deadline_ms`: per-example deadline in milliseconds.
-- `settings.seed`: fixed Hypothesis seed; use `null` for derandomized runs.
-- `settings.backends`: any combination of `node` and `jspybridge`.
-- `targets`: one entry per generated comparison test.
+```python
+# differential-settings: source=orogen/v2/core max_examples=250 deadline_ms=1000 seed=20261126 backends=node,jspybridge
+```
 
-Targets come from two sources.
+- `source`: Python directory scanned for opted-in modules.
+- `max_examples`, `deadline_ms`: Hypothesis limits per example and per test.
+- `seed`: fixed seed for reproducible runs, or `none` for derandomized runs.
+- `backends`: any combination of `node` and `jspybridge`.
 
-Configured targets are listed explicitly under `targets`. Each names a Python
-module (`module`, a file stem under `generate.source`, default `seed`), a
-public function (`id`), and one strategy per argument (`strategy`, or
-`strategies` for several arguments).
+**A module opts in** with a comment line near the top of its file. Only opted-in
+modules are tested:
 
-Generated targets are discovered from the source directory `generate.source`:
+```python
+# differential-module: js_module=sphere-geom.mjs mode=approx rel_tol=1e-9 abs_tol=1e-9 params=q:quaternion,omega:vec3
+```
 
-- `modules` selects Python modules by file stem, or `"all"`.
-- A function gets a test when a JavaScript module exists for its file (same
-  stem, or with `_` replaced by `-`, or set explicitly in `js_modules`) and that
-  module exports the camelCase name (`quat_mul` maps to `quatMul`).
-- Parameters get a strategy from `param_strategies` by name first, then from
-  their annotation (`float` gives `unit_float`, `object` gives `seed_text`).
-  Parameters with default values keep their defaults.
-- `exclude` lists functions to skip globally, with a comment explaining why.
+- `js_module`: JavaScript module file, when the name is not derived automatically.
+  The automatic lookup tries `<stem>.mjs`, then `<stem with _ replaced by ->.mjs`.
+- `mode`: `exact` for seeds, flags and discrete values, or `approx` for floats.
+  `rel_tol` and `abs_tol` apply only in `approx`.
+- `params`: strategy per parameter name, as `name:strategy` pairs separated by
+  commas. Parameters not listed fall back to their annotation: `float` gives
+  `unit_float`, `object` gives `seed_text`. A parameter with no strategy makes
+  its function get no test.
 
-A comment directly above a function refines its generated test:
+**A function can refine its test** with a comment directly above its `def`:
 
 ```python
 # differential: js=quatMul strategies=quaternion,quaternion mode=approx
 # differential: skip
 ```
 
-- `js=` names a different JavaScript export. It fails if the export is missing.
-- `strategies=` gives the strategy per argument, overriding inference.
-- `mode=` sets the comparison for this function.
-- `skip` excludes the function. Use it for non-deterministic functions such as
-  `random_seed`.
+- `js`: JavaScript export to call, when it is not the camelCase name. The test
+  fails if that export does not exist.
+- `strategies`: one strategy per required argument, overriding inference.
+- `mode`: comparison for this function only.
+- `skip`: no test. Use it for non-deterministic functions, such as `random_seed`,
+  and for known divergences. Put the reason in a comment above the marker.
 
-Node and JSPyBridge both receive a module file name, an export name and `args`.
-Both load the file from `tests/reference/v2/core` and reject any other path.
-Results cross the bridge as JSON text, so both backends use the same wire format.
+Functions whose name starts with `_` are never tested. A function gets a test
+only if its JavaScript module exports the matching name. Missing exports are
+ignored silently, unless the marker names one explicitly.
 
-Comparison modes currently supported are:
+## Example
 
-- `exact`: exact equality, suitable for seeds, flags and discrete state.
-- `approx`: scalar numeric comparison using configurable `rel_tol` and
-  `abs_tol`.
+`orogen/v2/core/rotation.py` opts in with `params=` so its quaternion arguments
+get quaternion strategies. Its `quat_to_mat3` is skipped with a stated reason,
+because the upstream requires an `out` argument that the Python port makes
+optional.
 
-To add a module, put its Python file in `generate.source` and its JavaScript
-re-export in `tests/reference/v2/core/`. If the names differ, add a
-`js_modules` entry. No runner changes are needed. Tests appear on the next run.
-Check the list with `python -m pytest tests/test_generated.py --collect-only -q`.
+## Adding a module
 
-Hypothesis drives the same generated input through both implementations and
-shrinks a failing input to a smaller counterexample. JSPyBridge is an
-experimental backend: it is not a replacement for the persistent Node runner
-or the official compatibility oracle.
+1. Put its JavaScript re-export in `tests/reference/v2/core/`, under the same
+   name as the Python file or with `-` in place of `_`. Use `js_module=` if the
+   name differs.
+2. Add the module comment to the Python file. Use `params=` for any argument
+   whose name is not implied by its annotation.
+3. Run `--collect-only` and check the list.
+
+No runner or loader changes are needed. Runners only load validated file names
+from `tests/reference/v2/core`.
+
+## Backends
+
+- `node`: `property-runner.mjs`, a persistent process speaking JSON lines.
+- `jspybridge`: `jspybridge-loader.cjs`, loaded through JSPyBridge. It returns
+  JSON text, so both backends use the same wire format.
+
+Results are compared recursively. Non-finite numbers are encoded as
+`{"__number__": "NaN" | "Infinity" | "-Infinity"}` on both sides.

@@ -91,7 +91,12 @@ def opted_in_modules() -> list[Path]:
 
 
 def js_module_file(path: Path, explicit: str | None) -> str:
-    """Return the reference module path, relative to tests/reference/v2, for a source file."""
+    """Return the reference module path, relative to tests/reference/v2, for a source file.
+
+    An explicit js_module with a slash is a path from tests/reference/v2, so a
+    reference outside the module's own directory can be named, for example
+    js/simplex-noise.mjs. Without a slash it is relative to the module's directory.
+    """
     try:
         directory = path.parent.relative_to(V2_DIR).as_posix()
     except ValueError as exc:
@@ -100,6 +105,8 @@ def js_module_file(path: Path, explicit: str | None) -> str:
         ) from exc
 
     def join(name: str) -> str:
+        if "/" in name:
+            return name
         return name if directory == "." else f"{directory}/{name}"
 
     if explicit is not None:
@@ -110,7 +117,22 @@ def js_module_file(path: Path, explicit: str | None) -> str:
     for name in (f"{stem}.mjs", f"{stem.replace('_', '-')}.mjs"):
         if (REFERENCE_DIR / join(name)).is_file():
             return join(name)
-    raise AssertionError(f"{path.name}: opted in but no JavaScript module exists")
+    same_name = sorted(
+        str(found.relative_to(REFERENCE_DIR).as_posix())
+        for found in REFERENCE_DIR.rglob(f"{stem.replace('_', '-')}.mjs")
+    ) + sorted(
+        str(found.relative_to(REFERENCE_DIR).as_posix())
+        for found in REFERENCE_DIR.rglob(f"{stem}.mjs")
+    )
+    hint = (
+        f" A reference with this name exists at {', '.join(same_name)}: add "
+        f"js_module={same_name[0]} to the module comment."
+        if same_name
+        else ""
+    )
+    raise AssertionError(
+        f"{path.name}: opted in but no JavaScript module exists.{hint}"
+    )
 
 
 def corpus_path(dotted: str) -> Path:

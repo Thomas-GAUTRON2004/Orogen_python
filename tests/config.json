@@ -3,7 +3,10 @@
     "max_examples": 250,
     "deadline_ms": 1000,
     "seed": 20261126,
-    "backends": ["node", "jspybridge"]
+    "backends": [
+      "node",
+      "jspybridge"
+    ]
   },
   "targets": [
     {
@@ -20,5 +23,26 @@
         "mode": "exact"
       }
     }
-  ]
+  ],
+  "generate": {
+    "modules": [
+      "rotation"
+    ],
+    "exclude": [
+      "quat_to_mat3"
+    ],
+    "param_strategies": {
+      "q": "quaternion",
+      "a": "quaternion",
+      "b": "quaternion",
+      "omega": "vec3",
+      "dt": "time_step",
+      "angle": "angle"
+    },
+    "comparison": {
+      "mode": "approx",
+      "rel_tol": 1e-09,
+      "abs_tol": 1e-09
+    }
+  }
 }

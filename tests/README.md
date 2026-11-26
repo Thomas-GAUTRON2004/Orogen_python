@@ -47,20 +47,33 @@ Edit `tests/config.json`:
 - `settings.backends`: any combination of `node` and `jspybridge`.
 - `targets`: one entry per generated comparison test.
 
-Each target is resolved automatically:
+Targets come from two sources.
+
+Configured targets are listed explicitly under `targets`:
 
 - `id` is the snake_case name of a public function in the module (`seed_of`).
 - `module` (optional, default `seed`) selects one of the modules allowlisted in
-  `TARGET_MODULES` (`test_generated.py`). The Node runner and the JSPyBridge
-  loader expose the same module names.
-- The JavaScript export is derived from `id` in camelCase (`seed_of` becomes
-  `seedOf`). No per-function registration is needed on the JavaScript side.
-- `strategy` selects a Hypothesis strategy from `STRATEGIES`, since input
-  domains are the only part that must be written by hand.
+  `TARGET_MODULES` (`test_generated.py`).
+- `strategy` selects a Hypothesis strategy from `STRATEGIES`. For functions with
+  several inputs, use `strategies` with one entry per argument.
 
-A target that does not resolve to a public function fails its generated test
-with an explicit error on the Python side, or on the JavaScript side for the
-Node and JSPyBridge backends.
+Generated targets come from `generate`:
+
+- `modules` lists the modules to introspect. For each public function, a test is
+  created when a same-named camelCase export exists in the pinned JavaScript
+  module (`quat_mul` maps to `quatMul`), and every required parameter has a
+  strategy.
+- A parameter's strategy is taken from `param_strategies` by parameter name
+  first, then from its annotation (`float` gives `unit_float`, `object` gives
+  `seed_text`). Parameters with default values are left to their defaults.
+- `exclude` lists functions that must not be generated, for example
+  non-deterministic ones or known divergences. Each exclusion should carry a
+  comment explaining why.
+- `comparison` applies to all generated tests.
+
+Node and JSPyBridge both receive `module`, `target` and `args`, and resolve the
+JavaScript export by the same camelCase rule. Results cross the bridge as JSON
+text, so both backends use the same wire format.
 
 Comparison modes currently supported are:
 
@@ -68,10 +81,12 @@ Comparison modes currently supported are:
 - `approx`: scalar numeric comparison using configurable `rel_tol` and
   `abs_tol`.
 
-To add a comparison, make sure the function is exported with the same name
-(snake_case in Python, camelCase in the pinned JavaScript module), add it to
-`tests/config.json`, and add a strategy to `STRATEGIES` if the existing ones
-do not fit.
+To add a module to the generation, add it to `TARGET_MODULES`, add its
+re-export under `tests/reference/v2/core/`, register it in both JavaScript
+runners, and list it under `generate.modules`. Tests for its public functions
+are then created automatically. A new input domain needs a strategy in
+`STRATEGIES` and, when it is not implied by the annotation, an entry in
+`param_strategies`.
 
 Hypothesis drives the same generated input through both implementations and
 shrinks a failing input to a smaller counterexample. JSPyBridge is an

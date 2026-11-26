@@ -1,8 +1,9 @@
 import readline from "node:readline";
 import * as seed from "./core/seed.mjs";
+import * as rotation from "./core/rotation.mjs";
 
 // Static allowlist of modules, mirroring TARGET_MODULES in test_generated.py.
-const modules = { seed };
+const modules = { seed, rotation };
 
 // Map a snake_case target id to the camelCase export name, e.g. seed_of -> seedOf.
 function jsName(snake) {
@@ -21,7 +22,8 @@ function resolve(moduleId, targetId) {
   return target;
 }
 
-function encode(value) {
+// Non-finite numbers cannot be represented in JSON; encode them as Python expects.
+function replacer(_key, value) {
   if (typeof value === "number" && !Number.isFinite(value)) {
     return { __number__: String(value) };
   }
@@ -37,8 +39,8 @@ for await (const line of input) {
   try {
     const request = JSON.parse(line);
     const target = resolve(request.module, request.target);
-    const result = encode(target(request.value));
-    process.stdout.write(JSON.stringify({ ok: true, result }) + "\n");
+    const result = target(...(request.args ?? [request.value]));
+    process.stdout.write(JSON.stringify({ ok: true, result }, replacer) + "\n");
   } catch (error) {
     process.stdout.write(
       JSON.stringify({

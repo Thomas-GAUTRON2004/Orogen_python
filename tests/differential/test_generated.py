@@ -67,8 +67,12 @@ def _normalise(value: Any) -> Any:
     """Make Python non-finite numbers match the JS runner's JSON encoding."""
     if isinstance(value, bool):
         return value
-    if isinstance(value, (int, float)) and not math.isfinite(float(value)):
-        return {"__number__": str(value)}
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            label = "NaN"
+        else:
+            label = "Infinity" if value > 0 else "-Infinity"
+        return {"__number__": label}
     return value
 
 

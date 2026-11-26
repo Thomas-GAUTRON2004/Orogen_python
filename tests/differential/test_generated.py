@@ -17,7 +17,10 @@ hypothesis = pytest.importorskip(
     "hypothesis",
     reason="install Hypothesis with 'python -m pip install hypothesis'",
 )
-from hypothesis import given, seed, settings, strategies as st
+given = hypothesis.given
+seed = hypothesis.seed
+settings = hypothesis.settings
+st = hypothesis.strategies
 
 from orogen.v2.core.seed import is_word_seed, seed_of
 

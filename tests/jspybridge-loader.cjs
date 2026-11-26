@@ -1,16 +1,23 @@
-// JSPyBridge loads local modules through dynamic import(). Keep its entry point
-// CommonJS and use Node 22's synchronous require(ESM) bridge for the pinned
-// reference modules. The upstream module graph has no top-level await.
+// JSPyBridge loads local modules through require(). Modules are read by file
+// name from tests/reference/v2/core, mirroring property-runner.mjs. The
+// upstream module graph has no top-level await, so require(ESM) is synchronous.
 //
 // invoke() takes and returns JSON text so results cross the bridge as plain
 // strings, matching the Node runner's wire format.
-const modules = {
-  seed: require("./reference/v2/core/seed.mjs"),
-  rotation: require("./reference/v2/core/rotation.mjs"),
-};
+const path = require("node:path");
 
-function jsName(snake) {
-  return snake.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+const CORE_DIR = path.join(__dirname, "reference", "v2", "core");
+const FILE_PATTERN = /^[A-Za-z0-9_-]+\.mjs$/;
+const cache = new Map();
+
+function loadModule(file) {
+  if (!FILE_PATTERN.test(file)) {
+    throw new Error(`Invalid differential module: ${file}`);
+  }
+  if (!cache.has(file)) {
+    cache.set(file, require(path.join(CORE_DIR, file)));
+  }
+  return cache.get(file);
 }
 
 function replacer(_key, value) {
@@ -20,14 +27,11 @@ function replacer(_key, value) {
   return value;
 }
 
-exports.invoke = function invoke(moduleId, targetId, argsJson) {
-  const namespace = modules[moduleId];
-  if (namespace === undefined) {
-    throw new Error(`Unknown differential module: ${moduleId}`);
-  }
-  const target = namespace[jsName(targetId)];
+exports.invoke = function invoke(file, exportName, argsJson) {
+  const namespace = loadModule(file);
+  const target = namespace[exportName];
   if (typeof target !== "function") {
-    throw new Error(`Unknown differential target: ${moduleId}.${targetId}`);
+    throw new Error(`Unknown differential target: ${file}.${exportName}`);
   }
   const result = target(...JSON.parse(argsJson));
   return JSON.stringify(result, replacer);

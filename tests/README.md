@@ -49,31 +49,38 @@ Edit `tests/config.json`:
 
 Targets come from two sources.
 
-Configured targets are listed explicitly under `targets`:
+Configured targets are listed explicitly under `targets`. Each names a Python
+module (`module`, a file stem under `generate.source`, default `seed`), a
+public function (`id`), and one strategy per argument (`strategy`, or
+`strategies` for several arguments).
 
-- `id` is the snake_case name of a public function in the module (`seed_of`).
-- `module` (optional, default `seed`) selects one of the modules allowlisted in
-  `TARGET_MODULES` (`test_generated.py`).
-- `strategy` selects a Hypothesis strategy from `STRATEGIES`. For functions with
-  several inputs, use `strategies` with one entry per argument.
+Generated targets are discovered from the source directory `generate.source`:
 
-Generated targets come from `generate`:
+- `modules` selects Python modules by file stem, or `"all"`.
+- A function gets a test when a JavaScript module exists for its file (same
+  stem, or with `_` replaced by `-`, or set explicitly in `js_modules`) and that
+  module exports the camelCase name (`quat_mul` maps to `quatMul`).
+- Parameters get a strategy from `param_strategies` by name first, then from
+  their annotation (`float` gives `unit_float`, `object` gives `seed_text`).
+  Parameters with default values keep their defaults.
+- `exclude` lists functions to skip globally, with a comment explaining why.
 
-- `modules` lists the modules to introspect. For each public function, a test is
-  created when a same-named camelCase export exists in the pinned JavaScript
-  module (`quat_mul` maps to `quatMul`), and every required parameter has a
-  strategy.
-- A parameter's strategy is taken from `param_strategies` by parameter name
-  first, then from its annotation (`float` gives `unit_float`, `object` gives
-  `seed_text`). Parameters with default values are left to their defaults.
-- `exclude` lists functions that must not be generated, for example
-  non-deterministic ones or known divergences. Each exclusion should carry a
-  comment explaining why.
-- `comparison` applies to all generated tests.
+A comment directly above a function refines its generated test:
 
-Node and JSPyBridge both receive `module`, `target` and `args`, and resolve the
-JavaScript export by the same camelCase rule. Results cross the bridge as JSON
-text, so both backends use the same wire format.
+```python
+# differential: js=quatMul strategies=quaternion,quaternion mode=approx
+# differential: skip
+```
+
+- `js=` names a different JavaScript export. It fails if the export is missing.
+- `strategies=` gives the strategy per argument, overriding inference.
+- `mode=` sets the comparison for this function.
+- `skip` excludes the function. Use it for non-deterministic functions such as
+  `random_seed`.
+
+Node and JSPyBridge both receive a module file name, an export name and `args`.
+Both load the file from `tests/reference/v2/core` and reject any other path.
+Results cross the bridge as JSON text, so both backends use the same wire format.
 
 Comparison modes currently supported are:
 
@@ -81,12 +88,10 @@ Comparison modes currently supported are:
 - `approx`: scalar numeric comparison using configurable `rel_tol` and
   `abs_tol`.
 
-To add a module to the generation, add it to `TARGET_MODULES`, add its
-re-export under `tests/reference/v2/core/`, register it in both JavaScript
-runners, and list it under `generate.modules`. Tests for its public functions
-are then created automatically. A new input domain needs a strategy in
-`STRATEGIES` and, when it is not implied by the annotation, an entry in
-`param_strategies`.
+To add a module, put its Python file in `generate.source` and its JavaScript
+re-export in `tests/reference/v2/core/`. If the names differ, add a
+`js_modules` entry. No runner changes are needed. Tests appear on the next run.
+Check the list with `python -m pytest tests/test_generated.py --collect-only -q`.
 
 Hypothesis drives the same generated input through both implementations and
 shrinks a failing input to a smaller counterexample. JSPyBridge is an

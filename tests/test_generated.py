@@ -1,7 +1,18 @@
-"""Configurable and auto-generated property-based comparisons against the upstream JavaScript code."""
+"""Property-based comparisons against the upstream JavaScript, generated from source.
+
+Tests are discovered at collection time from the Python source directory named in
+config.json (generate.source). A public function gets a test when a JavaScript
+module of the same name exists under tests/reference/v2/core and exports the
+camelCase name. Comments above a function can refine the generated test:
+
+    # differential: js=quatMul strategies=quaternion,quaternion mode=approx
+    # differential: skip
+"""
 
 from __future__ import annotations
 
+import ast
+import importlib
 import importlib.util
 import inspect
 import json
@@ -9,15 +20,13 @@ import math
 import re
 import shutil
 import subprocess
+import warnings
 from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
-
-from orogen.v2.core import rotation as core_rotation
-from orogen.v2.core import seed as core_seed
 
 hypothesis = pytest.importorskip(
     "hypothesis",
@@ -35,14 +44,14 @@ JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 SETTINGS = CONFIG["settings"]
+GENERATE = CONFIG.get("generate", {})
 
-# Modules are a static allowlist. Config cannot import arbitrary code, and every
-# module listed here must have a same-named re-export under tests/reference/v2/core.
-TARGET_MODULES = {
-    "seed": core_seed,
-    "rotation": core_rotation,
-}
+SOURCE_DIR = ROOT / GENERATE.get("source", "orogen/v2/core")
+PACKAGE = ".".join(SOURCE_DIR.relative_to(ROOT).parts)
+JS_MODULE_OVERRIDES: dict[str, str] = GENERATE.get("js_modules", {})
 DEFAULT_TARGET_MODULE = "seed"
+
+_JS_FILE = re.compile(r"^[A-Za-z0-9_-]+\.mjs$")
 
 # Strategies are the only hand-written part of the input domains. A parameter
 # gets one of these from its name (config "param_strategies") or, failing that,
@@ -103,24 +112,83 @@ def _js_name(snake: str) -> str:
     return re.sub(r"_([a-z0-9])", lambda match: match.group(1).upper(), snake)
 
 
-def _js_export_names(module_id: str) -> set[str]:
+def _js_module_file(stem: str) -> str | None:
+    """Return the JavaScript module file for a Python module stem, if one exists."""
+    candidates = [
+        JS_MODULE_OVERRIDES.get(stem),
+        f"{stem}.mjs",
+        f"{stem.replace('_', '-')}.mjs",
+    ]
+    for name in candidates:
+        if name and (JS_CORE_DIR / name).is_file():
+            return name
+    return None
+
+
+_JS_EXPORTS_CACHE: dict[str, set[str]] = {}
+
+
+def _js_export_names(js_file: str) -> set[str]:
     """Read the export names of a JavaScript module without importing it in Python."""
-    node = shutil.which("node")
-    if node is None:
-        raise RuntimeError("Node.js is required to discover JavaScript exports")
-    script = (
-        f"import({json.dumps('./' + module_id + '.mjs')})"
-        ".then(m => console.log(JSON.stringify(Object.keys(m))))"
-    )
-    completed = subprocess.run(
-        [node, "-e", script],
-        cwd=JS_CORE_DIR,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=True,
-    )
-    return set(json.loads(completed.stdout))
+    if js_file not in _JS_EXPORTS_CACHE:
+        node = shutil.which("node")
+        if node is None:
+            raise RuntimeError("Node.js is required to discover JavaScript exports")
+        script = (
+            f"import({json.dumps('./' + js_file)})"
+            ".then(m => console.log(JSON.stringify(Object.keys(m))))"
+        )
+        completed = subprocess.run(
+            [node, "-e", script],
+            cwd=JS_CORE_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        _JS_EXPORTS_CACHE[js_file] = set(json.loads(completed.stdout))
+    return _JS_EXPORTS_CACHE[js_file]
+
+
+def _parse_marker(text: str) -> dict[str, Any]:
+    """Parse the body of a '# differential:' comment into a dict."""
+    marker: dict[str, Any] = {}
+    for token in text.split():
+        if "=" not in token:
+            if token == "skip":
+                marker["skip"] = True
+                continue
+            raise AssertionError(f"Invalid differential marker token: {token!r}")
+        key, value = token.split("=", 1)
+        if key == "strategies":
+            marker[key] = [item for item in value.split(",") if item]
+        elif key in ("js", "mode"):
+            marker[key] = value
+        else:
+            raise AssertionError(f"Unknown differential marker key: {key!r}")
+    return marker
+
+
+def _markers(path: Path) -> dict[str, dict[str, Any]]:
+    """Read '# differential:' comments placed directly above top-level functions."""
+    source = path.read_text(encoding="utf-8")
+    lines = source.splitlines()
+    found: dict[str, dict[str, Any]] = {}
+    for node in ast.parse(source).body:
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        start = min(
+            [node.lineno, *(decorator.lineno for decorator in node.decorator_list)]
+        )
+        index = start - 2
+        block: list[str] = []
+        while index >= 0 and lines[index].strip().startswith("#"):
+            block.insert(0, lines[index].strip()[1:].strip())
+            index -= 1
+        for comment in block:
+            if comment.startswith("differential:"):
+                found[node.name] = _parse_marker(comment[len("differential:") :])
+    return found
 
 
 def _strategies_for(function: Any, overrides: dict[str, str]) -> list[str] | None:
@@ -146,39 +214,90 @@ def _strategies_for(function: Any, overrides: dict[str, str]) -> list[str] | Non
     return strategies
 
 
-def _generated_targets() -> list[dict[str, Any]]:
-    """Generate one comparison per public function that exists on both sides.
+_PY_MODULES: dict[str, Any] = {}
 
-    A function is included when its module is listed under config "generate",
-    it is not excluded, a same-named camelCase export exists in the pinned
-    JavaScript module, and every required parameter has a strategy.
-    """
-    spec = CONFIG.get("generate", {})
-    excluded = set(spec.get("exclude", []))
-    overrides = spec.get("param_strategies", {})
-    comparison = spec.get("comparison", {"mode": "approx"})
+
+def _import_python_module(stem: str) -> Any:
+    if stem not in _PY_MODULES:
+        if not (SOURCE_DIR / f"{stem}.py").is_file():
+            raise AssertionError(f"No Python module {stem}.py under {SOURCE_DIR}")
+        _PY_MODULES[stem] = importlib.import_module(f"{PACKAGE}.{stem}")
+    return _PY_MODULES[stem]
+
+
+def _discover_stems() -> list[str]:
+    """Return the Python module stems selected by generate.modules."""
+    available = sorted(
+        path.stem for path in SOURCE_DIR.glob("*.py") if not path.stem.startswith("_")
+    )
+    selected = GENERATE.get("modules", "all")
+    if selected == "all":
+        return available
+    unknown = sorted(set(selected) - set(available))
+    if unknown:
+        raise AssertionError(f"generate.modules names unknown modules: {unknown}")
+    return list(selected)
+
+
+def _generated_targets() -> list[dict[str, Any]]:
+    """Generate one comparison per eligible public function in the source directory."""
+    excluded = set(GENERATE.get("exclude", []))
+    overrides = GENERATE.get("param_strategies", {})
+    default_comparison = GENERATE.get("comparison", {"mode": "approx"})
     generated: list[dict[str, Any]] = []
-    for module_id in spec.get("modules", []):
-        if module_id not in TARGET_MODULES:
-            raise AssertionError(f"Unknown differential module: {module_id}")
-        module = TARGET_MODULES[module_id]
-        js_names = _js_export_names(module_id)
+
+    for stem in _discover_stems():
+        js_file = _js_module_file(stem)
+        if js_file is None:
+            continue
+        markers = _markers(SOURCE_DIR / f"{stem}.py")
+        try:
+            module = _import_python_module(stem)
+        except ImportError as exc:
+            warnings.warn(
+                f"Skipping differential tests for {stem}: {exc}", stacklevel=2
+            )
+            continue
+        js_exports = _js_export_names(js_file)
+
         for name, function in inspect.getmembers(module, inspect.isfunction):
-            if name.startswith("_") or name in excluded:
+            if (
+                name.startswith("_")
+                or name in excluded
+                or function.__module__ != module.__name__
+            ):
                 continue
-            if function.__module__ != module.__name__:
+            marker = markers.get(name, {})
+            if marker.get("skip"):
                 continue
-            if _js_name(name) not in js_names:
+            js_name = marker.get("js", _js_name(name))
+            explicit = "js" in marker
+            if js_name not in js_exports:
+                if explicit:
+                    raise AssertionError(
+                        f"{stem}.{name} names JavaScript export {js_name!r}, "
+                        f"which {js_file} does not export"
+                    )
                 continue
-            strategies = _strategies_for(function, overrides)
+            strategies = marker.get("strategies") or _strategies_for(
+                function, overrides
+            )
             if strategies is None:
                 continue
             generated.append(
                 {
                     "id": name,
-                    "module": module_id,
+                    "module": stem,
+                    "js": js_name,
                     "strategies": strategies,
-                    "comparison": comparison,
+                    "comparison": {
+                        "mode": marker.get("mode", default_comparison["mode"]),
+                        **{
+                            key: value
+                            for key, value in default_comparison.items()
+                            if key != "mode"
+                        },
+                    },
                     "generated": True,
                 }
             )
@@ -186,10 +305,11 @@ def _generated_targets() -> list[dict[str, Any]]:
 
 
 def _target_module(target_config: dict[str, Any]) -> str:
-    module_id = target_config.get("module", DEFAULT_TARGET_MODULE)
-    if module_id not in TARGET_MODULES:
-        raise AssertionError(f"Unknown differential module: {module_id}")
-    return module_id
+    return target_config.get("module", DEFAULT_TARGET_MODULE)
+
+
+def _target_js_name(target_config: dict[str, Any]) -> str:
+    return target_config.get("js", _js_name(target_config["id"]))
 
 
 def _target_strategies(target_config: dict[str, Any]) -> list[str]:
@@ -205,10 +325,21 @@ def _target_label(target_config: dict[str, Any]) -> str:
 
 def _resolve_python_target(target_config: dict[str, Any]) -> Any:
     name = target_config["id"]
-    function = getattr(TARGET_MODULES[_target_module(target_config)], name, None)
-    if name.startswith("_") or not callable(function):
-        raise AssertionError(f"Differential target is not a public function: {name}")
+    if name.startswith("_"):
+        raise AssertionError(f"Differential target is private: {name}")
+    function = getattr(_import_python_module(_target_module(target_config)), name, None)
+    if not callable(function):
+        raise AssertionError(f"Differential target is not a function: {name}")
     return function
+
+
+def _js_file_for(target_config: dict[str, Any]) -> str:
+    js_file = _js_module_file(_target_module(target_config))
+    if js_file is None:
+        raise AssertionError(
+            f"No JavaScript module for {_target_module(target_config)}"
+        )
+    return js_file
 
 
 def _normalise(value: Any) -> Any:
@@ -243,11 +374,11 @@ class JavaScriptSession:
             bufsize=1,
         )
 
-    def call(self, module: str, target: str, args: list[Any]) -> Any:
+    def call(self, js_file: str, export: str, args: list[Any]) -> Any:
         if self.process.stdin is None or self.process.stdout is None:
             raise RuntimeError("JavaScript runner streams are unavailable")
         request = json.dumps(
-            {"module": module, "target": target, "args": args},
+            {"module": js_file, "target": export, "args": args},
             ensure_ascii=False,
             allow_nan=False,
         )
@@ -289,11 +420,11 @@ class JSPyBridgeSession:
         self._bridge = javascript
         self._loader = javascript.require("./jspybridge-loader.cjs", __file__)
 
-    def call(self, module: str, target: str, args: list[Any]) -> Any:
-        # The loader returns JSON text so results cross the bridge as plain strings,
-        # exactly as they do through the Node runner.
+    def call(self, js_file: str, export: str, args: list[Any]) -> Any:
+        # The loader returns JSON text so results cross the bridge as plain
+        # strings, exactly as they do through the Node runner.
         text = self._loader.invoke(
-            module, target, json.dumps(args, ensure_ascii=False, allow_nan=False)
+            js_file, export, json.dumps(args, ensure_ascii=False, allow_nan=False)
         )
         return json.loads(text)
 
@@ -370,7 +501,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
 
 
 CONFIGURED_TARGETS = list(CONFIG["targets"])
-GENERATED_TARGETS = _generated_targets()
+GENERATED_TARGETS = _generated_targets() if GENERATE else []
 ALL_TARGETS = CONFIGURED_TARGETS + GENERATED_TARGETS
 
 
@@ -387,8 +518,6 @@ def test_generated_differential_cases(
     data: Any,
     javascript: Any,
 ) -> None:
-    target_id = target_config["id"]
-    module_id = _target_module(target_config)
     strategy_ids = _target_strategies(target_config)
     for strategy_id in strategy_ids:
         assert strategy_id in STRATEGIES, f"Unknown Hypothesis strategy: {strategy_id}"
@@ -399,7 +528,11 @@ def test_generated_differential_cases(
         for strategy_id in strategy_ids
     ]
     python_result = _normalise(python_target(*args))
-    javascript_result = _normalise(javascript.call(module_id, target_id, args))
+    javascript_result = _normalise(
+        javascript.call(
+            _js_file_for(target_config), _target_js_name(target_config), args
+        )
+    )
     _assert_equivalent(
         python_result,
         javascript_result,

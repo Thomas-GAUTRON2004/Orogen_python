@@ -85,6 +85,7 @@ def seed_of(text: object) -> int | float:
     return h % SEEDS
 
 
+# differential: skip
 def random_seed() -> int:
     """Return a seed in the supported range."""
     return secrets.randbelow(SEEDS)

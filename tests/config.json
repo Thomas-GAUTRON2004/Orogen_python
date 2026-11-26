@@ -11,6 +11,7 @@
   "targets": [
     {
       "id": "seed_of",
+      "module": "seed",
       "strategy": "seed_text",
       "comparison": {
         "mode": "exact"
@@ -18,6 +19,7 @@
     },
     {
       "id": "is_word_seed",
+      "module": "seed",
       "strategy": "seed_text",
       "comparison": {
         "mode": "exact"
@@ -25,9 +27,14 @@
     }
   ],
   "generate": {
+    "source": "orogen/v2/core",
     "modules": [
-      "rotation"
+      "rotation",
+      "sphere_geometry"
     ],
+    "js_modules": {
+      "sphere_geometry": "sphere-geom.mjs"
+    },
     "exclude": [
       "quat_to_mat3"
     ],

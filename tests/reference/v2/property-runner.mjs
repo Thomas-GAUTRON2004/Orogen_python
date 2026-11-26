@@ -1,25 +1,19 @@
 import readline from "node:readline";
-import * as seed from "./core/seed.mjs";
-import * as rotation from "./core/rotation.mjs";
 
-// Static allowlist of modules, mirroring TARGET_MODULES in test_generated.py.
-const modules = { seed, rotation };
+// Modules are loaded by file name from tests/reference/v2/core. The name is
+// validated so that config or generated tests cannot reach other files.
+const CORE_URL = new URL("./core/", import.meta.url);
+const FILE_PATTERN = /^[A-Za-z0-9_-]+\.mjs$/;
+const cache = new Map();
 
-// Map a snake_case target id to the camelCase export name, e.g. seed_of -> seedOf.
-function jsName(snake) {
-  return snake.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
-}
-
-function resolve(moduleId, targetId) {
-  const namespace = modules[moduleId ?? "seed"];
-  if (namespace === undefined) {
-    throw new Error(`Unknown differential module: ${moduleId}`);
+async function loadModule(file) {
+  if (!FILE_PATTERN.test(file)) {
+    throw new Error(`Invalid differential module: ${file}`);
   }
-  const target = namespace[jsName(targetId)];
-  if (typeof target !== "function") {
-    throw new Error(`Unknown differential target: ${moduleId}.${targetId}`);
+  if (!cache.has(file)) {
+    cache.set(file, import(new URL(file, CORE_URL).href));
   }
-  return target;
+  return cache.get(file);
 }
 
 // Non-finite numbers cannot be represented in JSON; encode them as Python expects.
@@ -38,8 +32,12 @@ const input = readline.createInterface({
 for await (const line of input) {
   try {
     const request = JSON.parse(line);
-    const target = resolve(request.module, request.target);
-    const result = target(...(request.args ?? [request.value]));
+    const namespace = await loadModule(request.module);
+    const target = namespace[request.target];
+    if (typeof target !== "function") {
+      throw new Error(`Unknown differential target: ${request.module}.${request.target}`);
+    }
+    const result = target(...(request.args ?? []));
     process.stdout.write(JSON.stringify({ ok: true, result }, replacer) + "\n");
   } catch (error) {
     process.stdout.write(

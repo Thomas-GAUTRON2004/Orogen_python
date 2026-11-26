@@ -6,6 +6,10 @@ on:
       - main
       - "port/**"
   pull_request:
+    paths-ignore:
+      - ".github/workflows/differential-jspybridge.yml"
+      - "tests/differential/**"
+      - "CHANGELOG.md"
   workflow_dispatch:
 
 permissions:

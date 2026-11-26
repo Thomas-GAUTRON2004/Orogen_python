@@ -647,6 +647,7 @@ _POSITIVE = frozenset(
         "stepGridMyr",
         "maxCellsPerStep",
         "snapshotEveryMyr",
+        "startMaxLatitudeDeg",
         "slabPullAgeRefMyr",
         "slabMatureKm",
         "ridgeMaxAgeMyr",
@@ -661,7 +662,10 @@ _POSITIVE = frozenset(
 )
 _NON_NEGATIVE = frozenset(
     {
+        # 0 is accepted: upstream computes NaN, not an exception (docs/ADAPTATIONS.md)
+        "coastUnionSoftnessKm",
         "beltSpeedExponent",
+        "startGrowthBias",
         "slowRulesEveryMyr",
         "boundaryActiveCmYr",
         "closingCmYr",
@@ -690,16 +694,6 @@ _UNIT_INTERVAL = frozenset(
         "continentalPlateShare",
     }
 )
-
-
-def _merge(base: dict[str, Any], values: Mapping[str, Any]) -> dict[str, Any]:
-    result = deepcopy(base)
-    for key, value in values.items():
-        if isinstance(value, Mapping) and isinstance(result.get(key), dict):
-            result[key] = _merge(result[key], value)
-        else:
-            result[key] = deepcopy(value)
-    return result
 
 
 def _validate_known_shape(value: Any, default: Any, path: str) -> None:
@@ -769,6 +763,18 @@ def validate_tectonics_config(config: Mapping[str, Any]) -> None:
             raise ValueError(f"{key} must be in [0, 1]")
         if key in {"beltSpeedFactorMin", "beltSpeedFactorMax"} and float(value) < 0:
             raise ValueError(f"{key} must be non-negative")
+    for key in ("startArcKm", "startStepKm"):
+        if key not in config:
+            continue
+        lower, upper = (float(value) for value in config[key])
+        if lower <= 0.0 or upper <= 0.0:
+            raise ValueError(f"{key} values must be positive")
+        if lower > upper:
+            raise ValueError(f"{key} lower bound cannot exceed upper bound")
+
+    if "startMaxLatitudeDeg" in config and float(config["startMaxLatitudeDeg"]) > 90.0:
+        raise ValueError("startMaxLatitudeDeg cannot exceed 90 degrees")
+
     if float(config.get("beltSpeedFactorMin", 0.6)) > float(
         config.get("beltSpeedFactorMax", 1.6)
     ):
@@ -801,15 +807,17 @@ def make_tectonics_config(
     *,
     base: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Return an isolated config with recursive overrides and validated known fields.
+    """Return an isolated config using the upstream constructor shallow spread.
 
-    By default, overrides are merged into the upstream defaults. Supplying a base
-    instead merges into that explicit configuration, preserving its partial shape.
+    The JavaScript world uses object spread: supplying a nested group replaces
+    that group rather than recursively merging its fields. Supplying base applies
+    the same top-level replacement semantics to it.
     """
     if overrides is not None and not isinstance(overrides, Mapping):
         raise TypeError("tectonics overrides must be a mapping")
     if base is not None and not isinstance(base, Mapping):
         raise TypeError("tectonics base config must be a mapping")
-    config = _merge(TECTONICS if base is None else dict(base), overrides or {})
+    config = deepcopy(TECTONICS if base is None else dict(base))
+    config.update(deepcopy(dict(overrides or {})))
     validate_tectonics_config(config)
     return config

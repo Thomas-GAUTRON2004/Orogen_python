@@ -138,6 +138,86 @@ def _hop_distance_kernel(offsets, adjacency, sources, max_hops):
     return distance
 
 
+def _hops_from_kernel(offsets, adjacency, source_cells, max_hops):
+    """Return multi-source hop distances and source ownership in queue order."""
+    n = offsets.size - 1
+    distance = np.full(n, -1, dtype=np.int16)
+    source_of = np.full(n, -1, dtype=np.int32)
+    queue = np.empty(n, dtype=np.int32)
+    head = 0
+    tail = 0
+
+    for i in range(source_cells.size):
+        cell = int(source_cells[i])
+        if distance[cell] < 0:
+            distance[cell] = 0
+            source_of[cell] = cell
+            queue[tail] = cell
+            tail += 1
+
+    while head < tail:
+        cell = int(queue[head])
+        head += 1
+        next_depth = int(distance[cell]) + 1
+        if next_depth > max_hops:
+            continue
+        for edge in range(offsets[cell], offsets[cell + 1]):
+            neighbour = int(adjacency[edge])
+            if distance[neighbour] >= 0:
+                continue
+            distance[neighbour] = next_depth
+            source_of[neighbour] = source_of[cell]
+            queue[tail] = neighbour
+            tail += 1
+
+    return distance, source_of
+
+
+def _within_km_kernel(offsets, adjacency, xyz, source_mask, source_edges, min_dot):
+    """Mark the union of per-source great-circle radius traversals."""
+    n = source_mask.size
+    reached = np.zeros(n, dtype=np.uint8)
+    seen = np.full(n, -1, dtype=np.int32)
+    queue = np.empty(n, dtype=np.int32)
+
+    for source in range(n):
+        if not source_mask[source]:
+            continue
+        reached[source] = 1
+        if not source_edges[source]:
+            continue
+
+        sx = float(xyz[3 * source])
+        sy = float(xyz[3 * source + 1])
+        sz = float(xyz[3 * source + 2])
+        head = 0
+        tail = 1
+        queue[0] = source
+        seen[source] = source
+
+        while head < tail:
+            cell = int(queue[head])
+            head += 1
+            for edge in range(offsets[cell], offsets[cell + 1]):
+                neighbour = int(adjacency[edge])
+                if seen[neighbour] == source:
+                    continue
+                offset = 3 * neighbour
+                cosine = (
+                    float(xyz[offset]) * sx
+                    + float(xyz[offset + 1]) * sy
+                    + float(xyz[offset + 2]) * sz
+                )
+                if cosine < min_dot:
+                    continue
+                seen[neighbour] = source
+                reached[neighbour] = 1
+                queue[tail] = neighbour
+                tail += 1
+
+    return reached
+
+
 def _far_field_distance_kernel(
     offsets,
     adjacency,
@@ -825,6 +905,26 @@ def _snapshot_cell_fields_kernel(fields, cell):
     return values
 
 
+def _hypot3(x, y, z):
+    """3-D norm with the algorithm of V8's Math.hypot (max scaling, Kahan sum).
+
+    Used everywhere the upstream JavaScript calls Math.hypot, so that the
+    Python and Numba paths are bit-identical to the reference.
+    """
+    ax, ay, az = abs(x), abs(y), abs(z)
+    m = max(ax, max(ay, az))
+    if m == 0.0:
+        return 0.0
+    s = 0.0
+    c = 0.0
+    for v in (ax / m, ay / m, az / m):
+        summand = v * v - c
+        pre = s + summand
+        c = (pre - s) - summand
+        s = pre
+    return math.sqrt(s) * m
+
+
 def _record_push_kernel(
     far_work,
     far_dist,
@@ -872,7 +972,7 @@ def _record_push_kernel(
     ax = cosine * px - qx
     ay = cosine * py - qy
     az = cosine * pz - qz
-    length = math.sqrt(ax * ax + ay * ay + az * az)
+    length = _hypot3(ax, ay, az)
     if length < 1e-9:
         return
     ax = ax / length
@@ -889,7 +989,7 @@ def _record_push_kernel(
     x = vx * old_work + ax * felt
     y = vy * old_work + ay * felt
     z = vz * old_work + az * felt
-    norm = math.sqrt(x * x + y * y + z * z)
+    norm = _hypot3(x, y, z)
     if norm == 0.0:
         norm = 1.0
     far_dx[cell] = max(-127, min(127, math.floor(127.0 * x / norm + 0.5)))
@@ -1001,6 +1101,8 @@ noise3d_numba: Any
 fbm_numba: Any
 fbm_many_numba: Any
 hop_distance_numba: Any
+hops_from_numba: Any
+within_km_numba: Any
 spread_km_numba: Any
 far_field_distance_numba: Any
 emit_far_pushes_numba: Any
@@ -1018,6 +1120,115 @@ copy_cells_numba: Any
 remove_cells_numba: Any
 
 
+# --- Simplex noise (upstream js/simplex-noise.js): 12 gradients, fBm, ridged fBm. ---
+SIMPLEX_GRADIENTS = np.array(
+    [
+        [1.0, 1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [1.0, -1.0, 0.0],
+        [-1.0, -1.0, 0.0],
+        [1.0, 0.0, 1.0],
+        [-1.0, 0.0, 1.0],
+        [1.0, 0.0, -1.0],
+        [-1.0, 0.0, -1.0],
+        [0.0, 1.0, 1.0],
+        [0.0, -1.0, 1.0],
+        [0.0, 1.0, -1.0],
+        [0.0, -1.0, -1.0],
+    ],
+    dtype=np.float64,
+)
+
+
+def _simplex_noise3d_kernel(x, y, z, perm, pm12, grad):
+    """One simplex sample; same operation order as upstream `noise3D`."""
+    f, h = 1.0 / 3.0, 1.0 / 6.0
+    skew = (x + y + z) * f
+    i, j, k = math.floor(x + skew), math.floor(y + skew), math.floor(z + skew)
+    unskew = (i + j + k) * h
+    x0, y0, z0 = x - i + unskew, y - j + unskew, z - k + unskew
+    if x0 >= y0:
+        if y0 >= z0:
+            i1, j1, k1, i2, j2, k2 = 1, 0, 0, 1, 1, 0
+        elif x0 >= z0:
+            i1, j1, k1, i2, j2, k2 = 1, 0, 0, 1, 0, 1
+        else:
+            i1, j1, k1, i2, j2, k2 = 0, 0, 1, 1, 0, 1
+    else:
+        if y0 < z0:
+            i1, j1, k1, i2, j2, k2 = 0, 0, 1, 0, 1, 1
+        elif x0 < z0:
+            i1, j1, k1, i2, j2, k2 = 0, 1, 0, 0, 1, 1
+        else:
+            i1, j1, k1, i2, j2, k2 = 0, 1, 0, 1, 1, 0
+    x1, y1, z1 = x0 - i1 + h, y0 - j1 + h, z0 - k1 + h
+    x2, y2, z2 = x0 - i2 + 2.0 * h, y0 - j2 + 2.0 * h, z0 - k2 + 2.0 * h
+    x3, y3, z3 = x0 - 1.0 + 3.0 * h, y0 - 1.0 + 3.0 * h, z0 - 1.0 + 3.0 * h
+    ii, jj, kk = i & 255, j & 255, k & 255
+
+    n0 = 0.0
+    a = 0.6 - x0 * x0 - y0 * y0 - z0 * z0
+    if a > 0.0:
+        a *= a
+        g = pm12[ii + perm[jj + perm[kk]]]
+        n0 = a * a * (grad[g, 0] * x0 + grad[g, 1] * y0 + grad[g, 2] * z0)
+    n1 = 0.0
+    b = 0.6 - x1 * x1 - y1 * y1 - z1 * z1
+    if b > 0.0:
+        b *= b
+        g = pm12[ii + i1 + perm[jj + j1 + perm[kk + k1]]]
+        n1 = b * b * (grad[g, 0] * x1 + grad[g, 1] * y1 + grad[g, 2] * z1)
+    n2 = 0.0
+    c = 0.6 - x2 * x2 - y2 * y2 - z2 * z2
+    if c > 0.0:
+        c *= c
+        g = pm12[ii + i2 + perm[jj + j2 + perm[kk + k2]]]
+        n2 = c * c * (grad[g, 0] * x2 + grad[g, 1] * y2 + grad[g, 2] * z2)
+    n3 = 0.0
+    d = 0.6 - x3 * x3 - y3 * y3 - z3 * z3
+    if d > 0.0:
+        d *= d
+        g = pm12[ii + 1 + perm[jj + 1 + perm[kk + 1]]]
+        n3 = d * d * (grad[g, 0] * x3 + grad[g, 1] * y3 + grad[g, 2] * z3)
+    return 32.0 * (n0 + n1 + n2 + n3)
+
+
+def _simplex_fbm_kernel(x, y, z, octaves, persistence, perm, pm12, grad):
+    total = 0.0
+    peak = 0.0
+    amp = 1.0
+    for o in range(octaves):
+        f = 1 << o
+        total += amp * _simplex_noise3d_kernel(x * f, y * f, z * f, perm, pm12, grad)
+        peak += amp
+        amp *= persistence
+    return total / peak
+
+
+def _simplex_ridged_kernel(
+    x, y, z, octaves, lacunarity, gain, offset, perm, pm12, grad
+):
+    total = 0.0
+    freq = 1.0
+    amp = 1.0
+    prev = 1.0
+    peak = 0.0
+    for _ in range(octaves):
+        n = _simplex_noise3d_kernel(x * freq, y * freq, z * freq, perm, pm12, grad)
+        n = offset - abs(n)
+        n = n * n
+        total += n * amp * prev
+        peak += amp
+        prev = min(n, 1.0)
+        freq *= lacunarity
+        amp *= gain
+    return total / peak
+
+
+simplex_noise3d_py = _simplex_noise3d_kernel
+simplex_fbm_py = _simplex_fbm_kernel
+simplex_ridged_py = _simplex_ridged_kernel
+
 if NUMBA_AVAILABLE:
     noise3d_numba = njit(cache=True, fastmath=False)(_noise3d_kernel)
     # Compile dependencies first and expose their dispatchers to the next kernel.
@@ -1026,11 +1237,14 @@ if NUMBA_AVAILABLE:
     _fbm_kernel = fbm_numba
     fbm_many_numba = njit(cache=True, fastmath=False)(_fbm_many_kernel)
     hop_distance_numba = njit(cache=True, fastmath=False)(_hop_distance_kernel)
+    hops_from_numba = njit(cache=True, fastmath=False)(_hops_from_kernel)
+    within_km_numba = njit(cache=True, fastmath=False)(_within_km_kernel)
     spread_km_numba = njit(cache=True, fastmath=False)(_spread_km_kernel)
     far_field_distance_numba = njit(cache=True, fastmath=False)(
         _far_field_distance_kernel
     )
     # Helper dispatchers must exist before the kernel that calls them is compiled.
+    _hypot3 = njit(cache=True, fastmath=False)(_hypot3)
     _record_push_kernel = njit(cache=True, fastmath=False)(_record_push_kernel)
     emit_far_pushes_numba = njit(cache=True, fastmath=False)(_emit_far_pushes_kernel)
     walk_numba = njit(cache=True, fastmath=False)(_walk_kernel)
@@ -1058,8 +1272,20 @@ else:
     noise3d_numba = fbm_numba = fbm_many_numba = hop_distance_numba = (
         spread_km_numba
     ) = far_field_distance_numba = walk_numba = emit_far_pushes_numba = None
+    hops_from_numba = within_km_numba = None
     pieces_of_numba = largest_piece_numba = None
     destination_many_numba = bearing_to_many_numba = None
     zero_cell_fields_numba = snapshot_cell_fields_numba = None
     create_cells_numba = create_cells_blocks_numba = snapshot_cells_numba = None
     copy_cells_numba = remove_cells_numba = None
+
+if NUMBA_AVAILABLE:
+    simplex_noise3d_numba = njit(cache=True, fastmath=False)(simplex_noise3d_py)
+    # fBm and ridged fBm call the sample by global name: rebind it to the compiled
+    # sample so that Numba compiles the whole chain (same pattern as _noise3d_kernel).
+    _simplex_noise3d_kernel = simplex_noise3d_numba
+    simplex_fbm_numba = njit(cache=True, fastmath=False)(simplex_fbm_py)
+    simplex_ridged_numba = njit(cache=True, fastmath=False)(simplex_ridged_py)
+else:
+    # Keep the optional simplex dispatchers importable when the speed extra is absent.
+    simplex_noise3d_numba = simplex_fbm_numba = simplex_ridged_numba = None

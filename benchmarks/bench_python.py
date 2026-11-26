@@ -22,7 +22,13 @@ import numpy as np
 import orogen.v2.tectonics.far_field as far_field_module
 from orogen.v2.core._numba_kernels import NUMBA_AVAILABLE
 from orogen.v2.core.fast_noise import FastNoise
-from orogen.v2.core.mesh_bfs import hop_distance, pieces_of
+from orogen.v2.core.mesh_bfs import (
+    hop_distance,
+    hops_from,
+    largest_piece_of,
+    pieces_of,
+    within_km,
+)
 from orogen.v2.core.min_heap import spread_km
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.core.sphere_geometry import bearing_to_many, destination_many
@@ -32,7 +38,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 N_NOISE = 40_000
 N_GEOM = 80_000
-N_CELLS = 12_000
+N_CELLS = 40_000
 N_STEP_CELLS = int(os.environ.get("BENCH_STEP_CELLS", "512"))
 ROUNDS = max(3, int(os.environ.get("BENCH_ROUNDS", "10")))
 WARMUPS = max(1, int(os.environ.get("BENCH_WARMUPS", "2")))
@@ -320,6 +326,21 @@ def run_mode(points, vectors, mesh, far_field_case, step_mesh, enabled: bool):
             components = pieces_of(mesh, selected_cells)
             _sink = sum(len(component) for component in components)
 
+        def bench_largest_piece():
+            global _sink
+            largest = largest_piece_of(mesh, selected_cells)
+            _sink = len(largest)
+
+        def bench_within_km():
+            global _sink
+            reached = within_km(mesh, lambda cell: cell == 0, 5_000.0)
+            _sink = int(np.count_nonzero(reached))
+
+        def bench_multi_source_bfs():
+            global _sink
+            distance, source = hops_from(mesh, (0, N_CELLS // 2))
+            _sink = int(distance[-1]) + int(source[-1])
+
         def bench_dijkstra():
             global _sink
             distance = np.full(N_CELLS, np.inf, dtype=np.float64)
@@ -348,6 +369,9 @@ def run_mode(points, vectors, mesh, far_field_case, step_mesh, enabled: bool):
             "spherical_geometry_ms": measure(bench_geometry),
             "mesh_bfs_ms": measure(bench_bfs),
             "mesh_components_ms": measure(bench_components),
+            "mesh_largest_piece_ms": measure(bench_largest_piece),
+            "mesh_within_km_ms": measure(bench_within_km),
+            "mesh_multi_source_bfs_ms": measure(bench_multi_source_bfs),
             "mesh_dijkstra_ms": measure(bench_dijkstra),
             "crust_create_snapshot_ms": measure(bench_crust_create_snapshot),
             "crust_copy_ms": measure(bench_crust_copy),

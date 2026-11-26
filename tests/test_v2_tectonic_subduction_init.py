@@ -78,7 +78,7 @@ def config(**overrides):
 
 def make_boundary_world(*, background=False, **overrides):
     mesh = Mesh()
-    world = TectonicWorld(mesh, seed=24, config=config(**overrides))
+    world = TectonicWorld(mesh, seed=24, overrides=config(**overrides))
     world.time = 0.0
     if background:
         passive = world.add_plate("Panthalassa")
@@ -109,7 +109,7 @@ def make_boundary_world(*, background=False, **overrides):
 
 def make_intraplate_world(**overrides):
     mesh = Mesh(edge_km=100.0, cell_area=100.0)
-    world = TectonicWorld(mesh, seed=56, config=config(**overrides))
+    world = TectonicWorld(mesh, seed=56, overrides=config(**overrides))
     world.time = 100.0
     plate = world.add_plate("Pangaea")
     plate.crust.create(0, CrustType["CONTINENT"], -1000.0, 1)
@@ -339,7 +339,7 @@ def test_initiate_subduction_rejects_a_fragmented_contact_segment(monkeypatch):
 
 def test_initiate_subduction_handles_background_as_second_plate():
     mesh = Mesh()
-    world = TectonicWorld(mesh, seed=24, config=config())
+    world = TectonicWorld(mesh, seed=24, overrides=config())
     world.time = 0.0
     active = world.add_plate("Pacific")
     background = world.add_plate("Panthalassa")

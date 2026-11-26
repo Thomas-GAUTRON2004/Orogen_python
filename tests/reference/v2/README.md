@@ -1,21 +1,36 @@
-# Upstream JavaScript reference fixtures
+# Upstream JavaScript reference
 
-These files are copied from the upstream repository
-[raguilar011095/planet_heightmap_generation](https://github.com/raguilar011095/planet_heightmap_generation),
-tag `v3.0.1`, commit `ed466f9db71292e912d8d0160e689a67a994f2d9`.
+The upstream engine is a git submodule:
 
-Vendored upstream modules include:
-- `js/rng.js` and `js/sphere-mesh.js`;
-- `v2/js/core/seed.js`, `rotation.js`, `fast-noise.js`, `device.js`,
-  `sphere-geom.js`, `sphere-index.js`, `mesh-bfs.js`, `mesh-rings.js`,
-  `mesh-locate.js`, `min-heap.js`, and `sim-mesh.js`;
-- `v2/js/tectonics/model/crust.js`, `plate.js`, and `world.js`.
+- path: `external/planet_heightmap_generation`
+- repository: https://github.com/raguilar011095/planet_heightmap_generation
+- pinned commit: `ed466f9db71292e912d8d0160e689a67a994f2d9` (tag `v3.0.1`)
 
-The JavaScript implementations are retained as the comparison oracle. Only module
-extensions, relative import paths, and a minimal empty TECTONICS config shim for
-the isolated world-state fixture were adjusted. Algorithms are not rewritten.
-Do not edit reference algorithms to make Python comparisons pass; rebase them only
-when intentionally moving to a new upstream commit, and record that commit here.
+Clone the repository with `git clone --recurse-submodules`, or run
+`git submodule update --init` in an existing checkout. CI checks the submodule out
+recursively.
+
+Every `.mjs` file in this directory that corresponds to an upstream module is a
+**pointer**: a single `export * from` line into the submodule. Comparisons therefore
+run on the upstream code itself, not on a copy. The pointers are:
+
+- `core/*.mjs` → `v2/js/core/*.js`;
+- `js/rng.mjs`, `js/simplex-noise.mjs`, `js/sphere-mesh.mjs` → `js/*.js`;
+- `tectonics/config.mjs` → `v2/js/tectonics/config.js` (the full `TECTONICS` defaults);
+- `tectonics/crust.mjs`, `plate.mjs`, `world.mjs`, `geology.mjs` → `v2/js/tectonics/model/*.js`;
+- `tectonics/kinematics.mjs`, `occupancy.mjs` → `v2/js/tectonics/step/*.js`;
+- `tectonics/init/cratons.mjs`, `landmass.mjs`, `rim-trench.mjs` → `v2/js/tectonics/init/*.js`.
+
+Harness files (`*-runner.mjs`, `differential-*.mjs`, `noise-probe.mjs`, `geology-encoding.mjs`, `scenes/dump_scenes.mjs`) are not upstream modules. They only import the pointers above and call the upstream functions; none of them reimplements an upstream step. `initial-world-layout-runner.mjs` calls `buildStartWorld` from `init/start-world.js` and prints its result, so the layout search, landmass, rim and trench, inherited ranges and far-field pushes are all upstream code. To move to a new upstream commit, update the submodule pin and this file together, then rerun the comparisons.
+
+Upstream code is loaded as ES modules. Delaunator 5.0.1 is installed at the repository
+root for the sphere-mesh and scene tests.
+
+The initial-world runner also reproduces the inherited-range and far-field
+start-push record stages from upstream `v2/js/tectonics/init/start-world.js`,
+`v2/js/tectonics/step/orogeny.js`, and `v2/js/tectonics/step/far-field.js`
+at the same pinned commit. It compares the generated orogeny, belt geometry,
+relief, and far-field arrays; do not relax those comparisons to hide a mismatch.
 
 The sphere-mesh differential tests install Delaunator 5.0.1 in CI and compare
 Fibonacci coordinates, stereographic projection, triangle connectivity, region
@@ -23,3 +38,17 @@ adjacency, mesh metrics, and nearest-cell lookup.
 
 The upstream project is GPL-3.0. These fixtures are included under the same
 license as the Python port.
+
+The prescribed-motion scene harness
+`scenes/dump_prescribed_scenes.mjs` imports the upstream rigid-drift,
+Wilson-cycle and start-world-nudge constructors and motion drivers directly
+from the pinned submodule. The adjacent
+`scenes/prescribed-scenes-cases.json` records the deterministic mesh size,
+seeds and sample times. Python differential tests send the same mesh arrays
+to the JavaScript harness and compare plate crust, prescribed motion and
+time-dependent poses/velocities.
+The mechanism override runner `scenes/dump_mechanism_overrides.mjs` applies each
+Python mechanism-helper result to the upstream `TectonicWorld` constructor and
+returns the effective overridden fields. It specifically exercises the JS
+constructor semantics for every mechanism group, including the positive-infinity
+disabled sentinel.

@@ -1,4 +1,3 @@
-// Minimal test shim: the world fixture receives explicit test config overrides.
-export const TECTONICS = {};
-
-export const CM_PER_YR_TO_RAD_PER_MYR = 10 / 6371;
+// Upstream pointer (planet_heightmap_generation @ ed466f9, v2/js/tectonics/config.js).
+// Comparisons run on the submodule itself: see README.md.
+export * from "../../../../external/planet_heightmap_generation/v2/js/tectonics/config.js";

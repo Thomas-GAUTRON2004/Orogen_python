@@ -26,16 +26,15 @@ def test_upstream_unit_conversions_and_default_values():
     }
 
 
-def test_nested_overrides_are_merged_without_mutating_defaults():
+def test_nested_overrides_follow_upstream_shallow_spread_without_mutating_defaults():
     config = make_tectonics_config({"belts": {"andean": {"maxKm": 450.0}}})
-    assert config["belts"]["andean"] == {
+    assert config["belts"] == {"andean": {"maxKm": 450.0}}
+    assert "himalayan" not in config["belts"]
+    assert TECTONICS["belts"]["andean"] == {
         "baseKm": 120.0,
         "perKm": 1.0,
-        "maxKm": 450.0,
+        "maxKm": 400.0,
     }
-    assert config["belts"]["himalayan"]["maxKm"] == 1000.0
-    config["belts"]["andean"]["baseKm"] = 1.0
-    assert TECTONICS["belts"]["andean"]["baseKm"] == 120.0
 
 
 def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
@@ -53,12 +52,23 @@ def test_unknown_upstream_keys_are_preserved_for_incremental_porting():
         {"collisionShearShare": -0.1},
         {"beltSpeedFactorMin": 2.0, "beltSpeedFactorMax": 1.0},
         {"beltSpeedExponent": -0.1},
+        {"startArcKm": [0, 0]},
+        {"startArcKm": [0, 100]},
+        {"startStepKm": [100, 0]},
+        {"startMaxLatitudeDeg": 0},
+        {"startGrowthBias": -0.1},
         {"belts": {"andean": {"baseKm": 500, "maxKm": 400}}},
     ],
 )
 def test_invalid_configuration_values_are_rejected(overrides):
     with pytest.raises((TypeError, ValueError)):
         make_tectonics_config(overrides)
+
+
+def test_start_margin_ranges_reject_reversed_bounds():
+    for key in ("startArcKm", "startStepKm"):
+        with pytest.raises(ValueError, match="lower bound cannot exceed upper bound"):
+            make_tectonics_config({key: [500.0, 100.0]})
 
 
 def test_boolean_is_not_accepted_as_numeric_configuration():
@@ -133,22 +143,6 @@ def test_belt_speed_exponent_may_be_zero_but_not_negative():
     assert make_tectonics_config({"beltSpeedExponent": 0})["beltSpeedExponent"] == 0
     with pytest.raises(ValueError, match="beltSpeedExponent must be non-negative"):
         make_tectonics_config({"beltSpeedExponent": -0.1})
-
-
-def test_merge_replaces_non_mapping_values_and_keeps_unknown_nested_values():
-    from orogen.v2.tectonics.config import _merge
-
-    source = {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
-    result = _merge(
-        source,
-        {"scalar": {"new": True}, "nested": {"extra": 3}, "list": {"replace": 4}},
-    )
-    assert result == {
-        "scalar": {"new": True},
-        "nested": {"keep": [1, 2], "extra": 3},
-        "list": {"replace": 4},
-    }
-    assert source == {"scalar": 1, "nested": {"keep": [1, 2]}, "list": [1, 2]}
 
 
 @pytest.mark.parametrize(
@@ -245,16 +239,13 @@ def test_make_config_rejects_non_mapping_overrides_and_base():
         make_tectonics_config(base=[])
 
 
-def test_make_config_merges_into_an_explicit_partial_base():
+def test_make_config_uses_shallow_spread_with_an_explicit_partial_base():
     base = {"custom": {"nested": [1]}, "simCells": 10}
     config = make_tectonics_config(
         {"custom": {"extra": True}, "simCells": 20},
         base=base,
     )
-    assert config == {
-        "custom": {"nested": [1], "extra": True},
-        "simCells": 20,
-    }
+    assert config == {"custom": {"extra": True}, "simCells": 20}
     assert base == {"custom": {"nested": [1]}, "simCells": 10}
 
 
@@ -267,3 +258,58 @@ def test_mechanism_helpers_reject_unknown_names_and_copy_nested_values():
     disabled = mechanisms_off("mantleHeatRifts")
     disabled["riftHeatGain"] = 999
     assert MECHANISMS["mantleHeatRifts"]["riftHeatGain"] == 0
+
+
+def test_validate_config_rejects_latitude_above_ninety_degrees():
+    with pytest.raises(ValueError, match="startMaxLatitudeDeg cannot exceed 90"):
+        validate_tectonics_config({"startMaxLatitudeDeg": 91.0})
+
+
+def test_known_shape_validation_accepts_matching_scalar_type():
+    from orogen.v2.tectonics.config import _validate_known_shape
+
+    _validate_known_shape("continental", "oceanic", "label")
+
+
+@pytest.mark.parametrize("key", sorted(TECTONICS))
+def test_omitted_top_level_override_keeps_upstream_default(key):
+    """An absent override must leave that upstream default unchanged."""
+    config = make_tectonics_config({})
+    assert config[key] == TECTONICS[key]
+
+
+def test_mechanism_helpers_cover_every_upstream_mechanism_field():
+    """Exercise every mechanism rather than only the rifts representative."""
+    for name, disabled in MECHANISMS.items():
+        off = mechanisms_off(name)
+        assert off == disabled
+        only = only_mechanisms(name)
+        for other_name, other_fields in MECHANISMS.items():
+            if other_name == name:
+                continue
+            for key, value in other_fields.items():
+                assert only[key] == value
+        enabled = mechanisms_on(name)
+        for key in disabled:
+            assert enabled[key] == TECTONICS[key]
+
+
+def test_mechanism_helpers_compose_without_losing_unrelated_fields():
+    for first in MECHANISMS:
+        for second in MECHANISMS:
+            if first == second:
+                continue
+            combined = mechanisms_off(first, second)
+            assert combined == {**MECHANISMS[first], **MECHANISMS[second]}
+
+
+def test_absent_keys_take_the_upstream_defaults():
+    # Upstream `{...TECTONICS, ...overrides}`: a key that is not overridden keeps its
+    # default, whatever the other overrides are.
+    from orogen.v2.tectonics.config import TECTONICS, make_tectonics_config
+
+    assert make_tectonics_config(None) == make_tectonics_config({})
+    config = make_tectonics_config({"cratonCount": 3})
+    assert config["cratonCount"] == 3
+    untouched = [key for key in TECTONICS if key != "cratonCount"]
+    assert all(config[key] == TECTONICS[key] for key in untouched)

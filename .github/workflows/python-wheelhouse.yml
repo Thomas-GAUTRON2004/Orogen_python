@@ -1,0 +1,84 @@
+name: Build Python wheelhouse
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - ".github/workflows/python-wheelhouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-wheelhouse-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheelhouse:
+    name: Python 3.12 / Linux x86_64 package bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Download all project wheels and static-analysis tools
+        run: |
+          mkdir -p dist/wheelhouse
+          python -m pip download \
+            --only-binary=:all: \
+            --prefer-binary \
+            --dest dist/wheelhouse \
+            ".[test,speed,quality,benchmark]" \
+            "ruff==0.17.5" \
+            "radon>=6" \
+            "setuptools>=77" \
+            "wheel"
+
+      - name: Add offline installation instructions
+        run: |
+          cat > dist/README.txt <<'EOF'
+          Orogen Python dependency bundle
+          =================================
+
+          Target: CPython 3.12, Linux x86_64.
+          Contents: wheels for runtime, test, speed, benchmark and quality
+          dependencies, including Ruff 0.17.5, mypy, Bandit, Xenon and Radon,
+          plus setuptools and wheel build requirements.
+
+          From the repository root, with this artifact extracted:
+            python -m pip install --no-index --find-links ./wheelhouse ".[test,speed,quality,benchmark]" "ruff==0.17.5" "radon>=6"
+
+          Static-analysis commands:
+            python -m ruff check .
+            python -m ruff format --check scripts/check_mypy_regressions.py
+            python -m ruff format --check orogen scripts tests
+            python -m mypy --no-error-summary --show-error-codes orogen
+            bandit -q -r orogen
+            xenon --max-absolute C orogen
+            radon cc -s -a orogen
+            radon mi -s orogen
+
+          This bundle is platform- and Python-version-specific.
+          EOF
+
+      - name: Upload dependency archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: orogen-python-wheelhouse-py312-linux-x86_64
+          path: |
+            dist/wheelhouse/
+            dist/README.txt
+          if-no-files-found: error
+          retention-days: 14

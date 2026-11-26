@@ -1,13 +1,14 @@
 """Differential checks against the unmodified Orogen V2 JavaScript reference.
 
-The .mjs files in tests/reference/v2 are verbatim upstream v3.0.1 modules;
-only import suffixes/relative paths are adapted to the vendored fixture layout.
+The .mjs files in tests/reference/v2 re-export the upstream v3.0.1 modules of the
+pinned submodule (ed466f9); they do not copy them.
 """
 
 from __future__ import annotations
 
 import json
 import math
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -41,6 +42,10 @@ RUNNER = ROOT / "tests/reference/v2/differential-runner.mjs"
 def original():
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail(
+                "Node.js is required for upstream JavaScript differential tests"
+            )
         pytest.skip("Node.js is required for upstream JavaScript differential tests")
     result = subprocess.run(
         [node, str(RUNNER)],

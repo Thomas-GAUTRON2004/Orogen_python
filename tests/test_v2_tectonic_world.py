@@ -13,8 +13,8 @@ from orogen.v2.tectonics.world import (
 def test_world_allocates_state_and_independent_seed_streams():
     mesh = build_sim_mesh(24, 91)
     config = {"simCells": 24, "nested": {"step": 2}}
-    world = TectonicWorld(mesh, 1234, config)
-    other = TectonicWorld(mesh, 1234, config)
+    world = TectonicWorld(mesh, 1234, overrides=config)
+    other = TectonicWorld(mesh, 1234, overrides=config)
     assert world.owner.shape == (mesh.num_cells,)
     assert world.owner.dtype == np.int16
     assert np.all(world.owner == -1)
@@ -29,7 +29,7 @@ def test_world_allocates_state_and_independent_seed_streams():
 
 def test_world_plate_ids_terrane_ids_names_and_events():
     mesh = build_sim_mesh(24, 91)
-    world = TectonicWorld(mesh, 1, {"simCells": 24})
+    world = TectonicWorld(mesh, 1, overrides={"simCells": 24})
     a = world.add_plate("A")
     b = world.add_plate("B")
     assert (a.id, b.id, a.born) == (0, 1, 0.0)
@@ -56,21 +56,19 @@ def test_world_uses_validated_defaults_when_no_configuration_is_supplied():
     assert world.config["belts"]["andean"]["maxKm"] == 400.0
 
 
-def test_world_merges_overrides_into_an_explicit_partial_config():
-    config = {"nested": {"value": 1}}
-    world = TectonicWorld(
-        build_sim_mesh(12, 1),
-        1,
-        config,
-        {"nested": {"extra": 2}, "additional": True},
-    )
-    assert world.config == {
-        "nested": {"value": 1, "extra": 2},
-        "additional": True,
-    }
-    assert config == {"nested": {"value": 1}}
+def test_world_merges_overrides_into_upstream_defaults():
+    # As upstream `new TectonicWorld(mesh, seed, overrides)`: the defaults are always
+    # present, and the overrides are merged into them without touching the caller's dict.
+    from orogen.v2.tectonics.config import TECTONICS
+
+    overrides = {"nested": {"extra": 2}, "additional": True}
+    world = TectonicWorld(build_sim_mesh(12, 1), 1, overrides=overrides)
+    assert world.config["additional"] is True
+    assert world.config["nested"] == {"extra": 2}
+    assert world.config["continentalFraction"] == TECTONICS["continentalFraction"]
+    assert overrides == {"nested": {"extra": 2}, "additional": True}
 
 
-def test_world_rejects_an_explicit_none_configuration():
-    with pytest.raises(ValueError, match="config must be a mapping"):
-        TectonicWorld(build_sim_mesh(12, 1), 1, None)
+def test_world_none_overrides_mean_the_upstream_defaults():
+    world = TectonicWorld(build_sim_mesh(12, 1), 1, overrides=None)
+    assert world.config["continentalFraction"] > 0

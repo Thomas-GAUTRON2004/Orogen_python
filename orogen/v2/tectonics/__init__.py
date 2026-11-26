@@ -10,6 +10,11 @@ from .boundaries import (
     near_land,
     vote_segments,
 )
+from .budget_scenes import (
+    BUDGET_SCENES,
+    build_budget_scene,
+    buildBudgetScene,
+)
 from .collision import (
     accrete_arcs,
     are_young_rift_partners,
@@ -24,6 +29,11 @@ from .collision import (
     recycle_small_arc,
     track_collisions,
     underthrust,
+)
+from .collision_scenes import (
+    COLLISION_SCENES,
+    build_collision_scene,
+    buildCollisionScene,
 )
 from .config import (
     CM_PER_YR_TO_KM_PER_MYR,
@@ -54,6 +64,7 @@ from .dynamics import (
     update_plate_motion,
 )
 from .ending import ENDINGS, frames_ending, history_ending, in_stage
+from .event_scenes import EVENT_SCENES, build_event_scene, buildEventScene
 from .far_field import (
     evolve_far_field,
     far_take,
@@ -62,6 +73,7 @@ from .far_field import (
     record_push,
     spread_push,
 )
+from .force_scenes import FORCE_SCENES, build_force_scene, buildForceScene
 from .forces import FORCE_KINDS, gather_boundary_loads
 from .gather import clear_world_view, for_each_claim
 from .geology import (
@@ -87,6 +99,14 @@ from .geology import (
     thicken_cover,
 )
 from .heights import belt_relief_km, broad_profile, build_heights
+from .hotspot_scenes import (
+    DECCAN,
+    HAWAII,
+    HOTSPOT_SCENES,
+    build_hotspot_scene,
+    buildHotspotScene,
+)
+from .initial_world import StartSeam, build_start_world, buildStartWorld
 from .kinematics import (
     advance_plates,
     lat_lon_to_xyz,
@@ -97,6 +117,13 @@ from .kinematics import (
     xyz_to_lat_lon,
 )
 from .mantle import dispersal_field, flow_of_cycle, mantle_flow_at, repel_at
+from .margin_scenes import (
+    MARGIN_SCENES,
+    build_margin_scene,
+    buildMarginScene,
+    headingForMargin,
+    omegaForMargin,
+)
 from .occupancy import BinIndex, bin_index, mark_bin, may_have_crust_near
 from .ops.merge_plates import merge_plates
 from .orogeny import belt_shape, belt_width_km, obliquity_deg
@@ -105,13 +132,40 @@ from .plumes import birth_plume, update_plumes
 from .polarity import overrides
 from .reconstruct import reconstruct
 from .resolve import candidate_cells, decide_birth, resolve
+from .rift_scenes import RIFT_SCENES, build_rift_scene, buildRiftScene
 from .rifting import pace_of, rift_continents, search_junctions
+from .scenario_geometry import heading, omega_for
+from .scenarios import (
+    EAST_CM_YR,
+    NUDGE_CM_YR,
+    NUDGE_MAX_MYR,
+    RIGID_DRIFT_MAX_MYR,
+    WEST_CM_YR,
+    WEST_REVERSES_MYR,
+    WILSON_MAX_MYR,
+    build_nudge_scene,
+    build_rigid_drift_world,
+    build_wilson_world,
+    buildNudgeScene,
+    buildRigidDriftWorld,
+    buildWilsonWorld,
+    drive_wilson,
+    driveWilson,
+    set_rigid_drift_time,
+    setRigidDriftTime,
+)
 from .segments import SEGMENT_KM, fracture_coordinate
 from .simulation import choose_step, closing_rate, fastest_speed
 from .spread_belt import spread_belt
 from .stepper import step_world
 from .subduction_init import founder_within_plates, initiate_subduction
 from .supercontinent import is_continental, landmasses, track_cycle
+from .terrain_scenes import (
+    FAR_TERRANES,
+    TERRAIN_SCENES,
+    build_terrain_scene,
+    buildTerrainScene,
+)
 from .thermal import (
     insulate_at_start,
     pick_plume_site,
@@ -125,6 +179,12 @@ __all__ = [
     "in_stage",
     "history_ending",
     "frames_ending",
+    "FORCE_SCENES",
+    "build_force_scene",
+    "buildForceScene",
+    "EVENT_SCENES",
+    "build_event_scene",
+    "buildEventScene",
     "BeltSide",
     "CrustFlag",
     "CrustRaster",
@@ -134,9 +194,15 @@ __all__ = [
     "Plate",
     "frame_rotation",
     "BoundaryKind",
+    "BUDGET_SCENES",
+    "build_budget_scene",
+    "buildBudgetScene",
     "EventKind",
     "Provisional",
     "TectonicWorld",
+    "COLLISION_SCENES",
+    "build_collision_scene",
+    "buildCollisionScene",
     "BinIndex",
     "bin_index",
     "mark_bin",
@@ -147,6 +213,9 @@ __all__ = [
     "reconstruct",
     "contact_at",
     "resolve",
+    "RIFT_SCENES",
+    "build_rift_scene",
+    "buildRiftScene",
     "candidate_cells",
     "decide_birth",
     "Motion",
@@ -165,6 +234,11 @@ __all__ = [
     "belt_relief_km",
     "broad_profile",
     "build_heights",
+    "DECCAN",
+    "HAWAII",
+    "HOTSPOT_SCENES",
+    "build_hotspot_scene",
+    "buildHotspotScene",
     "thicken_cover",
     "GeoFlag",
     "GEO_FRAME_FIELDS",
@@ -197,6 +271,13 @@ __all__ = [
     "mantle_flow_at",
     "dispersal_field",
     "repel_at",
+    "MARGIN_SCENES",
+    "build_margin_scene",
+    "buildMarginScene",
+    "heading",
+    "omega_for",
+    "headingForMargin",
+    "omegaForMargin",
     "is_continental",
     "landmasses",
     "track_cycle",
@@ -204,6 +285,10 @@ __all__ = [
     "insulate_at_start",
     "update_mantle_heat",
     "plume_heat_factor",
+    "FAR_TERRANES",
+    "TERRAIN_SCENES",
+    "build_terrain_scene",
+    "buildTerrainScene",
     "pick_plume_site",
     "birth_plume",
     "update_plumes",
@@ -254,4 +339,24 @@ __all__ = [
     "CM_PER_YR_TO_RAD_PER_MYR",
     "SEGMENT_KM",
     "fracture_coordinate",
+    "StartSeam",
+    "build_start_world",
+    "buildStartWorld",
+    "RIGID_DRIFT_MAX_MYR",
+    "WILSON_MAX_MYR",
+    "WEST_CM_YR",
+    "EAST_CM_YR",
+    "WEST_REVERSES_MYR",
+    "NUDGE_MAX_MYR",
+    "NUDGE_CM_YR",
+    "build_rigid_drift_world",
+    "set_rigid_drift_time",
+    "build_wilson_world",
+    "drive_wilson",
+    "build_nudge_scene",
+    "buildRigidDriftWorld",
+    "setRigidDriftTime",
+    "buildWilsonWorld",
+    "driveWilson",
+    "buildNudgeScene",
 ]

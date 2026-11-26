@@ -44,7 +44,7 @@ def make_world(minimum_area=150.0):
     world = TectonicWorld(
         mesh,
         seed=42,
-        config={
+        overrides={
             "oceanPlateMinAreaKm2": minimum_area,
         },
     )

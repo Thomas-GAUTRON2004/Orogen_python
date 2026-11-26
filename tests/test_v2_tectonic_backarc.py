@@ -102,7 +102,7 @@ def make_margin_world(*, patch_rng=True):
             neighbours.append(adjacent)
 
     mesh = Mesh(points, neighbours, edge_km=edge_km)
-    world = TectonicWorld(mesh, 73, backarc_config())
+    world = TectonicWorld(mesh, 73, overrides=backarc_config())
     world.time = 100.0
     parent = world.add_plate("West Arc")
     slab = world.add_plate("Old Ocean")
@@ -205,7 +205,7 @@ def test_open_back_arc_requires_the_overriding_plate_to_lag_rollback(monkeypatch
 
 def test_finished_back_arc_rejoins_and_bridges_its_empty_seam():
     mesh = make_line_mesh()
-    world = TectonicWorld(mesh, 11, backarc_config())
+    world = TectonicWorld(mesh, 11, overrides=backarc_config())
     world.time = 30.0
     world.config["backArcRatePerMyr"] = 0.0
     parent = world.add_plate("Parent")
@@ -234,7 +234,7 @@ def test_finished_back_arc_rejoins_and_bridges_its_empty_seam():
 
 def test_finished_back_arc_becomes_independent_when_parent_is_gone():
     mesh = make_line_mesh()
-    world = TectonicWorld(mesh, 12, backarc_config())
+    world = TectonicWorld(mesh, 12, overrides=backarc_config())
     world.time = 30.0
     world.config["backArcRatePerMyr"] = 0.0
     parent = world.add_plate("Parent")
@@ -252,7 +252,7 @@ def test_finished_back_arc_becomes_independent_when_parent_is_gone():
 
 def test_steer_back_arc_strip_adds_parent_velocity_and_rollback():
     mesh = make_line_mesh()
-    world = TectonicWorld(mesh, 13, backarc_config())
+    world = TectonicWorld(mesh, 13, overrides=backarc_config())
     world.time = 10.0
     parent = world.add_plate("Parent")
     strip = world.add_plate("Parent Arc")
@@ -376,7 +376,7 @@ def test_rollback_fronts_groups_eligible_cells_and_rejects_young_or_fast_contact
 
 def test_open_back_arcs_handles_missing_config_nonpositive_dt_and_disabled_rate():
     mesh = make_line_mesh()
-    world = TectonicWorld(mesh, 21, {})
+    world = TectonicWorld(mesh, 21, overrides={})
     assert open_back_arcs(world, 1.0) == 0
 
     world.config = {"backArcActiveMyr": 30.0, "backArcSeamKm": 400.0}
@@ -457,6 +457,7 @@ def test_judge_strip_rejects_a_disconnected_remainder_and_accepts_ocean_arc():
 
     selected[:] = 0
     selected[:14] = 1
+    parent.crust.type[:14] = CrustType["ARC"]
     result = backarc._judge_strip(world, parent, selected)
     assert result == {"cells": list(range(14)), "continental": False}
 
@@ -475,7 +476,7 @@ def test_strip_name_is_unique_and_strips_existing_suffixes():
 
 def test_steer_back_arc_strips_skips_inactive_or_invalid_strips():
     mesh = make_line_mesh()
-    world = TectonicWorld(mesh, 22, {})
+    world = TectonicWorld(mesh, 22, overrides={})
     assert steer_back_arc_strips(world) == 0
 
     world.config = backarc_config()
@@ -538,3 +539,26 @@ def test_split_strip_clears_expired_reciprocal_partner():
     assert fresh.riftPartner == parent.id
     assert old_partner.riftPartner == -1
     assert old_partner.riftPushDir is None
+
+
+def test_finished_back_arc_rejoins_without_clearing_an_unrelated_rift_partner():
+    mesh = make_line_mesh()
+    world = TectonicWorld(mesh, 121, overrides=backarc_config())
+    world.time = 30.0
+    world.config["backArcRatePerMyr"] = 0.0
+    parent = world.add_plate("Parent")
+    strip = world.add_plate("Parent Arc")
+    parent.crust.create(0, CrustType["CONTINENT"], -10.0, 1)
+    parent.crust.create(1, CrustType["CONTINENT"], -10.0, 2)
+    strip.crust.create(3, CrustType["CONTINENT"], -5.0, 4)
+    strip.crust.create(4, CrustType["CONTINENT"], -5.0, 5)
+    parent.refresh_extent(mesh.xyz)
+    strip.refresh_extent(mesh.xyz)
+    strip.backArcOf = parent.id
+    strip.born = 0.0
+    # The parent is not partnered with this strip, so its existing -1 state stays put.
+
+    assert open_back_arcs(world, 1.0) == 1
+    assert strip.alive is False
+    assert parent.riftPartner == -1
+    assert parent.crust.count == 5

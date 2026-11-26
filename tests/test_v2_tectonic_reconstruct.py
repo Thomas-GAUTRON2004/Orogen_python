@@ -7,7 +7,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 def _pair():
     mesh = build_sim_mesh(48, 23)
-    world = TectonicWorld(mesh, 5, {"simCells": 48})
+    world = TectonicWorld(mesh, 5, overrides={"simCells": 48})
     a = world.add_plate("A")
     b = world.add_plate("B")
     return mesh, world, a, b
@@ -29,7 +29,7 @@ def test_reconstruct_counts_overlaps_and_prefers_land():
 
 def test_reconstruct_first_claim_wins_when_all_ocean_and_saturates_counters():
     mesh = build_sim_mesh(48, 23)
-    world = TectonicWorld(mesh, 5, {"simCells": 48})
+    world = TectonicWorld(mesh, 5, overrides={"simCells": 48})
     plates = [world.add_plate(str(i)) for i in range(260)]
     for plate in plates:
         plate.crust.create(0, CrustType["OCEAN"], 0, plate.id)

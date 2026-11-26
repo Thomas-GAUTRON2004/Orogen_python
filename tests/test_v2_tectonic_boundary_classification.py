@@ -16,7 +16,7 @@ def _setup():
     world = TectonicWorld(
         mesh,
         19,
-        {
+        overrides={
             "boundaryActiveCmYr": 0.3,
             "obliqueLimit": 0.35,
             "closingCmYr": 0.2,
@@ -439,16 +439,17 @@ def test_contact_classifier_spreads_transpression_on_oblique_land_closing(
     assert belt["shears"][0] != pytest.approx(0.0)
 
 
-def test_local_belt_spreading_remains_disabled_for_partial_far_field_config(
-    monkeypatch,
-):
+def test_local_belt_spreading_follows_upstream_for_andean_contacts(monkeypatch):
+    # Upstream spreads the andean belt of each non-arc cell unconditionally
+    # (step/boundaries.js: spreadBelt(...) on the andean.some(notArc) set), with
+    # the full defaults present: one spread call for this single contact.
     module, _mesh, world, _upper, _lower = _subduction_contact(monkeypatch)
     calls = []
     monkeypatch.setattr(module, "spread_belt", lambda *args: calls.append(args))
     monkeypatch.setattr(module, "feed_far_field", lambda *_args: None)
 
     assert classify_contact_boundaries(world, 1.0) == 1
-    assert calls == []
+    assert len(calls) == 1
 
 
 def test_contact_classifier_records_andean_belt_in_crust_raster(monkeypatch):

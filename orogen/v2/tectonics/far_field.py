@@ -16,6 +16,7 @@ import numpy as np
 
 from ..core._numba_kernels import (
     NUMBA_AVAILABLE,
+    _hypot3,
     emit_far_pushes_numba,
     far_field_distance_numba,
 )
@@ -360,8 +361,8 @@ def _emit_pushes_numba(
 
 
 def _norm3(x: float, y: float, z: float) -> float:
-    """Euclidean length, computed exactly as the compiled kernel does."""
-    return math.sqrt(x * x + y * y + z * z)
+    """Return the 3-D norm using the upstream JavaScript Math.hypot semantics."""
+    return _hypot3(x, y, z)
 
 
 def far_take(config: Mapping, crust_type: int, flags: int) -> float:
@@ -515,7 +516,7 @@ def reactivate(world, plate, push: Mapping, window: float) -> None:
         qx, qy, qz = (float(value) for value in xyz[source_offset : source_offset + 3])
         cosine = px * qx + py * qy + pz * qz
         ax, ay, az = cosine * px - qx, cosine * py - qy, cosine * pz - qz
-        length = math.hypot(ax, ay, az)
+        length = _hypot3(ax, ay, az)
         if length < 1e-9:
             continue
         ax, ay, az = ax / length, ay / length, az / length
@@ -575,7 +576,7 @@ def _rejuvenate(
     """Rebuild relief records over the geometry of quiet, previously formed ranges."""
     crust, mesh = plate.crust, world.mesh
     count = len(crust.mask)
-    distance = np.full(count, np.inf, dtype=np.float64)
+    distance = np.full(count, np.inf, dtype=np.float32)
     source_at = np.full(count, -1, dtype=np.int32)
     queue: list[int] = []
     for source_index, cell_value in enumerate(sources):
@@ -602,7 +603,7 @@ def _rejuvenate(
             next_distance = float(distance[cell]) + cell_distance_km(
                 xyz, cell, neighbour
             )
-            if next_distance >= distance[neighbour] or next_distance > reach_km:
+            if next_distance >= float(distance[neighbour]) or next_distance > reach_km:
                 continue
             distance[neighbour] = next_distance
             source_at[neighbour] = source_index

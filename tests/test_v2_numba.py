@@ -2,6 +2,7 @@
 
 import json
 import math
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -84,24 +85,11 @@ def test_numba_bfs_respects_can_enter_python_predicate():
     )
 
 
-def test_python_fallback_remains_available_without_numba(monkeypatch):
-    import orogen.v2.core.fast_noise as fast_noise_module
-
-    monkeypatch.setattr(fast_noise_module, "NUMBA_AVAILABLE", False)
-    noise = FastNoise(123)
-    point = (0.125, -0.75, 1.5)
-    expected = noise._fbm_python(*point, 4, 0.6)
-    assert noise.noise3d(*point) == noise._noise3d_python(*point)
-    assert noise.fbm(*point, 4, 0.6) == expected
-    values = noise.fbm_many(np.asarray([point], dtype=np.float64), 4, 0.6)
-    np.testing.assert_array_equal(values, np.asarray([expected]))
-    with pytest.raises(ValueError, match="shape"):
-        noise.fbm_many(np.zeros((2, 2)), 4, 0.6)
-
-
 def test_numba_fbm_matches_upstream_javascript_bit_for_bit():
     node = shutil.which("node")
     if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("Node.js is required for upstream JavaScript comparison")
         pytest.skip("Node.js is required for upstream JavaScript comparison")
     root = Path(__file__).resolve().parents[1]
     runner = root / "tests/reference/v2/noise-probe.mjs"

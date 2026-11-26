@@ -73,6 +73,12 @@ preparation are excluded from the timed region.
 
 ---
 
+## Initial-world builder comparison
+
+In addition to the paired JavaScript/Python graph microbenchmarks, the PR workflow measures the production `build_start_world` constructor directly. On pull requests, it compares the PR base commit with the PR head on the same runner using seed 941 and meshes of 512, 1,024, 4,096 and 40,000 cells, provided the base revision already contains `orogen/v2/tectonics/initial_world.py`. If the builder is introduced by the PR and is absent from the base, an A/B comparison is not meaningful: CI records the PR-head measurements and explicitly marks the baseline as unavailable instead of failing the benchmark job. Each mesh receives one warm-up and three timed builder calls; the median builder time is reported, while mesh construction time is recorded separately. Each build must preserve an exact one-owner-per-cell partition across plates.
+
+The head timings are always attached to the `initial-world-builder-benchmarks` Actions artifact; when a compatible base implementation exists, baseline timings, layout-attempt counts and the comparison summary are attached as well. This measures initial-world construction, including its Python per-cell loops; it does not measure multi-step geological-history execution or establish a universal runtime for other hosts.
+
 ## Reproducible benchmark harness
 
 The current harness compares the vendored upstream JavaScript reference with
@@ -98,6 +104,61 @@ Common paired workloads are FBM, batched spherical geometry, graph BFS,
 connected components, Dijkstra, crust creation/snapshot and crust batch copy.
 Python pure and Python + Numba are timed for every workload. Far-field
 diffusion is additionally compared within Python with and without Numba.
+
+### Adding a function to the comparison catalog
+
+The paired harness is designed to grow as more JavaScript functions are ported.
+The workload catalog is the single source of truth for report labels and which
+comparison mode a workload belongs to:
+
+- `benchmarks/catalog.json`: stable workload IDs, display labels and grouping.
+- `benchmarks/bench.mjs`: JavaScript implementation and timing for paired workloads.
+- `benchmarks/bench_python.py`: Python fallback and optional Numba timings.
+- `benchmarks/render_report.py`: reads the catalog to generate Markdown/CSV
+  tables and checks that every catalog entry was emitted by the expected runners.
+
+#### Registering a paired JavaScript/Python function
+
+1. Add a deterministic fixture/setup function to the relevant runner. Build
+   fixtures outside the timed callable unless setup cost is intentionally part
+   of the benchmark.
+2. Add the JavaScript measurement to the object returned by
+   `benchmarkJavaScript()` in `benchmarks/bench.mjs`.
+3. Add the matching Python measurement under the same stable ID in the
+   `timings` dictionary in `run_mode()` in `benchmarks/bench_python.py`.
+   The function is measured in both pure-Python and Numba modes automatically.
+4. Add one entry to the `paired` array in `benchmarks/catalog.json`:
+   `{"id": "my_function_ms", "label": "My function (fixture description)" }`.
+   The ID must match the key emitted by both runners.
+5. Run the local command below. Report generation fails with a clear catalog /
+   runner mismatch if either side forgot to emit the registered ID.
+
+#### Registering a Python-only port target
+
+Add the benchmark to the Python-only results returned by `run_mode()` (outside
+the common `timings` mapping), then add its stable ID and label to the
+`python_only` array in the catalog. This gives an immediate pure-Python versus
+Numba comparison while the JavaScript equivalent is still being ported. When a
+JavaScript reference becomes available, move the workload into `paired` and
+emit the matching JavaScript timing.
+
+#### Measurement rules
+
+- Keep stable IDs independent of implementation names so a port can evolve
+  without rewriting historical report consumers.
+- Use the same deterministic input, logical work and output/sink in both
+  implementations. Document unavoidable differences in fixture granularity.
+- Keep fixture construction and JIT compilation out of timed samples unless
+  they are explicitly the target.
+- Preserve raw samples and summary statistics; do not add hard performance
+  pass/fail thresholds based on shared-runner timings.
+- Add correctness/differential tests separately. A faster result is not evidence
+  of semantic equivalence.
+
+The initial-world builder A/B is a separate production-constructor benchmark,
+not a paired JavaScript function yet. Its baseline is the PR target branch.
+The same report artifacts and summary mechanism are used for all benchmark
+outputs.
 
 ### Tectonic step benchmark
 
@@ -376,3 +437,41 @@ CI for this implementation revision: **476 tests passed, 100% line coverage**.
 [Python test run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44171695194).
 
 These timings are five-round medians after warm-up on a shared hosted runner, not end-to-end simulation timings. The raster create/snapshot and copy workloads are synthetic; the large remaining create/snapshot gap is the next optimization target. The grouped copy kernel is beneficial in the tested batch workload, while the snapshot traversal experiment did not identify a worthwhile alternative to row-major.
+## 40,000-cell graph benchmark — 2026-11-21
+
+The paired benchmark now exercises a synthetic degree-6 ring graph with **40,000 cells** (10 measured rounds after 2 warmups) on a GitHub-hosted Linux runner with an AMD EPYC 7763 CPU, Node 22.23.5, Python 3.12.16, NumPy 2.5.5 and Numba enabled.
+
+| Workload | JavaScript | Python pure | Python + Numba | Numba / JS | Numba gain over pure |
+|---|---:|---:|---:|---:|---:|
+| FBM, 40,000 points × 5 octaves | 10.800 ms | 1,103.039 ms | 10.509 ms | 0.97× | 104.96× |
+| Spherical geometry, 80,000 points | 20.609 ms | 476.499 ms | 5.027 ms | 0.24× | 94.79× |
+| Mesh BFS, 40,000 cells | 0.605 ms | 50.165 ms | 2.258 ms | 3.73× | 22.22× |
+| Connected components, 40,000 cells | 8.976 ms | 45.123 ms | 5.451 ms | 0.61× | 8.28× |
+| Mesh Dijkstra, 40,000 cells | 0.236 ms | 3.011 ms | 0.017 ms | 0.07× | 173.68× |
+| Crust create + batch snapshot, 6,000 cells | 6.668 ms | 472.506 ms | 1.636 ms | 0.25× | 288.90× |
+| Crust batch copy, 6,000 cells | 5.171 ms | 94.042 ms | 0.860 ms | 0.17× | 109.32× |
+
+Python-only tectonic workloads measured `spread_push` at 705.502 ms without Numba and 9.707 ms with Numba (72.68×), and one `step_world` on a prebuilt four-plate 513-cell mesh at 30.324 ms and 27.919 ms respectively (1.09×).
+
+[40,000-cell paired benchmark run](https://github.com/Thomas-GAUTRON2004/Orogen_python/actions/runs/44907829831).
+
+The graph results are synthetic microbenchmarks, not production spherical-mesh or end-to-end planet-generation timings. In this run, Numba makes the tested connected-components, geometry, FBM, Dijkstra and crust batch paths competitive with or faster than the JavaScript reference. BFS remains about 3.8× slower than JavaScript with Numba; that is a measured optimization target, not a reason to weaken the test or benchmark gates.
+
+
+### Additional mesh workloads and initial-world report integration
+
+The paired suite also measures largest connected-component extraction,
+great-circle radius traversal (within_km, 5,000 km), and multi-source BFS
+(distance plus source ownership), in JavaScript, Python without Numba, and
+Python with Numba. These complement BFS, connected components and Dijkstra
+with operations used by mesh-region selection and spatial reachability.
+
+For pull requests, the generated Markdown and CSV reports include the
+initial-world builder measurements as well as the paired microbenchmarks.
+The Markdown table reports mesh construction separately from builder time,
+the PR-base and PR-head medians when a baseline exists, the percentage change,
+and layout-attempt counts. If the base does not contain the builder, the report
+shows the PR-head measurement and marks the comparison as unavailable. The CSV
+contains one row per available base/head measurement, with the mesh-build time
+and comparison percentage in separate columns. The raw initial-world JSON
+files remain attached as a dedicated artifact.

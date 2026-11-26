@@ -37,7 +37,6 @@ EventKind = {
     "DISPERSED": "dispersed",
 }
 _EVENT_KINDS = frozenset(EventKind.values())
-_DEFAULT_CONFIG = object()
 
 BoundaryKind = {
     "NONE": 0,
@@ -60,17 +59,13 @@ class TectonicWorld:
         self,
         sim_mesh,
         seed: int,
-        config: Any = _DEFAULT_CONFIG,
         overrides: dict | None = None,
     ):
+        # As upstream `new TectonicWorld(simMesh, seed, overrides)`: defaults
+        # are always present and overrides replace top-level keys via object spread.
         self.mesh = sim_mesh
         self.seed = int(seed)
-        if config is _DEFAULT_CONFIG:
-            self.config = make_tectonics_config(overrides)
-        elif config is None:
-            raise ValueError("tectonics config must be a mapping")
-        else:
-            self.config = make_tectonics_config(overrides, base=config)
+        self.config = make_tectonics_config(overrides)
         # Independent deterministic streams: adding draws to one mechanism must not
         # perturb the random sequence of any other mechanism.
         self.rng = make_rng((self.seed ^ 0x5EED) & 0xFFFFFFFF)
@@ -91,7 +86,7 @@ class TectonicWorld:
         self.pendingPlumeRifts: list[dict[str, Any]] = []
         self.lastRiftAt = None
         self.plumes: list[dict[str, Any]] = []
-        self.terraneLetters = None
+        self.terraneLetters: dict[int, str] | None = None
         self.time = 0.0
         self.step = 0
         self.occupancyStamp = 0
@@ -125,6 +120,7 @@ class TectonicWorld:
         self.lastTerraneId = 0
         self.erosionNoise = None
         self.erosionThreshold = 0.0
+        self.startSeamKm: dict[str, np.ndarray] | None = None
 
     def next_terrane_id(self) -> int:
         if self.lastTerraneId == 0:

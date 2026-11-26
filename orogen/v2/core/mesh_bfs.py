@@ -15,8 +15,10 @@ import numpy as np
 from ._numba_kernels import (
     NUMBA_AVAILABLE,
     hop_distance_numba,
+    hops_from_numba,
     largest_piece_numba,
     pieces_of_numba,
+    within_km_numba,
 )
 from .sphere_geometry import PLANET_RADIUS_KM
 
@@ -28,6 +30,28 @@ def within_km(sim_mesh: Any, is_source: Predicate, radius_km: float) -> np.ndarr
     n = int(sim_mesh.num_cells)
     offsets, adjacency, xyz = sim_mesh.adj_offset, sim_mesh.adj_list, sim_mesh.xyz
     min_dot = math.cos(radius_km / PLANET_RADIUS_KM)
+    if NUMBA_AVAILABLE:
+        # Evaluate the Python predicate in its original order, including the
+        # short-circuit edge test, before moving the graph traversal into Numba.
+        source_mask = np.zeros(n, dtype=np.bool_)
+        source_edges = np.zeros(n, dtype=np.bool_)
+        for source in range(n):
+            if not is_source(source):
+                continue
+            source_mask[source] = True
+            for edge in range(int(offsets[source]), int(offsets[source + 1])):
+                if not is_source(int(adjacency[edge])):
+                    source_edges[source] = True
+                    break
+        return within_km_numba(
+            np.ascontiguousarray(offsets, dtype=np.int32),
+            np.ascontiguousarray(adjacency, dtype=np.int32),
+            np.ascontiguousarray(xyz, dtype=np.float64),
+            source_mask,
+            source_edges,
+            min_dot,
+        )
+
     reached = np.zeros(n, dtype=np.uint8)
     seen = np.full(n, -1, dtype=np.int32)
     queue: list[int] = []
@@ -149,11 +173,31 @@ def hops_from(
     """Return hop distances and the originating source for every reached cell."""
     n = int(sim_mesh.num_cells)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
+    ordered_sources = [int(cell) for cell in sources]
+    if (
+        NUMBA_AVAILABLE
+        and can_enter is None
+        and all(0 <= cell < n for cell in ordered_sources)
+    ):
+        if (
+            isinstance(max_hops, (float, np.floating)) and math.isnan(max_hops)
+        ) or max_hops <= 0:
+            max_depth = 0
+        elif max_hops >= n:
+            max_depth = n
+        else:
+            max_depth = int(max_hops)
+        return hops_from_numba(
+            np.ascontiguousarray(offsets, dtype=np.int32),
+            np.ascontiguousarray(adjacency, dtype=np.int32),
+            np.asarray(ordered_sources, dtype=np.int32),
+            max_depth,
+        )
+
     distance = np.full(n, -1, dtype=np.int16)
     source_of = np.full(n, -1, dtype=np.int32)
     frontier = []
-    for cell in sources:
-        cell = int(cell)
+    for cell in ordered_sources:
         if distance[cell] < 0:
             distance[cell] = 0
             source_of[cell] = cell

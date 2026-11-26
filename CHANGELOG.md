@@ -9,7 +9,10 @@ describe the repository state and changes recorded during the V2 port.
 ## [Unreleased]
 
 ### Added
+- Added a production initial-world benchmark comparing a pinned pre-optimization revision with the PR head on the same runner at 512, 1,024, 4,096 and 40,000 cells; mesh construction is timed separately and plate-partition correctness is checked.
+- Added a full-suite CI run without the optional Numba extra to exercise pure-Python fallbacks.
 - Complete shared V2 tectonic configuration defaults and mechanism controls, with isolated per-world overrides and validation.
+- Added the packed, noise-shaped initial supercontinent builder with connected proto-continent assembly, terranes, sutures, ocean apron, active/passive trench sectors, inherited ranges and far-field start records. Vendored JavaScript differential fixtures compare layout, landmass, assembled plate/crust state, inherited range/relief records and far-field push records on 512- and 768-cell meshes. Added deterministic prescribed-motion scenes and all 37 entries across the event, budget, force, margin, rift, terrain, hotspot and collision scenario catalogues.
 - Shared geology flags and compact frame encoders/decoders matching upstream JavaScript rounding.
 - Raised the required whole-package branch coverage threshold from 95 % to 99 %, with new back-arc edge-case regression tests.
 - Collision tracking with configured terrane/arc transfer, underthrusting,
@@ -28,6 +31,16 @@ describe the repository state and changes recorded during the V2 port.
   compatibility limits, the SciPy backend and porting status.
 
 ### Changed
+- Craton placement now short-circuits rejected outline-gap checks while preserving the original gap decision boundary; deterministic top-k selection is shared from core and validated configuration defaults are read directly.
+- Scenario construction now uses shared helpers, immutable configuration templates and immutable west/east sector definitions instead of cross-module private helper imports and duplicate ocean-corridor code. Shared scene terrane identifiers and the Mariana arc width are centralized in `scene_constants.py`.
+- Far-field vector normalization now uses `math.hypot` to match the upstream JavaScript `Math.hypot` semantics. Back-arc painting is documented and tested as painting only the ring exactly the requested number of cells behind the trench.
+- Initial-world configuration now rejects zero-width margins and singular
+  growth settings, bounds latitude sampling, uses stable mesh-cell tie breaks,
+  and reports an unmet continental-fraction target instead of returning a
+  silently degraded start world.
+- Initial-world and fixture top-k mesh selection now resolves ties by cell index
+  while using partition-based selection to avoid sorting the entire mesh.
+- Paired JavaScript/Python graph benchmarks now exercise 40,000 mesh cells.
 - The partial `step_world` orchestrator now conditionally includes collision
   tracking and far-field evolution, and rebuilds ownership after topology changes.
 - The production spherical triangulation backend is SciPy/Qhull. Orogen retains

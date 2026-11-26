@@ -8,7 +8,7 @@ from orogen.v2.tectonics.world import TectonicWorld
 
 def test_gather_identity_plate_claims_and_clears_world_view():
     mesh = build_sim_mesh(48, 17)
-    world = TectonicWorld(mesh, 3, {"simCells": 48})
+    world = TectonicWorld(mesh, 3, overrides={"simCells": 48})
     plate = world.add_plate("background")
     plate.isBackground = True
     plate.crust.create(0, CrustType["CRATON"], -10, 1)
@@ -38,7 +38,7 @@ def test_gather_identity_plate_claims_and_clears_world_view():
 
 def test_gather_skips_dead_and_empty_plates():
     mesh = build_sim_mesh(24, 9)
-    world = TectonicWorld(mesh, 2, {"simCells": 24})
+    world = TectonicWorld(mesh, 2, overrides={"simCells": 24})
     dead = world.add_plate("dead")
     dead.crust.create(0, CrustType["OCEAN"], 0, 1)
     dead.refresh_extent(mesh.xyz)

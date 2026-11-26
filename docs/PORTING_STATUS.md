@@ -1,8 +1,10 @@
 # Orogen 3.0.1 Porting Status
 
-Last updated: 2026-11-19
+Last updated: 2026-11-20
 
 ## Latest porting batch
+
+- Completed the issue #15 initial-world and scenario-construction batch. The production builder ports upstream craton geometry/packing (`initial_cratons.py`), noise-shaped proto-continent assembly and landmass fitting (`initial_landmass.py`), then builds the smoothed plate apron, active/passive trench sectors, old-range records and far-field start pushes. Meshes below 512 cells retain a small deterministic fixture path; meshes from 512 cells use the packed production path. Vendored JavaScript differential fixtures now exercise 512- and 768-cell production meshes with distinct seeds and compare layout/craton values, landmass type/terrane/suture/owner arrays, and assembled plate masks, apron/trench flags, crust ages and slab metadata. The scenario layer includes the rigid-drift, prescribed Wilson-cycle and start-world-nudge scenes, plus all 37 entries across the event, budget, force, margin, rift, terrain, hotspot and collision catalogues. Catalogue IDs are checked against the pinned upstream v3.0.1 sources. The production fixtures now also compare the inherited old-range orogeny/belt/relief arrays and the far-field start-push arrays against the pinned JavaScript implementation. Multi-step tectonic evolution remains a separate, downstream orchestration compatibility boundary.
 
 - Completed the issue #14 shared-model/configuration implementation on `feat/issue-14-shared-config-models`: ported the complete upstream `TECTONICS` defaults and `MECHANISMS` switches/helpers, recursive isolated per-world overrides, nested schema/type validation, and public exports. Audited the shared crust, plate, world and ridge-segment models against their upstream files; completed the geology model's `GeoFlag`, frame-field contract and compact encode/decode helpers with JavaScript-compatible rounding. Added focused config/geology fixtures and documented the upstream mapping in `docs/SHARED_MODELS.md`. Full branch CI validation passed on the original implementation (run 44497546516); review follow-up changes are undergoing a fresh CI run.
 
@@ -20,9 +22,30 @@ Last updated: 2026-11-19
 - Added a deterministic, partial stepper integration regression: `step_world` runs the real boundary classifier, `track_collisions` implementation and collision-belt spreading on a continental-overlap cell. It verifies the collision boundary, pair record, shortening, event and belt propagation into both margins. To isolate this seam, the test neutralizes `closing_rate`, `advance_plates`, `resolve`, `contact_at`, `update_plumes`, `open_back_arcs`, and the collision geometry helpers `centroid_of_cells` and `tangent_toward`; it is not an end-to-end tectonic-history test. Suture welding and long-history parity remain unvalidated.
 - Full collision/event-history parity and the complete simulation-stage cadence remain outstanding.
 
+## Issues #14 and #15 status (current batch)
+
+- The upstream engine is the git submodule `external/planet_heightmap_generation`, pinned at `ed466f9` (tag v3.0.1). Comparisons run on that code through pointer files in `tests/reference/v2`; no algorithm is copied or rewritten there.
+- Shared configuration: the 310 `TECTONICS` keys and defaults match upstream (`tests/test_v2_tectonic_config_upstream.py`). `TectonicWorld(mesh, seed, overrides=None)` has the upstream constructor shape; the Python-only base-config parameter was removed.
+- Validation rules are documented in `docs/ADAPTATIONS.md`, with the upstream behaviour measured for each rule that affects the start world (`tests/reference/v2/config/validation-probes.json`). Rules for the 37 dynamics parameters have no visible effect on the start world and remain to be checked by the multi-step differential work (issues #19 to #21).
+- Negative growth bias and negative coastal softness are kept as documented domain guards. Zero coastal softness is accepted and follows upstream IEEE arithmetic.
+- The controlled continental, oceanic and mixed scene builders were removed: they had no upstream counterpart.
+- Prescribed-motion scenes (rigid drift, Wilson, nudge) are compared with upstream over two meshes and nine cases; a mutation check confirms the tests fail on a perturbed constant.
+- The tests CI job timeout is 40 minutes: the branch-coverage run takes about 14 minutes on its own, and the 20-minute limit cancelled a run.
+
+## Initial-world construction and scene-helper review
+
+- Craton placement now has a boolean minimum-gap predicate with an early exit when an outline-point pair proves that a candidate fails. The final comparison uses the same correction and floating-point comparison as the retained gap function; unit tests compare decisions over multiple thresholds. The worst-case scan remains quadratic in the 72 outline samples.
+- `benchmarks/bench_initial_world.py` measures `build_start_world` itself at 512, 1,024, 4,096 and 40,000 mesh cells. The PR benchmark workflow runs a same-runner A/B against the pinned pre-optimization commit `24dc4d550769efdc57d56506abdc343c576545af`, using seed 941, one warm-up and two measured repetitions. Mesh creation is reported separately, and every build is checked for complete, non-overlapping plate coverage. CI timing results are published as the `initial-world-builder-benchmarks` artifact; they are not generalized beyond that runner.
+- History-scene builders construct fresh `TectonicWorld` instances. They are deliberately not cached because simulations mutate world state; sharing a cached world would couple independent runs.
+- Scenario setup and ocean-corridor painting now live in `scene_support.py`; the terrain scene uses the shared corridor helper. Shared scene terrane identifiers (900–905) and the Mariana arc width are centralized in `scene_constants.py`. The source configuration templates are read-only, and the `WEST`/`EAST` sector definitions are immutable tuples.
+- The no-Numba CI job runs the full test suite without installing the optional `speed` extra. The main differential and coverage job retains the 99% threshold with Numba installed.
+- The far-field 3-D norm uses `math.hypot`, matching upstream `Math.hypot`. Mariana's `_arc_behind` behavior is confirmed against upstream: only the final ring exactly `hops` cells inland is painted; tests assert that intermediate and subsequent rings remain unchanged.
+- The scenario-geometry compatibility shim and camelCase aliases remain in place because they are imported/exported by the package API. The coarse start-world path intentionally passes no pair metadata to `_paint_old_ranges`; the optional `pairs` argument remains used by the full path.
+
 ## Performance optimization (Numba)
 
 - Added an optional `speed` extra and retained a pure-Python fallback.
+- `SimplexNoise` (upstream 12-gradient simplex, used by the initial world and scenes) is compiled with Numba: about 45x faster per fBm sample than the Python path. Both paths are bit-identical and compared against upstream golden values.
 - Numba compiles batched 3-D simplex FBM, CSR BFS, callback-free mesh Dijkstra, and the weighted far-field traversal used by tectonic `spread_push` (`fastmath=False`). FBM is checked bit-for-bit against Python and upstream JavaScript; BFS retains FIFO/source order and int16 semantics; Dijkstra preserves heap ordering and float32/float64 distance storage.
 - Mesh Dijkstra retains the Python path when `can_enter` or `on_reach` callbacks are provided. Far-field diffusion keeps crust-history recording in Python and retains the complete Python graph-traversal fallback. Differential tests compare reached order, source assignment, distance arrays and crust history.
 - The latest paired CI sample measured FBM near parity, a large speedup for synthetic mesh Dijkstra, and a **3.35×** full-path speedup for synthetic far-field diffusion versus its Python fallback. Geometry and per-cell crust snapshots remain slower. See `docs/JS_PYTHON_BENCHMARK.md` for method, results and runner variability.
@@ -57,7 +80,7 @@ test coverage.
 | Area | Status | Implemented scope | Remaining work |
 |---|---|---|---|
 | Python package and core | Partial | Seed/RNG, simplex noise, rotations, spherical geometry, sphere generation/indexing, SimMesh, interpolation, BFS, rings, heap and Dijkstra. Complete V2 tectonic configuration and mechanism controls, per-world override validation, and shared tectonic/geology model APIs. See `docs/SHARED_MODELS.md`. | Persistence and non-core pipeline work tracked by other issues. |
-| Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity, first-pass resolution and boundary classification. | Initial-world generation, scenario builders, remaining collision-event parity and remaining plate operations. |
+| Tectonic state and primitives | Partial | Crust raster, rigid plates, kinematics, occupancy, claim gathering, owner reconstruction, contact geometry, subduction polarity, first-pass resolution, boundary classification, packed/noise-shaped initial supercontinent generation with ocean apron, active/passive trench, seam/range records, continental/oceanic/mixed fixtures, prescribed-motion scenes and all 37 event/budget/force/margin/rift/terrain/hotspot/collision catalogue entries. Two production-mesh JS fixtures (512 and 768 cells, distinct seeds) compare layout, landmass arrays, assembled plate/crust state, inherited old-range records/relief, and far-field start-push records. | Broader multi-step scenario-history parity, collision-event parity and remaining plate operations. Whole-tectonics history is tracked separately. |
 | Tectonic evolution | Partial | Adaptive dt, general orogenic-belt propagation, force collection (slab, rift/ridge classification and torque accumulation are now separate helpers), collision tracking (suture readiness, gap/ring checks and configured welding are isolated), mantle heat, supercontinent-cycle state, partial plate-motion update and `step_world` with rift/subduction-initiation and collision-tracking stages. `spread_belt` now separates front propagation, previous-record preservation, front metadata updates and per-cell geological recording; `rift_continents` separates schedule state, queued plume requests, overdue breakups and spontaneous attempts. Their focused characterization tests remain green. Collision records measure shortening/fronts, call arc/terrane accretion and underthrusting, spread collision belts when the full belt configuration is supplied, and feed shortening into far-field records. Far-field diffusion can reactivate distant quiet sutures/failed rifts and rejuvenate existing ranges; strongly coupled Andean and flat-slab margins now contribute subduction work to the same far-field clock when the complete configuration group is supplied. Boundary classification also spreads steep-slab Andean belts, narrow arc belts, flat-slab Laramide belts and transpression belts on closing transforms when the complete belt/far-field configuration is supplied. Whole-history differential validation remains outstanding. With complete suture and merge configuration, eligible pairs run the raster redraw, sea sealing, suture flags and lower-plate retirement. After topology-changing transfers, the stepper rebuilds ownership and boundary state before force balance. | Full `simulate.js` stage sequence, complete collision-driven orogeny/event history, full subduction/slab evolution, arc maturation, ocean-plate evolution and snapshots. |
 | Rift geometry and plate splitting | Implemented as a subsystem | `rift_partition` assigns the two land blocks and ocean crust; `rift_path` searches and scores coast-to-coast candidates; `rift.split_plate` transfers crust, wings and records to a new plate, and marks margins/failed arms. | Differential tests against full upstream plate histories and interaction with still-unported tectonic stages. |
 | Rift execution | Partial, integrated | `rift_continents` consumes queued plume requests, applies waiting/expiry, supercontinent hold, overdue forced breakups and spontaneous tension/heat-driven attempts. `step_world` calls it when rift configuration is present. | Whole-simulation comparison across long histories and full upstream event interactions. |
@@ -68,7 +91,7 @@ test coverage.
 | Terrain, geology, climate | Not ported as full V2 pipelines | Some tectonic-side height and sediment-cover helpers exist. | Full terrain relief/lithology, geology/deposition, circulation, temperature, precipitation and biome pipelines. |
 | Finishing and agriculture | Not ported | — | Hydrology, erosion, ice, rocks, finishing and agricultural systems. |
 | Save/load | Not ported | — | Snapshots, migrations, tree codec and archive I/O. |
-| Compatibility | Partial | Differential tests compare selected numerical, mesh and tectonic operations against vendored JavaScript references. | Multi-seed, multi-resolution, multi-step and whole-simulation parity. |
+| Compatibility | Partial | Differential tests cover selected numerical, mesh and tectonic operations; initial-world tests compare layout, landmass, assembled plate/crust state, inherited old-range records/relief and far-field start-push records at two production mesh sizes with distinct seeds. | Wider seed/resolution sampling, multi-step scenario histories and whole-simulation parity. |
 
 ## Validation rules
 
@@ -78,7 +101,7 @@ test coverage.
 - Document numerical tolerances; do not hide discrepancies with overly broad thresholds.
 - Keep invariant tests even when exact differential comparison is not possible.
 - Do not claim full compatibility until all functional areas and reference tests have been covered.
-- Maintain the CI coverage gate for `orogen` (95% total minimum with branch coverage enabled).
+- Maintain the CI coverage gate: at least 99% total coverage and at least 99% on every Python package file, with branch coverage enabled.
 
 ## Historical verification before the SciPy backend migration
 
@@ -103,7 +126,7 @@ all seeds, resolutions or simulation histories.
 
 ## Next implementation priorities
 
-1. Validate the local Andean/Laramide/transpression belts against complete collision/suture histories; then finish subduction and arc evolution scheduling.
+1. Keep expanding the issue #15 differential sample across seeds and resolutions. The production initial-world layout, landmass, assembled plate/crust state, inherited old-range records/relief and far-field start-push records are now compared against JavaScript on two production meshes; all 37 scene-catalogue entries are present and representative builders have same-seed reproducibility tests. Full multi-step tectonic-history parity belongs to the downstream orchestration work and is not claimed here.
 2. Port ocean-plate evolution and splitting, then assemble the complete
    `simulate.js` orchestration and snapshots.
 3. Port terrain, general geology, climate, finishing and agriculture as

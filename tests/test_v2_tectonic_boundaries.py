@@ -5,6 +5,7 @@ import numpy as np
 from orogen.v2.core.sim_mesh import build_sim_mesh
 from orogen.v2.tectonics.boundaries import (
     Motion,
+    _feed_subduction_far_field,
     classify_contact_boundaries,
     classify_motion,
     feed_trench,
@@ -17,7 +18,7 @@ from orogen.v2.tectonics.world import BoundaryKind, TectonicWorld
 
 def _world():
     mesh = build_sim_mesh(48, 31)
-    return mesh, TectonicWorld(mesh, 31, {"apronKm": 100.0})
+    return mesh, TectonicWorld(mesh, 31, overrides={"apronKm": 100.0})
 
 
 def test_classify_motion_all_four_states_and_obliquity():
@@ -136,6 +137,37 @@ def test_feed_trench_can_start_from_adjacent_consumption():
     assert plate.crust.slabKm[0] == 4.0
 
 
+def test_feed_subduction_far_field_clears_flat_slab_without_land_sources():
+    mesh, world = _world()
+    plate = world.add_plate("P")
+    plate.crust.create(0, CrustType["OCEAN"], 0, 1)
+    plate.flatSlabKm = 12.0
+    world.config.update(
+        {
+            "farAndeanRateCmYr": 1.0,
+            "orogenyQuietMyr": 100.0,
+            "apronKm": 0.0,
+        }
+    )
+
+    _feed_subduction_far_field(world, {plate: {"cells": [0], "flat": 1}}, 1.0)
+
+    assert plate.flatSlabKm == 0.0
+
+
+def test_feed_subduction_far_field_skips_nonpositive_dt():
+    mesh, world = _world()
+    plate = world.add_plate("P")
+    plate.crust.create(0, CrustType["CONTINENT"], 0, 1)
+    plate.flatSlabKm = 12.0
+    plate.lastFedAt = world.time
+    world.config.update({"farAndeanRateCmYr": 1.0, "orogenyQuietMyr": 100.0})
+
+    _feed_subduction_far_field(world, {plate: {"cells": [0], "flat": 1}}, 0.0)
+
+    assert plate.flatSlabKm == 12.0
+
+
 def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
     monkeypatch,
 ):
@@ -173,3 +205,86 @@ def test_classify_contact_boundaries_covers_non_closing_and_provisional_closing(
     monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.CLOSING)
     assert classify_contact_boundaries(world, 1.0) == 1
     assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
+
+    monkeypatch.setattr(boundaries, "overrides", lambda *_args: None)
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["COLLISION"]
+
+
+def test_feed_subduction_far_field_rejects_non_positive_reference_rate():
+    import pytest
+
+    _, world = _world()
+    world.config["farAndeanRateCmYr"] = 0.0
+
+    with pytest.raises(ValueError, match="farAndeanRateCmYr must be positive"):
+        _feed_subduction_far_field(world, {object(): {}}, 1.0)
+
+
+def test_feed_subduction_far_field_processes_land_front(monkeypatch):
+    import orogen.v2.tectonics.boundaries as boundaries
+
+    _, world = _world()
+    plate = world.add_plate("A")
+    plate.crust.create(0, CrustType["CONTINENT"], 0, 1)
+    front = {
+        "cells": [0],
+        "kms": [10.0],
+        "headOn": [1.0],
+        "ages": [20.0],
+        "shears": [0.0],
+        "flat": 0,
+        "km": 10.0,
+    }
+    captured = {}
+    monkeypatch.setattr(boundaries, "belt_shape", lambda *_args: 1.0)
+    monkeypatch.setattr(
+        boundaries,
+        "feed_far_field",
+        lambda *args: captured.update(
+            {"cells": args[3], "works": args[4], "front_km": args[5]}
+        ),
+    )
+
+    boundaries._feed_subduction_far_field(world, {plate: front}, 1.0)
+
+    from orogen.v2.tectonics.config import CM_PER_YR_TO_KM_PER_MYR
+
+    rate_cm_yr = 10.0 / CM_PER_YR_TO_KM_PER_MYR
+    share = world.config["farAndeanShare"] * min(
+        1.0, (rate_cm_yr / world.config["farAndeanRateCmYr"]) ** 2
+    )
+    expected_work = 10.0 * world.config["andeanWorkShare"] * share
+    assert plate.lastFedAt == world.time
+    assert captured["cells"] == [0]
+    assert captured["works"] == [expected_work]
+    assert captured["front_km"] > 0.0
+
+
+def test_classify_real_overriding_contact_without_consumption(monkeypatch):
+    import orogen.v2.tectonics.boundaries as boundaries
+
+    _, world = _world()
+    world.config.update(
+        {"boundaryActiveCmYr": 0.5, "obliqueLimit": 1.0, "segmentPolarity": False}
+    )
+    plate_a, plate_b = world.add_plate("A"), world.add_plate("B")
+    plate_a.crust.create(0, CrustType["CONTINENT"], 0, 1)
+    plate_b.crust.create(0, CrustType["CONTINENT"], 0, 2)
+    world.owner[:] = -1
+    world.owner[:2] = [plate_a.id, plate_b.id]
+    world.ownerCell[:2] = [0, 0]
+
+    def contact(_world, cell, normal):
+        if cell == 0:
+            normal[:] = [1.0, 0.0, 0.0, 1.0]
+            return 1
+        return -1
+
+    monkeypatch.setattr(boundaries, "contact_at", contact)
+    monkeypatch.setattr(boundaries, "overrides", lambda *_args: True)
+    monkeypatch.setattr(boundaries, "classify_motion", lambda *_args: Motion.CLOSING)
+
+    assert classify_contact_boundaries(world, 1.0) == 1
+    assert world.boundaryKind[0] == BoundaryKind["OVERRIDING"]
+    assert not (plate_a.crust.flags[0] & CrustFlag["TRENCH"])

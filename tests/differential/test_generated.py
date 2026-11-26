@@ -14,6 +14,8 @@ from typing import Any
 
 import pytest
 
+from orogen.v2.core.seed import is_word_seed, seed_of
+
 hypothesis = pytest.importorskip(
     "hypothesis",
     reason="install Hypothesis with 'python -m pip install hypothesis'",
@@ -22,8 +24,6 @@ given = hypothesis.given
 seed = hypothesis.seed
 settings = hypothesis.settings
 st = hypothesis.strategies
-
-from orogen.v2.core.seed import is_word_seed, seed_of
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "tests" / "differential" / "config.json"
@@ -76,10 +76,7 @@ def _normalise(value: Any) -> Any:
     if isinstance(value, bool):
         return value
     if isinstance(value, float) and not math.isfinite(value):
-        if math.isnan(value):
-            label = "NaN"
-        else:
-            label = "Infinity" if value > 0 else "-Infinity"
+        label = "NaN" if math.isnan(value) else "Infinity" if value > 0 else "-Infinity"
         return {"__number__": label}
     return value
 

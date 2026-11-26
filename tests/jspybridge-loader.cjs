@@ -1,13 +1,13 @@
-// JSPyBridge loads local modules through require(). Modules are read by file
-// name from tests/reference/v2/core, mirroring property-runner.mjs. The
+// JSPyBridge loads local modules through require(). Modules are read by path
+// from tests/reference/v2, mirroring property-runner.mjs. The
 // upstream module graph has no top-level await, so require(ESM) is synchronous.
 //
 // invoke() takes and returns JSON text so results cross the bridge as plain
 // strings, matching the Node runner's wire format.
 const path = require("node:path");
 
-const CORE_DIR = path.join(__dirname, "reference", "v2", "core");
-const FILE_PATTERN = /^[A-Za-z0-9_-]+\.mjs$/;
+const REFERENCE_DIR = path.join(__dirname, "reference", "v2");
+const FILE_PATTERN = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*\.mjs$/;
 const cache = new Map();
 
 function loadModule(file) {
@@ -15,7 +15,7 @@ function loadModule(file) {
     throw new Error(`Invalid differential module: ${file}`);
   }
   if (!cache.has(file)) {
-    cache.set(file, require(path.join(CORE_DIR, file)));
+    cache.set(file, require(path.join(REFERENCE_DIR, file)));
   }
   return cache.get(file);
 }

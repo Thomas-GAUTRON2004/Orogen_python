@@ -30,23 +30,40 @@ python -m pytest tests/test_generated.py -q -rs
 
 CI runs the same replay in `.github/workflows/differential-jspybridge.yml`.
 
-## Regenerate a corpus
+## Regenerate the corpora
 
-The test suite never runs Pynguin. A corpus is a file committed in
-`tests/corpus/<module>.json`, regenerated when the Python code changes:
+The test suite never runs Pynguin. Each opted-in module has a corpus file,
+committed as `tests/corpus/<dotted module name>.json`, for example
+`tests/corpus/orogen.v2.core.rotation.json`.
 
 ```bash
 python -m pip install pynguin
-PYNGUIN_DANGER_AWARE=1 python tests/pynguin_corpus.py rotation
-PYNGUIN_DANGER_AWARE=1 python tests/pynguin_corpus.py seed
+PYNGUIN_DANGER_AWARE=1 python tests/pynguin_corpus.py
 ```
 
-Pynguin executes the project's code, so the environment variable is required.
-The budget and seed default to `pynguin_seconds` and `pynguin_seed` on the
-settings line. `--seconds` and `--seed` override them for one run.
+With no argument, the tool looks at every module under `orogen/` that opts in,
+and regenerates only those whose fingerprint changed. Name one or more modules
+to restrict it: `python tests/pynguin_corpus.py rotation` (the short stem is
+enough). Other options:
 
+- `--dry-run`: list what would be regenerated, without running Pynguin.
+- `--force`: regenerate everything.
+- `--seconds`, `--seed`: budget and seed for this run. They default to
+  `pynguin_seconds` and `pynguin_seed` on the settings line.
+
+**Fingerprint.** Each corpus records a SHA-256 over its module's source, the
+orogen files it imports (followed transitively), the parent packages'
+`__init__.py` files, the budget and the seed. A module is regenerated only when
+one of these changes. Editing `seed.py` therefore regenerates `seed` and every
+module that imports it, and leaves `rotation` alone. Editing a package
+`__init__.py` regenerates every module under it.
+
+Pynguin executes the project's code, so the environment variable is required.
 Regenerating a corpus only changes the replayed inputs. It does not change the
 tests.
+
+**Stale corpora.** The tool reports corpus files whose module no longer opts in.
+Delete them by hand.
 
 ## Configuration lives in comments
 
@@ -59,20 +76,25 @@ keys keep their defaults:
 # differential-settings: source=orogen/v2/core backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
 ```
 
-- `source`: Python directory scanned for opted-in modules.
+- `source`: directory scanned for opted-in modules, recursively. Defaults to
+  `orogen`.
 - `backends`: any combination of `node` and `jspybridge`.
 - `pynguin_seconds`, `pynguin_seed`: default budget and seed for regenerating a
   corpus.
 
 **A module opts in** with a comment line near the top of its file. Only
-opted-in modules are replayed:
+opted-in modules are replayed. A module must live under `orogen/v2/`, so that
+its reference can be found:
 
 ```python
 # differential-module: js_module=sphere-geom.mjs mode=approx rel_tol=1e-9 abs_tol=1e-9 params=q:quaternion,omega:vec3
 ```
 
-- `js_module`: JavaScript file name, when it is not derived automatically. The
-  automatic lookup tries `<stem>.mjs`, then `<stem with _ replaced by ->.mjs`.
+- `js_module`: JavaScript file name, relative to the module's directory under
+  `tests/reference/v2/`, when it is not derived automatically. For
+  `orogen/v2/core/rotation.py` the automatic lookup tries
+  `tests/reference/v2/core/rotation.mjs`, then `core/rotation.mjs` with `-` in
+  place of `_`.
 - `mode`: `exact` for seeds, flags and discrete values, or `approx` for floats.
   `rel_tol` and `abs_tol` apply only in `approx`.
 - `params`: type per parameter name, as `name:type` pairs separated by commas.
@@ -106,15 +128,17 @@ optional.
 
 ## Adding a module
 
-1. Make sure its JavaScript re-export exists in `tests/reference/v2/core/`, under
-   the same name as the Python file or with `-` in place of `_`. Use
-   `js_module=` if the name differs.
+1. Make sure its JavaScript re-export exists in the matching directory under
+   `tests/reference/v2/` (for example `core/` for `orogen/v2/core/`), under the
+   same name as the Python file or with `-` in place of `_`. Use `js_module=` if
+   the name differs.
 2. Add the module comment to the Python file. Use `params=` for any argument
    whose type is not implied by its annotation.
-3. Regenerate its corpus with `tests/pynguin_corpus.py`, then run the replay.
+3. Run `python tests/pynguin_corpus.py <module>` to create its corpus, then run
+   the replay.
 
-No runner or loader change is needed. The runners load only validated file
-names from `tests/reference/v2/core`.
+No runner or loader change is needed. The runners load only validated paths
+under `tests/reference/v2/`.
 
 ## Replay
 
@@ -138,6 +162,9 @@ replayed.
 
 - `node`: `property-runner.mjs`, a persistent process speaking JSON lines.
 - `jspybridge`: `jspybridge-loader.cjs`, loaded through JSPyBridge.
+
+Both load reference modules by path under `tests/reference/v2/`, for example
+`core/seed.mjs`. Any other path is rejected.
 
 Both backends receive the same JSON request and return the same JSON result.
 Results are compared recursively. Non-finite numbers are encoded as

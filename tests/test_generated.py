@@ -8,7 +8,7 @@ Configuration lives in comments.
 
 Global settings are the single line below (defaults apply to missing keys):
 
-# differential-settings: source=orogen/v2/core backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
+# differential-settings: source=orogen backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
 
 A source module opts in with a comment line near the top of its file:
 
@@ -36,43 +36,18 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from differential_support import (
+    CORPUS_DIR,
+    REFERENCE_DIR,
+    ROOT,
+    SETTINGS,
+    dotted_name,
+    js_module_file,
+    module_settings,
+    opted_in_modules,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
-THIS_FILE = Path(__file__).resolve()
-JS_CORE_DIR = ROOT / "tests" / "reference" / "v2" / "core"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
-CORPUS_DIR = ROOT / "tests" / "corpus"
-
-_SETTING_DEFAULTS = {
-    "source": "orogen/v2/core",
-    "backends": "node,jspybridge",
-    "pynguin_seconds": "60",
-    "pynguin_seed": "1",
-}
-
-
-def _read_settings() -> dict[str, Any]:
-    """Read the '# differential-settings:' line of this file."""
-    values = dict(_SETTING_DEFAULTS)
-    for line in THIS_FILE.read_text(encoding="utf-8").splitlines():
-        if line.startswith("# differential-settings:"):
-            for token in line.split(":", 1)[1].split():
-                key, _, value = token.partition("=")
-                if key not in values:
-                    raise AssertionError(f"Unknown differential setting: {key!r}")
-                values[key] = value
-            break
-    return {
-        "source": values["source"],
-        "backends": [item for item in values["backends"].split(",") if item],
-        "pynguin_seconds": int(values["pynguin_seconds"]),
-        "pynguin_seed": int(values["pynguin_seed"]),
-    }
-
-
-SETTINGS = _read_settings()
-SOURCE_DIR = ROOT / SETTINGS["source"]
-PACKAGE = ".".join(SOURCE_DIR.relative_to(ROOT).parts)
 
 # Types a parameter can take. Corpus entries whose arguments do not fit are
 # reported as skipped, with the reason. Values outside any range still run.
@@ -85,7 +60,6 @@ _TYPE_CHECKS = {
     "seed_text": lambda value: isinstance(value, str),
 }
 _ANNOTATION_TYPES = {"float": "unit_float", "object": "seed_text"}
-_MODULE_KEYS = {"js_module", "mode", "rel_tol", "abs_tol", "params"}
 
 
 def _is_number(value: Any) -> bool:
@@ -105,18 +79,6 @@ def _js_name(snake: str) -> str:
     return re.sub(r"_([a-z0-9])", lambda match: match.group(1).upper(), snake)
 
 
-def _js_module_file(stem: str, explicit: str | None) -> str:
-    """Return the JavaScript module file for a Python module stem."""
-    if explicit is not None:
-        if not (JS_CORE_DIR / explicit).is_file():
-            raise AssertionError(f"{stem}: js_module {explicit!r} does not exist")
-        return explicit
-    for name in (f"{stem}.mjs", f"{stem.replace('_', '-')}.mjs"):
-        if (JS_CORE_DIR / name).is_file():
-            return name
-    raise AssertionError(f"{stem}: opted in but no JavaScript module exists")
-
-
 _JS_EXPORTS_CACHE: dict[str, set[str]] = {}
 
 
@@ -132,7 +94,7 @@ def _js_export_names(js_file: str) -> set[str]:
         )
         completed = subprocess.run(
             [node, "-e", script],
-            cwd=JS_CORE_DIR,
+            cwd=REFERENCE_DIR,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -140,29 +102,6 @@ def _js_export_names(js_file: str) -> set[str]:
         )
         _JS_EXPORTS_CACHE[js_file] = set(json.loads(completed.stdout))
     return _JS_EXPORTS_CACHE[js_file]
-
-
-def _module_settings(path: Path) -> dict[str, Any] | None:
-    """Read the '# differential-module:' comment of a source file, if present."""
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("# differential-module:"):
-            continue
-        settings: dict[str, Any] = {}
-        for token in stripped.split(":", 1)[1].split():
-            key, _, value = token.partition("=")
-            if key not in _MODULE_KEYS:
-                raise AssertionError(f"{path.name}: unknown module setting {key!r}")
-            if key == "params":
-                settings[key] = dict(
-                    item.split(":", 1) for item in value.split(",") if item
-                )
-            elif key in ("rel_tol", "abs_tol"):
-                settings[key] = float(value)
-            else:
-                settings[key] = value
-        return settings
-    return None
 
 
 def _function_markers(path: Path) -> dict[str, dict[str, Any]]:
@@ -225,30 +164,25 @@ def _parameter_types(function: Any, overrides: dict[str, str]) -> list[str] | No
     return types
 
 
-_PY_MODULES: dict[str, Any] = {}
-
-
-def _import_python_module(stem: str) -> Any:
-    if stem not in _PY_MODULES:
-        _PY_MODULES[stem] = importlib.import_module(f"{PACKAGE}.{stem}")
-    return _PY_MODULES[stem]
+def _import_python_module(dotted: str) -> Any:
+    return importlib.import_module(dotted)
 
 
 def _module_targets(path: Path) -> list[dict[str, Any]]:
     """Describe the replayable functions of one opted-in source module."""
-    module_settings = _module_settings(path)
-    if module_settings is None:
+    settings = module_settings(path)
+    if settings is None:
         return []
-    stem = path.stem
-    js_file = _js_module_file(stem, module_settings.get("js_module"))
+    dotted = dotted_name(path)
+    js_file = js_module_file(path, settings.get("js_module"))
     js_exports = _js_export_names(js_file)
-    overrides = module_settings.get("params", {})
-    comparison: dict[str, Any] = {"mode": module_settings.get("mode", "approx")}
+    overrides = settings.get("params", {})
+    comparison: dict[str, Any] = {"mode": settings.get("mode", "approx")}
     for key in ("rel_tol", "abs_tol"):
-        if key in module_settings:
-            comparison[key] = module_settings[key]
+        if key in settings:
+            comparison[key] = settings[key]
 
-    module = _import_python_module(stem)
+    module = _import_python_module(dotted)
     markers = _function_markers(path)
     targets: list[dict[str, Any]] = []
     for name, function in inspect.getmembers(module, inspect.isfunction):
@@ -261,7 +195,7 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
         if js_name not in js_exports:
             if "js" in marker:
                 raise AssertionError(
-                    f"{stem}.{name} names JavaScript export {js_name!r}, "
+                    f"{dotted}.{name} names JavaScript export {js_name!r}, "
                     f"which {js_file} does not export"
                 )
             continue
@@ -274,7 +208,7 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
         targets.append(
             {
                 "id": name,
-                "module": stem,
+                "module": dotted,
                 "js": js_name,
                 "js_file": js_file,
                 "types": types,
@@ -286,9 +220,8 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
 
 def _all_targets() -> list[dict[str, Any]]:
     targets: list[dict[str, Any]] = []
-    for path in sorted(SOURCE_DIR.glob("*.py")):
-        if not path.stem.startswith("_"):
-            targets.extend(_module_targets(path))
+    for path in opted_in_modules():
+        targets.extend(_module_targets(path))
     return targets
 
 
@@ -503,13 +436,13 @@ def _skip_reason(target: dict[str, Any], args: list[Any]) -> str | None:
 _CORPUS_DOCUMENTS: dict[str, dict[str, Any] | None] = {}
 
 
-def _corpus_document(module: str) -> dict[str, Any] | None:
-    if module not in _CORPUS_DOCUMENTS:
-        path = CORPUS_DIR / f"{module}.json"
-        _CORPUS_DOCUMENTS[module] = (
+def _corpus_document(dotted: str) -> dict[str, Any] | None:
+    if dotted not in _CORPUS_DOCUMENTS:
+        path = CORPUS_DIR / f"{dotted}.json"
+        _CORPUS_DOCUMENTS[dotted] = (
             json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
         )
-    return _CORPUS_DOCUMENTS[module]
+    return _CORPUS_DOCUMENTS[dotted]
 
 
 def _corpus_cases() -> list[dict[str, Any]]:

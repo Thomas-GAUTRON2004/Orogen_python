@@ -1,0 +1,151 @@
+{
+  "module": "orogen.v2.core.seed",
+  "generator": {
+    "tool": "pynguin",
+    "version": "0.48.0",
+    "seed": 1,
+    "maximum_search_time_s": 60,
+    "input_sha256": "6c143599aa1c480208a0b386bd8d8d1c6c1e9c1fcf7e5fa005dc683f0798c1dd",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/seed.py"
+    ]
+  },
+  "stats": {
+    "calls": 23,
+    "unique": 20,
+    "unsupported_calls": 0
+  },
+  "entries": {
+    "is_word_seed": [
+      {
+        "args": [
+          []
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "clump"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          ""
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          null
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "(-1502.184129+597.192564j)"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "-3210.1"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "Ij<en})"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "0"
+        ],
+        "raised": null
+      }
+    ],
+    "seed_of": [
+      {
+        "args": [
+          null
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          {
+            "__repr__": "(-1502.184129+597.192564j)"
+          }
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          -3210.1
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          "Ij<en})"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "make_rng": [
+      {
+        "args": [
+          false
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          true
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "make_rand_int": [
+      {
+        "args": [
+          false
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          true
+        ],
+        "raised": null
+      },
+      {
+        "args": [],
+        "raised": null
+      }
+    ],
+    "random_seed": [
+      {
+        "args": [],
+        "raised": null
+      }
+    ]
+  }
+}

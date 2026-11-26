@@ -1,9 +1,9 @@
 import readline from "node:readline";
 
-// Modules are loaded by file name from tests/reference/v2/core. The name is
-// validated so that config or generated tests cannot reach other files.
-const CORE_URL = new URL("./core/", import.meta.url);
-const FILE_PATTERN = /^[A-Za-z0-9_-]+\.mjs$/;
+// Modules are loaded by path from tests/reference/v2, for example core/seed.mjs.
+// The path is validated so that a corpus entry cannot reach other files.
+const REFERENCE_URL = new URL("./", import.meta.url);
+const FILE_PATTERN = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*\.mjs$/;
 const cache = new Map();
 
 async function loadModule(file) {
@@ -11,7 +11,7 @@ async function loadModule(file) {
     throw new Error(`Invalid differential module: ${file}`);
   }
   if (!cache.has(file)) {
-    cache.set(file, import(new URL(file, CORE_URL).href));
+    cache.set(file, import(new URL(file, REFERENCE_URL).href));
   }
   return cache.get(file);
 }

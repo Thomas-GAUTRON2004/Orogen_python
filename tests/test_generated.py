@@ -4,7 +4,7 @@ All configuration lives in comments.
 
 Global settings are the single line below (defaults apply to missing keys):
 
-# differential-settings: source=orogen/v2/core max_examples=250 deadline_ms=1000 seed=20261126 backends=node,jspybridge
+# differential-settings: source=orogen/v2/core max_examples=250 deadline_ms=1000 seed=20261126 backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
 
 A source module opts in with a comment line near the top of its file:
 
@@ -55,6 +55,8 @@ _SETTING_DEFAULTS = {
     "deadline_ms": "1000",
     "seed": "20261126",
     "backends": "node,jspybridge",
+    "pynguin_seconds": "60",
+    "pynguin_seed": "1",
 }
 
 
@@ -75,6 +77,8 @@ def _read_settings() -> dict[str, Any]:
         "deadline_ms": int(values["deadline_ms"]),
         "seed": None if values["seed"] == "none" else int(values["seed"]),
         "backends": [item for item in values["backends"].split(",") if item],
+        "pynguin_seconds": int(values["pynguin_seconds"]),
+        "pynguin_seed": int(values["pynguin_seed"]),
     }
 
 

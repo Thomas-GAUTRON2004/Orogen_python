@@ -34,6 +34,16 @@ PACKAGE = "orogen.v2.core"
 CORPUS_DIR = ROOT / "tests" / "corpus"
 
 
+def _settings_from_test_file() -> dict[str, str]:
+    """Read the '# differential-settings:' line of tests/test_generated.py."""
+    path = ROOT / "tests" / "test_generated.py"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("# differential-settings:"):
+            tokens = line.split(":", 1)[1].split()
+            return dict(token.split("=", 1) for token in tokens if "=" in token)
+    return {}
+
+
 def encode(value: Any) -> Any:
     """Turn a call argument or result into JSON, keeping what JSON cannot express."""
     if value is None or isinstance(value, (bool, int, str)):
@@ -132,8 +142,19 @@ def replay(generated: Path, recorder: Recorder) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("module", help="Python module stem under orogen/v2/core")
-    parser.add_argument("--seconds", type=int, default=60)
-    parser.add_argument("--seed", type=int, default=1)
+    settings = _settings_from_test_file()
+    parser.add_argument(
+        "--seconds",
+        type=int,
+        default=int(settings.get("pynguin_seconds", 60)),
+        help="Pynguin search budget (default: pynguin_seconds in test_generated.py)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=int(settings.get("pynguin_seed", 1)),
+        help="Pynguin seed (default: pynguin_seed in test_generated.py)",
+    )
     options = parser.parse_args()
 
     sys.path.insert(0, str(ROOT))

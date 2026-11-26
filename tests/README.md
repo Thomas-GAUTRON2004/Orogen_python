@@ -135,3 +135,25 @@ in the file but not replayed.
 Regenerate a corpus when the code changes. Pynguin is not run by the test
 suite.
 
+## Choosing the grain and the time budget
+
+Every knob is on the settings line of `tests/test_generated.py`:
+
+- `max_examples`: how many Hypothesis examples each generated test draws. Higher
+  finds rarer divergences, at a linear cost in time.
+- `deadline_ms`: maximum time allowed for one example. An example that exceeds
+  it fails, so raise it for slow functions rather than the whole run.
+- `pynguin_seconds`: search budget for Pynguin when a corpus is regenerated. The
+  command-line `--seconds` overrides it for one run.
+- `pynguin_seed`: Pynguin's seed, so that regeneration is reproducible. The
+  command-line `--seed` overrides it.
+
+Example, a deeper run with a longer corpus search:
+
+```python
+# differential-settings: max_examples=2000 deadline_ms=2000 pynguin_seconds=300 pynguin_seed=7
+```
+
+Changing `pynguin_*` does not change the tests, only the corpus file produced
+when it is regenerated.
+

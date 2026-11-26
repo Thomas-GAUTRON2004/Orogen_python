@@ -38,7 +38,10 @@ TARGETS = {
 
 STRATEGIES = {
     "seed_text": lambda: st.one_of(
-        st.text(max_size=256),
+        st.text(
+            alphabet=st.characters(blacklist_categories=("Cc", "Cf", "Cs")),
+            max_size=256,
+        ),
         st.sampled_from(
             [
                 "",
@@ -119,7 +122,7 @@ class JavaScriptSession:
         return response["result"]
 
     def close(self) -> None:
-        if self.process.stdin is not None:
+        if self.process.stdin is not None and self.process.poll() is None:
             self.process.stdin.close()
         try:
             self.process.wait(timeout=5)

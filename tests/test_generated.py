@@ -26,9 +26,9 @@ settings = hypothesis.settings
 st = hypothesis.strategies
 
 ROOT = Path(__file__).resolve().parents[2]
-CONFIG_PATH = ROOT / "tests" / "differential" / "config.json"
+CONFIG_PATH = ROOT / "tests" / "config.json"
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
-JS_BRIDGE_MODULE = ROOT / "tests" / "differential" / "jspybridge-loader.cjs"
+JS_BRIDGE_MODULE = ROOT / "tests" / "jspybridge-loader.cjs"
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 # The registry is deliberately static: config files select known callables and

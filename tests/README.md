@@ -100,3 +100,38 @@ from `tests/reference/v2/core`.
 
 Results are compared recursively. Non-finite numbers are encoded as
 `{"__number__": "NaN" | "Infinity" | "-Infinity"}` on both sides.
+
+## Pynguin corpus
+
+Pynguin produces inputs, not expected values. `tests/pynguin_corpus.py` runs it
+on one module and records the arguments of every call it makes, plus whether
+Python raised. The result is `tests/corpus/<module>.json`, which is data, not
+configuration.
+
+```bash
+PYNGUIN_DANGER_AWARE=1 python tests/pynguin_corpus.py rotation --seconds 60 --seed 1
+```
+
+Pynguin executes the project's code, so the environment variable is required.
+Pynguin's own assertions are not kept: they would freeze whatever Python returns.
+
+`test_corpus_replay` replays each recorded call against the JavaScript
+reference, with the same comparison as the generated tests. An entry is
+reported as skipped, with its reason, when:
+
+- its argument count differs from the target's strategies;
+- an argument does not have the type the strategy expects (for example bytes
+  where a quaternion is expected);
+- an argument is not finite, since NaN and infinities cannot be sent on the
+  JSON wire.
+
+If Python raises for an entry, the test passes only when the JavaScript target
+also raises.
+
+Corpus entries are only replayed for functions that are generated targets.
+Other recorded calls, such as internal helpers or excluded functions, are kept
+in the file but not replayed.
+
+Regenerate a corpus when the code changes. Pynguin is not run by the test
+suite.
+

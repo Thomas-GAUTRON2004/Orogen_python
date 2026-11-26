@@ -18,6 +18,7 @@ refines that test: js=<export>, strategies=<a>,<b>, mode=<exact|approx>, or skip
 from __future__ import annotations
 
 import ast
+import copy
 import importlib
 import importlib.util
 import inspect
@@ -363,6 +364,10 @@ def _normalise(value: Any) -> Any:
     return value
 
 
+class JSTargetError(Exception):
+    """The JavaScript target itself raised; the runner is still healthy."""
+
+
 class JavaScriptSession:
     """Keep one Node process alive while Hypothesis submits generated examples."""
 
@@ -399,7 +404,7 @@ class JavaScriptSession:
             raise RuntimeError(f"JavaScript runner exited unexpectedly: {stderr}")
         response = json.loads(line)
         if not response["ok"]:
-            raise RuntimeError(response["error"])
+            raise JSTargetError(response["error"])
         return response["result"]
 
     def close(self) -> None:
@@ -430,9 +435,12 @@ class JSPyBridgeSession:
     def call(self, js_file: str, export: str, args: list[Any]) -> Any:
         # The loader returns JSON text so results cross the bridge as plain
         # strings, exactly as they do through the Node runner.
-        text = self._loader.invoke(
-            js_file, export, json.dumps(args, ensure_ascii=False, allow_nan=False)
-        )
+        try:
+            text = self._loader.invoke(
+                js_file, export, json.dumps(args, ensure_ascii=False, allow_nan=False)
+            )
+        except Exception as exc:
+            raise JSTargetError(str(exc)) from exc
         return json.loads(text)
 
     def close(self) -> None:
@@ -536,6 +544,143 @@ def test_generated_differential_cases(
         javascript.call(target_config["js_file"], target_config["js"], args)
     )
     _assert_equivalent(python_result, javascript_result, target_config["comparison"])
+
+
+# ---------------------------------------------------------------------------
+# Pynguin corpus replay. tests/pynguin_corpus.py records the arguments Pynguin
+# passes to each function; the replay compares them with the JavaScript
+# reference. Pynguin's own assertions are not used. Entries whose types do not
+# fit the target's strategies are reported as skipped, with the reason.
+# ---------------------------------------------------------------------------
+
+CORPUS_DIR = ROOT / "tests" / "corpus"
+_CORPUS_DOCUMENTS: dict[str, dict[str, Any] | None] = {}
+
+
+class _Opaque:
+    """A value Pynguin produced that the JSON corpus could only record as text."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
+def _decode(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_decode(item) for item in value]
+    if isinstance(value, dict):
+        if "__number__" in value:
+            return float(value["__number__"])
+        if "__bytes__" in value:
+            return bytes.fromhex(value["__bytes__"])
+        if "__repr__" in value:
+            return _Opaque(value["__repr__"])
+        return {key: _decode(item) for key, item in value.items()}
+    return value
+
+
+def _is_list_of_numbers(value: Any, length: int) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) == length
+        and all(_is_number(item) for item in value)
+    )
+
+
+# Type checks only: the replay tests what Python and JavaScript do with inputs
+# of the right type, including values outside the Hypothesis domains.
+_TYPE_CHECKS = {
+    "unit_float": _is_number,
+    "angle": _is_number,
+    "time_step": _is_number,
+    "quaternion": lambda value: _is_list_of_numbers(value, 4),
+    "vec3": lambda value: _is_list_of_numbers(value, 3),
+    "seed_text": lambda value: isinstance(value, str),
+}
+
+
+def _corpus_document(module: str) -> dict[str, Any] | None:
+    if module not in _CORPUS_DOCUMENTS:
+        path = CORPUS_DIR / f"{module}.json"
+        _CORPUS_DOCUMENTS[module] = (
+            json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+        )
+    return _CORPUS_DOCUMENTS[module]
+
+
+def _has_non_finite(value: Any) -> bool:
+    if isinstance(value, float):
+        return not math.isfinite(value)
+    if isinstance(value, list):
+        return any(_has_non_finite(item) for item in value)
+    return False
+
+
+def _skip_reason(target: dict[str, Any], args: list[Any]) -> str | None:
+    if len(args) != len(target["strategies"]):
+        return f"arity {len(args)} != {len(target['strategies'])}"
+    for strategy, value in zip(target["strategies"], args, strict=True):
+        if isinstance(value, _Opaque) or not _TYPE_CHECKS[strategy](value):
+            return f"type mismatch for {strategy}"
+    if _has_non_finite(args):
+        return "non-finite input cannot be sent on the JSON wire"
+    return None
+
+
+def _corpus_cases() -> list[dict[str, Any]]:
+    cases: list[dict[str, Any]] = []
+    for target in ALL_TARGETS:
+        document = _corpus_document(target["module"])
+        if document is None:
+            continue
+        for index, entry in enumerate(document["entries"].get(target["id"], [])):
+            args = _decode(entry["args"])
+            cases.append(
+                {
+                    "target": target,
+                    "args": args,
+                    "index": index,
+                    "skip": _skip_reason(target, args),
+                }
+            )
+    return cases
+
+
+def _corpus_label(case: dict[str, Any]) -> str:
+    target = case["target"]
+    return f"{target['module']}.{target['id']}[{case['index']}]"
+
+
+CORPUS_CASES = _corpus_cases()
+
+
+@pytest.mark.parametrize("corpus_case", CORPUS_CASES, ids=_corpus_label)
+@pytest.mark.parametrize("javascript", _BACKEND_PARAMETERS, indirect=True)
+def test_corpus_replay(corpus_case: dict[str, Any], javascript: Any) -> None:
+    if corpus_case["skip"] is not None:
+        pytest.skip(corpus_case["skip"])
+    target = corpus_case["target"]
+    args = copy.deepcopy(corpus_case["args"])
+
+    python_error: str | None = None
+    try:
+        python_result = _resolve_python_target(target)(*args)
+    except Exception as exc:
+        python_error = type(exc).__name__
+
+    javascript_error: str | None = None
+    try:
+        javascript_result = javascript.call(target["js_file"], target["js"], args)
+    except JSTargetError as exc:
+        javascript_error = str(exc)
+
+    if python_error is not None or javascript_error is not None:
+        assert python_error is not None and javascript_error is not None, (
+            f"Python raised {python_error!r} but JavaScript raised {javascript_error!r}"
+        )
+        return
+    _assert_equivalent(
+        _normalise(python_result), _normalise(javascript_result), target["comparison"]
+    )
 
 
 if SETTINGS["seed"] is not None:

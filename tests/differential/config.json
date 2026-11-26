@@ -2,7 +2,8 @@
   "settings": {
     "max_examples": 250,
     "deadline_ms": 1000,
-    "seed": 20261126
+    "seed": 20261126,
+    "backends": ["node", "jspybridge"]
   },
   "targets": [
     {

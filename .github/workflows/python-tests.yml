@@ -10,7 +10,6 @@ on:
       - ".github/workflows/differential-jspybridge.yml"
       - ".github/workflows/python-tests.yml"
       - "tests/differential/**"
-      - "tests/test_v2_seed.py"
       - "CHANGELOG.md"
   workflow_dispatch:
 

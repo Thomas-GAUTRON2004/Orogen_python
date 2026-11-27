@@ -14,15 +14,15 @@ Every noise field here uses ``SimplexNoise`` as upstream does.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
+import math
 from typing import Any, cast
-from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
+from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     angle_between,

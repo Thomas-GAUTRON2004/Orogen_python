@@ -6,11 +6,14 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+
 import numpy as np
 
 from ..core.seed import make_rng
+from ..core.sim_mesh import SimMesh
 from .config import make_tectonics_config
 from .crust import CrustType
+from .initial_types import ConfigValue
 from .plate import Plate
 
 EventKind = {
@@ -158,9 +161,9 @@ class TectonicWorld:
 
     def __init__(
         self,
-        sim_mesh,
+        sim_mesh: SimMesh,
         seed: int,
-        overrides: dict | None = None,
+        overrides: dict[str, ConfigValue] | None = None,
     ):
         # As upstream `new TectonicWorld(simMesh, seed, overrides)`: defaults
         # are always present and overrides replace top-level keys via object spread.

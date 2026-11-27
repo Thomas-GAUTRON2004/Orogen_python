@@ -13,6 +13,8 @@ import re
 import secrets
 from collections.abc import Callable
 
+SeedInput = str | int | float | bool | None
+
 SEEDS = 2_147_483_646
 _RNG_MODULUS = 2_147_483_647
 _RNG_MULTIPLIER = 16_807
@@ -63,7 +65,7 @@ def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
     return rand_int
 
 
-def is_word_seed(text: object) -> bool:
+def is_word_seed(text: SeedInput) -> bool:
     """Determine whether a seed string is non-empty and not finite under JavaScript Number()."""
     value = "" if text is None else str(text)
     value = value.strip()
@@ -73,7 +75,7 @@ def is_word_seed(text: object) -> bool:
     return number is None or not math.isfinite(number)
 
 
-def seed_of(text: object) -> int | float:
+def seed_of(text: SeedInput) -> int | float:
     """Convert numeric text directly or hash words with upstream FNV-1a."""
     value = "" if text is None else str(text)
     value = value.strip()

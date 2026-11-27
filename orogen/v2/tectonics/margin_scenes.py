@@ -51,7 +51,7 @@ def _set_motion(
         plate.omega = omega_for(point, heading(point, bearing_deg), speed_cm_yr)
 
 
-def _arm_against(mesh: Any, plate: Any, other: Any, config: dict) -> list[int]:
+def _arm_against(mesh: Any, plate: Plate, other: Any, config: dict) -> list[int]:
     """Arm a mature trench along every cell of one plate touching another."""
     trench: list[int] = []
     for cell in range(int(mesh.num_cells)):
@@ -69,7 +69,7 @@ def _arm_against(mesh: Any, plate: Any, other: Any, config: dict) -> list[int]:
 
 def _arm_facing(
     mesh: Any,
-    plate: Any,
+    plate: Plate,
     centre: list[float],
     bearing_deg: float,
     config: dict,
@@ -98,7 +98,7 @@ def _arm_facing(
             plate.crust.arm_trench(cell, float(config["slabMatureKm"]))
 
 
-def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
+def _arc_behind(mesh: Any, plate: Plate, trench: list[int], hops: int) -> None:
     """Paint only the ring exactly hops cells inland of the trench."""
     seen = set(trench)
     ring = list(trench)

@@ -13,6 +13,7 @@ from .scenarios import add_apron_and_trench, add_continent, add_ocean, fill_back
 from .scene_support import begin_scene
 from .world import TectonicWorld
 
+
 def _share_basin(
     canvas: dict[str, Any],
     plates: list[Any],

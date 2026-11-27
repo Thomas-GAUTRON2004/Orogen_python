@@ -21,6 +21,7 @@ from .scene_support import begin_scene
 from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
+
 def _share_basin(
     canvas: SceneCanvas,
     plates: list[Plate],

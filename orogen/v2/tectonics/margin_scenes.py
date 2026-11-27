@@ -6,16 +6,15 @@ import math
 from types import MappingProxyType
 from typing import Any
 
-from .plate import Plate
-from ..core.sim_mesh import SimMesh
-
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from .config import only_mechanisms
 from .crust import CrustType
 from .dynamics import update_plate_motion
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
+from .plate import Plate
 from .scenarios import (
     add_apron_and_trench,
     add_continent,

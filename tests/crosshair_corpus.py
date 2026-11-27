@@ -30,6 +30,7 @@ import importlib.metadata
 import inspect
 import json
 import math
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -169,6 +170,9 @@ def run_crosshair(
         encoding="utf-8",
         timeout=timeout * 8 + 120,
         check=False,
+        # CrossHair prints example strings that the Windows console codepage cannot
+        # encode (for example \u0800), so the child must write UTF-8.
+        env={**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"},
     )
     output = completed.stdout + "\n" + completed.stderr
     if IMPORT_FAILURE in output or completed.returncode != 0:

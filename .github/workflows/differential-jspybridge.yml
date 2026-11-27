@@ -88,6 +88,8 @@ jobs:
         run: |
           corpus_backup="$(mktemp -d)"
           cp -a tests/corpus/. "$corpus_backup/"
+          git clean -fd tests/corpus/
+          git reset --hard
           git fetch origin "$TARGET_BRANCH"
           git checkout -B "$TARGET_BRANCH" FETCH_HEAD
           rm -rf tests/corpus

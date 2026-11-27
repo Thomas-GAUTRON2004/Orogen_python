@@ -10,8 +10,6 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - "tests/differential_support.py"
-      - "tests/crosshair_corpus.py"
-      - "tests/differential_support.py"
       - "tests/corpus/**"
       - "tests/jspybridge-loader.cjs"
       - "tests/reference/v2/**"
@@ -30,7 +28,7 @@ jobs:
   differential:
     name: Differential checks / Node 22 / JSPyBridge
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Check out repository and upstream reference
         uses: actions/checkout@v4

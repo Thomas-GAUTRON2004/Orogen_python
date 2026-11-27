@@ -54,7 +54,9 @@ def _set_motion(
         plate.omega = omega_for(point, heading(point, bearing_deg), speed_cm_yr)
 
 
-def _arm_against(mesh: SimMesh, plate: Plate, other: Plate, config: Mapping[str, int | float]) -> list[int]:
+def _arm_against(
+    mesh: SimMesh, plate: Plate, other: Plate, config: Mapping[str, int | float]
+) -> list[int]:
     """Arm a mature trench along every cell of one plate touching another."""
     trench: list[int] = []
     for cell in range(int(mesh.num_cells)):

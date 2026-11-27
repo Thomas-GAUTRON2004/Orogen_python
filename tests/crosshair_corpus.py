@@ -266,7 +266,9 @@ def capture(dotted: str, timeout: int) -> dict[str, JsonValue]:
         counts["unreadable_lines"] += unreadable
         for example in examples:
             counts["examples"] += 1
-            args = positional_for(parameter_names(inspect.signature(function), skip_first=False), example)
+            args = positional_for(
+                parameter_names(inspect.signature(function), skip_first=False), example
+            )
             if args is None:
                 counts["unsupported_calls"] += 1
                 continue

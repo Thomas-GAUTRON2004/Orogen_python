@@ -81,6 +81,7 @@ def mesh_from_arrays(
     )
 
 
+# differential: skip
 def build_sim_mesh(num_cells: int, seed: int) -> SimMesh:
     """Build the deterministic V2 simulation mesh from a seed."""
     if num_cells < 3:

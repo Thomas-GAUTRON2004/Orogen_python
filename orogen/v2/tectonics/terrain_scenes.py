@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Mapping
+import math
 from types import MappingProxyType
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .budget_scenes import BUDGET_SCENES
 from .config import mechanisms_on, only_mechanisms

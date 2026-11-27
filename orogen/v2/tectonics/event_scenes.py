@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import math
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .crust import CrustFlag, CrustType
 from .force_scenes import FORCE_SCENES
 from .kinematics import lat_lon_to_xyz
+from .plate import Plate
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -19,9 +20,7 @@ from .scenarios import (
     scene_terrane,
 )
 from .scene_support import add_ocean_corridor, begin_scene
-from .plate import Plate
 from .world import TectonicWorld
-
 
 def _add_arc_ridge(
     canvas: dict[str, Any],

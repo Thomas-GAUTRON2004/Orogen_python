@@ -28,12 +28,17 @@ class PlateMotion(TypedDict):
     note: str
 
 
-class PlateSceneState(TypedDict, total=False):
-    q0: list[float]
-    def: PlateDefinition
-    centre: list[float]
-    pole: list[float]
-    motion: PlateMotion
+PlateSceneState = TypedDict(
+    "PlateSceneState",
+    {
+        "q0": list[float],
+        "def": PlateDefinition,
+        "centre": list[float],
+        "pole": list[float],
+        "motion": PlateMotion,
+    },
+    total=False,
+)
 
 
 class Plate:

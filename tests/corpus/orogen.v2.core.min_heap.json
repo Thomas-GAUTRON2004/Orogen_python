@@ -5,31 +5,24 @@
     "version": "0.0.114",
     "per_condition_timeout_s": 5,
     "output_format": "arg_dictionary",
-    "input_sha256": "e4a5376c3c8448935af53af8016670e6b22511e89ed0b702da0021453c85a4ce",
+    "input_sha256": "d44da5e705f8658c684ce36b90e76a44f6a87db6e376fa815c6fcee1617ce9d9",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
       "orogen/v2/core/__init__.py",
       "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/mesh_types.py",
       "orogen/v2/core/min_heap.py",
       "orogen/v2/core/sphere_geometry.py"
     ]
   },
   "stats": {
-    "unique": 4,
-    "examples": 4,
+    "unique": 3,
+    "examples": 3,
     "unsupported_calls": 0,
     "unreadable_lines": 0
   },
   "entries": {
-    "forget_edge_km": [
-      {
-        "args": [
-          ""
-        ],
-        "raised": "TypeError"
-      }
-    ],
     "MinHeap.push": [
       {
         "args": [

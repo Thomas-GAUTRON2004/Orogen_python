@@ -1,6 +1,6 @@
 """Plate kinematics and time integration ported from V2 step/kinematics.js."""
 
-# differential-module:
+# differential-module: params=pole_xyz:vec3,omega:vec3
 
 from __future__ import annotations
 

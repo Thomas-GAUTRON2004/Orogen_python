@@ -67,21 +67,6 @@ jobs:
       - name: Generate or update CrossHair corpus
         run: python tests/crosshair_corpus.py
 
-      - name: Commit generated CrossHair corpus
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/corpus/
-          if git diff --cached --quiet; then
-            echo "CrossHair corpus is already up to date."
-          else
-            git commit -m "test: update generated CrossHair corpus"
-            git push origin "HEAD:${TARGET_BRANCH}"
-          fi
-
       - name: Save CrossHair corpus for the next CI run
         uses: actions/cache/save@v4
         with:
@@ -95,6 +80,28 @@ jobs:
               --cov-report=term-missing \
               --cov-report=html:htmlcov \
               tests/test_generated.py
+
+      - name: Commit generated CrossHair corpus
+        if: success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          corpus_backup="$(mktemp -d)"
+          cp -a tests/corpus/. "$corpus_backup/"
+          git fetch origin "$TARGET_BRANCH"
+          git checkout -B "$TARGET_BRANCH" FETCH_HEAD
+          rm -rf tests/corpus
+          mkdir -p tests/corpus
+          cp -a "$corpus_backup"/. tests/corpus/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A tests/corpus/
+          if git diff --cached --quiet; then
+            echo "CrossHair corpus is already up to date."
+          else
+            git commit -m "test: update generated CrossHair corpus"
+            git push origin "$TARGET_BRANCH"
+          fi
 
       - name: Upload HTML coverage report
         if: always()

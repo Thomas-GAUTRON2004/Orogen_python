@@ -7,9 +7,32 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from typing import TypedDict
 
 from ..core.rotation import quat_identity, quat_to_mat3
 from .crust import CrustRaster, CrustType
+
+
+class PlateDefinition(TypedDict):
+    name: str
+    centre: tuple[float, float]
+    poleOffsetDeg: float
+    speedCmYr: float
+    note: str
+
+
+class PlateMotion(TypedDict):
+    pole: list[float]
+    speedCmYr: float
+    note: str
+
+
+class PlateSceneState(TypedDict, total=False):
+    q0: list[float]
+    def: PlateDefinition
+    centre: list[float]
+    pole: list[float]
+    motion: PlateMotion
 
 
 class Plate:
@@ -18,7 +41,7 @@ class Plate:
     def __init__(self, plate_id: int, num_cells: int, born: float = 0.0):
         self.id = int(plate_id)
         self.name = str(plate_id)
-        self.scene: dict[str, object] = {}
+        self.scene: PlateSceneState = {}
         self.alive = True
         self.born = float(born)
         self.bornOfRift = False
@@ -36,7 +59,7 @@ class Plate:
         self.bins = None
         self.dynamics = None
         self.wingBudgetKm = 0.0
-        self.wings: dict[object, object] = {}
+        self.wings: dict[str, list[int]] = {}
         self.arcTerraneId: int | None = None
         self.marginIsleTerrane = None
         self.riftPartner = -1

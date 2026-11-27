@@ -98,10 +98,13 @@ its reference can be found:
 - `mode`: `exact` for seeds, flags and discrete values, or `approx` for floats.
   `rel_tol` and `abs_tol` apply only in `approx`.
 - `params`: type per parameter name, as `name:type` pairs separated by commas.
-  Types are `unit_float`, `angle`, `time_step` (numbers), `quaternion` (4
-  numbers), `vec3` (3 numbers) and `seed_text` (a string). Parameters not listed
-  fall back to their annotation: `float` gives `unit_float`, `object` gives
-  `seed_text`. A parameter with no type makes its function get no replay.
+  Types are `unit_float`, `angle`, `time_step` (numbers), `integer`, `boolean`,
+  `string`, `quaternion` (4 numbers), `vec3` (3 numbers), `number_list`,
+  `integer_list`, `seed_text` and `seed_input`. Parameters not listed fall back
+  to their annotation: `float`, `int | float` and `float | int` map to
+  `unit_float`; `int`, `bool`, `str`, `SeedInput`, `Sequence[float]` and
+  `Iterable[int]` map to their corresponding kinds. A parameter with no
+  supported type makes its function get no replay.
 
 **A function can refine its replay** with a comment directly above its `def`:
 

@@ -7,12 +7,10 @@ Distances in the block frame are azimuthal-equidistant radians.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from typing import TypedDict, cast
 
 import numpy as np
-
-from .initial_types import InitialConfig
 
 from ..core.sphere_geometry import (
     PLANET_RADIUS_KM,
@@ -23,6 +21,7 @@ from ..core.sphere_geometry import (
     random_point,
     tangent_basis,
 )
+from .initial_types import InitialConfig
 
 
 class RiftStep(TypedDict):

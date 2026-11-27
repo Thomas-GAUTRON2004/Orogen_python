@@ -752,7 +752,7 @@ def _evaluate_layout_attempt(
         excess = land_count / int(sim_mesh.num_cells) - float(
             config["continentalFraction"]
         )
-        candidate = {
+        candidate: LayoutCandidate = {
             "layout": layout,
             "land": land,
             "areaScale": area_scale,

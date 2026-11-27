@@ -7,16 +7,27 @@ from typing import Protocol
 import numpy as np
 
 
-class MeshGraph(Protocol):
-    """Minimum CSR mesh interface consumed by graph and geometry helpers."""
+class AdjacencyGraph(Protocol):
+    """CSR adjacency interface used to construct nearest-cell indexes."""
 
     num_cells: int
-    xyz: np.ndarray
     adj_offset: np.ndarray
     adj_list: np.ndarray
+
+
+class NearestCellIndex(Protocol):
+    """Nearest-cell lookup interface used by point-location algorithms."""
+
+    def nearest(self, x: float, y: float, z: float) -> int: ...
+
+
+class MeshGraph(AdjacencyGraph, Protocol):
+    """Minimum CSR mesh interface consumed by graph and geometry helpers."""
+
+    xyz: np.ndarray
 
 
 class IndexedMeshGraph(MeshGraph, Protocol):
     """Mesh graph with the nearest-cell index required by point location."""
 
-    index: object
+    index: NearestCellIndex

@@ -30,8 +30,16 @@ python -m pytest tests/test_generated.py -q -rs
 
 The differential CI job also writes an HTML coverage report to `htmlcov/`
 and uploads it as the `differential-coverage-html-<run id>` workflow artifact
-(retained for 14 days). Download the artifact from the corresponding GitHub
-Actions run and open `index.html` locally.
+(retained for 14 days). On pushes to `main`, the same report is published to
+GitHub Pages by a dedicated deployment job. Pull-request runs only build and
+upload the artifact; they do not publish a public site. The published report is
+available at:
+
+`https://thomas-gautron2004.github.io/Orogen_python/`
+
+The Pages deployment uses the `github-pages` environment and the
+`actions/deploy-pages` workflow. The repository's Pages source must be set to
+**GitHub Actions** in Settings → Pages.
 
 CI runs the corpus generator before the replay in
 `.github/workflows/differential-jspybridge.yml`. The workflow restores

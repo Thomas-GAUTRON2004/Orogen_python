@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
+from typing import cast
 from types import MappingProxyType
 
 import numpy as np
@@ -25,7 +26,7 @@ from .scenarios import (
 )
 from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
@@ -33,11 +34,11 @@ WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMy
 
 def flagged(
     flag: int,
-) -> Callable[[Mapping[str, object], SimMesh], tuple[float, float] | None]:
+) -> Callable[[Mapping[str, np.ndarray], SimMesh], tuple[float, float] | None]:
     """Return a focus callback for the centroid of land carrying a crust flag."""
 
     def focus(
-        frame: Mapping[str, object], sim_mesh: SimMesh
+        frame: Mapping[str, np.ndarray], sim_mesh: SimMesh
     ) -> tuple[float, float] | None:
         owner = np.asarray(frame["owner"])
         cell_type = np.asarray(frame["type"])
@@ -61,10 +62,10 @@ def flagged(
 
 
 def _from_catalogue(
-    catalogue: list[dict[str, object]], scene_id: str, **overrides: object
-) -> dict[str, object]:
+    catalogue: Sequence[CompleteSceneDefinition], scene_id: str, **overrides: str
+) -> CompleteSceneDefinition:
     scene = next(item for item in catalogue if item["id"] == scene_id)
-    return {**scene, "drive": update_plate_motion, **overrides}
+    return cast(CompleteSceneDefinition, {**scene, "drive": update_plate_motion, **overrides})
 
 
 def _build_cratons(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
@@ -212,16 +213,16 @@ def _drive_traps(world: TectonicWorld) -> None:
     india.omega = omega_for(point, heading(point, 0.0), 1.5)
 
 
-def _whole_planet(scene: dict[str, object]) -> dict[str, object]:
+def _whole_planet(scene: CompleteSceneDefinition) -> CompleteSceneDefinition:
     def build(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
         world = build_from_catalogue(scene, sim_mesh, seed)
         world.config.update(WHOLE_PLANET_PACE)
         return world
 
-    return {**scene, "build": build}
+    return cast(CompleteSceneDefinition, {**scene, "build": build})
 
 
-TERRAIN_SCENES: list[dict[str, object]] = [
+TERRAIN_SCENES: list[CompleteSceneDefinition] = [
     _from_catalogue(
         MARGIN_SCENES,
         "margins",

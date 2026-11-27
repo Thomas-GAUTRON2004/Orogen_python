@@ -119,7 +119,7 @@ def birth_plume(
     life_myr: float | None = None,
     strength: float | None = None,
     born_at: float | None = None,
-) -> dict:
+) -> HotspotRecord:
     """Register a mantle-frame plume, erupt its head LIP, and optionally queue a rift.
 
     Active plume tails stamp tracks and pulse-built edifices; queued rift execution
@@ -321,7 +321,7 @@ def update_plumes(world, dt: float) -> dict:
     }
 
 
-def _erupt_lip(world, plume: dict, anchor: int) -> None:
+def _erupt_lip(world, plume: HotspotRecord, anchor: int) -> None:
     """Rasterize a plume-head flood-basalt province from upstream hotspots.js."""
     config, mesh = world.config, world.mesh
     owner, owner_cell = world.owner, world.ownerCell
@@ -528,7 +528,7 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
     )
 
 
-def _erupted_during(world, plume: dict, start: float, end: float) -> float:
+def _erupted_during(world, plume: HotspotRecord, start: float, end: float) -> float:
     """Integrate plume burst intensity over a simulation interval."""
     config = world.config
     rng = world.rngVolcano
@@ -575,7 +575,7 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
     return total
 
 
-def _stamp_track(world, plume: dict, dt: float) -> None:
+def _stamp_track(world, plume: HotspotRecord, dt: float) -> None:
     """Stamp the plume's moving tail on the plate currently passing above it."""
     config, mesh = world.config, world.mesh
     owner, provisional = world.owner, world.provisional

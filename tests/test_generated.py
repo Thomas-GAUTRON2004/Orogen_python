@@ -38,7 +38,6 @@ from typing import Protocol, TypeAlias, TypedDict, cast
 
 import numpy as np
 import pytest
-
 from differential_support import (
     CORPUS_DIR,
     REFERENCE_DIR,

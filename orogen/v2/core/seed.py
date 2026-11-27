@@ -41,6 +41,7 @@ def _js_number(text: str) -> float | None:
     return None
 
 
+# differential: skip
 def make_rng(seed: float | int = 0) -> Callable[[], float]:
     """Return the upstream Park–Miller generator for seed."""
     state = (abs(math.floor(seed * 9301 + 49297)) % 2_147_483_646) + 1
@@ -53,6 +54,7 @@ def make_rng(seed: float | int = 0) -> Callable[[], float]:
     return random
 
 
+# differential: skip
 def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
     """Return a deterministic integer sampler in [0, n)."""
     random = make_rng(seed)

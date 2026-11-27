@@ -47,6 +47,7 @@ DECCAN: DeccanParameters = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesM
 PLUMES_ONLY = only_mechanisms()
 
 
+
 def _hawaii(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, _noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)

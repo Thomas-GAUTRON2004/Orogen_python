@@ -21,9 +21,8 @@ from .scenarios import (
     scene_terrane,
 )
 from .scene_support import add_ocean_corridor, begin_scene
-from .world import TectonicWorld
 from .scene_types import build_from_catalogue
-
+from .world import TectonicWorld
 
 def _add_arc_ridge(
     canvas: SceneCanvas,

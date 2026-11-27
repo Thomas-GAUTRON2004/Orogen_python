@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
-from types import MappingProxyType
 from collections.abc import Mapping
+from types import MappingProxyType
 
 import numpy as np
 
@@ -15,8 +15,6 @@ from .dynamics import update_plate_motion
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .plate import Plate
-from .world import TectonicWorld
-from .scene_types import build_from_catalogue
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -27,6 +25,8 @@ from .scenarios import (
 )
 from .scene_constants import ARC_TERRANE_ID, MARIANA_ARC_WIDTH_KM
 from .scene_support import begin_scene
+from .scene_types import build_from_catalogue
+from .world import TectonicWorld
 
 ROLLBACK_ONLY = MappingProxyType(
     {

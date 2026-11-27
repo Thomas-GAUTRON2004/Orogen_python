@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from ..core.sim_mesh import SimMesh
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
@@ -14,8 +13,8 @@ from .scenarios import (
     flag_coast_trench,
 )
 from .scene_support import add_ocean_corridor, begin_scene
-from .world import TectonicWorld
 from .scene_types import build_from_catalogue
+from .world import TectonicWorld
 
 WEST: tuple[tuple[float, float], ...] = ((125.0, 235.0),)
 EAST: tuple[tuple[float, float], ...] = ((-55.0, 55.0),)

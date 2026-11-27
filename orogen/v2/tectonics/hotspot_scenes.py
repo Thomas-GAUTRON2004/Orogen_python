@@ -20,8 +20,8 @@ from .scenarios import (
     omega_for,
 )
 from .scene_support import begin_scene
-from .world import TectonicWorld
 from .scene_types import build_from_catalogue
+from .world import TectonicWorld
 
 class HawaiiParameters(TypedDict):
     plume: tuple[float, float]

@@ -9,12 +9,17 @@ from ..core.sim_mesh import SimMesh
 from .config import mechanisms_off
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
-from .scenarios import SceneCanvas, add_apron_and_trench, add_continent, add_ocean, fill_background
 from .plate import Plate
+from .scenarios import (
+    SceneCanvas,
+    add_apron_and_trench,
+    add_continent,
+    add_ocean,
+    fill_background,
+)
 from .scene_support import begin_scene
-from .world import TectonicWorld
 from .scene_types import build_from_catalogue
-
+from .world import TectonicWorld
 
 def _share_basin(
     canvas: SceneCanvas,

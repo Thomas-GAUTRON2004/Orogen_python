@@ -25,8 +25,8 @@ from .scenarios import (
 )
 from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
-from .world import TectonicWorld
 from .scene_types import build_from_catalogue
+from .world import TectonicWorld
 
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
 

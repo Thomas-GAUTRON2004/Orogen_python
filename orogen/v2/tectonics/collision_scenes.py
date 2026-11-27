@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-
 import numpy as np
 
 from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import normalize
 from .scenarios import add_apron_and_trench, add_continent, fill_background
 from .scene_support import add_ocean_corridor, begin_scene
-
+from .scene_types import build_from_catalogue
 
 def _zipper(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)

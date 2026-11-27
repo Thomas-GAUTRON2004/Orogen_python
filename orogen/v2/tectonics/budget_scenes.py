@@ -2,6 +2,18 @@
 
 from __future__ import annotations
 
+from ..core.sim_mesh import SimMesh
+from .config import mechanisms_on, only_mechanisms
+from .dynamics import update_plate_motion
+from .event_scenes import build_event_scene
+from .force_scenes import build_force_scene
+from .initial_world import build_start_world
+from .margin_scenes import build_margin_scene
+from .scene_types import build_from_catalogue
+from .world import TectonicWorld
+
+from __future__ import annotations
+
 
 from ..core.sim_mesh import SimMesh
 from .config import mechanisms_on, only_mechanisms

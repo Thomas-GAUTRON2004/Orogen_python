@@ -18,7 +18,7 @@ from .scenarios import (
     fill_background,
 )
 from .scene_support import begin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 def _share_basin(

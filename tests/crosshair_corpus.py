@@ -34,7 +34,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TypeAlias
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -55,13 +55,27 @@ from differential_support import (  # noqa: E402
 #   socket.gethostname: numba reads the host name while it loads.
 UNBLOCKED_EVENTS = ("os.add_dll_directory", "socket.gethostname")
 
+JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+CrossHairValue: TypeAlias = (
+    None
+    | bool
+    | int
+    | float
+    | str
+    | bytes
+    | bytearray
+    | list["CrossHairValue"]
+    | tuple["CrossHairValue", ...]
+    | dict[str, "CrossHairValue"]
+)
+
 IMPORT_FAILURE = "Could not import your code"
 
 # Corpus layout version: 2 adds class methods and their constructor arguments.
 FORMAT = 2
 
 
-def encode(value: Any) -> Any:
+def encode(value: CrossHairValue) -> JsonValue:
     """Turn an argument or result into JSON, keeping what JSON cannot express."""
     if value is None or isinstance(value, (bool, int, str)):
         return value
@@ -80,7 +94,7 @@ def encode(value: Any) -> Any:
     return {"__repr__": repr(value)}
 
 
-def literal(node: ast.AST) -> Any:
+def literal(node: ast.AST) -> CrossHairValue:
     """Evaluate the literal subset CrossHair prints: constants, containers, float(str)."""
     if isinstance(node, ast.Constant):
         return node.value
@@ -110,7 +124,7 @@ def literal(node: ast.AST) -> Any:
     raise ValueError(f"unsupported expression: {ast.dump(node)[:80]}")
 
 
-def instance_state(node: ast.AST) -> dict[str, Any]:
+def instance_state(node: ast.AST) -> dict[str, CrossHairValue]:
     """Read CrossHair's printed instance, ``ClassName(name=value, ...)``, as constructor keywords."""
     if (
         isinstance(node, ast.Call)
@@ -125,12 +139,12 @@ def instance_state(node: ast.AST) -> dict[str, Any]:
     raise ValueError(f"unsupported instance: {ast.dump(node)[:80]}")
 
 
-def parse_example(line: str) -> dict[str, Any]:
+def parse_example(line: str) -> dict[str, CrossHairValue]:
     """Parse one printed example line into an argument dictionary."""
     node = ast.parse(line, mode="eval").body
     if not isinstance(node, ast.Dict):
         raise ValueError("example is not a dictionary")
-    example: dict[str, Any] = {}
+    example: dict[str, CrossHairValue] = {}
     for key_node, value_node in zip(node.keys, node.values, strict=True):
         key = literal(key_node)
         example[key] = (
@@ -150,7 +164,7 @@ def unblock_arguments() -> list[str]:
 
 def run_crosshair(
     dotted: str, target: str, timeout: int
-) -> tuple[list[dict[str, Any]], int]:
+) -> tuple[list[dict[str, CrossHairValue]], int]:
     """Return the examples CrossHair reports for one function or method, and the count it could not read."""
     command = [
         sys.executable,
@@ -187,7 +201,7 @@ def run_crosshair(
             output.strip()[-300:],
         )
         raise SystemExit(f"CrossHair could not run on {dotted}.{target}: {reason}")
-    examples: list[dict[str, Any]] = []
+    examples: list[dict[str, CrossHairValue]] = []
     unreadable = 0
     for line in completed.stdout.splitlines():
         if not line.startswith("{"):
@@ -199,7 +213,9 @@ def run_crosshair(
     return examples, unreadable
 
 
-def positional_for(names: list[str], example: dict[str, Any]) -> list[Any] | None:
+def positional_for(
+    names: list[str], example: dict[str, CrossHairValue]
+) -> list[CrossHairValue] | None:
     """Map an argument dictionary to positional arguments, or None if it cannot be replayed."""
     if set(example) - set(names):
         return None
@@ -210,20 +226,20 @@ def positional_for(names: list[str], example: dict[str, Any]) -> list[Any] | Non
     return [example[name] for name in provided]
 
 
-def parameter_names(function: Any, skip_first: bool) -> list[str]:
-    names = list(inspect.signature(function).parameters)
+def parameter_names(signature: inspect.Signature, skip_first: bool) -> list[str]:
+    names = list(signature.parameters)
     return names[1:] if skip_first else names
 
 
-def capture(dotted: str, timeout: int) -> dict[str, Any]:
+def capture(dotted: str, timeout: int) -> dict[str, JsonValue]:
     """Run CrossHair on every public function and method of one module; return its corpus document."""
     module = importlib.import_module(dotted)
-    entries: dict[str, list[dict[str, Any]]] = {}
+    entries: dict[str, list[dict[str, JsonValue]]] = {}
     seen: set[str] = set()
     counts = {"examples": 0, "unsupported_calls": 0, "unreadable_lines": 0}
 
     def record(
-        key: str, args: list[Any], constructor: list[Any] | None, raised: str | None
+        key: str, args: list[CrossHairValue], constructor: list[CrossHairValue] | None, raised: str | None
     ) -> None:
         encoded_args = encode(args)
         encoded_constructor = None if constructor is None else encode(constructor)
@@ -233,7 +249,7 @@ def capture(dotted: str, timeout: int) -> dict[str, Any]:
         if signature in seen:
             return
         seen.add(signature)
-        entry: dict[str, Any] = {"args": encoded_args, "raised": raised}
+        entry: dict[str, JsonValue] = {"args": encoded_args, "raised": raised}
         if encoded_constructor is not None:
             entry["constructor"] = encoded_constructor
         entries.setdefault(key, []).append(entry)
@@ -245,7 +261,7 @@ def capture(dotted: str, timeout: int) -> dict[str, Any]:
         counts["unreadable_lines"] += unreadable
         for example in examples:
             counts["examples"] += 1
-            args = positional_for(parameter_names(function, skip_first=False), example)
+            args = positional_for(parameter_names(inspect.signature(function), skip_first=False), example)
             if args is None:
                 counts["unsupported_calls"] += 1
                 continue
@@ -275,9 +291,9 @@ def capture(dotted: str, timeout: int) -> dict[str, Any]:
                     counts["unsupported_calls"] += 1
                     continue
                 constructor = positional_for(
-                    parameter_names(cls.__init__, skip_first=True), state["kwargs"]
+                    parameter_names(inspect.signature(cls.__init__), skip_first=True), state["kwargs"]
                 )
-                args = positional_for(parameter_names(method, skip_first=True), example)
+                args = positional_for(parameter_names(inspect.signature(method), skip_first=True), example)
                 if constructor is None or args is None:
                     counts["unsupported_calls"] += 1
                     continue

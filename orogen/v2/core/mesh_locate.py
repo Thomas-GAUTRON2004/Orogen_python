@@ -4,11 +4,9 @@
 
 from __future__ import annotations
 
-
 import numpy as np
 
 from .mesh_types import IndexedMeshGraph
-
 
 def locate(
     mesh: IndexedMeshGraph,

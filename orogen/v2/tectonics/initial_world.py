@@ -785,7 +785,9 @@ def _half_span_deg(
     return math.degrees(math.acos(max(-1.0, min(1.0, farthest_dot))))
 
 
-def _find_layout(sim_mesh: SimMesh, seed: int, config: InitialConfig) -> FoundLayout | None:
+def _find_layout(
+    sim_mesh: SimMesh, seed: int, config: InitialConfig
+) -> FoundLayout | None:
     """Search layouts in deterministic upstream attempt order."""
     round_span = math.degrees(
         math.acos(1.0 - 2.0 * float(config["continentalFraction"]))

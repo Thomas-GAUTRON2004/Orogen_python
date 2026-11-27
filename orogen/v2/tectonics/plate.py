@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import math
-
 from typing import TypedDict
 
 import numpy as np

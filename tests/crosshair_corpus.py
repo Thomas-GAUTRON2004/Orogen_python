@@ -30,7 +30,6 @@ import json
 import math
 import subprocess
 import sys
-import sysconfig
 from pathlib import Path
 from typing import Any
 
@@ -98,20 +97,14 @@ def literal(node: ast.AST) -> Any:
 
 
 def unblock_arguments() -> list[str]:
-    """Allow the DLL folders that bundled wheels register on Windows.
+    """Allow os.add_dll_directory, which numpy calls on Windows when it is imported.
 
-    Importing numpy calls os.add_dll_directory, which CrossHair treats as a side
-    effect and blocks. Only the *.libs folders of this environment's site-packages
-    are allowed, one prefix each, so the guard stays in place for everything else.
+    CrossHair blocks that call as a side effect. Allowing it per folder fails
+    when the path CrossHair sees differs in case or form from the one we build,
+    so the whole event is allowed. The call only registers a DLL search folder:
+    it runs no code.
     """
-    site_packages = Path(sysconfig.get_paths()["purelib"])
-    arguments: list[str] = []
-    for folder in sorted(site_packages.glob("*.libs")):
-        if folder.is_dir():
-            # CrossHair splits prefixes on ":", so a Windows drive letter is escaped.
-            escaped = str(folder).replace(":", "\\:")
-            arguments.append(f"--unblock=os.add_dll_directory:{escaped}")
-    return arguments
+    return ["--unblock=os.add_dll_directory"]
 
 
 def run_crosshair(

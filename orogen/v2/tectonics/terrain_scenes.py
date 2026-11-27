@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 import math
+from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import Any
 

@@ -14,8 +14,8 @@ Every noise field here uses ``SimplexNoise`` as upstream does.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 import math
+from collections.abc import Sequence
 from typing import Any, cast
 
 import numpy as np

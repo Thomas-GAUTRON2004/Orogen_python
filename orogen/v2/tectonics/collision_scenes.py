@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -11,7 +12,7 @@ from .scenarios import add_apron_and_trench, add_continent, fill_background
 from .scene_support import add_ocean_corridor, begin_scene
 
 
-def _zipper(sim_mesh: Any, seed: int):
+def _zipper(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     borea = world.add_plate("Borea")
     austra = world.add_plate("Austra")
@@ -77,7 +78,7 @@ COLLISION_SCENES: list[dict[str, Any]] = [
 ]
 
 
-def build_collision_scene(sim_mesh: Any, seed: int = 0, scenario: str = "zipper"):
+def build_collision_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "zipper"):
     """Build a named deterministic collision-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in COLLISION_SCENES:

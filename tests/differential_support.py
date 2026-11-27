@@ -18,6 +18,7 @@ REFERENCE_DIR = TESTS_DIR / "reference" / "v2"
 CORPUS_DIR = TESTS_DIR / "corpus"
 V2_DIR = ROOT / "orogen" / "v2"
 
+
 class DifferentialSettings(TypedDict):
     source: str
     backends: list[str]

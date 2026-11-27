@@ -28,9 +28,9 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType, OrogenyType
+from .far_field import spread_push
 from .initial_cratons import Craton
 from .initial_types import ConfigValue
-from .far_field import spread_push
 from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
 

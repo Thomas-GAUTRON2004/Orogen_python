@@ -25,7 +25,6 @@ from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 
-
 def _add_arc_ridge(
     canvas: SceneCanvas,
     plate: Plate,

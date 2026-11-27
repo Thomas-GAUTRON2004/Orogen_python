@@ -136,6 +136,7 @@ def cap_fraction(radius_rad: float) -> float:
     return (1 - math.cos(radius_rad)) / 2
 
 
+# Returns a closure, which the JSON replay protocol cannot serialize.
 # differential: skip
 def polar_frame(
     pole: Vector3, reference: Vector3

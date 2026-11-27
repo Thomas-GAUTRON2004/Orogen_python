@@ -23,6 +23,7 @@ from .scene_support import begin_scene
 from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
+
 class HawaiiParameters(TypedDict):
     plume: tuple[float, float]
     speedCmYr: float

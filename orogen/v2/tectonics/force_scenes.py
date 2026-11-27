@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
+from ..core.sim_mesh import SimMesh
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .scenarios import (

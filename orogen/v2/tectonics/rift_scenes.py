@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 from .config import mechanisms_off
 from .initial_world import build_start_world
@@ -46,7 +47,7 @@ def _share_basin(
         add_ocean(canvas, plate, wanted, -float(config["basinOceanAgeMyr"]))
 
 
-def _plume(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _plume(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     pangaea = world.add_plate("Pangaea")
     pangaea.born = -float(world.config["riftTenureMyr"])
@@ -85,11 +86,11 @@ def _plume(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _breakup(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _breakup(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-def _founder(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _founder(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
@@ -168,7 +169,7 @@ RIFT_SCENES: list[dict[str, Any]] = [
 
 
 def build_rift_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "plume"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "plume"
 ) -> TectonicWorld:
     """Build a named deterministic continental-rifting scene from the upstream catalogue."""
     key = str(scenario).strip().lower()

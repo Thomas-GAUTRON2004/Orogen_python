@@ -158,6 +158,9 @@ _TYPE_CHECKS: dict[str, Callable[[DecodedValue], bool]] = {
     "string": lambda value: isinstance(value, str),
     "number_list": lambda value: _is_number_list(value),
     "integer_list": lambda value: _is_integer_list(value),
+    "coordinate_buffer": lambda value: _is_coordinate_buffer(value),
+    "cell_index": lambda value: _is_nonnegative_integer(value),
+    "cell_indices": lambda value: _is_nonnegative_integer_list(value),
     "angle": lambda value: _is_number(value),
     "time_step": lambda value: _is_number(value),
     "quaternion": lambda value: _is_list_of_numbers(value, 4),
@@ -194,6 +197,20 @@ def _is_number_list(value: DecodedValue) -> bool:
 
 def _is_integer_list(value: DecodedValue) -> bool:
     return isinstance(value, list) and all(_is_integer(item) for item in value)
+
+
+def _is_nonnegative_integer(value: DecodedValue) -> bool:
+    return _is_integer(value) and value >= 0
+
+
+def _is_nonnegative_integer_list(value: DecodedValue) -> bool:
+    return isinstance(value, list) and all(
+        _is_nonnegative_integer(item) for item in value
+    )
+
+
+def _is_coordinate_buffer(value: DecodedValue) -> bool:
+    return _is_number_list(value) and len(value) % 3 == 0
 
 
 def _is_list_of_numbers(value: DecodedValue, length: int) -> bool:
@@ -657,6 +674,17 @@ def _has_non_finite(value: DecodedValue) -> bool:
     return False
 
 
+def _cell_indices_fit(xyz: DecodedValue, cells: DecodedValue) -> bool:
+    return (
+        isinstance(xyz, list)
+        and isinstance(cells, list)
+        and all(
+            _is_integer(cell) and 0 <= cell and 3 * cell + 2 < len(xyz)
+            for cell in cells
+        )
+    )
+
+
 def _skip_reason(
     target: ReplayTarget, args: list[DecodedValue], constructor: list[DecodedValue] | None
 ) -> str | None:
@@ -676,6 +704,15 @@ def _skip_reason(
     for kind, value in zip(target["types"], args, strict=True):
         if isinstance(value, _Opaque) or not _TYPE_CHECKS[kind](value):
             return f"type mismatch for {kind}"
+    if target["module"] == "orogen.v2.core.sphere_geometry":
+        if target["id"] == "cell_distance_km":
+            xyz, cell_a, cell_b = args
+            if not _cell_indices_fit(xyz, [cell_a, cell_b]):
+                return "cell index outside the coordinate buffer"
+        elif target["id"] == "centroid_of_cells":
+            xyz, cells = args
+            if not _cell_indices_fit(xyz, cells):
+                return "cell index outside the coordinate buffer"
     if _has_non_finite(args):
         return "non-finite input cannot be sent on the JSON wire"
     return None

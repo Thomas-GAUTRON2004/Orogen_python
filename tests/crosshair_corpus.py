@@ -241,7 +241,10 @@ def capture(dotted: str, timeout: int) -> dict[str, JsonValue]:
     counts = {"examples": 0, "unsupported_calls": 0, "unreadable_lines": 0}
 
     def record(
-        key: str, args: list[CrossHairValue], constructor: list[CrossHairValue] | None, raised: str | None
+        key: str,
+        args: list[CrossHairValue],
+        constructor: list[CrossHairValue] | None,
+        raised: str | None,
     ) -> None:
         encoded_args = encode(args)
         encoded_constructor = None if constructor is None else encode(constructor)

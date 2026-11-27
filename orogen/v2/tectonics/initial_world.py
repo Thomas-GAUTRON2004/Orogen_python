@@ -13,7 +13,6 @@ from __future__ import annotations
 import heapq
 import math
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -21,6 +20,7 @@ from ..core.array_selection import stable_top_k as _stable_top_k
 from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
 from ..core.sim_mesh import km_to_hops
+from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     cell_distance_km,

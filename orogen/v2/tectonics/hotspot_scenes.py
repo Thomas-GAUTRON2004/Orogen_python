@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import only_mechanisms
@@ -31,7 +32,7 @@ DECCAN: dict[str, Any] = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesMyr
 PLUMES_ONLY = only_mechanisms()
 
 
-def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _hawaii(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, _noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     pacifica = world.add_plate("Pacifica")
@@ -57,7 +58,7 @@ def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _deccan(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     indica = world.add_plate("Indica")
@@ -84,7 +85,7 @@ def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _history(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _history(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
@@ -142,7 +143,7 @@ HOTSPOT_SCENES: list[dict[str, Any]] = [
 
 
 def build_hotspot_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "hawaii"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "hawaii"
 ) -> TectonicWorld:
     """Build a named deterministic plume/hotspot scene from the upstream catalogue."""
     key = str(scenario).strip().lower()

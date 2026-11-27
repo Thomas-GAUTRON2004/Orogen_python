@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Sequence
-from typing import Any, TypedDict, cast
+from typing import TypedDict, cast
 
 import numpy as np
 
@@ -33,7 +33,7 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType
-from .initial_world import build_start_world, plate_outline_with_apron
+from .initial_world import StartWorldResult, build_start_world, plate_outline_with_apron
 from .kinematics import (
     lat_lon_to_xyz,
     omega_from_euler_pole,
@@ -86,6 +86,14 @@ def omega_for(
         )
     )
     return omega_from_euler_pole(pole, speed_cm_yr)
+
+
+class RigidPlateSpec(TypedDict):
+    name: str
+    centre: tuple[float, float]
+    poleOffsetDeg: float
+    speedCmYr: float
+    note: str
 
 
 class SceneCanvas(TypedDict):
@@ -299,7 +307,7 @@ WEST_REVERSES_MYR = 100.0
 NUDGE_MAX_MYR = 60.0
 NUDGE_CM_YR = 2.0
 
-_RIGID_PLATES: tuple[dict[str, Any], ...] = (
+_RIGID_PLATES: tuple[RigidPlateSpec, ...] = (
     {
         "name": "Drifter",
         "centre": (20.0, -60.0),
@@ -329,7 +337,7 @@ _RIGID_PLATES: tuple[dict[str, Any], ...] = (
         "note": "stationary reference continent",
     },
 )
-_RIGID_OCEAN: dict[str, Any] = {
+_RIGID_OCEAN: RigidPlateSpec = {
     "name": "Pre-history ocean",
     "centre": (90.0, 0.0),
     "poleOffsetDeg": 90.0,
@@ -517,7 +525,7 @@ def drive_wilson(world: TectonicWorld) -> None:
 
 def build_nudge_scene(
     sim_mesh: SimMesh, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+) -> StartWorldResult:
     """Build the generated start world and prescribe a short whole-continent drift."""
     result = build_start_world(sim_mesh, seed, overrides)
     world, start = result["world"], result["start"]

@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping
 from types import MappingProxyType
-from typing import Any
 
 import numpy as np
 
@@ -27,6 +26,7 @@ from .scenarios import (
 from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
 
@@ -61,8 +61,8 @@ def flagged(
 
 
 def _from_catalogue(
-    catalogue: list[dict[str, Any]], scene_id: str, **overrides: Any
-) -> dict[str, Any]:
+    catalogue: list[dict[str, object]], scene_id: str, **overrides: object
+) -> dict[str, object]:
     scene = next(item for item in catalogue if item["id"] == scene_id)
     return {**scene, "drive": update_plate_motion, **overrides}
 
@@ -212,16 +212,16 @@ def _drive_traps(world: TectonicWorld) -> None:
     india.omega = omega_for(point, heading(point, 0.0), 1.5)
 
 
-def _whole_planet(scene: dict[str, Any]) -> dict[str, Any]:
+def _whole_planet(scene: dict[str, object]) -> dict[str, object]:
     def build(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
-        world = scene["build"](sim_mesh, seed)
+        world = build_from_catalogue(scene, sim_mesh, seed)
         world.config.update(WHOLE_PLANET_PACE)
         return world
 
     return {**scene, "build": build}
 
 
-TERRAIN_SCENES: list[dict[str, Any]] = [
+TERRAIN_SCENES: list[dict[str, object]] = [
     _from_catalogue(
         MARGIN_SCENES,
         "margins",
@@ -343,8 +343,8 @@ def build_terrain_scene(
     key = str(scenario).strip().lower()
     for definition in TERRAIN_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in TERRAIN_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in TERRAIN_SCENES)
     raise ValueError(
         f"unknown terrain scenario {scenario!r}; expected one of: {available}"
     )

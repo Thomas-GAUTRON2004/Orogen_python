@@ -75,4 +75,14 @@ jobs:
           python -m pytest --cov=orogen \
               --cov-branch \
               --cov-report=term-missing \
+              --cov-report=html:htmlcov \
               tests/test_generated.py
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-coverage-html-${{ github.run_id }}
+          path: htmlcov/
+          if-no-files-found: warn
+          retention-days: 14

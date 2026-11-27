@@ -1,6 +1,6 @@
 """Small spherical-geometry helpers ported from V2 sphere-geom.js."""
 
-# differential-module: js_module=sphere-geom.mjs params=a:vec3,b:vec3,at:vec3,point:vec3,source:vec3,target:vec3,xyz:number_list,cells:integer_list
+# differential-module: js_module=sphere-geom.mjs params=a:vec3,b:vec3,at:vec3,point:vec3,source:vec3,target:vec3,xyz:coordinate_buffer,cells:cell_indices,cell_a:cell_index,cell_b:cell_index
 
 from __future__ import annotations
 

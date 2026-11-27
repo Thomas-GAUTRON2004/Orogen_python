@@ -24,6 +24,7 @@ from ..core.sphere_geometry import (
 from .crust import CrustType
 from .initial_cratons import Craton, CratonLayout, craton_edge
 
+
 class ClusterFrame(TypedDict):
     heart: list[float]
     e: list[float]
@@ -199,7 +200,7 @@ def _margin_profile(
 
 
 def _bridges(
-    sim_mesh: SimMesh, cratons: list[Mapping[str, Any]], half_width: float
+    sim_mesh: SimMesh, cratons: list[Craton], half_width: float
 ) -> np.ndarray:
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     count = len(cratons)

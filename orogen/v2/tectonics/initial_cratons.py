@@ -22,6 +22,7 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 
+
 class RiftStep(TypedDict):
     at: float
     jump: float

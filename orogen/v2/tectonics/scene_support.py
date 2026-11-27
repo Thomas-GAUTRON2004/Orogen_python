@@ -8,8 +8,8 @@ from collections.abc import Sequence
 from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
-from .scenarios import SceneCanvas, add_ocean, scene_canvas
 from .plate import Plate
+from .scenarios import SceneCanvas, add_ocean, scene_canvas
 from .world import TectonicWorld
 
 

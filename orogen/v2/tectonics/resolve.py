@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 
 import numpy as np
 
@@ -12,8 +12,8 @@ from .config import CM_PER_YR_TO_RAD_PER_MYR
 from .crust import CrustFlag, CrustType
 from .gather import clear_world_view, for_each_claim
 from .occupancy import bin_index, mark_bin, may_have_crust_near
-from .polarity import overrides
 from .plate import Plate
+from .polarity import overrides
 from .segments import fracture_coordinate
 
 REACH_RINGS = 2
@@ -26,7 +26,7 @@ class CrustHit(TypedDict):
 
     dot: float
     cell: int
-    real: NotRequired[bool]
+    real: bool
 
 
 def resolve(world) -> dict[str, int]:
@@ -376,4 +376,4 @@ def _nearest_crust(plate: Plate, mesh, point, under: int = -1) -> CrustHit:
                     best, best_cell = score, candidate
         if best_cell >= 0 and radius >= 1:
             break
-    return {"dot": best, "cell": best_cell}
+    return {"dot": best, "cell": best_cell, "real": False}

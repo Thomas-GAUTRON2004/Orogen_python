@@ -22,6 +22,7 @@ from .thermal import (
 )
 from .world import EventKind, HotspotRecord
 
+
 class PlumeFlow(TypedDict):
     f1: list[float]
     f2: list[float]

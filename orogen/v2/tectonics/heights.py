@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from typing import NotRequired, TypedDict, cast
+from typing import TypedDict, cast
 
 from .crust import BeltSide, CrustType, OrogenyType
+
 
 class HeightConfig(TypedDict):
     """Typed relief parameters used when building and rejuvenating mountain belts."""
@@ -19,7 +20,7 @@ class HeightConfig(TypedDict):
     fullReachKm: Mapping[int, float]
     youngShare: float
     upliftBuildKm: Mapping[int, float]
-    rootGain: NotRequired[Mapping[int, float]]
+    rootGain: Mapping[int, float]
     arcUpliftShare: float
 
 

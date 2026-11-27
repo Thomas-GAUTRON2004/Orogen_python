@@ -4,11 +4,15 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, cast
+from typing import Protocol, TypedDict, cast
 
 import numpy as np
 
 from .mesh_types import MeshGraph
+
+
+class _RingCache(Protocol):
+    _rings: MeshRings | None
 
 
 class MeshRings(TypedDict):
@@ -68,5 +72,5 @@ def rings_of(mesh: MeshGraph) -> MeshRings:
         "cells": cells[:count],
         "stride": stride,
     }
-    setattr(mesh, "_rings", result)
+    cast(_RingCache, mesh)._rings = result
     return result

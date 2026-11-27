@@ -28,7 +28,9 @@ from .sphere_geometry import PLANET_RADIUS_KM
 Predicate = Callable[[int], bool]
 
 
-def within_km(sim_mesh: MeshGraph, is_source: Predicate, radius_km: float) -> np.ndarray:
+def within_km(
+    sim_mesh: MeshGraph, is_source: Predicate, radius_km: float
+) -> np.ndarray:
     """Mark cells within great-circle radius of any source cell."""
     n = int(sim_mesh.num_cells)
     offsets, adjacency, xyz = sim_mesh.adj_offset, sim_mesh.adj_list, sim_mesh.xyz

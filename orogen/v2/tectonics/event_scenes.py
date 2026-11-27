@@ -21,7 +21,7 @@ from .scenarios import (
     scene_terrane,
 )
 from .scene_support import add_ocean_corridor, begin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 def _add_arc_ridge(
@@ -252,7 +252,7 @@ def _arc_collision(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return world
 
 
-EVENT_SCENES: list[dict[str, object]] = [
+EVENT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "wings",
         "label": "Trench wings & island arcs",

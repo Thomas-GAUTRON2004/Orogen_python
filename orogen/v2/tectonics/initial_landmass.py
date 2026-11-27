@@ -200,9 +200,7 @@ def _margin_profile(
     return at
 
 
-def _bridges(
-    sim_mesh: SimMesh, cratons: list[Craton], half_width: float
-) -> np.ndarray:
+def _bridges(sim_mesh: SimMesh, cratons: list[Craton], half_width: float) -> np.ndarray:
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     count = len(cratons)
     result = np.zeros(int(sim_mesh.num_cells), dtype=np.uint8)

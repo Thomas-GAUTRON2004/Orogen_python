@@ -58,7 +58,8 @@ _TYPE_CHECKS = {
     "quaternion": lambda value: _is_list_of_numbers(value, 4),
     "vec3": lambda value: _is_list_of_numbers(value, 3),
     "seed_text": lambda value: isinstance(value, str),
-    "seed_input": lambda value: value is None or isinstance(value, (str, int, float, bool)),
+    "seed_input": lambda value: value is None
+    or isinstance(value, (str, int, float, bool)),
 }
 _ANNOTATION_TYPES = {
     "float": "unit_float",

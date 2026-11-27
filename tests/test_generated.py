@@ -162,6 +162,7 @@ class BridgeRuntime(Protocol):
 
     def terminate(self) -> None: ...
 
+
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 
 # Types a parameter can take. Corpus entries whose arguments do not fit are

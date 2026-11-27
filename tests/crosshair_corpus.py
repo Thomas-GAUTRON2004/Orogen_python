@@ -298,9 +298,12 @@ def capture(dotted: str, timeout: int) -> dict[str, JsonValue]:
                     counts["unsupported_calls"] += 1
                     continue
                 constructor = positional_for(
-                    parameter_names(inspect.signature(cls.__init__), skip_first=True), state["kwargs"]
+                    parameter_names(inspect.signature(cls.__init__), skip_first=True),
+                    state["kwargs"],
                 )
-                args = positional_for(parameter_names(inspect.signature(method), skip_first=True), example)
+                args = positional_for(
+                    parameter_names(inspect.signature(method), skip_first=True), example
+                )
                 if constructor is None or args is None:
                     counts["unsupported_calls"] += 1
                     continue

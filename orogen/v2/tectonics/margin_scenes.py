@@ -264,7 +264,7 @@ def _history(sim_mesh: SimMesh, seed: int):
     return build_start_world(sim_mesh, seed)["world"]
 
 
-MARGIN_SCENES: list[dict[str, object]] = [
+MARGIN_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "margins",
         "label": "A continent’s leading and trailing coasts",

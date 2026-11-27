@@ -141,7 +141,7 @@ def _founder(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return world
 
 
-RIFT_SCENES: list[dict[str, object]] = [
+RIFT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "plume",
         "label": "A plume splits a continent",

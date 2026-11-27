@@ -25,7 +25,7 @@ from .scenarios import (
 )
 from .scene_constants import ARC_TERRANE_ID, MARIANA_ARC_WIDTH_KM
 from .scene_support import begin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 ROLLBACK_ONLY = MappingProxyType(

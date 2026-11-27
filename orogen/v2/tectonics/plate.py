@@ -38,7 +38,7 @@ class Plate:
         self.dynamics = None
         self.wingBudgetKm = 0.0
         self.wings: dict[object, object] = {}
-        self.arcTerraneId = None
+        self.arcTerraneId: int | None = None
         self.marginIsleTerrane = None
         self.riftPartner = -1
         self.oceanSplitWith = -1

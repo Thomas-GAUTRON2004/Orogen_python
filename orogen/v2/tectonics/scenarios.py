@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from typing import Any, cast
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -44,7 +45,7 @@ from .world import TectonicWorld
 _plate_outline_with_apron = plate_outline_with_apron
 
 
-def _xyz(sim_mesh: Any) -> np.ndarray:
+def _xyz(sim_mesh: SimMesh) -> np.ndarray:
     values = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     if values.shape[0] != int(sim_mesh.num_cells):
         raise ValueError("mesh xyz does not match num_cells")
@@ -86,7 +87,7 @@ def omega_for(
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
-def scene_canvas(sim_mesh: Any, config: dict) -> dict[str, Any]:
+def scene_canvas(sim_mesh: SimMesh, config: dict) -> dict[str, Any]:
     """Create the cell-ownership canvas used by hand-built tectonic scenes."""
     return {
         "mesh": sim_mesh,
@@ -200,7 +201,7 @@ def add_apron_and_trench(
 
 
 def flag_coast_trench(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     plate: Any,
     centre_xyz: list[float] | np.ndarray,
     sectors: str | Sequence[Sequence[float]],
@@ -333,7 +334,7 @@ def _pole_for(centre: list[float], offset_deg: float) -> list[float]:
     )
 
 
-def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
+def build_rigid_drift_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     """Build four continent-only plates with prescribed Euler-pole motion."""
     world = TectonicWorld(sim_mesh, seed)
     noise = SimplexNoise(seed)
@@ -403,7 +404,7 @@ def set_rigid_drift_time(world: TectonicWorld, time_myr: float) -> None:
 
 
 def build_wilson_world(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     seed: int,
     *,
     far_centre: tuple[float, float] = _WILSON_FAR_CENTRE,
@@ -492,7 +493,7 @@ def drive_wilson(world: TectonicWorld) -> None:
 
 
 def build_nudge_scene(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
 ) -> dict[str, Any]:
     """Build the generated start world and prescribe a short whole-continent drift."""
     result = build_start_world(sim_mesh, seed, overrides)

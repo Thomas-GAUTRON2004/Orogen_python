@@ -929,7 +929,7 @@ def _assemble_upstream_start_world(
         f"Supercontinent {continent.name}: {len(layout['cratons'])} cratons, ringed by subduction",
         {"plate": continent.id, "cratons": len(layout["cratons"])},
     )
-    start = {
+    start: StartWorldMetadata = {
         "cratons": layout["cratons"],
         "centre": found["middle"],
         "rimCentre": land["rimCentre"],

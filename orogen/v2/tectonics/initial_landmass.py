@@ -5,15 +5,15 @@ Port of v2/js/tectonics/init/landmass.js at upstream v3.0.1.
 
 from __future__ import annotations
 
-import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
+import math
 from typing import Any, Literal
-from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
 from ..core.mesh_bfs import flood_from, within_km
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import (
     PLANET_RADIUS_KM,
     angle_between,

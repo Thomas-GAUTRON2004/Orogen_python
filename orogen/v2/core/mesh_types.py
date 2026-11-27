@@ -10,7 +10,9 @@ import numpy as np
 class AdjacencyGraph(Protocol):
     """CSR adjacency interface used to construct nearest-cell indexes."""
 
-    num_cells: int
+    @property
+    def num_cells(self) -> int: ...
+
     adj_offset: np.ndarray
     adj_list: np.ndarray
 

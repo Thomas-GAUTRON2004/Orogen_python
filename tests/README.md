@@ -28,6 +28,11 @@ Show the reason for each skipped entry:
 python -m pytest tests/test_generated.py -q -rs
 ```
 
+The differential CI job also writes an HTML coverage report to `htmlcov/`
+and uploads it as the `differential-coverage-html-<run id>` workflow artifact
+(retained for 14 days). Download the artifact from the corresponding GitHub
+Actions run and open `index.html` locally.
+
 CI runs the corpus generator before the replay in
 `.github/workflows/differential-jspybridge.yml`. The workflow restores
 `tests/corpus/` from a branch-scoped GitHub Actions cache, regenerates only

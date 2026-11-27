@@ -679,7 +679,7 @@ def _cell_indices_fit(xyz: DecodedValue, cells: DecodedValue) -> bool:
         isinstance(xyz, list)
         and isinstance(cells, list)
         and all(
-            _is_integer(cell) and 0 <= cell and 3 * cell + 2 < len(xyz)
+            _is_integer(cell) and cell >= 0 and 3 * cell + 2 < len(xyz)
             for cell in cells
         )
     )

@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: differential-jspybridge-${{ github.workflow }}-${{ github.ref }}
@@ -66,6 +66,21 @@ jobs:
 
       - name: Generate or update CrossHair corpus
         run: python tests/crosshair_corpus.py
+
+      - name: Commit generated CrossHair corpus
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/corpus/
+          if git diff --cached --quiet; then
+            echo "CrossHair corpus is already up to date."
+          else
+            git commit -m "test: update generated CrossHair corpus"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi
 
       - name: Save CrossHair corpus for the next CI run
         uses: actions/cache/save@v4

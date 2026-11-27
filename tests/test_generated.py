@@ -153,6 +153,11 @@ JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 # reported as skipped, with the reason. Values outside any range still run.
 _TYPE_CHECKS: dict[str, Callable[[DecodedValue], bool]] = {
     "unit_float": lambda value: _is_number(value),
+    "integer": lambda value: _is_integer(value),
+    "boolean": lambda value: isinstance(value, bool),
+    "string": lambda value: isinstance(value, str),
+    "number_list": lambda value: _is_number_list(value),
+    "integer_list": lambda value: _is_integer_list(value),
     "angle": lambda value: _is_number(value),
     "time_step": lambda value: _is_number(value),
     "quaternion": lambda value: _is_list_of_numbers(value, 4),
@@ -165,12 +170,30 @@ _TYPE_CHECKS: dict[str, Callable[[DecodedValue], bool]] = {
 _ANNOTATION_TYPES = {
     "float": "unit_float",
     "int | float": "unit_float",
+    "int": "integer",
+    "bool": "boolean",
+    "str": "string",
+    "float | int": "unit_float",
+    "Sequence[float]": "number_list",
+    "Iterable[int]": "integer_list",
     "SeedInput": "seed_input",
 }
 
 
 def _is_number(value: DecodedValue) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _is_integer(value: DecodedValue) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number_list(value: DecodedValue) -> bool:
+    return isinstance(value, list) and all(_is_number(item) for item in value)
+
+
+def _is_integer_list(value: DecodedValue) -> bool:
+    return isinstance(value, list) and all(_is_integer(item) for item in value)
 
 
 def _is_list_of_numbers(value: DecodedValue, length: int) -> bool:

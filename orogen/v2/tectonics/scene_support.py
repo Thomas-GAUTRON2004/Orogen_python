@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
+import math
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
+from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .scenarios import add_ocean, scene_canvas
 from .world import TectonicWorld
-
 
 def begin_scene(
     sim_mesh: SimMesh, seed: int

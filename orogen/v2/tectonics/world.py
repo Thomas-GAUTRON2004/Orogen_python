@@ -255,7 +255,7 @@ class TectonicWorld:
                     held.add(letter)
         return "".join(sorted(held)) if held else fallback
 
-    def log(self, kind: str, text: EventData | None = None) -> None:
+    def log(self, kind: str, text: str, data: EventData | None = None) -> None:
         if kind not in _EVENT_KINDS:
             raise ValueError(f"unknown event kind: {kind}")
         self.events.append(

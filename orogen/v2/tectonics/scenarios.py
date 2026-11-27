@@ -96,6 +96,12 @@ class RigidPlateSpec(TypedDict):
     note: str
 
 
+class NudgeSceneResult(StartWorldResult):
+    drive: Callable[[TectonicWorld], None]
+    heading: list[float]
+    pole: list[float]
+
+
 class SceneCanvas(TypedDict):
     """Mutable cell-ownership state shared by hand-built scene builders."""
 
@@ -379,7 +385,7 @@ def build_rigid_drift_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
         plate = world.add_plate(str(definition["name"]))
         plate.scene = {
             "q0": quat_identity(),
-            "def": dict(definition),
+            "def": definition,
             "centre": centre,
             "pole": _pole_for(centre, float(definition["poleOffsetDeg"])),
         }
@@ -390,7 +396,7 @@ def build_rigid_drift_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     ocean = world.add_plate(str(_RIGID_OCEAN["name"]))
     ocean.scene = {
         "q0": quat_identity(),
-        "def": dict(_RIGID_OCEAN),
+        "def": _RIGID_OCEAN,
         "centre": lat_lon_to_xyz(*_RIGID_OCEAN["centre"]),
         "pole": lat_lon_to_xyz(*_RIGID_OCEAN["centre"]),
     }
@@ -525,7 +531,7 @@ def drive_wilson(world: TectonicWorld) -> None:
 
 def build_nudge_scene(
     sim_mesh: SimMesh, seed: int, overrides: dict | None = None
-) -> StartWorldResult:
+) -> NudgeSceneResult:
     """Build the generated start world and prescribe a short whole-continent drift."""
     result = build_start_world(sim_mesh, seed, overrides)
     world, start = result["world"], result["start"]
@@ -547,7 +553,8 @@ def build_nudge_scene(
         continent.omega = omega_from_euler_pole(pole, NUDGE_CM_YR)
         _ = current_world
 
-    return {**result, "drive": drive, "heading": heading, "pole": pole}
+    scene: NudgeSceneResult = {**result, "drive": drive, "heading": heading, "pole": pole}
+    return scene
 
 
 # Public camel-case names used by upstream scenario callers.

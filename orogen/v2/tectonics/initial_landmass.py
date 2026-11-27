@@ -9,6 +9,7 @@ import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
 from typing import Any, Literal
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -176,7 +177,7 @@ def _margin_profile(
 
 
 def _bridges(
-    sim_mesh: Any, cratons: list[Mapping[str, Any]], half_width: float
+    sim_mesh: SimMesh, cratons: list[Mapping[str, Any]], half_width: float
 ) -> np.ndarray:
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     count = len(cratons)
@@ -230,7 +231,7 @@ def _bridges(
 
 
 def shape_landmass(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     layout: Mapping[str, Any],
     noise: Any,
     rng: Callable[[], float],

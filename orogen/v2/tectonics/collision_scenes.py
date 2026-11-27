@@ -11,6 +11,7 @@ from ..core.sphere_geometry import normalize
 from .scenarios import add_apron_and_trench, add_continent, fill_background
 from .scene_support import add_ocean_corridor, begin_scene
 
+
 def _zipper(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     borea = world.add_plate("Borea")

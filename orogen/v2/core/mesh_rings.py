@@ -10,6 +10,7 @@ import numpy as np
 
 from .mesh_types import MeshGraph
 
+
 class MeshRings(TypedDict):
     start: np.ndarray
     cells: np.ndarray

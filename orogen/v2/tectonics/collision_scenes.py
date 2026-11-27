@@ -6,7 +6,7 @@ import numpy as np
 
 from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import normalize
-from .scenarios import add_apron_and_trench, add_continent, fill_background
+from .scenarios import SceneMask, add_apron_and_trench, add_continent, fill_background
 from .scene_support import add_ocean_corridor, begin_scene
 from .scene_types import CompleteSceneDefinition, build_from_catalogue
 
@@ -35,7 +35,7 @@ def _zipper(sim_mesh: SimMesh, seed: int):
             np.asarray([core["centre"] for core in cores], dtype=np.float64), axis=0
         ).tolist()
     )
-    borea_land = {"centre": middle, "isLand": is_land}
+    borea_land: SceneMask = {"centre": middle, "isLand": is_land}
     add_apron_and_trench(canvas, borea, borea_land, [[180.0, 360.0]], world.config)
 
     parts = [

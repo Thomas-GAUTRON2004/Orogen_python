@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
@@ -13,7 +14,7 @@ from .world import TectonicWorld
 
 
 def begin_scene(
-    sim_mesh: Any, seed: int
+    sim_mesh: SimMesh, seed: int
 ) -> tuple[TectonicWorld, dict[str, Any], SimplexNoise]:
     """Create a world, its scene canvas and the seeded noise source."""
     world = TectonicWorld(sim_mesh, seed)

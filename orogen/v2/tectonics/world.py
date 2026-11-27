@@ -51,6 +51,38 @@ BoundaryKind = {
 Provisional = {"NO": 0, "NEWBORN": 1, "LIKE_NEIGHBOUR": 2}
 
 
+EventDataValue = str | int | float | bool | None | list[str] | list[int] | list[float]
+EventData = dict[str, EventDataValue]
+
+
+class HotspotLipRecord(TypedDict):
+    name: str
+    time: float
+    radiusKm: float
+    flows: int
+    cells: int
+    onLand: bool
+
+
+class PlumeRiftCause(TypedDict):
+    text: str
+    kind: str
+    hotspot: int
+
+
+class ScheduledPlumeRecord(TypedDict, total=False):
+    time: float
+    xyz: list[float]
+    plate: int
+    cell: int
+    done: bool
+    head: bool
+    rift: bool | str
+    name: str
+    lifeMyr: float
+    strength: float
+
+
 class HotspotRecord(TypedDict):
     id: int
     name: str
@@ -58,7 +90,7 @@ class HotspotRecord(TypedDict):
     bornAt: float
     dieAt: float
     alive: bool
-    lip: dict[str, object] | None
+    lip: HotspotLipRecord | None
     strength: float
     pulseUntil: float | None
     bursting: bool
@@ -69,14 +101,14 @@ class PendingPlumeRift(TypedDict):
     plate: int
     xyz: list[float]
     cell: int
-    cause: dict[str, object]
+    cause: PlumeRiftCause
 
 
 class WorldEvent(TypedDict):
     time: float
     kind: str
     text: str
-    data: dict[str, object]
+    data: EventData
 
 
 class CollisionRecord(TypedDict, total=False):
@@ -154,7 +186,7 @@ class TectonicWorld:
         self.cycle = None
         self.pendingPlumeRifts: list[PendingPlumeRift] = []
         self.lastRiftAt = None
-        self.plumes: list[dict[str, object]] = []
+        self.plumes: list[ScheduledPlumeRecord] = []
         self.terraneLetters: dict[int, str] | None = None
         self.time = 0.0
         self.step = 0
@@ -223,7 +255,7 @@ class TectonicWorld:
                     held.add(letter)
         return "".join(sorted(held)) if held else fallback
 
-    def log(self, kind: str, text: str, data: dict[str, object] | None = None) -> None:
+    def log(self, kind: str, text: EventData | None = None) -> None:
         if kind not in _EVENT_KINDS:
             raise ValueError(f"unknown event kind: {kind}")
         self.events.append(

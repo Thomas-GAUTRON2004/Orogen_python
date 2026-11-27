@@ -38,8 +38,19 @@ from typing import Protocol, TypedDict, TypeAlias, TypeVar, cast
 
 import pytest
 
+class _Opaque:
+    """A value the JSON corpus could only record as text."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
 JsonValue: TypeAlias = (
     None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+)
+DecodedValue: TypeAlias = (
+    None | bool | int | float | str | bytes | list["DecodedValue"]
+    | dict[str, "DecodedValue"] | _Opaque
 )
 T = TypeVar("T")
 
@@ -86,8 +97,8 @@ class CorpusDocument(TypedDict):
 
 class ReplayCase(TypedDict):
     target: ReplayTarget
-    args: list[JsonValue]
-    constructor: list[JsonValue] | None
+    args: list[DecodedValue]
+    constructor: list[DecodedValue] | None
     index: int
     skip: str | None
 
@@ -153,11 +164,11 @@ _ANNOTATION_TYPES = {
 }
 
 
-def _is_number(value: JsonValue) -> bool:
+def _is_number(value: DecodedValue) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _is_list_of_numbers(value: JsonValue, length: int) -> bool:
+def _is_list_of_numbers(value: DecodedValue, length: int) -> bool:
     return (
         isinstance(value, list)
         and len(value) == length
@@ -592,14 +603,7 @@ def _assert_equivalent(actual: JsonValue, expected: JsonValue, comparison: Compa
     _assert_node(actual, expected, mode, comparison, "result")
 
 
-class _Opaque:
-    """A value the JSON corpus could only record as text."""
-
-    def __init__(self, text: str) -> None:
-        self.text = text
-
-
-def _decode(value: JsonValue) -> JsonValue:
+def _decode(value: JsonValue) -> DecodedValue:
     if isinstance(value, list):
         return [_decode(item) for item in value]
     if isinstance(value, dict):
@@ -613,7 +617,7 @@ def _decode(value: JsonValue) -> JsonValue:
     return value
 
 
-def _has_non_finite(value: JsonValue) -> bool:
+def _has_non_finite(value: DecodedValue) -> bool:
     if isinstance(value, float):
         return not math.isfinite(value)
     if isinstance(value, list):
@@ -622,7 +626,7 @@ def _has_non_finite(value: JsonValue) -> bool:
 
 
 def _skip_reason(
-    target: ReplayTarget, args: list[JsonValue], constructor: list[JsonValue] | None
+    target: ReplayTarget, args: list[DecodedValue], constructor: list[DecodedValue] | None
 ) -> str | None:
     if "constructor_types" in target:
         values = constructor or []
@@ -697,7 +701,7 @@ def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> No
         pytest.skip(corpus_case["skip"])
     target = corpus_case["target"]
     args = copy.deepcopy(corpus_case["args"])
-    is_method = "class" in target
+    is_method = "class_name" in target
     constructor = copy.deepcopy(corpus_case["constructor"]) if is_method else None
 
     python_error: str | None = None
@@ -715,8 +719,8 @@ def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> No
         javascript_result = javascript.call(
             target["js_file"],
             target["js"],
-            args,
-            constructor=constructor,
+            cast(list[JsonValue], args),
+            constructor=cast(list[JsonValue] | None, constructor),
             method=target.get("js_member"),
         )
     except JSTargetError as exc:
@@ -728,5 +732,6 @@ def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> No
         )
         return
     _assert_equivalent(
-        _normalise(python_result), _normalise(javascript_result), target["comparison"]
+        _normalise(cast(JsonValue, python_result)),
+        _normalise(javascript_result), target["comparison"]
     )

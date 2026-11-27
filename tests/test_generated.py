@@ -31,11 +31,95 @@ import math
 import re
 import shutil
 import subprocess
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any
+from types import FunctionType, ModuleType
+from typing import Protocol, TypedDict, TypeAlias, TypeVar, cast
 
 import pytest
+
+JsonValue: TypeAlias = (
+    None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+)
+T = TypeVar("T")
+
+
+class FunctionMarker(TypedDict, total=False):
+    js: str
+    mode: str
+    skip: bool
+
+
+class ComparisonSettings(TypedDict, total=False):
+    mode: str
+    rel_tol: float
+    abs_tol: float
+
+
+class TargetInfo(TypedDict):
+    id: str
+    module: str
+    js: str
+    js_file: str
+    types: list[str]
+    comparison: ComparisonSettings
+
+
+class MethodTargetInfo(TargetInfo, total=False):
+    class_name: str
+    method: str
+    js_member: str
+    constructor_types: list[str]
+
+
+ReplayTarget: TypeAlias = TargetInfo | MethodTargetInfo
+
+
+class CorpusEntry(TypedDict, total=False):
+    args: list[JsonValue]
+    constructor: list[JsonValue]
+
+
+class CorpusDocument(TypedDict):
+    entries: dict[str, list[CorpusEntry]]
+
+
+class ReplayCase(TypedDict):
+    target: ReplayTarget
+    args: list[JsonValue]
+    constructor: list[JsonValue] | None
+    index: int
+    skip: str | None
+
+
+class ReplaySession(Protocol):
+    def call(
+        self,
+        js_file: str,
+        export: str,
+        args: list[JsonValue],
+        constructor: list[JsonValue] | None = None,
+        method: str | None = None,
+    ) -> JsonValue: ...
+
+    def close(self) -> None: ...
+
+
+class BridgeLoader(Protocol):
+    def invoke(
+        self,
+        js_file: str,
+        export: str,
+        args_json: str,
+        constructor_json: str,
+        method: str,
+    ) -> str: ...
+
+
+class BridgeRuntime(Protocol):
+    def require(self, path: str, caller: str) -> BridgeLoader: ...
+
+    def terminate(self) -> None: ...
 from differential_support import (
     CORPUS_DIR,
     REFERENCE_DIR,
@@ -69,11 +153,11 @@ _ANNOTATION_TYPES = {
 }
 
 
-def _is_number(value: Any) -> bool:
+def _is_number(value: JsonValue) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _is_list_of_numbers(value: Any, length: int) -> bool:
+def _is_list_of_numbers(value: JsonValue, length: int) -> bool:
     return (
         isinstance(value, list)
         and len(value) == length
@@ -111,14 +195,14 @@ def _js_export_names(js_file: str) -> set[str]:
     return _JS_EXPORTS_CACHE[js_file]
 
 
-def _function_markers(path: Path) -> dict[str, dict[str, Any]]:
+def _function_markers(path: Path) -> dict[str, FunctionMarker]:
     """Read '# differential:' comments above top-level functions and class methods.
 
     Keys are the function name, or ``Class.method`` for a method.
     """
     source = path.read_text(encoding="utf-8")
     lines = source.splitlines()
-    found: dict[str, dict[str, Any]] = {}
+    found: dict[str, FunctionMarker] = {}
 
     def visit(nodes: list[ast.stmt], prefix: str) -> None:
         for node in nodes:
@@ -146,8 +230,8 @@ def _function_markers(path: Path) -> dict[str, dict[str, Any]]:
     return found
 
 
-def _parse_function_marker(text: str) -> dict[str, Any]:
-    marker: dict[str, Any] = {}
+def _parse_function_marker(text: str) -> FunctionMarker:
+    marker: FunctionMarker = {}
     for token in text.split():
         if token == "skip":
             marker["skip"] = True
@@ -160,7 +244,7 @@ def _parse_function_marker(text: str) -> dict[str, Any]:
 
 
 def _parameter_types(
-    function: Any,
+    function: FunctionType,
     overrides: dict[str, str],
     skip_first: bool = False,
     include_defaults: bool = False,
@@ -195,11 +279,11 @@ def _parameter_types(
     return types
 
 
-def _import_python_module(dotted: str) -> Any:
+def _import_python_module(dotted: str) -> ModuleType:
     return importlib.import_module(dotted)
 
 
-def _module_targets(path: Path) -> list[dict[str, Any]]:
+def _module_targets(path: Path) -> list[ReplayTarget]:
     """Describe the replayable functions of one opted-in source module."""
     settings = module_settings(path)
     if settings is None:
@@ -208,14 +292,14 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
     js_file = js_module_file(path, settings.get("js_module"))
     js_exports = _js_export_names(js_file)
     overrides = settings.get("params", {})
-    comparison: dict[str, Any] = {"mode": settings.get("mode", "approx")}
+    comparison: ComparisonSettings = {"mode": settings.get("mode", "approx")}
     for key in ("rel_tol", "abs_tol"):
         if key in settings:
             comparison[key] = settings[key]
 
     module = _import_python_module(dotted)
     markers = _function_markers(path)
-    targets: list[dict[str, Any]] = []
+    targets: list[ReplayTarget] = []
     for name, function in inspect.getmembers(module, inspect.isfunction):
         if name.startswith("_") or function.__module__ != module.__name__:
             continue
@@ -255,20 +339,20 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
 
 
 def _class_targets(
-    module: Any,
+    module: ModuleType,
     dotted: str,
     js_file: str,
     js_exports: set[str],
     overrides: dict[str, str],
-    comparison: dict[str, Any],
-    markers: dict[str, dict[str, Any]],
-) -> list[dict[str, Any]]:
+    comparison: ComparisonSettings,
+    markers: dict[str, FunctionMarker],
+) -> list[MethodTargetInfo]:
     """Describe the public methods of each public class whose JavaScript class is exported.
 
     A method target builds the instance from the constructor arguments recorded
     in the corpus, then calls the method, in Python and in JavaScript.
     """
-    targets: list[dict[str, Any]] = []
+    targets: list[MethodTargetInfo] = []
     for class_name, cls in inspect.getmembers(module, inspect.isclass):
         if class_name.startswith("_") or cls.__module__ != module.__name__:
             continue
@@ -295,7 +379,7 @@ def _class_targets(
                 {
                     "id": f"{class_name}.{method_name}",
                     "module": dotted,
-                    "class": class_name,
+                    "class_name": class_name,
                     "method": method_name,
                     "js": js_class,
                     "js_member": marker.get("js", _js_name(method_name)),
@@ -308,21 +392,21 @@ def _class_targets(
     return targets
 
 
-def _all_targets() -> list[dict[str, Any]]:
-    targets: list[dict[str, Any]] = []
+def _all_targets() -> list[ReplayTarget]:
+    targets: list[ReplayTarget] = []
     for path in opted_in_modules():
         targets.extend(_module_targets(path))
     return targets
 
 
-def _resolve_python_target(target: dict[str, Any]) -> Any:
+def _resolve_python_target(target: ReplayTarget) -> Callable[..., JsonValue]:
     function = getattr(_import_python_module(target["module"]), target["id"])
     if not callable(function):
         raise AssertionError(f"Differential target is not a function: {target['id']}")
-    return function
+    return cast(Callable[..., JsonValue], function)
 
 
-def _normalise(value: Any) -> Any:
+def _normalise(value: JsonValue) -> JsonValue:
     """Make non-finite numbers match the JavaScript runner's JSON encoding."""
     if isinstance(value, bool):
         return value
@@ -362,13 +446,13 @@ class JavaScriptSession:
         self,
         js_file: str,
         export: str,
-        args: list[Any],
-        constructor: list[Any] | None = None,
+        args: list[JsonValue],
+        constructor: list[JsonValue] | None = None,
         method: str | None = None,
-    ) -> Any:
+    ) -> JsonValue:
         if self.process.stdin is None or self.process.stdout is None:
             raise RuntimeError("JavaScript runner streams are unavailable")
-        payload: dict[str, Any] = {"module": js_file, "target": export, "args": args}
+        payload: dict[str, JsonValue] = {"module": js_file, "target": export, "args": args}
         if constructor is not None:
             # Build the instance with `new`, then call the method on it.
             payload["construct"] = constructor
@@ -382,7 +466,7 @@ class JavaScriptSession:
             if self.process.stderr is not None:
                 stderr = self.process.stderr.read()
             raise RuntimeError(f"JavaScript runner exited unexpectedly: {stderr}")
-        response = json.loads(line)
+        response = cast(dict[str, JsonValue], json.loads(line))
         if not response["ok"]:
             raise JSTargetError(response["error"])
         return response["result"]
@@ -402,24 +486,24 @@ class JSPyBridgeSession:
 
     def __init__(self) -> None:
         try:
-            import javascript
+            bridge = cast(BridgeRuntime, importlib.import_module("javascript"))
         except ImportError as exc:
             raise RuntimeError(
                 "JSPyBridge is optional; install it with "
                 "'python -m pip install javascript==1!1.2.6'"
             ) from exc
 
-        self._bridge = javascript
-        self._loader = javascript.require("./jspybridge-loader.cjs", __file__)
+        self._bridge = bridge
+        self._loader = bridge.require("./jspybridge-loader.cjs", __file__)
 
     def call(
         self,
         js_file: str,
         export: str,
-        args: list[Any],
-        constructor: list[Any] | None = None,
+        args: list[JsonValue],
+        constructor: list[JsonValue] | None = None,
         method: str | None = None,
-    ) -> Any:
+    ) -> JsonValue:
         # The loader returns JSON text, so results cross the bridge as plain
         # strings, exactly as they do through the Node runner. An empty
         # constructor string means "call the export directly".
@@ -438,7 +522,7 @@ class JSPyBridgeSession:
             )
         except Exception as exc:
             raise JSTargetError(str(exc)) from exc
-        return json.loads(text)
+        return cast(JsonValue, json.loads(text))
 
     def close(self) -> None:
         self._bridge.terminate()
@@ -462,11 +546,11 @@ _BACKEND_PARAMETERS = [
 
 
 @pytest.fixture(scope="module")
-def javascript(request: pytest.FixtureRequest) -> Iterator[Any]:
+def javascript(request: pytest.FixtureRequest) -> Iterator[ReplaySession]:
     """Create one persistent JavaScript runtime for the whole module."""
     backend_id = request.param
     if backend_id == "node":
-        session: Any = JavaScriptSession()
+        session: ReplaySession = JavaScriptSession()
     elif backend_id == "jspybridge":
         session = JSPyBridgeSession()
     else:
@@ -476,7 +560,7 @@ def javascript(request: pytest.FixtureRequest) -> Iterator[Any]:
 
 
 def _assert_node(
-    actual: Any, expected: Any, mode: str, comparison: dict[str, Any], path: str
+    actual: JsonValue, expected: JsonValue, mode: str, comparison: ComparisonSettings, path: str
 ) -> None:
     if isinstance(expected, dict):
         assert isinstance(actual, dict), f"{path}: expected an object"
@@ -501,7 +585,7 @@ def _assert_node(
     assert actual == expected, f"{path}: {actual!r} != {expected!r}"
 
 
-def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -> None:
+def _assert_equivalent(actual: JsonValue, expected: JsonValue, comparison: ComparisonSettings) -> None:
     mode = comparison.get("mode", "exact")
     if mode not in ("exact", "approx"):
         raise ValueError(f"Unsupported comparison mode: {mode}")
@@ -515,7 +599,7 @@ class _Opaque:
         self.text = text
 
 
-def _decode(value: Any) -> Any:
+def _decode(value: JsonValue) -> JsonValue:
     if isinstance(value, list):
         return [_decode(item) for item in value]
     if isinstance(value, dict):
@@ -529,7 +613,7 @@ def _decode(value: Any) -> Any:
     return value
 
 
-def _has_non_finite(value: Any) -> bool:
+def _has_non_finite(value: JsonValue) -> bool:
     if isinstance(value, float):
         return not math.isfinite(value)
     if isinstance(value, list):
@@ -538,7 +622,7 @@ def _has_non_finite(value: Any) -> bool:
 
 
 def _skip_reason(
-    target: dict[str, Any], args: list[Any], constructor: list[Any] | None
+    target: ReplayTarget, args: list[JsonValue], constructor: list[JsonValue] | None
 ) -> str | None:
     if "constructor_types" in target:
         values = constructor or []
@@ -561,20 +645,22 @@ def _skip_reason(
     return None
 
 
-_CORPUS_DOCUMENTS: dict[str, dict[str, Any] | None] = {}
+_CORPUS_DOCUMENTS: dict[str, CorpusDocument | None] = {}
 
 
-def _corpus_document(dotted: str) -> dict[str, Any] | None:
+def _corpus_document(dotted: str) -> CorpusDocument | None:
     if dotted not in _CORPUS_DOCUMENTS:
         path = CORPUS_DIR / f"{dotted}.json"
         _CORPUS_DOCUMENTS[dotted] = (
-            json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+            cast(CorpusDocument, json.loads(path.read_text(encoding="utf-8")))
+            if path.is_file()
+            else None
         )
     return _CORPUS_DOCUMENTS[dotted]
 
 
-def _corpus_cases() -> list[dict[str, Any]]:
-    cases: list[dict[str, Any]] = []
+def _corpus_cases() -> list[ReplayCase]:
+    cases: list[ReplayCase] = []
     for target in _all_targets():
         document = _corpus_document(target["module"])
         if document is None:
@@ -596,7 +682,7 @@ def _corpus_cases() -> list[dict[str, Any]]:
     return cases
 
 
-def _case_label(case: dict[str, Any]) -> str:
+def _case_label(case: ReplayCase) -> str:
     target = case["target"]
     return f"{target['module']}.{target['id']}[{case['index']}]"
 
@@ -606,7 +692,7 @@ CORPUS_CASES = _corpus_cases()
 
 @pytest.mark.parametrize("corpus_case", CORPUS_CASES, ids=_case_label)
 @pytest.mark.parametrize("javascript", _BACKEND_PARAMETERS, indirect=True)
-def test_corpus_replay(corpus_case: dict[str, Any], javascript: Any) -> None:
+def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> None:
     if corpus_case["skip"] is not None:
         pytest.skip(corpus_case["skip"])
     target = corpus_case["target"]
@@ -617,7 +703,7 @@ def test_corpus_replay(corpus_case: dict[str, Any], javascript: Any) -> None:
     python_error: str | None = None
     try:
         if is_method:
-            cls = getattr(_import_python_module(target["module"]), target["class"])
+            cls = getattr(_import_python_module(target["module"]), target["class_name"])
             python_result = getattr(cls(*constructor), target["method"])(*args)
         else:
             python_result = _resolve_python_target(target)(*args)

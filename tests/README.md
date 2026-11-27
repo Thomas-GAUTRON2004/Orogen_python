@@ -117,6 +117,12 @@ its reference can be found:
   `random_seed`, and for known divergences. Put the reason in a comment above
   the marker.
 
+**Classes.** A public class whose JavaScript class is exported gets one replay per
+public method. The replay builds the instance from the constructor arguments
+recorded with each example, then calls the method, in Python and with `new` in
+JavaScript. A marker above a method renames its JavaScript member, for example
+`# differential: js=noise3D` above `def noise3d`.
+
 A function is replayed only if its name does not start with `_` and its
 JavaScript module exports the matching name. Missing exports are ignored
 silently, unless the marker names one explicitly. A marked module with no

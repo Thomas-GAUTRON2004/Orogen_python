@@ -5,7 +5,7 @@
     "version": "0.0.114",
     "per_condition_timeout_s": 5,
     "output_format": "arg_dictionary",
-    "input_sha256": "72ccdd89119fbcf5810cf1eeb3ad2917b5400976d99c177c0d612bf0efb468ca",
+    "input_sha256": "d7eae0e789efa3872d6ae6996c7547604c37c99d263bd74a92ffbfcae66b59b7",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -16,10 +16,39 @@
     ]
   },
   "stats": {
-    "examples": 0,
-    "unique": 0,
+    "unique": 2,
+    "examples": 2,
     "unsupported_calls": 0,
     "unreadable_lines": 0
   },
-  "entries": {}
+  "entries": {
+    "FastNoise.noise3d": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raised": null,
+        "constructor": [
+          0.0
+        ]
+      }
+    ],
+    "FastNoise.fbm": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0,
+          1,
+          0.0
+        ],
+        "raised": null,
+        "constructor": [
+          0
+        ]
+      }
+    ]
+  }
 }

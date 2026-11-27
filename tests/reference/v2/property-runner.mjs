@@ -37,7 +37,18 @@ for await (const line of input) {
     if (typeof target !== "function") {
       throw new Error(`Unknown differential target: ${request.module}.${request.target}`);
     }
-    const result = target(...(request.args ?? []));
+    let result;
+    if (request.construct !== undefined) {
+      // A method call: build the instance with `new`, then call the method on it.
+      const instance = new target(...request.construct);
+      const member = instance[request.method];
+      if (typeof member !== "function") {
+        throw new Error(`Unknown differential method: ${request.target}.${request.method}`);
+      }
+      result = member.apply(instance, request.args ?? []);
+    } else {
+      result = target(...(request.args ?? []));
+    }
     process.stdout.write(JSON.stringify({ ok: true, result }, replacer) + "\n");
   } catch (error) {
     process.stdout.write(

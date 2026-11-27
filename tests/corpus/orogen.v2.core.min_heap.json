@@ -5,7 +5,7 @@
     "version": "0.0.114",
     "per_condition_timeout_s": 5,
     "output_format": "arg_dictionary",
-    "input_sha256": "fa59e8ef059f91d98bc0f66cfa66fd7dae9a96326b92e00347000f6b34f5fed6",
+    "input_sha256": "e4a5376c3c8448935af53af8016670e6b22511e89ed0b702da0021453c85a4ce",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -16,8 +16,8 @@
     ]
   },
   "stats": {
-    "examples": 1,
-    "unique": 1,
+    "unique": 4,
+    "examples": 4,
     "unsupported_calls": 0,
     "unreadable_lines": 0
   },
@@ -28,6 +28,36 @@
           ""
         ],
         "raised": "TypeError"
+      }
+    ],
+    "MinHeap.push": [
+      {
+        "args": [
+          0.0,
+          0
+        ],
+        "raised": null,
+        "constructor": [
+          1
+        ]
+      }
+    ],
+    "MinHeap.peek_key": [
+      {
+        "args": [],
+        "raised": null,
+        "constructor": [
+          1
+        ]
+      }
+    ],
+    "MinHeap.pop": [
+      {
+        "args": [],
+        "raised": "IndexError",
+        "constructor": [
+          1
+        ]
       }
     ]
   }

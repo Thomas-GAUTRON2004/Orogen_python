@@ -1,10 +1,12 @@
 """Build replay corpora for opted-in modules from CrossHair examples.
 
-CrossHair explores the annotated signature of each public function and reports
-one example per path as an argument dictionary. This tool replays those
-examples through the Python function and records the arguments, plus whether
-Python raised. tests/test_generated.py replays them against the JavaScript
-reference, which is the only oracle.
+CrossHair explores the annotated signature of each public function and each
+public method of a class, and reports one example per path as an argument
+dictionary. A method's example also reports its instance (``self``), printed as
+a constructor call: ``FastNoise(seed=0.0)``. This tool replays each example
+through the Python code and records the arguments, the instance's constructor
+arguments when there is one, and whether Python raised. tests/test_generated.py
+replays them against the JavaScript reference, which is the only oracle.
 
 Every module that opts in under the source directory gets a corpus. The corpus
 stores a fingerprint of the module's sources, the orogen modules it depends on,
@@ -45,6 +47,17 @@ from differential_support import (  # noqa: E402
     input_digest,
     opted_in_modules,
 )
+
+# Side effects CrossHair blocks while importing the orogen package. Each is
+# read-only or only registers a folder: it runs no code.
+#   os.add_dll_directory: numpy registers its DLL folders on Windows.
+#   socket.gethostname: numba reads the host name while it loads.
+UNBLOCKED_EVENTS = ("os.add_dll_directory", "socket.gethostname")
+
+IMPORT_FAILURE = "Could not import your code"
+
+# Corpus layout version: 2 adds class methods and their constructor arguments.
+FORMAT = 2
 
 
 def encode(value: Any) -> Any:
@@ -96,13 +109,33 @@ def literal(node: ast.AST) -> Any:
     raise ValueError(f"unsupported expression: {ast.dump(node)[:80]}")
 
 
-# Side effects CrossHair blocks while importing the orogen package. Each is
-# read-only or only registers a folder: it runs no code.
-#   os.add_dll_directory: numpy registers its DLL folders on Windows.
-#   socket.gethostname: numba reads the host name while it loads.
-UNBLOCKED_EVENTS = ("os.add_dll_directory", "socket.gethostname")
+def instance_state(node: ast.AST) -> dict[str, Any]:
+    """Read CrossHair's printed instance, ``ClassName(name=value, ...)``, as constructor keywords."""
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and not node.args
+        and all(keyword.arg is not None for keyword in node.keywords)
+    ):
+        return {
+            "__instance__": node.func.id,
+            "kwargs": {k.arg: literal(k.value) for k in node.keywords},
+        }
+    raise ValueError(f"unsupported instance: {ast.dump(node)[:80]}")
 
-IMPORT_FAILURE = "Could not import your code"
+
+def parse_example(line: str) -> dict[str, Any]:
+    """Parse one printed example line into an argument dictionary."""
+    node = ast.parse(line, mode="eval").body
+    if not isinstance(node, ast.Dict):
+        raise ValueError("example is not a dictionary")
+    example: dict[str, Any] = {}
+    for key_node, value_node in zip(node.keys, node.values, strict=True):
+        key = literal(key_node)
+        example[key] = (
+            instance_state(value_node) if key == "self" else literal(value_node)
+        )
+    return example
 
 
 def unblock_arguments() -> list[str]:
@@ -115,9 +148,9 @@ def unblock_arguments() -> list[str]:
 
 
 def run_crosshair(
-    dotted: str, name: str, timeout: int
+    dotted: str, target: str, timeout: int
 ) -> tuple[list[dict[str, Any]], int]:
-    """Return the argument dictionaries CrossHair reports for one function, and the count it could not read."""
+    """Return the examples CrossHair reports for one function or method, and the count it could not read."""
     command = [
         sys.executable,
         "-m",
@@ -126,7 +159,7 @@ def run_crosshair(
         f"--per_condition_timeout={timeout}",
         "--example_output_format=arg_dictionary",
         *unblock_arguments(),
-        f"{dotted}.{name}",
+        f"{dotted}.{target}",
     ]
     completed = subprocess.run(
         command,
@@ -149,25 +182,21 @@ def run_crosshair(
             ),
             output.strip()[-300:],
         )
-        raise SystemExit(f"CrossHair could not run on {dotted}.{name}: {reason}")
+        raise SystemExit(f"CrossHair could not run on {dotted}.{target}: {reason}")
     examples: list[dict[str, Any]] = []
     unreadable = 0
     for line in completed.stdout.splitlines():
         if not line.startswith("{"):
             continue
         try:
-            parsed = literal(ast.parse(line, mode="eval").body)
+            examples.append(parse_example(line))
         except (SyntaxError, ValueError):
             unreadable += 1
-            continue
-        if isinstance(parsed, dict):
-            examples.append(parsed)
     return examples, unreadable
 
 
-def positional(function: Any, example: dict[str, Any]) -> list[Any] | None:
+def positional_for(names: list[str], example: dict[str, Any]) -> list[Any] | None:
     """Map an argument dictionary to positional arguments, or None if it cannot be replayed."""
-    names = list(inspect.signature(function).parameters)
     if set(example) - set(names):
         return None
     provided = [name for name in names if name in example]
@@ -177,35 +206,88 @@ def positional(function: Any, example: dict[str, Any]) -> list[Any] | None:
     return [example[name] for name in provided]
 
 
+def parameter_names(function: Any, skip_first: bool) -> list[str]:
+    names = list(inspect.signature(function).parameters)
+    return names[1:] if skip_first else names
+
+
 def capture(dotted: str, timeout: int) -> dict[str, Any]:
-    """Run CrossHair on every public function of one module and return its corpus document."""
+    """Run CrossHair on every public function and method of one module; return its corpus document."""
     module = importlib.import_module(dotted)
     entries: dict[str, list[dict[str, Any]]] = {}
     seen: set[str] = set()
-    examples_total = unsupported = unreadable_total = 0
+    counts = {"examples": 0, "unsupported_calls": 0, "unreadable_lines": 0}
+
+    def record(
+        key: str, args: list[Any], constructor: list[Any] | None, raised: str | None
+    ) -> None:
+        encoded_args = encode(args)
+        encoded_constructor = None if constructor is None else encode(constructor)
+        signature = json.dumps(
+            [key, encoded_constructor, encoded_args, raised], sort_keys=True
+        )
+        if signature in seen:
+            return
+        seen.add(signature)
+        entry: dict[str, Any] = {"args": encoded_args, "raised": raised}
+        if encoded_constructor is not None:
+            entry["constructor"] = encoded_constructor
+        entries.setdefault(key, []).append(entry)
 
     for name, function in inspect.getmembers(module, inspect.isfunction):
         if name.startswith("_") or function.__module__ != module.__name__:
             continue
         examples, unreadable = run_crosshair(dotted, name, timeout)
-        unreadable_total += unreadable
+        counts["unreadable_lines"] += unreadable
         for example in examples:
-            examples_total += 1
-            args = positional(function, example)
+            counts["examples"] += 1
+            args = positional_for(parameter_names(function, skip_first=False), example)
             if args is None:
-                unsupported += 1
+                counts["unsupported_calls"] += 1
                 continue
             try:
                 function(*args)
                 raised = None
             except Exception as exc:
                 raised = type(exc).__name__
-            encoded = encode(args)
-            key = json.dumps([name, encoded, raised], sort_keys=True)
-            if key in seen:
+            record(name, args, None, raised)
+
+    for class_name, cls in inspect.getmembers(module, inspect.isclass):
+        if class_name.startswith("_") or cls.__module__ != module.__name__:
+            continue
+        for method_name, method in cls.__dict__.items():
+            if method_name.startswith("_") or not inspect.isfunction(method):
                 continue
-            seen.add(key)
-            entries.setdefault(name, []).append({"args": encoded, "raised": raised})
+            key = f"{class_name}.{method_name}"
+            examples, unreadable = run_crosshair(dotted, key, timeout)
+            counts["unreadable_lines"] += unreadable
+            for example in examples:
+                counts["examples"] += 1
+                state = example.pop("self", None)
+                if (
+                    not isinstance(state, dict)
+                    or state.get("__instance__") != class_name
+                ):
+                    counts["unsupported_calls"] += 1
+                    continue
+                constructor = positional_for(
+                    parameter_names(cls.__init__, skip_first=True), state["kwargs"]
+                )
+                args = positional_for(parameter_names(method, skip_first=True), example)
+                if constructor is None or args is None:
+                    counts["unsupported_calls"] += 1
+                    continue
+                try:
+                    instance = cls(*constructor)
+                except Exception:
+                    counts["unsupported_calls"] += 1
+                    continue
+                try:
+                    getattr(instance, method_name)(*args)
+                    raised = None
+                except Exception as exc:
+                    raised = type(exc).__name__
+                record(key, args, constructor, raised)
 
     return {
         "module": dotted,
@@ -215,12 +297,7 @@ def capture(dotted: str, timeout: int) -> dict[str, Any]:
             "per_condition_timeout_s": timeout,
             "output_format": "arg_dictionary",
         },
-        "stats": {
-            "examples": examples_total,
-            "unique": len(seen),
-            "unsupported_calls": unsupported,
-            "unreadable_lines": unreadable_total,
-        },
+        "stats": {"unique": len(seen), **counts},
         "entries": entries,
     }
 
@@ -270,7 +347,10 @@ def main() -> None:
     else:
         paths = opted_in_modules()
 
-    parameters = f"tool=crosshair per_condition_timeout={options.timeout}"
+    # FORMAT names the corpus layout: bump it when the recorded entries change.
+    parameters = (
+        f"tool=crosshair format={FORMAT} per_condition_timeout={options.timeout}"
+    )
     regenerated = unchanged = 0
     for path in paths:
         dotted = dotted_name(path)

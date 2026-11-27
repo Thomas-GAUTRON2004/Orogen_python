@@ -5,7 +5,7 @@
     "version": "0.0.114",
     "per_condition_timeout_s": 5,
     "output_format": "arg_dictionary",
-    "input_sha256": "5a4f833cac7119f9c287cdc28fd5f23240d0a8681502c52c5ffbe89960253014",
+    "input_sha256": "59f79af59dbb78930d3840c3f79a02c7a0b3a42ee92217fad3facdc84383249c",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -14,8 +14,8 @@
     ]
   },
   "stats": {
-    "examples": 2,
     "unique": 2,
+    "examples": 2,
     "unsupported_calls": 0,
     "unreadable_lines": 0
   },

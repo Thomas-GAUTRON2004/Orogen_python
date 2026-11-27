@@ -27,12 +27,23 @@ function replacer(_key, value) {
   return value;
 }
 
-exports.invoke = function invoke(file, exportName, argsJson) {
+exports.invoke = function invoke(file, exportName, argsJson, constructorJson, method) {
   const namespace = loadModule(file);
   const target = namespace[exportName];
   if (typeof target !== "function") {
     throw new Error(`Unknown differential target: ${file}.${exportName}`);
   }
-  const result = target(...JSON.parse(argsJson));
+  let result;
+  if (constructorJson) {
+    // A method call: build the instance with `new`, then call the method on it.
+    const instance = new target(...JSON.parse(constructorJson));
+    const member = instance[method];
+    if (typeof member !== "function") {
+      throw new Error(`Unknown differential method: ${exportName}.${method}`);
+    }
+    result = member.apply(instance, JSON.parse(argsJson));
+  } else {
+    result = target(...JSON.parse(argsJson));
+  }
   return JSON.stringify(result, replacer);
 };

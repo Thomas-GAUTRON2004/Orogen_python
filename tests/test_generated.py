@@ -59,7 +59,11 @@ _TYPE_CHECKS = {
     "vec3": lambda value: _is_list_of_numbers(value, 3),
     "seed_text": lambda value: isinstance(value, str),
 }
-_ANNOTATION_TYPES = {"float": "unit_float", "object": "seed_text"}
+_ANNOTATION_TYPES = {
+    "float": "unit_float",
+    "int | float": "unit_float",
+    "object": "seed_text",
+}
 
 
 def _is_number(value: Any) -> bool:
@@ -105,26 +109,37 @@ def _js_export_names(js_file: str) -> set[str]:
 
 
 def _function_markers(path: Path) -> dict[str, dict[str, Any]]:
-    """Read '# differential:' comments placed directly above top-level functions."""
+    """Read '# differential:' comments above top-level functions and class methods.
+
+    Keys are the function name, or ``Class.method`` for a method.
+    """
     source = path.read_text(encoding="utf-8")
     lines = source.splitlines()
     found: dict[str, dict[str, Any]] = {}
-    for node in ast.parse(source).body:
-        if not isinstance(node, ast.FunctionDef):
-            continue
-        start = min(
-            [node.lineno, *(decorator.lineno for decorator in node.decorator_list)]
-        )
-        index = start - 2
-        block: list[str] = []
-        while index >= 0 and lines[index].strip().startswith("#"):
-            block.insert(0, lines[index].strip()[1:].strip())
-            index -= 1
-        for comment in block:
-            if comment.startswith("differential:"):
-                found[node.name] = _parse_function_marker(
-                    comment[len("differential:") :]
+
+    def visit(nodes: list[ast.stmt], prefix: str) -> None:
+        for node in nodes:
+            if isinstance(node, ast.ClassDef):
+                visit(node.body, f"{node.name}.")
+            elif isinstance(node, ast.FunctionDef):
+                start = min(
+                    [
+                        node.lineno,
+                        *(decorator.lineno for decorator in node.decorator_list),
+                    ]
                 )
+                index = start - 2
+                block: list[str] = []
+                while index >= 0 and lines[index].strip().startswith("#"):
+                    block.insert(0, lines[index].strip()[1:].strip())
+                    index -= 1
+                for comment in block:
+                    if comment.startswith("differential:"):
+                        found[prefix + node.name] = _parse_function_marker(
+                            comment[len("differential:") :]
+                        )
+
+    visit(ast.parse(source).body, "")
     return found
 
 
@@ -141,11 +156,24 @@ def _parse_function_marker(text: str) -> dict[str, Any]:
     return marker
 
 
-def _parameter_types(function: Any, overrides: dict[str, str]) -> list[str] | None:
-    """Return the type of each required parameter, or None if one cannot be inferred."""
+def _parameter_types(
+    function: Any,
+    overrides: dict[str, str],
+    skip_first: bool = False,
+    include_defaults: bool = False,
+) -> list[str] | None:
+    """Return the type of each parameter, or None if one cannot be inferred.
+
+    Parameters with defaults are left out unless include_defaults is set, which a
+    constructor needs when the corpus records a value for them. skip_first drops
+    the instance parameter of a method or constructor.
+    """
     types: list[str] = []
-    for parameter in inspect.signature(function).parameters.values():
-        if parameter.default is not inspect.Parameter.empty:
+    parameters = list(inspect.signature(function).parameters.values())
+    if skip_first:
+        parameters = parameters[1:]
+    for parameter in parameters:
+        if parameter.default is not inspect.Parameter.empty and not include_defaults:
             continue
         if parameter.kind not in (
             inspect.Parameter.POSITIONAL_ONLY,
@@ -199,7 +227,7 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
                     f"which {js_file} does not export"
                 )
             continue
-        types = _parameter_types(function, overrides)
+        types = _parameter_types(function, overrides, include_defaults=True)
         if types is None:
             continue
         function_comparison = dict(comparison)
@@ -215,6 +243,65 @@ def _module_targets(path: Path) -> list[dict[str, Any]]:
                 "comparison": function_comparison,
             }
         )
+    targets.extend(
+        _class_targets(
+            module, dotted, js_file, js_exports, overrides, comparison, markers
+        )
+    )
+    return targets
+
+
+def _class_targets(
+    module: Any,
+    dotted: str,
+    js_file: str,
+    js_exports: set[str],
+    overrides: dict[str, str],
+    comparison: dict[str, Any],
+    markers: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Describe the public methods of each public class whose JavaScript class is exported.
+
+    A method target builds the instance from the constructor arguments recorded
+    in the corpus, then calls the method, in Python and in JavaScript.
+    """
+    targets: list[dict[str, Any]] = []
+    for class_name, cls in inspect.getmembers(module, inspect.isclass):
+        if class_name.startswith("_") or cls.__module__ != module.__name__:
+            continue
+        js_class = _js_name(class_name)
+        if js_class not in js_exports:
+            continue
+        constructor_types = _parameter_types(
+            cls.__init__, overrides, skip_first=True, include_defaults=True
+        )
+        if constructor_types is None:
+            continue
+        for method_name, method in cls.__dict__.items():
+            if method_name.startswith("_") or not inspect.isfunction(method):
+                continue
+            marker = markers.get(f"{class_name}.{method_name}", {})
+            if marker.get("skip"):
+                continue
+            types = _parameter_types(
+                method, overrides, skip_first=True, include_defaults=True
+            )
+            if types is None:
+                continue
+            targets.append(
+                {
+                    "id": f"{class_name}.{method_name}",
+                    "module": dotted,
+                    "class": class_name,
+                    "method": method_name,
+                    "js": js_class,
+                    "js_member": marker.get("js", _js_name(method_name)),
+                    "js_file": js_file,
+                    "types": types,
+                    "constructor_types": constructor_types,
+                    "comparison": dict(comparison),
+                }
+            )
     return targets
 
 
@@ -268,14 +355,22 @@ class JavaScriptSession:
             bufsize=1,
         )
 
-    def call(self, js_file: str, export: str, args: list[Any]) -> Any:
+    def call(
+        self,
+        js_file: str,
+        export: str,
+        args: list[Any],
+        constructor: list[Any] | None = None,
+        method: str | None = None,
+    ) -> Any:
         if self.process.stdin is None or self.process.stdout is None:
             raise RuntimeError("JavaScript runner streams are unavailable")
-        request = json.dumps(
-            {"module": js_file, "target": export, "args": args},
-            ensure_ascii=False,
-            allow_nan=False,
-        )
+        payload: dict[str, Any] = {"module": js_file, "target": export, "args": args}
+        if constructor is not None:
+            # Build the instance with `new`, then call the method on it.
+            payload["construct"] = constructor
+            payload["method"] = method
+        request = json.dumps(payload, ensure_ascii=False, allow_nan=False)
         self.process.stdin.write(request + "\n")
         self.process.stdin.flush()
         line = self.process.stdout.readline()
@@ -314,12 +409,29 @@ class JSPyBridgeSession:
         self._bridge = javascript
         self._loader = javascript.require("./jspybridge-loader.cjs", __file__)
 
-    def call(self, js_file: str, export: str, args: list[Any]) -> Any:
+    def call(
+        self,
+        js_file: str,
+        export: str,
+        args: list[Any],
+        constructor: list[Any] | None = None,
+        method: str | None = None,
+    ) -> Any:
         # The loader returns JSON text, so results cross the bridge as plain
-        # strings, exactly as they do through the Node runner.
+        # strings, exactly as they do through the Node runner. An empty
+        # constructor string means "call the export directly".
+        constructor_json = (
+            ""
+            if constructor is None
+            else json.dumps(constructor, ensure_ascii=False, allow_nan=False)
+        )
         try:
             text = self._loader.invoke(
-                js_file, export, json.dumps(args, ensure_ascii=False, allow_nan=False)
+                js_file,
+                export,
+                json.dumps(args, ensure_ascii=False, allow_nan=False),
+                constructor_json,
+                method or "",
             )
         except Exception as exc:
             raise JSTargetError(str(exc)) from exc
@@ -422,7 +534,20 @@ def _has_non_finite(value: Any) -> bool:
     return False
 
 
-def _skip_reason(target: dict[str, Any], args: list[Any]) -> str | None:
+def _skip_reason(
+    target: dict[str, Any], args: list[Any], constructor: list[Any] | None
+) -> str | None:
+    if "constructor_types" in target:
+        values = constructor or []
+        if len(values) > len(target["constructor_types"]):
+            return (
+                f"constructor arity {len(values)} > {len(target['constructor_types'])}"
+            )
+        for kind, value in zip(target["constructor_types"], values, strict=False):
+            if isinstance(value, _Opaque) or not _TYPE_CHECKS[kind](value):
+                return f"constructor type mismatch for {kind}"
+        if _has_non_finite(values):
+            return "non-finite constructor input cannot be sent on the JSON wire"
     if len(args) != len(target["types"]):
         return f"arity {len(args)} != {len(target['types'])}"
     for kind, value in zip(target["types"], args, strict=True):
@@ -453,12 +578,16 @@ def _corpus_cases() -> list[dict[str, Any]]:
             continue
         for index, entry in enumerate(document["entries"].get(target["id"], [])):
             args = _decode(entry["args"])
+            constructor = (
+                _decode(entry["constructor"]) if "constructor" in entry else None
+            )
             cases.append(
                 {
                     "target": target,
                     "args": args,
+                    "constructor": constructor,
                     "index": index,
-                    "skip": _skip_reason(target, args),
+                    "skip": _skip_reason(target, args, constructor),
                 }
             )
     return cases
@@ -479,16 +608,28 @@ def test_corpus_replay(corpus_case: dict[str, Any], javascript: Any) -> None:
         pytest.skip(corpus_case["skip"])
     target = corpus_case["target"]
     args = copy.deepcopy(corpus_case["args"])
+    is_method = "class" in target
+    constructor = copy.deepcopy(corpus_case["constructor"]) if is_method else None
 
     python_error: str | None = None
     try:
-        python_result = _resolve_python_target(target)(*args)
+        if is_method:
+            cls = getattr(_import_python_module(target["module"]), target["class"])
+            python_result = getattr(cls(*constructor), target["method"])(*args)
+        else:
+            python_result = _resolve_python_target(target)(*args)
     except Exception as exc:
         python_error = type(exc).__name__
 
     javascript_error: str | None = None
     try:
-        javascript_result = javascript.call(target["js_file"], target["js"], args)
+        javascript_result = javascript.call(
+            target["js_file"],
+            target["js"],
+            args,
+            constructor=constructor,
+            method=target.get("js_member"),
+        )
     except JSTargetError as exc:
         javascript_error = str(exc)
 

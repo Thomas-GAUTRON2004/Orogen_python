@@ -13,6 +13,7 @@ from __future__ import annotations
 import heapq
 import math
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -35,7 +36,7 @@ from .world import EventKind, TectonicWorld
 StartSeam = {"NONE": 0, "INNER": 1, "RING": 2, "MAJOR": 3}
 
 
-def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
+def _mesh_xyz(sim_mesh: SimMesh) -> np.ndarray:
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     if xyz.shape[0] != int(sim_mesh.num_cells):
         raise ValueError("mesh xyz does not match num_cells")
@@ -43,7 +44,7 @@ def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
 
 
 def _distance_hops(
-    sim_mesh: Any, sources: np.ndarray, *, can_enter=None, max_hops=None
+    sim_mesh: SimMesh, sources: np.ndarray, *, can_enter=None, max_hops=None
 ) -> np.ndarray:
     source_mask = np.asarray(sources, dtype=bool)
     if source_mask.shape != (int(sim_mesh.num_cells),):
@@ -59,7 +60,7 @@ def _distance_hops(
 
 
 def _land_cells(
-    sim_mesh: Any, centre: np.ndarray, count: int
+    sim_mesh: SimMesh, centre: np.ndarray, count: int
 ) -> tuple[np.ndarray, float]:
     xyz = _mesh_xyz(sim_mesh)
     count = max(1, min(int(count), int(sim_mesh.num_cells) - 1))
@@ -141,7 +142,7 @@ def _assign_cratons(
 
 
 def _seams(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     land_mask: np.ndarray,
     land_cells: np.ndarray,
     terrane_owner: np.ndarray,
@@ -292,7 +293,7 @@ def _paint_old_ranges(
 
 
 def _distance_km(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     sources: np.ndarray,
     *,
     can_enter=None,
@@ -340,7 +341,7 @@ def _distance_km(
 
 
 def _build_coarse_start_world(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
 ) -> dict[str, Any]:
     """Build a deterministic supercontinent and passive pre-history ocean.
 
@@ -605,7 +606,7 @@ def _passive_stretch(coverage: float, rng) -> dict[str, float]:
 
 
 def plate_outline_with_apron(
-    sim_mesh: Any, is_land: np.ndarray, config: dict
+    sim_mesh: SimMesh, is_land: np.ndarray, config: dict
 ) -> tuple[np.ndarray, np.ndarray]:
     """Morphologically close the continental mask and return its outer rim."""
     count = int(sim_mesh.num_cells)
@@ -628,7 +629,7 @@ _plate_outline_with_apron = plate_outline_with_apron
 
 
 def _choose_active_rim(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     rim: np.ndarray,
     centre: list[float],
     reference: list[float],
@@ -659,7 +660,7 @@ def _shrink_steps(floor: float) -> list[float]:
 
 
 def _shape_attempt(
-    sim_mesh: Any, seed: int, config: dict, attempt: int, layout: dict, stretch: float
+    sim_mesh: SimMesh, seed: int, config: dict, attempt: int, layout: dict, stretch: float
 ):
     from .initial_landmass import shape_landmass
 
@@ -674,7 +675,7 @@ def _shape_attempt(
 
 
 def _evaluate_layout_attempt(
-    sim_mesh: Any, seed: int, config: dict, attempt: int
+    sim_mesh: SimMesh, seed: int, config: dict, attempt: int
 ) -> tuple[list[dict], dict | None]:
     from .initial_cratons import place_cratons
 
@@ -705,7 +706,7 @@ def _evaluate_layout_attempt(
     return tried, None
 
 
-def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
+def _land_centroid(sim_mesh: SimMesh, land_type: np.ndarray) -> list[float]:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     total = np.sum(xyz[selected], axis=0, dtype=np.float64)
@@ -713,7 +714,7 @@ def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
     return (total / length).tolist()
 
 
-def _half_span_deg(sim_mesh: Any, land_type: np.ndarray, centre: list[float]) -> float:
+def _half_span_deg(sim_mesh: SimMesh, land_type: np.ndarray, centre: list[float]) -> float:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     if not np.any(selected):
@@ -722,7 +723,7 @@ def _half_span_deg(sim_mesh: Any, land_type: np.ndarray, centre: list[float]) ->
     return math.degrees(math.acos(max(-1.0, min(1.0, farthest_dot))))
 
 
-def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
+def _find_layout(sim_mesh: SimMesh, seed: int, config: dict) -> dict | None:
     """Search layouts in deterministic upstream attempt order."""
     round_span = math.degrees(
         math.acos(1.0 - 2.0 * float(config["continentalFraction"]))
@@ -893,7 +894,7 @@ def _assemble_upstream_start_world(
 
 
 def build_start_world(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
 ) -> dict[str, Any]:
     """Build the upstream craton-assembled initial supercontinent.
 

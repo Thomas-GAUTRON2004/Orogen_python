@@ -38,6 +38,17 @@ from typing import Protocol, TypedDict, TypeAlias, cast
 
 import pytest
 
+from differential_support import (
+    CORPUS_DIR,
+    REFERENCE_DIR,
+    ROOT,
+    SETTINGS,
+    dotted_name,
+    js_module_file,
+    module_settings,
+    opted_in_modules,
+)
+
 class _Opaque:
     """A value the JSON corpus could only record as text."""
 
@@ -134,16 +145,6 @@ class BridgeRuntime(Protocol):
     def require(self, path: str, caller: str) -> BridgeLoader: ...
 
     def terminate(self) -> None: ...
-from differential_support import (
-    CORPUS_DIR,
-    REFERENCE_DIR,
-    ROOT,
-    SETTINGS,
-    dotted_name,
-    js_module_file,
-    module_settings,
-    opted_in_modules,
-)
 
 JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 

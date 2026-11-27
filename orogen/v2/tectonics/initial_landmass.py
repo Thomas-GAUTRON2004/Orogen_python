@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
 import numpy as np
 
@@ -23,6 +23,7 @@ from ..core.sphere_geometry import (
 )
 from .crust import CrustType
 from .initial_cratons import Craton, CratonLayout, craton_edge
+from .initial_types import InitialConfig, NumericRange
 
 
 class ClusterFrame(TypedDict):
@@ -98,7 +99,7 @@ def _clamp(value: float, lower: float, upper: float) -> float:
     return min(upper, max(lower, value))
 
 
-def _lerp(bounds: list[float] | tuple[float, float], value: float) -> float:
+def _lerp(bounds: NumericRange, value: float) -> float:
     return float(bounds[0]) + (float(bounds[1]) - float(bounds[0])) * value
 
 
@@ -113,11 +114,11 @@ def _heart_of(cratons: list[Craton]) -> list[float]:
 
 def _margin_profile(
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     passive: Mapping[str, float],
 ) -> Callable[[float], dict[str, float]]:
     for key in ("startArcKm", "startStepKm"):
-        if any(float(width) <= 0.0 for width in cfg[key]):
+        if any(float(width) <= 0.0 for width in cast(NumericRange, cfg[key])):
             raise ValueError(f"{key} widths must be positive")
     km_per_degree = (
         math.sin(math.acos(1.0 - 2.0 * float(cfg["continentalFraction"])))
@@ -258,7 +259,7 @@ def shape_landmass(
     layout: CratonLayout,
     noise: SimplexNoise,
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     stretch: float = 1.0,
     passive: Mapping[str, float] | None = None,
 ) -> LandmassResult | None:

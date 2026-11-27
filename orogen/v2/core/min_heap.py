@@ -21,8 +21,8 @@ class MinHeap:
     def __init__(self, capacity: int = 1024):
         if capacity < 1:
             raise ValueError("capacity must be at least one")
-        self.keys = np.empty(capacity, dtype=np.float64)
-        self.ids = np.empty(capacity, dtype=np.int32)
+        self.keys = np.zeros(capacity, dtype=np.float64)
+        self.ids = np.zeros(capacity, dtype=np.int32)
         self.size = 0
         self.last_key = math.nan
 

@@ -1,14 +1,14 @@
-"""Replay of Pynguin-generated calls against the upstream JavaScript reference.
+"""Replay of recorded calls against the upstream JavaScript reference.
 
-The test suite only replays corpora written by tests/pynguin_corpus.py. Each
+The test suite only replays corpora written by tests/crosshair_corpus.py. Each
 recorded call is run through the Python function and the JavaScript export, and
-the results are compared. Pynguin's own assertions are not used.
+the results are compared. The corpora hold arguments only, never expected values.
 
 Configuration lives in comments.
 
 Global settings are the single line below (defaults apply to missing keys):
 
-# differential-settings: source=orogen backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
+# differential-settings: source=orogen backends=node,jspybridge crosshair_timeout=5
 
 A source module opts in with a comment line near the top of its file:
 
@@ -394,7 +394,7 @@ def _assert_equivalent(actual: Any, expected: Any, comparison: dict[str, Any]) -
 
 
 class _Opaque:
-    """A value Pynguin produced that the JSON corpus could only record as text."""
+    """A value the JSON corpus could only record as text."""
 
     def __init__(self, text: str) -> None:
         self.text = text

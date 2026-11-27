@@ -1,4 +1,4 @@
-"""Discovery shared by the differential replay and the Pynguin corpus tool.
+"""Discovery shared by the differential replay and the corpus tool.
 
 Everything is read from comments: the settings line in tests/test_generated.py,
 and '# differential-module:' lines in the Python sources under orogen/.
@@ -21,8 +21,7 @@ V2_DIR = ROOT / "orogen" / "v2"
 SETTING_DEFAULTS = {
     "source": "orogen",
     "backends": "node,jspybridge",
-    "pynguin_seconds": "60",
-    "pynguin_seed": "1",
+    "crosshair_timeout": "5",
 }
 MODULE_KEYS = {"js_module", "mode", "rel_tol", "abs_tol", "params"}
 
@@ -41,8 +40,7 @@ def read_settings() -> dict[str, Any]:
     return {
         "source": values["source"],
         "backends": [item for item in values["backends"].split(",") if item],
-        "pynguin_seconds": int(values["pynguin_seconds"]),
-        "pynguin_seed": int(values["pynguin_seed"]),
+        "crosshair_timeout": int(values["crosshair_timeout"]),
     }
 
 
@@ -206,9 +204,9 @@ def dependency_files(path: Path) -> list[Path]:
     return sorted(found.values())
 
 
-def input_digest(path: Path, seconds: int, seed: int) -> tuple[str, list[str]]:
-    """Fingerprint everything a corpus depends on: its sources, budget and seed."""
-    digest = hashlib.sha256(f"seconds={seconds} seed={seed}\n".encode())
+def input_digest(path: Path, parameters: str) -> tuple[str, list[str]]:
+    """Fingerprint everything a corpus depends on: its sources and its generator parameters."""
+    digest = hashlib.sha256(f"{parameters}\n".encode())
     files: list[str] = []
     for file in dependency_files(path):
         relative = file.relative_to(ROOT).as_posix()

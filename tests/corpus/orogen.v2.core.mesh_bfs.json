@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.mesh_bfs",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "15db2d6b43084fb072c9082816a2d08dca03e5d059bbc4d7d193e86f87a9331e",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "7175ed7bbc57d9aefd894c3cd9bed2145b55352c03b6694412f71186c22ed4df",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -16,19 +16,19 @@
     ]
   },
   "stats": {
-    "calls": 3,
+    "examples": 3,
     "unique": 3,
-    "unsupported_calls": 1
+    "unsupported_calls": 0,
+    "unreadable_lines": 5
   },
   "entries": {
-    "touches": [
+    "hops_from": [
       {
         "args": [
-          "farFrontRefKm",
-          {
-            "__repr__": "(37.92024+50.22j)"
-          },
-          1436.49
+          0,
+          [],
+          null,
+          2
         ],
         "raised": "AttributeError"
       }
@@ -36,20 +36,18 @@
     "largest_piece_of": [
       {
         "args": [
-          true,
+          0,
           [
-            true,
-            false,
-            -3033
+            0
           ]
         ],
         "raised": "AttributeError"
-      },
+      }
+    ],
+    "pieces_of": [
       {
         "args": [
-          {
-            "__repr__": "<class 'dict'>"
-          },
+          0,
           []
         ],
         "raised": "AttributeError"

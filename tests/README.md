@@ -1,16 +1,16 @@
 # Differential tests: Python port against the JavaScript reference
 
-`tests/test_generated.py` replays calls recorded from Pynguin against the
-pinned upstream JavaScript. Each recorded call goes to the Python function and
-to the JavaScript export, and the results are compared. Node.js is the
-reference oracle. JSPyBridge is a second access path into the same Node.js
-runtime, not an independent JavaScript engine.
+`tests/test_generated.py` replays recorded calls against the pinned upstream
+JavaScript. Each recorded call goes to the Python function and to the JavaScript
+export, and the results are compared. Node.js is the reference oracle. JSPyBridge
+is a second access path into the same Node.js runtime, not an independent
+JavaScript engine.
 
-Pynguin only produces inputs. Its own assertions are not used: they would freeze
-whatever Python returns.
+The recorded calls come from CrossHair. CrossHair only supplies arguments: the
+corpora hold no expected values, so the JavaScript reference alone decides.
 
-The reference modules are re-exports under `tests/reference/v2/core/`. They have
-no dependencies of their own, so no `npm install` is needed.
+The reference modules are re-exports under `tests/reference/v2/`. They have no
+dependencies of their own, so no `npm install` is needed.
 
 ## Run
 
@@ -32,35 +32,34 @@ CI runs the same replay in `.github/workflows/differential-jspybridge.yml`.
 
 ## Regenerate the corpora
 
-The test suite never runs Pynguin. Each opted-in module has a corpus file,
+The test suite never runs CrossHair. Each opted-in module has a corpus file,
 committed as `tests/corpus/<dotted module name>.json`, for example
 `tests/corpus/orogen.v2.core.rotation.json`.
 
 ```bash
-python -m pip install pynguin
-PYNGUIN_DANGER_AWARE=1 python tests/pynguin_corpus.py
+python -m pip install crosshair-tool
+python tests/crosshair_corpus.py
 ```
 
-With no argument, the tool looks at every module under `orogen/` that opts in,
-and regenerates only those whose fingerprint changed. Name one or more modules
-to restrict it: `python tests/pynguin_corpus.py rotation` (the short stem is
-enough). Other options:
+With no argument, the tool regenerates only the opted-in modules whose
+fingerprint changed. Name one or more modules to restrict it:
+`python tests/crosshair_corpus.py rotation`. Other options:
 
-- `--dry-run`: list what would be regenerated, without running Pynguin.
+- `--dry-run`: list what would be regenerated, without running CrossHair.
 - `--force`: regenerate everything.
-- `--seconds`, `--seed`: budget and seed for this run. They default to
-  `pynguin_seconds` and `pynguin_seed` on the settings line.
+- `--timeout N`: CrossHair time per condition, in seconds. Defaults to
+  `crosshair_timeout` on the settings line.
+
+CrossHair reads the annotations of each public function and reports one example
+per path, as an argument dictionary. The tool replays each example through the
+Python function, to record whether Python raised. A module's corpus is
+regenerated only when its fingerprint changes.
 
 **Fingerprint.** Each corpus records a SHA-256 over its module's source, the
 orogen files it imports (followed transitively), the parent packages'
-`__init__.py` files, the budget and the seed. A module is regenerated only when
-one of these changes. Editing `seed.py` therefore regenerates `seed` and every
-module that imports it, and leaves `rotation` alone. Editing a package
-`__init__.py` regenerates every module under it.
-
-Pynguin executes the project's code, so the environment variable is required.
-Regenerating a corpus only changes the replayed inputs. It does not change the
-tests.
+`__init__.py` files, and the CrossHair budget. Editing `seed.py` regenerates
+`seed` and every module that imports it, and leaves `rotation` alone. Editing a
+package `__init__.py` regenerates every module under it.
 
 **Stale corpora.** The tool reports corpus files whose module no longer opts in.
 Delete them by hand.
@@ -73,14 +72,14 @@ There is no configuration file.
 keys keep their defaults:
 
 ```python
-# differential-settings: source=orogen/v2/core backends=node,jspybridge pynguin_seconds=60 pynguin_seed=1
+# differential-settings: source=orogen backends=node,jspybridge crosshair_timeout=5
 ```
 
 - `source`: directory scanned for opted-in modules, recursively. Defaults to
   `orogen`.
 - `backends`: any combination of `node` and `jspybridge`.
-- `pynguin_seconds`, `pynguin_seed`: default budget and seed for regenerating a
-  corpus.
+- `crosshair_timeout`: CrossHair time per condition, in seconds, when a corpus
+  is regenerated.
 
 **A module opts in** with a comment line near the top of its file. Only
 opted-in modules are replayed. A module must live under `orogen/v2/`, so that
@@ -90,11 +89,12 @@ its reference can be found:
 # differential-module: js_module=sphere-geom.mjs mode=approx rel_tol=1e-9 abs_tol=1e-9 params=q:quaternion,omega:vec3
 ```
 
-- `js_module`: JavaScript file name, relative to the module's directory under
-  `tests/reference/v2/`, when it is not derived automatically. For
-  `orogen/v2/core/rotation.py` the automatic lookup tries
-  `tests/reference/v2/core/rotation.mjs`, then `core/rotation.mjs` with `-` in
-  place of `_`.
+- `js_module`: JavaScript file, relative to `tests/reference/v2/`. Without a
+  slash it is relative to the module's directory: `sphere-geom.mjs` means
+  `core/sphere-geom.mjs` for a module in `orogen/v2/core/`. With a slash it is a
+  path from `tests/reference/v2/`, so `js/simplex-noise.mjs` names a reference
+  outside the module's directory. Without `js_module`, the lookup tries
+  `<stem>.mjs`, then `<stem with _ replaced by ->.mjs`.
 - `mode`: `exact` for seeds, flags and discrete values, or `approx` for floats.
   `rel_tol` and `abs_tol` apply only in `approx`.
 - `params`: type per parameter name, as `name:type` pairs separated by commas.
@@ -119,12 +119,9 @@ its reference can be found:
 
 A function is replayed only if its name does not start with `_` and its
 JavaScript module exports the matching name. Missing exports are ignored
-silently, unless the marker names one explicitly.
-
-**Example.** `orogen/v2/core/rotation.py` opts in with `params=`, so its
-quaternion arguments are recognised. `quat_to_mat3` is skipped with a stated
-reason: the upstream requires an `out` argument that the Python port makes
-optional.
+silently, unless the marker names one explicitly. A marked module with no
+reference fails collection, and the error names the reference to add, if one
+exists under another directory.
 
 ## Adding a module
 
@@ -134,7 +131,7 @@ optional.
    the name differs.
 2. Add the module comment to the Python file. Use `params=` for any argument
    whose type is not implied by its annotation.
-3. Run `python tests/pynguin_corpus.py <module>` to create its corpus, then run
+3. Run `python tests/crosshair_corpus.py <module>` to create its corpus, then run
    the replay.
 
 No runner or loader change is needed. The runners load only validated paths
@@ -146,8 +143,8 @@ Each corpus entry becomes one test per backend. An entry is reported as skipped,
 with its reason, when:
 
 - its argument count differs from the function's parameters;
-- an argument does not have the type its parameter expects (for example bytes
-  where a quaternion is expected);
+- an argument does not have the type its parameter expects (for example a
+  quaternion of the wrong length);
 - an argument is not finite, since NaN and infinities cannot be sent on the
   JSON wire.
 
@@ -164,8 +161,7 @@ replayed.
 - `jspybridge`: `jspybridge-loader.cjs`, loaded through JSPyBridge.
 
 Both load reference modules by path under `tests/reference/v2/`, for example
-`core/seed.mjs`. Any other path is rejected.
-
-Both backends receive the same JSON request and return the same JSON result.
-Results are compared recursively. Non-finite numbers are encoded as
-`{"__number__": "NaN" | "Infinity" | "-Infinity"}` on both sides.
+`core/seed.mjs`. Any other path is rejected. Both receive the same JSON request
+and return the same JSON result. Results are compared recursively. Non-finite
+numbers are encoded as `{"__number__": "NaN" | "Infinity" | "-Infinity"}` on
+both sides.

@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.seed",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "6c143599aa1c480208a0b386bd8d8d1c6c1e9c1fcf7e5fa005dc683f0798c1dd",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "5f6b402f8cb3be02f8f73a2443eab807fa4d4d11d5bb41f278c4fae7fc199f95",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -14,21 +14,52 @@
     ]
   },
   "stats": {
-    "calls": 23,
-    "unique": 20,
-    "unsupported_calls": 0
+    "examples": 8,
+    "unique": 8,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "is_word_seed": [
       {
         "args": [
-          []
+          0
         ],
         "raised": null
       },
       {
         "args": [
-          "clump"
+          ""
+        ],
+        "raised": null
+      }
+    ],
+    "make_rand_int": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "make_rng": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "random_seed": [
+      {
+        "args": [],
+        "raised": null
+      }
+    ],
+    "seed_of": [
+      {
+        "args": [
+          "ࠀ"
         ],
         "raised": null
       },
@@ -40,110 +71,8 @@
       },
       {
         "args": [
-          null
+          10
         ],
-        "raised": null
-      },
-      {
-        "args": [
-          "(-1502.184129+597.192564j)"
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          "-3210.1"
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          "Ij<en})"
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          "0"
-        ],
-        "raised": null
-      }
-    ],
-    "seed_of": [
-      {
-        "args": [
-          null
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          {
-            "__repr__": "(-1502.184129+597.192564j)"
-          }
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -3210.1
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          "Ij<en})"
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          0
-        ],
-        "raised": null
-      }
-    ],
-    "make_rng": [
-      {
-        "args": [
-          false
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          true
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          0
-        ],
-        "raised": null
-      }
-    ],
-    "make_rand_int": [
-      {
-        "args": [
-          false
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          true
-        ],
-        "raised": null
-      },
-      {
-        "args": [],
-        "raised": null
-      }
-    ],
-    "random_seed": [
-      {
-        "args": [],
         "raised": null
       }
     ]

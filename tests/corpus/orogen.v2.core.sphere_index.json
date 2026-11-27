@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.sphere_index",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "f26e6aaae6073c1c1050533d0e89e0868263845d514ea8e607dd6ee0bab926df",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "2428b30cba57e5bf4dd786ef992d340f111230cdadd9ba188c5c5c0da8b5260d",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -15,9 +15,10 @@
     ]
   },
   "stats": {
-    "calls": 0,
+    "examples": 0,
     "unique": 0,
-    "unsupported_calls": 0
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {}
 }

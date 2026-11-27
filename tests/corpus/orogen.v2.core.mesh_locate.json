@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.mesh_locate",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "38456f1d458da8af6b7173a47c1d894b60003216048b56997551692568bee63f",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "145d4122ea83967e4670f386bfb9f9ff4a63f31a6685fb331ee2d4b53a9118b1",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -14,43 +14,21 @@
     ]
   },
   "stats": {
-    "calls": 3,
-    "unique": 3,
-    "unsupported_calls": 0
+    "examples": 1,
+    "unique": 1,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "locate": [
       {
         "args": [
-          2,
-          1523.06,
-          0.015,
-          -3907.12
-        ],
-        "raised": "AttributeError"
-      },
-      {
-        "args": [
-          {
-            "__bytes__": "50f7991f963dde9337030c5f8cb5c73549"
-          },
-          22.63,
-          0.78,
-          3.0,
-          []
-        ],
-        "raised": "AttributeError"
-      },
-      {
-        "args": [
-          "Z.JGeFk.)bbf{\n<h",
-          1861.17,
-          850.0,
-          -1060.8,
-          "T6_jO7|wrA",
-          {
-            "__bytes__": "a8382e22a669df6f61adaa"
-          }
+          0,
+          0.0,
+          0.0,
+          0.0,
+          null,
+          null
         ],
         "raised": "AttributeError"
       }

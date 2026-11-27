@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.tectonics.occupancy",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 20,
-    "input_sha256": "b036ee851625bc5b267737783d4d85e9240589f76becebe4e7c206d511183bd2",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "c3137c62c6f8ae5a0489d5577eea35c3db3ff8393d76ab8f73b00234af85c74c",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -17,15 +17,16 @@
     ]
   },
   "stats": {
-    "calls": 6,
-    "unique": 6,
-    "unsupported_calls": 0
+    "examples": 2,
+    "unique": 2,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "bin_index": [
       {
         "args": [
-          null
+          0
         ],
         "raised": "AttributeError"
       }
@@ -33,61 +34,12 @@
     "mark_bin": [
       {
         "args": [
-          null,
-          13,
+          "",
           0,
-          0
+          0,
+          2
         ],
         "raised": "AttributeError"
-      },
-      {
-        "args": [
-          {
-            "backarc-open": true,
-            "farFieldEveryMyr": 5200.0
-          },
-          false,
-          false,
-          false
-        ],
-        "raised": "TypeError"
-      }
-    ],
-    "may_have_crust_near": [
-      {
-        "args": [
-          [],
-          0,
-          3640.14,
-          {
-            "__repr__": "<function Recorder.wrap.<locals>.wrapper at 0x7fec409ff100>"
-          }
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          "isle-merge-superTenureMyr-A continent drives over a young slab-Locate a direction in a Delaunay triangle and return 3 cells and weights.\n\n    Output arrays may be supplied for reuse. Weights are non-negative and sum\n    to one; if no usable triangle is found, the nearest cell gets weight one.\n    ",
-          872,
-          80,
-          872
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          {
-            "__bytes__": "87"
-          },
-          {
-            "split_plate": -324
-          },
-          872,
-          {
-            "__repr__": "{-1971.42, 422.88, 'QTL)qp8iuu2u'}"
-          }
-        ],
-        "raised": null
       }
     ]
   }

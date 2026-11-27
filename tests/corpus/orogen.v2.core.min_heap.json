@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.min_heap",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 10,
-    "input_sha256": "4c5a3ad58566e28249167c1cdbd0dcf0a54babc7640d403f8725288dc3d7438a",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "fa59e8ef059f91d98bc0f66cfa66fd7dae9a96326b92e00347000f6b34f5fed6",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -16,19 +16,18 @@
     ]
   },
   "stats": {
-    "calls": 1,
+    "examples": 1,
     "unique": 1,
-    "unsupported_calls": 0
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "forget_edge_km": [
       {
         "args": [
-          {
-            "__repr__": "<class 'set'>"
-          }
+          ""
         ],
-        "raised": null
+        "raised": "TypeError"
       }
     ]
   }

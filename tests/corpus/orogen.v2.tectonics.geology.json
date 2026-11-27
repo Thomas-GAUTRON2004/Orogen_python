@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.tectonics.geology",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 20,
-    "input_sha256": "147dae406789b89a90ba1b18a5fe89132eed5f28a2b6ce63f7d99185ef3eff83",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "a50377bb6eec51a3094c36b07efa5e4e1e4f62059334e739d33c0a5956b38127",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -14,165 +14,16 @@
     ]
   },
   "stats": {
-    "calls": 26,
-    "unique": 26,
-    "unsupported_calls": 0
+    "examples": 19,
+    "unique": 19,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "decode_age": [
       {
         "args": [
-          1000
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          1667
-        ],
-        "raised": null
-      }
-    ],
-    "encode_flood_age": [
-      {
-        "args": [
-          1000,
-          8000.0,
-          8000.0
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          {
-            "__repr__": "<function Recorder.wrap.<locals>.wrapper at 0x7fe3c810f240>"
-          },
-          -3237,
-          false
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          4995.0,
-          {
-            "__repr__": "set()"
-          },
-          {
-            "__bytes__": "8f59fd6d6eb5e7babe6f96442f26db"
-          }
-        ],
-        "raised": "TypeError"
-      }
-    ],
-    "decode_cover_km": [
-      {
-        "args": [
-          255
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -271
-        ],
-        "raised": null
-      }
-    ],
-    "decode_flood_age": [
-      {
-        "args": [
-          1000
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          []
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -3237
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -2434
-        ],
-        "raised": null
-      }
-    ],
-    "encode_arc_myr": [
-      {
-        "args": [
-          16.0
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -184.1
-        ],
-        "raised": null
-      }
-    ],
-    "decode_facies": [
-      {
-        "args": [
-          null
-        ],
-        "raised": "TypeError"
-      },
-      {
-        "args": [
-          -2017,
-          {
-            "__repr__": "(1974.46-612j)"
-          }
-        ],
-        "raised": "TypeError"
-      }
-    ],
-    "encode_facies": [
-      {
-        "args": [
-          {
-            "__repr__": "<function test_11.<locals>.<lambda> at 0x7fe3bc370e00>"
-          },
-          {
-            "__repr__": "<function test_11.<locals>.<lambda> at 0x7fe3bc370e00>"
-          },
-          {
-            "__bytes__": "db"
-          },
-          {}
-        ],
-        "raised": "TypeError"
-      }
-    ],
-    "decode_exhum_km": [
-      {
-        "args": [
-          -1033
-        ],
-        "raised": null
-      }
-    ],
-    "decode_unroof_km": [
-      {
-        "args": [
-          -1653
-        ],
-        "raised": null
-      }
-    ],
-    "encode_age": [
-      {
-        "args": [
-          1017.62
+          0
         ],
         "raised": null
       }
@@ -180,45 +31,46 @@
     "decode_arc_myr": [
       {
         "args": [
-          -2017
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_cover_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_exhum_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_facies": [
+      {
+        "args": [
+          0,
+          null
+        ],
+        "raised": null
+      }
+    ],
+    "decode_flood_age": [
+      {
+        "args": [
+          -1
         ],
         "raised": null
       },
       {
         "args": [
-          -1245
-        ],
-        "raised": null
-      }
-    ],
-    "encode_cover_km": [
-      {
-        "args": [
-          30
-        ],
-        "raised": null
-      }
-    ],
-    "encode_exhum_km": [
-      {
-        "args": [
-          0.85
-        ],
-        "raised": null
-      }
-    ],
-    "encode_unroof_km": [
-      {
-        "args": [
-          1000.0
-        ],
-        "raised": null
-      }
-    ],
-    "encode_flood_myr": [
-      {
-        "args": [
-          -1114.48
+          0
         ],
         "raised": null
       }
@@ -226,9 +78,106 @@
     "decode_flood_myr": [
       {
         "args": [
-          -2721
+          0
         ],
         "raised": null
+      }
+    ],
+    "decode_unroof_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_age": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_arc_myr": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_cover_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_exhum_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_facies": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_flood_age": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          true
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          0.0,
+          0.0,
+          false
+        ],
+        "raised": null
+      }
+    ],
+    "encode_flood_myr": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_unroof_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "thicken_cover": [
+      {
+        "args": [
+          0,
+          0,
+          0.0,
+          0.0,
+          {}
+        ],
+        "raised": "AttributeError"
       }
     ]
   }

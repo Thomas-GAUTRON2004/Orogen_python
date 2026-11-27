@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.tectonics.plate",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 20,
-    "input_sha256": "3c6bca95a26e09155cd50c765468daf5b13a9f254c18fa0751f8ec8e91ab2c47",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "4c5cdb1ef047339341159f18a668a6488f0fe53cb97ef6dd2a4d830c4bf3e2fb",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -18,19 +18,10 @@
     ]
   },
   "stats": {
-    "calls": 1,
-    "unique": 1,
-    "unsupported_calls": 0
+    "examples": 0,
+    "unique": 0,
+    "unsupported_calls": 0,
+    "unreadable_lines": 1
   },
-  "entries": {
-    "frame_rotation": [
-      {
-        "args": [
-          null,
-          null
-        ],
-        "raised": "AttributeError"
-      }
-    ]
-  }
+  "entries": {}
 }

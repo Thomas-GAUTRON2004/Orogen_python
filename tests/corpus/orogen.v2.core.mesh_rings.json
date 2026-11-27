@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.mesh_rings",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "30dde48beb3a6a9692cd10732167e7d095f2cb58f5cef752108722ee6c0529f2",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "32b1f3456152e19ebbe8f3e9b2f77eb1c74050dacaab1a5ec97a8a15428e44f9",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -14,15 +14,16 @@
     ]
   },
   "stats": {
-    "calls": 1,
+    "examples": 1,
     "unique": 1,
-    "unsupported_calls": 0
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
     "rings_of": [
       {
         "args": [
-          false
+          0
         ],
         "raised": "AttributeError"
       }

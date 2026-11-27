@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.core.sim_mesh",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 60,
-    "input_sha256": "58e7599699b21cde4b9bc9e857fec4faf01ff60ff57821917ebf434c9ecb70c0",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "34e7fdb63181e084c4e010a26cdf23930536a726c3d36ea9457f8a00f5bf051f",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -19,129 +19,40 @@
     ]
   },
   "stats": {
-    "calls": 15,
-    "unique": 15,
-    "unsupported_calls": 0
+    "examples": 4,
+    "unique": 4,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {
-    "texels_for": [
-      {
-        "args": [
-          -656
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          51
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          3155
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -3418
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          2147483646
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          700
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          5617
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          2
-        ],
-        "raised": null
-      },
-      {
-        "args": [
-          -4511
-        ],
-        "raised": null
-      }
-    ],
     "build_sim_mesh": [
       {
         "args": [
-          50,
-          50
+          3,
+          0
         ],
         "raised": null
       },
       {
         "args": [
-          2,
-          2203
+          0,
+          0
         ],
         "raised": "ValueError"
       }
     ],
-    "km_to_hops": [
+    "texels_for": [
       {
         "args": [
-          {
-            "__bytes__": "490f6b861408dc30ce5c21a4"
-          },
-          {
-            "__repr__": "set()"
-          }
+          0
         ],
-        "raised": "AttributeError"
-      }
-    ],
-    "mesh_from_arrays": [
-      {
-        "args": [
-          -1,
-          [],
-          [
-            2
-          ],
-          []
-        ],
-        "raised": "ValueError"
+        "raised": null
       },
       {
         "args": [
-          0,
-          [],
-          [],
-          []
+          1000002
         ],
-        "raised": "ValueError"
-      },
-      {
-        "args": [
-          0,
-          [],
-          [
-            false
-          ],
-          [
-            35
-          ]
-        ],
-        "raised": "ValueError"
+        "raised": null
       }
     ]
   }

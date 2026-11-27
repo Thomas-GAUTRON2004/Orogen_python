@@ -1,11 +1,11 @@
 {
   "module": "orogen.v2.tectonics.world",
   "generator": {
-    "tool": "pynguin",
-    "version": "0.48.0",
-    "seed": 1,
-    "maximum_search_time_s": 20,
-    "input_sha256": "75db93df53762a329f78dfb47c0a553882fb466c2bdbb3eaa1078c4f19fb6080",
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "3f1ed91608f4bc02314c695d81866962a782f6daeaf831b00e5e099bdf33cda9",
     "inputs": [
       "orogen/__init__.py",
       "orogen/v2/__init__.py",
@@ -21,9 +21,10 @@
     ]
   },
   "stats": {
-    "calls": 0,
+    "examples": 0,
     "unique": 0,
-    "unsupported_calls": 0
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
   },
   "entries": {}
 }

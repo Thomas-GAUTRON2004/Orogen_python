@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import TypedDict
 
 from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM

@@ -9,7 +9,7 @@ from __future__ import annotations
 import ast
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = ROOT / "tests"
@@ -17,6 +17,20 @@ TEST_FILE = TESTS_DIR / "test_generated.py"
 REFERENCE_DIR = TESTS_DIR / "reference" / "v2"
 CORPUS_DIR = TESTS_DIR / "corpus"
 V2_DIR = ROOT / "orogen" / "v2"
+
+class DifferentialSettings(TypedDict):
+    source: str
+    backends: list[str]
+    crosshair_timeout: int
+
+
+class ModuleSettings(TypedDict, total=False):
+    js_module: str
+    mode: str
+    rel_tol: float
+    abs_tol: float
+    params: dict[str, str]
+
 
 SETTING_DEFAULTS = {
     "source": "orogen",
@@ -26,7 +40,7 @@ SETTING_DEFAULTS = {
 MODULE_KEYS = {"js_module", "mode", "rel_tol", "abs_tol", "params"}
 
 
-def read_settings() -> dict[str, Any]:
+def read_settings() -> DifferentialSettings:
     """Read the '# differential-settings:' line of tests/test_generated.py."""
     values = dict(SETTING_DEFAULTS)
     for line in TEST_FILE.read_text(encoding="utf-8").splitlines():
@@ -48,13 +62,13 @@ SETTINGS = read_settings()
 SOURCE_DIR = ROOT / SETTINGS["source"]
 
 
-def module_settings(path: Path) -> dict[str, Any] | None:
+def module_settings(path: Path) -> ModuleSettings | None:
     """Read the '# differential-module:' comment of a source file, if present."""
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped.startswith("# differential-module:"):
             continue
-        settings: dict[str, Any] = {}
+        settings: ModuleSettings = {}
         for token in stripped.split(":", 1)[1].split():
             key, _, value = token.partition("=")
             if key not in MODULE_KEYS:

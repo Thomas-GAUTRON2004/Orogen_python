@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 from typing import Any
-from ..core.sim_mesh import SimMesh
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import only_mechanisms
 from .dynamics import update_plate_motion

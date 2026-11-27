@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Sequence
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import numpy as np
 
@@ -97,12 +97,17 @@ class SceneCanvas(TypedDict):
     lastTerrane: int
 
 
-class SceneContinent(TypedDict):
-    """Geometry and cell mask returned by :func:`add_continent`."""
+class SceneMask(TypedDict):
+    """Centre and cell mask shared by continent-shaped scene regions."""
 
     centre: list[float]
     isLand: np.ndarray
-    terrane: NotRequired[int]
+
+
+class SceneContinent(SceneMask):
+    """Geometry and terrane id returned by :func:`add_continent`."""
+
+    terrane: int
 
 
 def scene_canvas(sim_mesh: SimMesh, config: dict) -> SceneCanvas:
@@ -187,7 +192,7 @@ def add_continent(
 def add_apron_and_trench(
     canvas: SceneCanvas,
     plate: Plate,
-    continent: SceneContinent,
+    continent: SceneMask,
     sectors: str | Sequence[Sequence[float]],
     config: dict,
 ) -> None:

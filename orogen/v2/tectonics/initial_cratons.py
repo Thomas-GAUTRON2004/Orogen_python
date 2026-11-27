@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 import numpy as np
 
@@ -21,6 +21,103 @@ from ..core.sphere_geometry import (
     random_point,
     tangent_basis,
 )
+
+class RiftStep(TypedDict):
+    at: float
+    jump: float
+
+
+class RiftEdge(TypedDict):
+    cs: float
+    sn: float
+    d: float
+    steps: list[RiftStep]
+    flip: bool
+
+
+class Lobe(TypedDict):
+    k: int
+    amp: float
+    phase: float
+
+
+class Body(TypedDict):
+    u0: float
+    v0: float
+    a: float
+    b: float
+    psi: float
+    lobes: list[Lobe]
+
+
+class Piece(TypedDict, total=False):
+    body: Body
+    cuts: list[RiftEdge]
+    tu: float
+    tv: float
+    sibling: bool
+    local: list[list[float]]
+    centre2: list[float]
+    radius: float
+    reach: float
+    inner: float
+
+
+class Frame(TypedDict):
+    o: list[float]
+    e: list[float]
+    n: list[float]
+
+
+class Outline(TypedDict):
+    points: list[list[float]]
+    area: float
+    cx: float
+    cy: float
+    compact: float
+
+
+class Block(TypedDict, total=False):
+    scale: float
+    cx: float
+    cy: float
+    pieces: list[Piece]
+    frame: Frame | None
+    reach: float
+    inner: float
+
+
+class PlacedPiece(TypedDict, total=False):
+    pc: Piece
+    block: Block
+    centre: list[float]
+    outline: list[list[float]]
+    reach: float
+    inner: float
+    radius: float
+    cluster: int
+
+
+class Craton(TypedDict):
+    id: int
+    letter: str
+    cluster: int
+    centre: list[float]
+    radius: float
+    reach: float
+    inner: float
+    grain: float
+    block: Block
+    piece: Piece
+    outline: list[list[float]]
+
+
+class CratonLayout(TypedDict):
+    cratons: list[Craton]
+    centre: list[float]
+    elongation: float
+    clusters: int
+
 
 TAU = 2.0 * math.pi
 OUTLINE_SAMPLES = 72
@@ -69,7 +166,7 @@ def _smax(a: float, b: float, width: float) -> float:
     return max(a, b) + h * h * width * 0.25
 
 
-def _piece_shape(piece: Mapping[str, Any], u: float, v: float) -> dict[str, float]:
+def _piece_shape(piece: Piece, u: float, v: float) -> dict[str, float]:
     body = piece["body"]
     du = u - float(body["u0"])
     dv = v - float(body["v0"])
@@ -108,7 +205,7 @@ def _piece_shape(piece: Mapping[str, Any], u: float, v: float) -> dict[str, floa
     return {"d": distance, "rift": rift}
 
 
-def _body_radius(body: Mapping[str, Any], theta: float) -> float:
+def _body_radius(body: Body, theta: float) -> float:
     angle = theta - float(body["psi"])
     cosine, sine = math.cos(angle), math.sin(angle)
     lobe = 1.0
@@ -127,16 +224,16 @@ def _body_radius(body: Mapping[str, Any], theta: float) -> float:
 def _rift_edge(
     rng: Callable[[], float],
     cfg: Mapping[str, Any],
-    body: Mapping[str, Any],
+    body: Body,
     bearing: float,
     depth: float,
     km_per_unit: float,
     flip: bool = False,
-) -> dict[str, Any]:
+) -> RiftEdge:
     radius = _body_radius(body, bearing)
     offset = radius * depth
     half = math.sqrt(max(0.05, radius * radius - offset * offset))
-    steps = []
+    steps: list[RiftStep] = []
     count = math.floor(rng() * (int(cfg["cratonRiftSteps"]) + 1))
     lower, upper = cfg["cratonRiftStepKm"]
     for _ in range(count):
@@ -166,8 +263,8 @@ def _outer_edges(
     span: float,
     km_per_unit: float,
     ease: float = 0.0,
-) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
+) -> list[RiftEdge]:
+    result: list[RiftEdge] = []
     bearings: list[float] = []
     lower, upper = cfg["cratonRiftDepth"]
     accepted = 0
@@ -196,7 +293,7 @@ def _edge_count(rng: Callable[[], float], cfg: Mapping[str, Any]) -> int:
     return int(lower) + math.floor(rng() * (int(upper) - int(lower) + 1))
 
 
-def _trace_outline(piece: Mapping[str, Any]) -> dict[str, Any]:
+def _trace_outline(piece: Piece) -> Outline:
     best = math.inf
     centre_u = centre_v = 0.0
     for i in range(-24, 25):
@@ -266,7 +363,7 @@ def _make_block(
     cfg: Mapping[str, Any],
     targets: list[float],
     opening: float,
-) -> dict[str, Any]:
+) -> Block:
     total_radius = math.sqrt(sum(radius * radius for radius in targets))
     km_per_unit = total_radius * PLANET_RADIUS_KM
     longest = float(cfg["cratonMaxDiameterKm"]) * 1.15 / (2.0 * km_per_unit)
@@ -291,11 +388,11 @@ def _make_block(
             for k in (1, 2, 3)
         ],
     }
-    pieces = [
+    pieces: list[Piece] = [
         {"body": body, "cuts": [], "tu": 0.0, "tv": 0.0, "sibling": len(targets) > 1}
         for _ in targets
     ]
-    traced: list[dict[str, Any]] = []
+    traced: list[Outline] = []
     beta = 0.0
     for tries in range(7):
         ease = 0.07 * tries
@@ -374,7 +471,7 @@ def _make_block(
     total_area = sum(float(item["area"]) for item in traced)
     cx = sum(float(item["cx"]) * float(item["area"]) for item in traced) / total_area
     cy = sum(float(item["cy"]) * float(item["area"]) for item in traced) / total_area
-    block: dict[str, Any] = {
+    block: Block = {
         "scale": scale,
         "cx": cx,
         "cy": cy,
@@ -405,7 +502,7 @@ def _make_block(
     return block
 
 
-def _from_frame(frame: Mapping[str, Any], u: float, v: float) -> list[float]:
+def _from_frame(frame: Frame, u: float, v: float) -> list[float]:
     rho = math.hypot(u, v)
     if rho < 1e-12:
         return list(frame["o"])
@@ -429,9 +526,9 @@ def _frame_at(origin: list[float], turn: float) -> dict[str, list[float]]:
 
 
 def _placed(
-    block: dict[str, Any], frame: dict[str, list[float]]
-) -> list[dict[str, Any]]:
-    result = []
+    block: Block, frame: Frame
+) -> list[PlacedPiece]:
+    result: list[PlacedPiece] = []
     for piece in block["pieces"]:
         result.append(
             {
@@ -448,7 +545,7 @@ def _placed(
 
 
 def craton_edge(
-    craton: Mapping[str, Any], x: float, y: float, z: float
+    craton: Craton, x: float, y: float, z: float
 ) -> dict[str, float]:
     block = craton["block"]
     piece = craton["piece"]
@@ -506,8 +603,8 @@ def _craton_radii(
 
 
 def _outline_gap_at_least(
-    first: Mapping[str, Any],
-    second: Mapping[str, Any],
+    first: PlacedPiece,
+    second: PlacedPiece,
     minimum_gap: float,
 ) -> bool:
     """Return whether two craton outlines meet a minimum gap, stopping early.
@@ -546,7 +643,7 @@ def _outline_gap_at_least(
     return max(0.0, math.acos(min(1.0, best)) - correction) >= minimum_gap
 
 
-def _outline_gap(first: Mapping[str, Any], second: Mapping[str, Any]) -> float:
+def _outline_gap(first: PlacedPiece, second: PlacedPiece) -> float:
     distance = angle_between(first["centre"], second["centre"])
     if distance >= float(first["reach"]) + float(second["reach"]):
         return distance - float(first["reach"]) - float(second["reach"])
@@ -572,7 +669,7 @@ def place_cratons(
     cfg: Mapping[str, Any],
     stretch: float = 1.0,
     area_scale: float = 1.0,
-) -> dict[str, Any] | None:
+) -> CratonLayout | None:
     """Pack shaped cratons into clustered proto-continents on a sphere."""
     radii = _craton_radii(rng, cfg, area_scale)
     reserve = (
@@ -582,7 +679,7 @@ def place_cratons(
     for index in range(len(order) - 1, 0, -1):
         other = math.floor(rng() * (index + 1))
         order[index], order[other] = order[other], order[index]
-    blocks = []
+    blocks: list[Block] = []
     cursor = 0
     while cursor < len(order):
         paired = cursor + 1 < len(order) and rng() < float(cfg["cratonSiblingChance"])
@@ -594,7 +691,7 @@ def place_cratons(
         opening = reserve * (1.0 + 0.25 * rng())
         blocks.append(_make_block(rng, cfg, targets, opening))
 
-    def block_size(block: Mapping[str, Any]) -> float:
+    def block_size(block: Block) -> float:
         return sum(float(piece["radius"]) ** 2 for piece in block["pieces"])
 
     lower, upper = cfg["clusterBlocks"]
@@ -629,7 +726,7 @@ def place_cratons(
     for index in range(len(rest) - 1, 0, -1):
         other = math.floor(rng() * (index + 1))
         rest[index], rest[other] = rest[other], rest[index]
-    clusters: list[list[dict[str, Any]]] = []
+    clusters: list[list[Block]] = []
     offset = 0
     for cluster in range(cluster_count):
         if cluster == 0:
@@ -644,7 +741,7 @@ def place_cratons(
     axis = rng() * math.pi
     elongation = rng() * float(cfg["clusterElongation"]) * stretch
     apart_lo, apart_hi = cfg["clusterApart"]
-    all_pieces: list[dict[str, Any]] = []
+    all_pieces: list[PlacedPiece] = []
 
     def cluster_centre(cluster: int) -> list[float]:
         total = np.zeros(3, dtype=np.float64)
@@ -655,7 +752,7 @@ def place_cratons(
         length = float(np.linalg.norm(total)) or 1.0
         return (total / length).tolist()
 
-    def settle(block: dict[str, Any], cluster: int, frame: dict[str, Any]) -> None:
+    def settle(block: Block, cluster: int, frame: Frame) -> None:
         block["frame"] = frame
         for piece in _placed(block, frame):
             piece["cluster"] = cluster
@@ -700,7 +797,7 @@ def place_cratons(
                     near = float(anchor["inner"]) + float(block["inner"]) + gap
                     far = float(anchor["reach"]) + float(block["reach"]) + gap
                     steps = max(1, math.ceil((far - near) / (0.25 * gap)))
-                    candidate: list[dict[str, Any]] = []
+                    candidate: list[PlacedPiece] = []
                     point = centre
                     for step in range(steps + 1):
                         point = destination(
@@ -746,7 +843,7 @@ def place_cratons(
                 return None
             settle(block, cluster, best_frame)
 
-    cratons = []
+    cratons: list[Craton] = []
     for index, item in enumerate(all_pieces):
         block = item["block"]
         piece = item["pc"]

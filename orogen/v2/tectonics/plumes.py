@@ -6,7 +6,7 @@ Execution of queued plume-triggered rifts remains a later tectonic stage.
 from __future__ import annotations
 
 import math
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 
 import numpy as np
 
@@ -29,8 +29,8 @@ class PlumeFlow(TypedDict):
     aspect: float
     cos: float
     sin: float
-    a: NotRequired[float]
-    b: NotRequired[float]
+    a: float
+    b: float
 
 
 _ONSETS = (
@@ -392,6 +392,8 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
                 "aspect": aspect_a,
                 "cos": math.cos(turn),
                 "sin": math.sin(turn),
+                "a": 0.0,
+                "b": 0.0,
             }
         )
         total_weight += weight

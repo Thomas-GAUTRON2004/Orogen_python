@@ -539,7 +539,8 @@ def _erupted_during(world, plume: HotspotRecord, start: float, end: float) -> fl
         plume["bursting"] = False
         plume["pulseUntil"] = start + float(rng()) * float(config["hotspotQuietMaxMyr"])
 
-    assert plume["pulseUntil"] is not None
+    if plume["pulseUntil"] is None:
+        raise RuntimeError("plume pulse deadline was not initialized")
     total = 0.0
     time = start
     while time < end:

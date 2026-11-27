@@ -5,9 +5,9 @@ Port of v2/js/tectonics/init/landmass.js at upstream v3.0.1.
 
 from __future__ import annotations
 
+import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
-import math
 from typing import Any, Literal
 
 import numpy as np

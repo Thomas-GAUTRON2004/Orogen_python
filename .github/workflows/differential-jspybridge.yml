@@ -6,6 +6,9 @@ on:
       - ".github/workflows/differential-jspybridge.yml"
       - "orogen/**"
       - "tests/test_generated.py"
+      - "tests/crosshair_corpus.py"
+      - "pyproject.toml"
+      - "uv.lock"
       - "tests/differential_support.py"
       - "tests/crosshair_corpus.py"
       - "tests/differential_support.py"
@@ -49,6 +52,25 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
           python -m pip install "javascript==1!1.2.6"
+          python -m pip install "crosshair-tool==0.0.114"
+
+      - name: Restore CrossHair corpus
+        uses: actions/cache/restore@v4
+        id: crosshair-corpus
+        with:
+          path: tests/corpus
+          key: crosshair-corpus-${{ runner.os }}-${{ github.ref }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            crosshair-corpus-${{ runner.os }}-${{ github.ref }}-
+
+      - name: Generate or update CrossHair corpus
+        run: python tests/crosshair_corpus.py
+
+      - name: Save CrossHair corpus for the next CI run
+        uses: actions/cache/save@v4
+        with:
+          path: tests/corpus
+          key: ${{ steps.crosshair-corpus.outputs.cache-primary-key }}
 
       - name: Run generated differential checks
         run: |

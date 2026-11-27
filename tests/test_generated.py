@@ -34,7 +34,7 @@ import subprocess
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import FunctionType, ModuleType
-from typing import Protocol, TypedDict, TypeAlias, cast
+from typing import Protocol, TypeAlias, TypedDict, cast
 
 import pytest
 

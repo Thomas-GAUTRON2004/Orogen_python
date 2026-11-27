@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import numpy as np
 
@@ -24,7 +24,7 @@ def rings_of(mesh: MeshGraph) -> MeshRings:
     """Build and cache breadth-first rings 0..RING_COUNT for every cell."""
     cached = getattr(mesh, "_rings", None)
     if cached is not None:
-        return cached
+        return cast(MeshRings, cached)
 
     num_cells = int(mesh.num_cells)
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
@@ -63,10 +63,10 @@ def rings_of(mesh: MeshGraph) -> MeshRings:
             ring, next_ring = next_ring, ring
         start[cell * stride + RING_COUNT + 1] = count
 
-    result = {
+    result: MeshRings = {
         "start": start,
         "cells": cells[:count],
         "stride": stride,
     }
-    mesh._rings = result
+    setattr(mesh, "_rings", result)
     return result

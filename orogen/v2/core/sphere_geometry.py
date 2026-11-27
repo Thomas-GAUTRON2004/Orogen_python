@@ -169,7 +169,9 @@ def polar_frame(
     return coordinates
 
 
-def cell_distance_km(xyz: Sequence[float], cell_a: int, cell_b: int) -> float:
+def cell_distance_km(
+    xyz: Sequence[float] | np.ndarray, cell_a: int, cell_b: int
+) -> float:
     a, b = 3 * cell_a, 3 * cell_b
     cosine = (
         float(xyz[a]) * float(xyz[b])

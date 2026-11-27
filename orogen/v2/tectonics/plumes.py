@@ -23,14 +23,14 @@ from .thermal import (
 from .world import EventKind, HotspotRecord
 
 class PlumeFlow(TypedDict):
-    f1: tuple[float, float, float]
-    f2: tuple[float, float, float]
+    f1: list[float]
+    f2: list[float]
     w: float
     aspect: float
     cos: float
     sin: float
-    a: float
-    b: float
+    a: NotRequired[float]
+    b: NotRequired[float]
 
 
 _ONSETS = (

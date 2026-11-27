@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 
 import numpy as np
 

@@ -9,7 +9,7 @@ from .event_scenes import build_event_scene
 from .force_scenes import build_force_scene
 from .initial_world import build_start_world
 from .margin_scenes import build_margin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ def _history(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-BUDGET_SCENES: list[dict[str, object]] = [
+BUDGET_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "erosion",
         "label": "Erosive and accretionary margins",

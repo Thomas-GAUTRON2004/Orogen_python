@@ -61,12 +61,27 @@ JsonValue: TypeAlias = (
     None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 )
 DecodedValue: TypeAlias = (
-    None | bool | int | float | str | bytes | list["DecodedValue"]
-    | dict[str, "DecodedValue"] | _Opaque
+    None
+    | bool
+    | int
+    | float
+    | str
+    | bytes
+    | list["DecodedValue"]
+    | dict[str, "DecodedValue"]
+    | _Opaque
 )
 PythonValue: TypeAlias = (
-    None | bool | int | float | str | list["PythonValue"]
-    | tuple["PythonValue", ...] | dict[str, "PythonValue"] | np.ndarray | np.generic
+    None
+    | bool
+    | int
+    | float
+    | str
+    | list["PythonValue"]
+    | tuple["PythonValue", ...]
+    | dict[str, "PythonValue"]
+    | np.ndarray
+    | np.generic
 )
 
 
@@ -512,7 +527,11 @@ class JavaScriptSession:
     ) -> JsonValue:
         if self.process.stdin is None or self.process.stdout is None:
             raise RuntimeError("JavaScript runner streams are unavailable")
-        payload: dict[str, JsonValue] = {"module": js_file, "target": export, "args": args}
+        payload: dict[str, JsonValue] = {
+            "module": js_file,
+            "target": export,
+            "args": args,
+        }
         if constructor is not None:
             # Build the instance with `new`, then call the method on it.
             payload["construct"] = constructor
@@ -620,7 +639,11 @@ def javascript(request: pytest.FixtureRequest) -> Iterator[ReplaySession]:
 
 
 def _assert_node(
-    actual: JsonValue, expected: JsonValue, mode: str, comparison: ComparisonSettings, path: str
+    actual: JsonValue,
+    expected: JsonValue,
+    mode: str,
+    comparison: ComparisonSettings,
+    path: str,
 ) -> None:
     if isinstance(expected, dict):
         assert isinstance(actual, dict), f"{path}: expected an object"
@@ -645,7 +668,9 @@ def _assert_node(
     assert actual == expected, f"{path}: {actual!r} != {expected!r}"
 
 
-def _assert_equivalent(actual: JsonValue, expected: JsonValue, comparison: ComparisonSettings) -> None:
+def _assert_equivalent(
+    actual: JsonValue, expected: JsonValue, comparison: ComparisonSettings
+) -> None:
     mode = comparison.get("mode", "exact")
     if mode not in ("exact", "approx"):
         raise ValueError(f"Unsupported comparison mode: {mode}")
@@ -686,7 +711,9 @@ def _cell_indices_fit(xyz: DecodedValue, cells: DecodedValue) -> bool:
 
 
 def _skip_reason(
-    target: ReplayTarget, args: list[DecodedValue], constructor: list[DecodedValue] | None
+    target: ReplayTarget,
+    args: list[DecodedValue],
+    constructor: list[DecodedValue] | None,
 ) -> str | None:
     if "constructor_types" in target:
         values = constructor or []
@@ -802,5 +829,6 @@ def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> No
         return
     _assert_equivalent(
         _normalise(cast(PythonValue, python_result)),
-        _normalise(javascript_result), target["comparison"]
+        _normalise(javascript_result),
+        target["comparison"],
     )

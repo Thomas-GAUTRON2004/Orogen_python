@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from types import MappingProxyType
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -117,7 +118,7 @@ def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
     plate.arcTerraneId = ARC_TERRANE_ID
 
 
-def _margins(sim_mesh: Any, seed: int):
+def _margins(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     drift = world.add_plate("Driftia")
@@ -136,7 +137,7 @@ def _margins(sim_mesh: Any, seed: int):
     return world
 
 
-def _laramide(sim_mesh: Any, seed: int):
+def _laramide(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     laurentia = world.add_plate("Laurentia")
@@ -165,7 +166,7 @@ def _laramide(sim_mesh: Any, seed: int):
     return world
 
 
-def _mariana(sim_mesh: Any, seed: int):
+def _mariana(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
@@ -225,7 +226,7 @@ def _drive_japan(world: Any) -> None:
     _set_motion(world, "Pacifica", point, -90.0, 8.0)
 
 
-def _japan(sim_mesh: Any, seed: int):
+def _japan(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
@@ -255,7 +256,7 @@ def _japan(sim_mesh: Any, seed: int):
     return world
 
 
-def _history(sim_mesh: Any, seed: int):
+def _history(sim_mesh: SimMesh, seed: int):
     """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
@@ -323,7 +324,7 @@ MARGIN_SCENES: list[dict[str, Any]] = [
 ]
 
 
-def build_margin_scene(sim_mesh: Any, seed: int = 0, scenario: str = "margins"):
+def build_margin_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "margins"):
     """Build a named deterministic margin-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in MARGIN_SCENES:

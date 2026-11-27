@@ -13,7 +13,7 @@ from .scenarios import (
     flag_coast_trench,
 )
 from .scene_support import add_ocean_corridor, begin_scene
-from .scene_types import build_from_catalogue
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 WEST: tuple[tuple[float, float], ...] = ((125.0, 235.0),)

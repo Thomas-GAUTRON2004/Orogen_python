@@ -12,13 +12,12 @@ which makes it suitable for use in CI.
 
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
 import argparse
 import ast
 import json
 import sys
-from dataclasses import asdict, dataclass
 from pathlib import Path
-
 
 IGNORED_DIRS = {
     ".git",

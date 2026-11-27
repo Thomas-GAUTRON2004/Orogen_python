@@ -100,7 +100,8 @@ its reference can be found:
 - `params`: type per parameter name, as `name:type` pairs separated by commas.
   Types are `unit_float`, `angle`, `time_step` (numbers), `integer`, `boolean`,
   `string`, `quaternion` (4 numbers), `vec3` (3 numbers), `number_list`,
-  `integer_list`, `seed_text` and `seed_input`. Parameters not listed fall back
+  `integer_list`, `coordinate_buffer` (flat xyz triples), `cell_index`,
+  `cell_indices`, `seed_text` and `seed_input`. Parameters not listed fall back
   to their annotation: `float`, `int | float` and `float | int` map to
   `unit_float`; `int`, `bool`, `str`, `SeedInput`, `Sequence[float]` and
   `Iterable[int]` map to their corresponding kinds. A parameter with no

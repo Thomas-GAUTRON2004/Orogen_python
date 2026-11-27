@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import heapq
 import math
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
 
@@ -339,9 +339,14 @@ def _distance_km(
     return distance, strength
 
 
+class StartWorldResult(TypedDict):
+    world: TectonicWorld
+    start: dict[str, object]
+
+
 def _build_coarse_start_world(
     sim_mesh: SimMesh, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+) -> StartWorldResult:
     """Build a deterministic supercontinent and passive pre-history ocean.
 
     The return shape follows upstream buildStartWorld. The continental cell
@@ -787,7 +792,7 @@ def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
 
 def _assemble_upstream_start_world(
     world: TectonicWorld, seed: int, found: dict
-) -> dict[str, Any]:
+) -> StartWorldResult:
     from .initial_landmass import Seam
 
     mesh, config = world.mesh, world.config
@@ -901,7 +906,7 @@ def _assemble_upstream_start_world(
 
 def build_start_world(
     sim_mesh: SimMesh, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+) -> StartWorldResult:
     """Build the upstream craton-assembled initial supercontinent.
 
     Meshes below 512 cells retain the small deterministic fixture builder:

@@ -33,11 +33,11 @@ WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMy
 
 def flagged(
     flag: int,
-) -> Callable[[Mapping[str, Any], Any], tuple[float, float] | None]:
+) -> Callable[[Mapping[str, object], SimMesh], tuple[float, float] | None]:
     """Return a focus callback for the centroid of land carrying a crust flag."""
 
     def focus(
-        frame: Mapping[str, Any], sim_mesh: SimMesh
+        frame: Mapping[str, object], sim_mesh: SimMesh
     ) -> tuple[float, float] | None:
         owner = np.asarray(frame["owner"])
         cell_type = np.asarray(frame["type"])

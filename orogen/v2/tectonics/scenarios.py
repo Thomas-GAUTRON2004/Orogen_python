@@ -185,7 +185,7 @@ def add_continent(
 
 
 def add_apron_and_trench(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     plate: Plate,
     continent: SceneContinent,
     sectors: str | Sequence[Sequence[float]],
@@ -243,7 +243,7 @@ def flag_coast_trench(
 
 
 def add_ocean(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     plate: Plate,
     wanted: Callable[[float, float, float], bool],
     formed_at: float,

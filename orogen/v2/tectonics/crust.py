@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import numpy as np
 
@@ -234,7 +233,7 @@ class CrustRaster:
         # field. Each field remains a contiguous, independently writable 1-D
         # view with exactly the same dtype and values as before.
         blocks: list[np.ndarray] = []
-        fields_by_dtype: dict[np.dtype[Any], list[str]] = {}
+        fields_by_dtype: dict[np.dtype[np.generic], list[str]] = {}
         for name in CELL_FIELDS:
             dtype = np.dtype(_DTYPES[name])
             fields_by_dtype.setdefault(dtype, []).append(name)

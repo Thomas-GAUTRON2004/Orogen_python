@@ -6,7 +6,7 @@ Execution of queued plume-triggered rifts remains a later tectonic stage.
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import NotRequired, TypedDict
 
 import numpy as np
 
@@ -20,7 +20,18 @@ from .thermal import (
     plume_heat_factor,
     update_mantle_heat,
 )
-from .world import EventKind
+from .world import EventKind, HotspotRecord
+
+class PlumeFlow(TypedDict):
+    f1: tuple[float, float, float]
+    f2: tuple[float, float, float]
+    w: float
+    aspect: float
+    cos: float
+    sin: float
+    a: float
+    b: float
+
 
 _ONSETS = (
     "K",
@@ -137,7 +148,7 @@ def birth_plume(
         life = float(life_myr)
     plume_strength = 0.6 + 0.8 * float(rng()) if strength is None else float(strength)
     hotspot_id = len(world.hotspots)
-    plume = {
+    plume: HotspotRecord = {
         "id": hotspot_id,
         "name": plume_name,
         "xyz": position.tolist(),
@@ -344,7 +355,7 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
     axis = float(rs()) * math.pi
     basis1, basis2 = tangent_basis(tuple(map(float, centre)))
     flow_count = 1 + math.floor(float(rs()) * float(rs()) * 4.0)
-    flows: list[dict[str, Any]] = []
+    flows: list[PlumeFlow] = []
     total_weight = 0.0
     for i in range(flow_count):
         weight = 1.0 if i == 0 else 0.25 + 0.6 * float(rs())

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import NotRequired, TypedDict
+from collections.abc import Callable
+from typing import TypedDict
 
 from ..core.sim_mesh import SimMesh
 from .world import TectonicWorld

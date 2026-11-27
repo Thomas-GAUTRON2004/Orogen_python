@@ -66,10 +66,14 @@ def flagged(
 
 
 def _from_catalogue(
-    catalogue: Sequence[CompleteSceneDefinition], scene_id: str, **overrides: SceneOverrideValue
+    catalogue: Sequence[CompleteSceneDefinition],
+    scene_id: str,
+    **overrides: SceneOverrideValue,
 ) -> CompleteSceneDefinition:
     scene = next(item for item in catalogue if item["id"] == scene_id)
-    return cast(CompleteSceneDefinition, {**scene, "drive": update_plate_motion, **overrides})
+    return cast(
+        CompleteSceneDefinition, {**scene, "drive": update_plate_motion, **overrides}
+    )
 
 
 def _build_cratons(sim_mesh: SimMesh, seed: int) -> TectonicWorld:

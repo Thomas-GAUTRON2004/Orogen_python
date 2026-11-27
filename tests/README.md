@@ -44,10 +44,12 @@ The Pages deployment uses the `github-pages` environment and the
 CI runs the corpus generator before the replay in
 `.github/workflows/differential-jspybridge.yml`. The workflow restores
 `tests/corpus/` from a branch-scoped GitHub Actions cache, regenerates only
-modules whose source fingerprint changed, then saves the updated corpus under
-a new cache key for the next run. The checked-in corpus remains the fallback
-when no cache exists. Cache entries are subject to GitHub Actions cache
-retention and eviction policies; the checked-in files are the durable baseline.
+modules whose source fingerprint changed, and commits any updated JSON files
+back to `tests/corpus/` on the branch that triggered the workflow. This commit
+step is enabled for branches in this repository; pull requests from forks do
+not receive write access. The workflow also saves the updated corpus under a
+new cache key for the next run. The committed files are the durable baseline;
+the cache is an optimization and may be evicted by GitHub Actions.
 
 ## Regenerate the corpora
 

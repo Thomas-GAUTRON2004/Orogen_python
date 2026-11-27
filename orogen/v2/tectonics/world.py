@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-
 import numpy as np
 
 from ..core.seed import make_rng

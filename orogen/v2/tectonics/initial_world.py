@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import heapq
 import math
+from collections.abc import Sequence
 from typing import TypedDict, cast
 
 import numpy as np
@@ -353,7 +354,7 @@ class CoarseCraton(TypedDict):
 
 
 class StartWorldMetadata(TypedDict, total=False):
-    cratons: list[Craton | CoarseCraton]
+    cratons: Sequence[Craton | CoarseCraton]
     centre: list[float]
     rimCentre: list[float]
     reference: list[float]
@@ -604,7 +605,7 @@ def _build_coarse_start_world(
         {"plate": continent.id, "cratons": craton_count},
     )
 
-    cratons = []
+    cratons: list[CoarseCraton] = []
     for index, cell in enumerate(centres):
         held = land_cells[terrane_owner == index + 1]
         cratons.append(

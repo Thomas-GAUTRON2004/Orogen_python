@@ -544,9 +544,7 @@ def _placed(block: Block, frame: Frame) -> list[PlacedPiece]:
     return result
 
 
-def craton_edge(
-    craton: Craton, x: float, y: float, z: float
-) -> dict[str, float]:
+def craton_edge(craton: Craton, x: float, y: float, z: float) -> dict[str, float]:
     block = craton["block"]
     piece = craton["piece"]
     frame = block["frame"]

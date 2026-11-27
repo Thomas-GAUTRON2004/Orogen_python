@@ -41,6 +41,7 @@ def _js_number(text: str) -> float | None:
     return None
 
 
+# Returns a callable, which the JSON replay protocol cannot serialize.
 # differential: skip
 def make_rng(seed: float | int = 0) -> Callable[[], float]:
     """Return the upstream Park–Miller generator for seed."""
@@ -54,6 +55,7 @@ def make_rng(seed: float | int = 0) -> Callable[[], float]:
     return random
 
 
+# Returns a callable, which the JSON replay protocol cannot serialize.
 # differential: skip
 def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
     """Return a deterministic integer sampler in [0, n)."""

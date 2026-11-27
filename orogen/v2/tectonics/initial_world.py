@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import heapq
 import math
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import numpy as np
 
@@ -28,6 +28,8 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType, OrogenyType
+from .initial_cratons import Craton
+from .initial_types import ConfigValue
 from .far_field import spread_push
 from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
@@ -339,9 +341,43 @@ def _distance_km(
     return distance, strength
 
 
+class CoarseCraton(TypedDict):
+    id: int
+    letter: str
+    centreCell: int
+    centre: list[float]
+    cells: int
+    terraneCells: int
+    cluster: int
+
+
+class StartWorldMetadata(TypedDict, total=False):
+    cratons: list[Craton | CoarseCraton]
+    centre: list[float]
+    rimCentre: list[float]
+    reference: list[float]
+    elongation: float
+    seams: np.ndarray
+    owner: np.ndarray
+    skirtKm: float
+    rim: np.ndarray
+    trench: np.ndarray
+    passiveFrom: float
+    passiveTo: float
+    attempts: int
+    cratonAreaScale: float
+    fractionMet: bool
+    config: dict[str, ConfigValue]
+    continentId: int
+    oceanId: int
+    landCells: int
+    continentalFraction: float
+    apronCells: int
+
+
 class StartWorldResult(TypedDict):
     world: TectonicWorld
-    start: dict[str, object]
+    start: StartWorldMetadata
 
 
 def _build_coarse_start_world(
@@ -593,7 +629,7 @@ def _build_coarse_start_world(
         "continentalFraction": target_land / n,
         "apronCells": int(apron_cells.size),
     }
-    return {"world": world, "start": start}
+    return {"world": world, "start": cast(StartWorldMetadata, start)}
 
 
 _MAX_LAYOUT_ATTEMPTS = 24

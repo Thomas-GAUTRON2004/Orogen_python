@@ -27,6 +27,6 @@ def test_tectonics_reference_points_to_pinned_upstream(pointer_file: Path) -> No
     match = POINTER.search(source)
     assert match is not None, f"{pointer_file} must remain a one-line upstream pointer"
     target = (pointer_file.parent / match.group(1)).resolve()
-    upstream_root = (ROOT.parent.parent.parent / "external" / "planet_heightmap_generation").resolve()
+    upstream_root = (ROOT / "external" / "planet_heightmap_generation").resolve()
     assert target.is_relative_to(upstream_root), f"{pointer_file} escapes the pinned submodule"
     assert target.is_file(), f"{pointer_file} points to missing upstream file: {target}"

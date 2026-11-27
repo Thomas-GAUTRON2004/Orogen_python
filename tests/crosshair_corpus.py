@@ -30,6 +30,7 @@ import json
 import math
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +97,23 @@ def literal(node: ast.AST) -> Any:
     raise ValueError(f"unsupported expression: {ast.dump(node)[:80]}")
 
 
+def unblock_arguments() -> list[str]:
+    """Allow the DLL folders that bundled wheels register on Windows.
+
+    Importing numpy calls os.add_dll_directory, which CrossHair treats as a side
+    effect and blocks. Only the *.libs folders of this environment's site-packages
+    are allowed, one prefix each, so the guard stays in place for everything else.
+    """
+    site_packages = Path(sysconfig.get_paths()["purelib"])
+    arguments: list[str] = []
+    for folder in sorted(site_packages.glob("*.libs")):
+        if folder.is_dir():
+            # CrossHair splits prefixes on ":", so a Windows drive letter is escaped.
+            escaped = str(folder).replace(":", "\\:")
+            arguments.append(f"--unblock=os.add_dll_directory:{escaped}")
+    return arguments
+
+
 def run_crosshair(
     dotted: str, name: str, timeout: int
 ) -> tuple[list[dict[str, Any]], int]:
@@ -107,6 +125,7 @@ def run_crosshair(
         "cover",
         f"--per_condition_timeout={timeout}",
         "--example_output_format=arg_dictionary",
+        *unblock_arguments(),
         f"{dotted}.{name}",
     ]
     completed = subprocess.run(

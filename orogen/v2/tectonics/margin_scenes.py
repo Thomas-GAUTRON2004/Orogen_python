@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from types import MappingProxyType
-from typing import Any
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -15,6 +15,7 @@ from .dynamics import update_plate_motion
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .plate import Plate
+from .world import TectonicWorld
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -38,7 +39,7 @@ LARAMIDE = MappingProxyType({"speedCmYr": 5.0, "trenchLon": -118.0})
 
 
 def _set_motion(
-    world: Any,
+    world: TectonicWorld,
     name: str,
     point: list[float],
     bearing_deg: float,
@@ -52,7 +53,7 @@ def _set_motion(
         plate.omega = omega_for(point, heading(point, bearing_deg), speed_cm_yr)
 
 
-def _arm_against(mesh: Any, plate: Plate, other: Any, config: dict) -> list[int]:
+def _arm_against(mesh: SimMesh, plate: Plate, other: Plate, config: Mapping[str, int | float]) -> list[int]:
     """Arm a mature trench along every cell of one plate touching another."""
     trench: list[int] = []
     for cell in range(int(mesh.num_cells)):
@@ -69,11 +70,11 @@ def _arm_against(mesh: Any, plate: Plate, other: Any, config: dict) -> list[int]
 
 
 def _arm_facing(
-    mesh: Any,
+    mesh: SimMesh,
     plate: Plate,
     centre: list[float],
     bearing_deg: float,
-    config: dict,
+    config: Mapping[str, int | float],
 ) -> None:
     """Arm cells on a plate rim whose outward normal faces a compass sector."""
     xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
@@ -99,7 +100,7 @@ def _arm_facing(
             plate.crust.arm_trench(cell, float(config["slabMatureKm"]))
 
 
-def _arc_behind(mesh: Any, plate: Plate, trench: list[int], hops: int) -> None:
+def _arc_behind(mesh: SimMesh, plate: Plate, trench: list[int], hops: int) -> None:
     """Paint only the ring exactly hops cells inland of the trench."""
     seen = set(trench)
     ring = list(trench)
@@ -215,13 +216,13 @@ def _mariana(sim_mesh: SimMesh, seed: int):
     return world
 
 
-def _drive_mariana(world: Any) -> None:
+def _drive_mariana(world: TectonicWorld) -> None:
     point = lat_lon_to_xyz(15.0, 150.0)
     _set_motion(world, "Philippina", point, -90.0, 3.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)
 
 
-def _drive_japan(world: Any) -> None:
+def _drive_japan(world: TectonicWorld) -> None:
     point = lat_lon_to_xyz(35.0, 140.0)
     _set_motion(world, "Asiana", point, 90.0, 1.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)

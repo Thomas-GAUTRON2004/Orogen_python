@@ -15,8 +15,8 @@ Every noise field here uses ``SimplexNoise`` as upstream does.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
-from typing import Any, cast
+from collections.abc import Callable, Sequence
+from typing import Any, NotRequired, TypedDict, cast
 
 import numpy as np
 
@@ -88,7 +88,24 @@ def omega_for(
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
-def scene_canvas(sim_mesh: SimMesh, config: dict) -> dict[str, Any]:
+class SceneCanvas(TypedDict):
+    """Mutable cell-ownership state shared by hand-built scene builders."""
+
+    mesh: SimMesh
+    taken: np.ndarray
+    landAgeMyr: float
+    lastTerrane: int
+
+
+class SceneContinent(TypedDict):
+    """Geometry and cell mask returned by :func:`add_continent`."""
+
+    centre: list[float]
+    isLand: np.ndarray
+    terrane: NotRequired[int]
+
+
+def scene_canvas(sim_mesh: SimMesh, config: dict) -> SceneCanvas:
     """Create the cell-ownership canvas used by hand-built tectonic scenes."""
     return {
         "mesh": sim_mesh,
@@ -98,7 +115,7 @@ def scene_canvas(sim_mesh: SimMesh, config: dict) -> dict[str, Any]:
     }
 
 
-def scene_terrane(canvas: dict[str, Any]) -> int:
+def scene_terrane(canvas: SceneCanvas) -> int:
     """Allocate a terrane identifier unique within a hand-built scene."""
     canvas["lastTerrane"] = int(canvas["lastTerrane"]) + 1
     return int(canvas["lastTerrane"])
@@ -119,7 +136,7 @@ def _in_sectors(azimuth: float, sectors: str | Sequence[Sequence[float]]) -> boo
 
 
 def add_continent(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     noise: SimplexNoise,
     *,
     plate: Plate,
@@ -127,7 +144,7 @@ def add_continent(
     radius_km: float,
     craton_km: float | None = None,
     wobble: float = 0.22,
-) -> dict[str, Any]:
+) -> SceneContinent:
     """Paint a noise-shaped continent and its central craton onto a scene plate."""
     if not math.isfinite(radius_km) or radius_km <= 0.0:
         raise ValueError("radius_km must be finite and positive")
@@ -170,7 +187,7 @@ def add_continent(
 def add_apron_and_trench(
     canvas: dict[str, Any],
     plate: Plate,
-    continent: dict[str, Any],
+    continent: SceneContinent,
     sectors: str | Sequence[Sequence[float]],
     config: dict,
 ) -> None:
@@ -228,7 +245,7 @@ def flag_coast_trench(
 def add_ocean(
     canvas: dict[str, Any],
     plate: Plate,
-    wanted: Any,
+    wanted: Callable[[float, float, float], bool],
     formed_at: float,
 ) -> None:
     """Attach available ocean cells selected by a world-coordinate predicate."""
@@ -245,7 +262,7 @@ def add_ocean(
         taken[cell] = 1
 
 
-def fill_background(canvas: dict[str, Any], world: TectonicWorld, config: dict):
+def fill_background(canvas: SceneCanvas, world: TectonicWorld, config: dict):
     """Fill every unclaimed scene cell with the passive pre-history ocean."""
     mesh = canvas["mesh"]
     ocean = world.add_plate("Pre-history ocean")

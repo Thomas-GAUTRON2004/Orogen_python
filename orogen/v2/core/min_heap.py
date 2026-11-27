@@ -7,7 +7,6 @@ from __future__ import annotations
 import math
 import weakref
 from collections.abc import Callable
-from typing import Any
 
 import numpy as np
 
@@ -87,7 +86,7 @@ def forget_edge_km(mesh: MeshGraph) -> None:
     _EDGE_KM.pop(mesh, None)
 
 
-def _edge_km_of(mesh: Any) -> np.ndarray:
+def _edge_km_of(mesh: MeshGraph) -> np.ndarray:
     cached = _EDGE_KM.get(mesh)
     if cached is not None:
         return cached
@@ -112,7 +111,7 @@ def _edge_km_of(mesh: Any) -> np.ndarray:
 # cycle keeps this Dijkstra loop from ever finishing. Excluded from replay.
 # differential: skip
 def spread_km(
-    mesh: Any,
+    mesh: MeshGraph,
     dist: np.ndarray,
     *,
     can_enter: Callable[[int, int], bool] | None = None,

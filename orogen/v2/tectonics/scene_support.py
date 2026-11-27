@@ -4,26 +4,26 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Any
 
 from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
-from .scenarios import add_ocean, scene_canvas
+from .scenarios import SceneCanvas, add_ocean, scene_canvas
+from .plate import Plate
 from .world import TectonicWorld
 
 
 def begin_scene(
     sim_mesh: SimMesh, seed: int
-) -> tuple[TectonicWorld, dict[str, Any], SimplexNoise]:
+) -> tuple[TectonicWorld, SceneCanvas, SimplexNoise]:
     """Create a world, its scene canvas and the seeded noise source."""
     world = TectonicWorld(sim_mesh, seed)
     return world, scene_canvas(sim_mesh, world.config), SimplexNoise(seed)
 
 
 def add_ocean_corridor(
-    canvas: dict[str, Any],
-    plate: Any,
+    canvas: SceneCanvas,
+    plate: Plate,
     first: Sequence[float],
     second: Sequence[float],
     skirt_km: float,

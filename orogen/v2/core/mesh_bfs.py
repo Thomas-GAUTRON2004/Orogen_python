@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Iterable
-from typing import Any
 
 import numpy as np
 
@@ -99,7 +98,7 @@ def within_km(
 
 
 def hop_distance(
-    sim_mesh: Any,
+    sim_mesh: MeshGraph,
     is_source: Predicate,
     max_hops: int | float = math.inf,
     can_enter: Predicate | None = None,
@@ -141,7 +140,7 @@ def hop_distance(
     return distance
 
 
-def flood_from(sim_mesh: Any, start: int, can_enter: Predicate) -> np.ndarray:
+def flood_from(sim_mesh: MeshGraph, start: int, can_enter: Predicate) -> np.ndarray:
     """Mark cells reachable from start through cells accepted by can_enter."""
     n = int(sim_mesh.num_cells)
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
@@ -160,7 +159,7 @@ def flood_from(sim_mesh: Any, start: int, can_enter: Predicate) -> np.ndarray:
     return seen
 
 
-def touches(sim_mesh: Any, cell: int, test: Predicate) -> bool:
+def touches(sim_mesh: MeshGraph, cell: int, test: Predicate) -> bool:
     """Return whether any neighbour of cell satisfies test."""
     offsets, adjacency = sim_mesh.adj_offset, sim_mesh.adj_list
     return any(
@@ -170,7 +169,7 @@ def touches(sim_mesh: Any, cell: int, test: Predicate) -> bool:
 
 
 def hops_from(
-    sim_mesh: Any,
+    sim_mesh: MeshGraph,
     sources: Iterable[int],
     can_enter: Predicate | None = None,
     max_hops: int | float = math.inf,
@@ -227,7 +226,7 @@ def hops_from(
 
 
 def reaches_within(
-    sim_mesh: Any,
+    sim_mesh: MeshGraph,
     cell: int,
     max_hops: int,
     can_enter: Predicate,
@@ -254,7 +253,7 @@ def reaches_within(
     return False
 
 
-def pieces_of(sim_mesh: Any, cells: Iterable[int]) -> list[list[int]]:
+def pieces_of(sim_mesh: MeshGraph, cells: Iterable[int]) -> list[list[int]]:
     """Return connected components of a selected cell set.
 
     When Numba is installed, the CSR traversal runs in one compiled call.
@@ -295,7 +294,7 @@ def pieces_of(sim_mesh: Any, cells: Iterable[int]) -> list[list[int]]:
     return pieces
 
 
-def largest_piece_of(sim_mesh: Any, cells: Iterable[int]) -> list[int]:
+def largest_piece_of(sim_mesh: MeshGraph, cells: Iterable[int]) -> list[int]:
     """Return the largest connected component; the first wins ties."""
     ordered_cells = [int(cell) for cell in cells]
     n = int(sim_mesh.num_cells)

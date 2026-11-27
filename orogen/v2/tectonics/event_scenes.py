@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -14,6 +14,7 @@ from .force_scenes import FORCE_SCENES
 from .kinematics import lat_lon_to_xyz
 from .plate import Plate
 from .scenarios import (
+    SceneCanvas,
     add_apron_and_trench,
     add_continent,
     fill_background,
@@ -24,13 +25,13 @@ from .world import TectonicWorld
 
 
 def _add_arc_ridge(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     plate: Plate,
     first: list[float],
     second: list[float],
     distance_km: float,
     half_width_km: float,
-    config: dict[str, Any],
+    config: Mapping[str, int | float],
     terrane_id: int,
 ) -> None:
     """Paint an already-grown island arc as a narrow great-circle ridge."""
@@ -60,14 +61,14 @@ def _add_arc_ridge(
 
 
 def _add_arc_plate(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     plate: Plate,
     *,
     latitude: float,
     longitude: float,
     half_width_deg: float,
     depth_deg: float,
-    config: dict[str, Any],
+    config: Mapping[str, int | float],
 ) -> None:
     """Build an oceanic plate patch with a mature southern trench and an inland arc."""
     mesh = canvas["mesh"]

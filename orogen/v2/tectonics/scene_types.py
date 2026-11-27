@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TypedDict
+
+import numpy as np
 
 from ..core.sim_mesh import SimMesh
 from .world import TectonicWorld
@@ -11,6 +13,8 @@ from .world import TectonicWorld
 SceneBuilder = Callable[[SimMesh, int], TectonicWorld]
 SceneDriver = Callable[[TectonicWorld], None]
 SceneExpectation = bool | list[str]
+SceneFocus = Callable[[Mapping[str, np.ndarray], SimMesh], tuple[float, float] | None]
+SceneOverrideValue = str | int | float | bool | tuple[float, float] | SceneFocus | None
 
 
 class SceneDefinition(TypedDict):
@@ -36,6 +40,8 @@ class OptionalSceneMetadata(TypedDict, total=False):
     bendMyr: float
     legs: tuple[float, float]
     arrivesMyr: float
+    focus: SceneFocus
+    endings: bool
 
 
 class CompleteSceneDefinition(SceneDefinition, OptionalSceneMetadata):

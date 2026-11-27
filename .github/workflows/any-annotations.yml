@@ -1,0 +1,65 @@
+name: Any annotation detection
+
+on:
+  push:
+    branches:
+      - main
+      - "port/**"
+      - "feat/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detect-any:
+    name: Detect Any annotations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scan Python package for Any annotations
+        id: scan
+        run: |
+          set +e
+          python scripts/find_any_types.py orogen --json > "$RUNNER_TEMP/any-findings.json"
+          scan_status=$?
+          set -e
+          if [ "$scan_status" -gt 1 ]; then
+            cat "$RUNNER_TEMP/any-findings.json"
+            exit "$scan_status"
+          fi
+          python - "$RUNNER_TEMP/any-findings.json" "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          findings = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          summary = pathlib.Path(sys.argv[2])
+          lines = [
+              "## Any annotation detection",
+              "",
+              f"**{len(findings)} annotation(s) using `Any` found in `orogen`.**",
+              "",
+          ]
+          if findings:
+              lines.extend(["| Location | Annotation |", "|---|---|"])
+              lines.extend(
+                  f"| `{item['path']}:{item['line']}:{item['column']}` | `{item['annotation']}` |"
+                  for item in findings
+              )
+          else:
+              lines.append("No `Any` annotations found.")
+          summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("\n".join(lines))
+          PY
+          if [ "$scan_status" -eq 1 ]; then
+            echo "::notice title=Any annotations found::See the job summary for the complete list."
+          fi

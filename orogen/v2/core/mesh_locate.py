@@ -8,6 +8,7 @@ import numpy as np
 
 from .mesh_types import IndexedMeshGraph
 
+
 def locate(
     mesh: IndexedMeshGraph,
     x: float,

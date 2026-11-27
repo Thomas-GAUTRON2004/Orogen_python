@@ -1,0 +1,54 @@
+{
+  "module": "orogen.v2.core.fast_noise",
+  "generator": {
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "6f8b48f29c6da02eb63ae71aecfb80bc8c57292673a409f379d5be01420733b9",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/fast_noise.py",
+      "orogen/v2/core/seed.py"
+    ]
+  },
+  "stats": {
+    "unique": 2,
+    "examples": 2,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
+  },
+  "entries": {
+    "FastNoise.noise3d": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raised": null,
+        "constructor": [
+          0.0
+        ]
+      }
+    ],
+    "FastNoise.fbm": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0,
+          1,
+          0.0
+        ],
+        "raised": null,
+        "constructor": [
+          0
+        ]
+      }
+    ]
+  }
+}

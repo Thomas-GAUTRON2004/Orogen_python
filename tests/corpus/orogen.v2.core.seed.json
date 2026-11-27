@@ -1,0 +1,80 @@
+{
+  "module": "orogen.v2.core.seed",
+  "generator": {
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "e0a7b413ce68bbaee7243ccb0cd11e3d943f50f24e8411b2de20120c67c9f3ad",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/seed.py"
+    ]
+  },
+  "stats": {
+    "unique": 8,
+    "examples": 8,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
+  },
+  "entries": {
+    "is_word_seed": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          null
+        ],
+        "raised": null
+      }
+    ],
+    "make_rand_int": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "make_rng": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "random_seed": [
+      {
+        "args": [],
+        "raised": null
+      }
+    ],
+    "seed_of": [
+      {
+        "args": [
+          "+"
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          null
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          10
+        ],
+        "raised": null
+      }
+    ]
+  }
+}

@@ -4,6 +4,8 @@ The permutation is derived from the shared Orogen Park–Miller RNG. Arithmetic
 order follows the JavaScript implementation to preserve seeded output.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math
@@ -70,6 +72,7 @@ class FastNoise:
             self.perm[i] = value
             self.pm3[i] = 3 * (value % 12)
 
+    # differential: js=noise3D
     def noise3d(self, x: float, y: float, z: float) -> float:
         if NUMBA_AVAILABLE:
             return float(noise3d_numba(x, y, z, self.perm, self.pm3, self._grad))

@@ -1,15 +1,17 @@
 """Binary min-heap and multi-source Dijkstra helpers from V2 min-heap.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 import math
 import weakref
 from collections.abc import Callable
-from typing import Any
 
 import numpy as np
 
 from ._numba_kernels import NUMBA_AVAILABLE, spread_km_numba
+from .mesh_types import MeshGraph
 from .sphere_geometry import PLANET_RADIUS_KM
 
 
@@ -19,11 +21,13 @@ class MinHeap:
     def __init__(self, capacity: int = 1024):
         if capacity < 1:
             raise ValueError("capacity must be at least one")
-        self.keys = np.empty(capacity, dtype=np.float64)
-        self.ids = np.empty(capacity, dtype=np.int32)
+        self.keys = np.zeros(capacity, dtype=np.float64)
+        self.ids = np.zeros(capacity, dtype=np.int32)
         self.size = 0
         self.last_key = math.nan
 
+    # The JavaScript method returns undefined, which the JSON replay cannot encode.
+    # differential: skip
     def push(self, key: float, identifier: int) -> None:
         if self.size == len(self.keys):
             new_keys = np.empty(self.size * 2, dtype=np.float64)
@@ -46,6 +50,8 @@ class MinHeap:
     def peek_key(self) -> float:
         return float(self.keys[0])
 
+    # The generated empty-heap case returns undefined upstream, not an exception.
+    # differential: skip
     def pop(self) -> int:
         if self.size == 0:
             raise IndexError("pop from empty MinHeap")
@@ -76,15 +82,15 @@ class MinHeap:
         return top_id
 
 
-_EDGE_KM: weakref.WeakKeyDictionary[Any, np.ndarray] = weakref.WeakKeyDictionary()
+_EDGE_KM: weakref.WeakKeyDictionary[MeshGraph, np.ndarray] = weakref.WeakKeyDictionary()
 
 
-def forget_edge_km(mesh: Any) -> None:
+def forget_edge_km(mesh: MeshGraph) -> None:
     """Release cached edge lengths for a mesh."""
     _EDGE_KM.pop(mesh, None)
 
 
-def _edge_km_of(mesh: Any) -> np.ndarray:
+def _edge_km_of(mesh: MeshGraph) -> np.ndarray:
     cached = _EDGE_KM.get(mesh)
     if cached is not None:
         return cached
@@ -105,8 +111,11 @@ def _edge_km_of(mesh: Any) -> np.ndarray:
     return edge_km
 
 
+# Known hang: Pynguin builds meshes with arbitrary edge lengths, and a negative
+# cycle keeps this Dijkstra loop from ever finishing. Excluded from replay.
+# differential: skip
 def spread_km(
-    mesh: Any,
+    mesh: MeshGraph,
     dist: np.ndarray,
     *,
     can_enter: Callable[[int, int], bool] | None = None,

@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import heapq
 import math
-from typing import Any
+from collections.abc import Sequence
+from typing import TypedDict, cast
 
 import numpy as np
 
 from ..core.array_selection import stable_top_k as _stable_top_k
 from ..core.mesh_bfs import hop_distance
 from ..core.seed import make_rng
-from ..core.sim_mesh import km_to_hops
+from ..core.sim_mesh import SimMesh, km_to_hops
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     cell_distance_km,
@@ -29,13 +30,16 @@ from ..core.sphere_geometry import (
 )
 from .crust import CrustFlag, CrustType, OrogenyType
 from .far_field import spread_push
+from .initial_cratons import Craton, CratonLayout
+from .initial_landmass import LandmassResult
+from .initial_types import ConfigValue, InitialConfig
 from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
 
 StartSeam = {"NONE": 0, "INNER": 1, "RING": 2, "MAJOR": 3}
 
 
-def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
+def _mesh_xyz(sim_mesh: SimMesh) -> np.ndarray:
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     if xyz.shape[0] != int(sim_mesh.num_cells):
         raise ValueError("mesh xyz does not match num_cells")
@@ -43,7 +47,7 @@ def _mesh_xyz(sim_mesh: Any) -> np.ndarray:
 
 
 def _distance_hops(
-    sim_mesh: Any, sources: np.ndarray, *, can_enter=None, max_hops=None
+    sim_mesh: SimMesh, sources: np.ndarray, *, can_enter=None, max_hops=None
 ) -> np.ndarray:
     source_mask = np.asarray(sources, dtype=bool)
     if source_mask.shape != (int(sim_mesh.num_cells),):
@@ -59,7 +63,7 @@ def _distance_hops(
 
 
 def _land_cells(
-    sim_mesh: Any, centre: np.ndarray, count: int
+    sim_mesh: SimMesh, centre: np.ndarray, count: int
 ) -> tuple[np.ndarray, float]:
     xyz = _mesh_xyz(sim_mesh)
     count = max(1, min(int(count), int(sim_mesh.num_cells) - 1))
@@ -141,7 +145,7 @@ def _assign_cratons(
 
 
 def _seams(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     land_mask: np.ndarray,
     land_cells: np.ndarray,
     terrane_owner: np.ndarray,
@@ -292,7 +296,7 @@ def _paint_old_ranges(
 
 
 def _distance_km(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     sources: np.ndarray,
     *,
     can_enter=None,
@@ -339,9 +343,61 @@ def _distance_km(
     return distance, strength
 
 
+class CoarseCraton(TypedDict):
+    id: int
+    letter: str
+    centreCell: int
+    centre: list[float]
+    cells: int
+    terraneCells: int
+    cluster: int
+
+
+class StartWorldMetadata(TypedDict, total=False):
+    cratons: Sequence[Craton | CoarseCraton]
+    centre: list[float]
+    rimCentre: list[float]
+    reference: list[float]
+    elongation: float
+    seams: np.ndarray
+    owner: np.ndarray
+    skirtKm: float
+    rim: np.ndarray
+    trench: np.ndarray
+    passiveFrom: float
+    passiveTo: float
+    attempts: int
+    cratonAreaScale: float
+    fractionMet: bool
+    config: dict[str, ConfigValue]
+    continentId: int
+    oceanId: int
+    landCells: int
+    continentalFraction: float
+    apronCells: int
+
+
+class LayoutCandidate(TypedDict):
+    layout: CratonLayout
+    land: LandmassResult
+    areaScale: float
+    excess: float
+    attempts: int
+
+
+class FoundLayout(LayoutCandidate):
+    middle: list[float]
+    fractionMet: bool
+
+
+class StartWorldResult(TypedDict):
+    world: TectonicWorld
+    start: StartWorldMetadata
+
+
 def _build_coarse_start_world(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
+) -> StartWorldResult:
     """Build a deterministic supercontinent and passive pre-history ocean.
 
     The return shape follows upstream buildStartWorld. The continental cell
@@ -549,7 +605,7 @@ def _build_coarse_start_world(
         {"plate": continent.id, "cratons": craton_count},
     )
 
-    cratons = []
+    cratons: list[CoarseCraton] = []
     for index, cell in enumerate(centres):
         held = land_cells[terrane_owner == index + 1]
         cratons.append(
@@ -565,7 +621,7 @@ def _build_coarse_start_world(
                 "cluster": int(group_for_terrane[index]),
             }
         )
-    start = {
+    start: StartWorldMetadata = {
         "cratons": cratons,
         "centre": centre.tolist(),
         "rimCentre": centre.tolist(),
@@ -588,7 +644,7 @@ def _build_coarse_start_world(
         "continentalFraction": target_land / n,
         "apronCells": int(apron_cells.size),
     }
-    return {"world": world, "start": start}
+    return {"world": world, "start": cast(StartWorldMetadata, start)}
 
 
 _MAX_LAYOUT_ATTEMPTS = 24
@@ -605,7 +661,7 @@ def _passive_stretch(coverage: float, rng) -> dict[str, float]:
 
 
 def plate_outline_with_apron(
-    sim_mesh: Any, is_land: np.ndarray, config: dict
+    sim_mesh: SimMesh, is_land: np.ndarray, config: dict
 ) -> tuple[np.ndarray, np.ndarray]:
     """Morphologically close the continental mask and return its outer rim."""
     count = int(sim_mesh.num_cells)
@@ -628,7 +684,7 @@ _plate_outline_with_apron = plate_outline_with_apron
 
 
 def _choose_active_rim(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     rim: np.ndarray,
     centre: list[float],
     reference: list[float],
@@ -659,8 +715,13 @@ def _shrink_steps(floor: float) -> list[float]:
 
 
 def _shape_attempt(
-    sim_mesh: Any, seed: int, config: dict, attempt: int, layout: dict, stretch: float
-):
+    sim_mesh: SimMesh,
+    seed: int,
+    config: InitialConfig,
+    attempt: int,
+    layout: CratonLayout,
+    stretch: float,
+) -> LandmassResult | None:
     from .initial_landmass import shape_landmass
 
     passive = _passive_stretch(
@@ -674,11 +735,11 @@ def _shape_attempt(
 
 
 def _evaluate_layout_attempt(
-    sim_mesh: Any, seed: int, config: dict, attempt: int
-) -> tuple[list[dict], dict | None]:
+    sim_mesh: SimMesh, seed: int, config: InitialConfig, attempt: int
+) -> tuple[list[LayoutCandidate], LayoutCandidate | None]:
     from .initial_cratons import place_cratons
 
-    tried: list[dict] = []
+    tried: list[LayoutCandidate] = []
     stretch = 1.0 - attempt / _MAX_LAYOUT_ATTEMPTS
     for area_scale in _shrink_steps(config["cratonMinAreaScale"]):
         rng = make_rng(seed * 31 + attempt * 7919 + 17)
@@ -692,7 +753,7 @@ def _evaluate_layout_attempt(
         excess = land_count / int(sim_mesh.num_cells) - float(
             config["continentalFraction"]
         )
-        candidate = {
+        candidate: LayoutCandidate = {
             "layout": layout,
             "land": land,
             "areaScale": area_scale,
@@ -705,7 +766,7 @@ def _evaluate_layout_attempt(
     return tried, None
 
 
-def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
+def _land_centroid(sim_mesh: SimMesh, land_type: np.ndarray) -> list[float]:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     total = np.sum(xyz[selected], axis=0, dtype=np.float64)
@@ -713,7 +774,9 @@ def _land_centroid(sim_mesh: Any, land_type: np.ndarray) -> list[float]:
     return (total / length).tolist()
 
 
-def _half_span_deg(sim_mesh: Any, land_type: np.ndarray, centre: list[float]) -> float:
+def _half_span_deg(
+    sim_mesh: SimMesh, land_type: np.ndarray, centre: list[float]
+) -> float:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     if not np.any(selected):
@@ -722,12 +785,14 @@ def _half_span_deg(sim_mesh: Any, land_type: np.ndarray, centre: list[float]) ->
     return math.degrees(math.acos(max(-1.0, min(1.0, farthest_dot))))
 
 
-def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
+def _find_layout(
+    sim_mesh: SimMesh, seed: int, config: InitialConfig
+) -> FoundLayout | None:
     """Search layouts in deterministic upstream attempt order."""
     round_span = math.degrees(
         math.acos(1.0 - 2.0 * float(config["continentalFraction"]))
     )
-    closest: dict | None = None
+    closest: LayoutCandidate | None = None
     for attempt in range(_MAX_LAYOUT_ATTEMPTS):
         tried, fit = _evaluate_layout_attempt(sim_mesh, seed, config, attempt)
         for candidate in tried:
@@ -746,16 +811,17 @@ def _find_layout(sim_mesh: Any, seed: int, config: dict) -> dict | None:
             continue
         # As upstream findLayout: the reported attempt is the loop number, even for
         # the closest (not fitting) candidate returned by the last attempt.
-        return {
+        result: FoundLayout = {
             **chosen,
             "middle": middle,
             "fractionMet": fit is not None,
             "attempts": attempt + 1,
         }
+        return result
     return None
 
 
-def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
+def _record_start_pushes(world: TectonicWorld, continent, land: LandmassResult) -> None:
     config = world.config
     work = float(config["farStartWorkKm"])
     if work <= 0.0:
@@ -779,8 +845,8 @@ def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
 
 
 def _assemble_upstream_start_world(
-    world: TectonicWorld, seed: int, found: dict
-) -> dict[str, Any]:
+    world: TectonicWorld, seed: int, found: FoundLayout
+) -> StartWorldResult:
     from .initial_landmass import Seam
 
     mesh, config = world.mesh, world.config
@@ -866,7 +932,7 @@ def _assemble_upstream_start_world(
         f"Supercontinent {continent.name}: {len(layout['cratons'])} cratons, ringed by subduction",
         {"plate": continent.id, "cratons": len(layout["cratons"])},
     )
-    start = {
+    start: StartWorldMetadata = {
         "cratons": layout["cratons"],
         "centre": found["middle"],
         "rimCentre": land["rimCentre"],
@@ -893,8 +959,8 @@ def _assemble_upstream_start_world(
 
 
 def build_start_world(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
+) -> StartWorldResult:
     """Build the upstream craton-assembled initial supercontinent.
 
     Meshes below 512 cells retain the small deterministic fixture builder:
@@ -903,7 +969,7 @@ def build_start_world(
     if int(sim_mesh.num_cells) < 512:
         return _build_coarse_start_world(sim_mesh, seed, overrides)
     world = TectonicWorld(sim_mesh, seed, overrides=overrides)
-    found = _find_layout(sim_mesh, int(seed), world.config)
+    found = _find_layout(sim_mesh, int(seed), cast(InitialConfig, world.config))
     if found is None:
         # Upstream wording (assemble in init/start-world.js), kept verbatim.
         raise ValueError(

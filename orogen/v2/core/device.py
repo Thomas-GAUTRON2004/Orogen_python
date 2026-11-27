@@ -5,6 +5,8 @@ constant therefore follows the upstream Node/server behavior (False); callers
 that have browser capability data can use is_small_device explicitly.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 SMALL_DEVICE = False

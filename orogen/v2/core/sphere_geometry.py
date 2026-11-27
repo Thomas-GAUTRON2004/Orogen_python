@@ -1,5 +1,7 @@
 """Small spherical-geometry helpers ported from V2 sphere-geom.js."""
 
+# differential-module: js_module=sphere-geom.mjs params=a:vec3,b:vec3,at:vec3,point:vec3,source:vec3,target:vec3,xyz:coordinate_buffer,cells:cell_indices,cell_a:cell_index,cell_b:cell_index
+
 from __future__ import annotations
 
 import math
@@ -134,6 +136,8 @@ def cap_fraction(radius_rad: float) -> float:
     return (1 - math.cos(radius_rad)) / 2
 
 
+# Returns a closure, which the JSON replay protocol cannot serialize.
+# differential: skip
 def polar_frame(
     pole: Vector3, reference: Vector3
 ) -> Callable[[float, float, float], dict[str, float]]:
@@ -167,7 +171,9 @@ def polar_frame(
     return coordinates
 
 
-def cell_distance_km(xyz: Sequence[float], cell_a: int, cell_b: int) -> float:
+def cell_distance_km(
+    xyz: Sequence[float] | np.ndarray, cell_a: int, cell_b: int
+) -> float:
     a, b = 3 * cell_a, 3 * cell_b
     cosine = (
         float(xyz[a]) * float(xyz[b])

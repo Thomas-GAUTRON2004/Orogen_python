@@ -4,12 +4,16 @@ Constants and arithmetic are compatible with the upstream JavaScript files.
 Changing them changes generated worlds.
 """
 
+# differential-module: mode=exact
+
 from __future__ import annotations
 
 import math
 import re
 import secrets
 from collections.abc import Callable
+
+SeedInput = str | int | float | bool | None
 
 SEEDS = 2_147_483_646
 _RNG_MODULUS = 2_147_483_647
@@ -37,6 +41,8 @@ def _js_number(text: str) -> float | None:
     return None
 
 
+# Returns a callable, which the JSON replay protocol cannot serialize.
+# differential: skip
 def make_rng(seed: float | int = 0) -> Callable[[], float]:
     """Return the upstream Park–Miller generator for seed."""
     state = (abs(math.floor(seed * 9301 + 49297)) % 2_147_483_646) + 1
@@ -49,6 +55,8 @@ def make_rng(seed: float | int = 0) -> Callable[[], float]:
     return random
 
 
+# Returns a callable, which the JSON replay protocol cannot serialize.
+# differential: skip
 def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
     """Return a deterministic integer sampler in [0, n)."""
     random = make_rng(seed)
@@ -61,7 +69,7 @@ def make_rand_int(seed: float | int = 0) -> Callable[[int], int]:
     return rand_int
 
 
-def is_word_seed(text: object) -> bool:
+def is_word_seed(text: SeedInput) -> bool:
     """Determine whether a seed string is non-empty and not finite under JavaScript Number()."""
     value = "" if text is None else str(text)
     value = value.strip()
@@ -71,7 +79,7 @@ def is_word_seed(text: object) -> bool:
     return number is None or not math.isfinite(number)
 
 
-def seed_of(text: object) -> int | float:
+def seed_of(text: SeedInput) -> int | float:
     """Convert numeric text directly or hash words with upstream FNV-1a."""
     value = "" if text is None else str(text)
     value = value.strip()
@@ -85,6 +93,7 @@ def seed_of(text: object) -> int | float:
     return h % SEEDS
 
 
+# differential: skip
 def random_seed() -> int:
     """Return a seed in the supported range."""
     return secrets.randbelow(SEEDS)

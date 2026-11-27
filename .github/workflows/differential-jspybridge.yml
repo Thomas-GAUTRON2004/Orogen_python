@@ -1,0 +1,140 @@
+name: Differential tests (Node.js and JSPyBridge)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - ".github/workflows/differential-jspybridge.yml"
+      - "orogen/**"
+      - "tests/test_generated.py"
+      - "tests/crosshair_corpus.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tests/differential_support.py"
+      - "tests/corpus/**"
+      - "tests/jspybridge-loader.cjs"
+      - "tests/reference/v2/**"
+      - "tests/README.md"
+      - ".gitmodules"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: differential-jspybridge-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  differential:
+    name: Differential checks / Node 22 / JSPyBridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository and upstream reference
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project and focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+          python -m pip install "javascript==1!1.2.6"
+          python -m pip install "crosshair-tool==0.0.114"
+
+      - name: Restore CrossHair corpus
+        uses: actions/cache/restore@v4
+        id: crosshair-corpus
+        with:
+          path: tests/corpus
+          key: crosshair-corpus-${{ runner.os }}-${{ github.ref }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            crosshair-corpus-${{ runner.os }}-${{ github.ref }}-
+
+      - name: Generate or update CrossHair corpus
+        run: python tests/crosshair_corpus.py
+
+      - name: Save CrossHair corpus for the next CI run
+        uses: actions/cache/save@v4
+        with:
+          path: tests/corpus
+          key: ${{ steps.crosshair-corpus.outputs.cache-primary-key }}
+
+      - name: Run generated differential checks
+        run: |
+          python -m pytest --cov=orogen \
+              --cov-branch \
+              --cov-report=term-missing \
+              --cov-report=html:htmlcov \
+              tests/test_generated.py
+
+      - name: Commit generated CrossHair corpus
+        if: success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          corpus_backup="$(mktemp -d)"
+          cp -a tests/corpus/. "$corpus_backup/"
+          git clean -fd tests/corpus/
+          git reset --hard
+          git fetch origin "$TARGET_BRANCH"
+          git checkout -B "$TARGET_BRANCH" FETCH_HEAD
+          rm -rf tests/corpus
+          mkdir -p tests/corpus
+          cp -a "$corpus_backup"/. tests/corpus/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A tests/corpus/
+          if git diff --cached --quiet; then
+            echo "CrossHair corpus is already up to date."
+          else
+            git commit -m "test: update generated CrossHair corpus"
+            git push origin "$TARGET_BRANCH"
+          fi
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-coverage-html-${{ github.run_id }}
+          path: htmlcov/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload coverage site for GitHub Pages
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: htmlcov/
+
+  deploy-coverage:
+    name: Deploy coverage report to GitHub Pages
+    needs: differential
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy coverage report
+        id: deployment
+        uses: actions/deploy-pages@v4

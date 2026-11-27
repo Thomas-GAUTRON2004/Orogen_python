@@ -1,14 +1,16 @@
 """Piecewise-linear point location on a spherical mesh, ported from V2."""
 
-from __future__ import annotations
+# differential-module:
 
-from typing import Any
+from __future__ import annotations
 
 import numpy as np
 
+from .mesh_types import IndexedMeshGraph
+
 
 def locate(
-    mesh: Any,
+    mesh: IndexedMeshGraph,
     x: float,
     y: float,
     z: float,

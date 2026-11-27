@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import TypedDict
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM
 from .config import only_mechanisms
 from .dynamics import update_plate_motion
@@ -19,19 +20,38 @@ from .scenarios import (
     omega_for,
 )
 from .scene_support import begin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
-HAWAII: dict[str, Any] = {
+
+class HawaiiParameters(TypedDict):
+    plume: tuple[float, float]
+    speedCmYr: float
+    bendMyr: float
+    legs: tuple[float, float]
+
+
+class DeccanParameters(TypedDict):
+    plume: tuple[float, float]
+    speedCmYr: float
+    arrivesMyr: float
+
+
+HAWAII: HawaiiParameters = {
     "plume": (19.0, -155.0),
     "speedCmYr": 8.0,
     "bendMyr": 45.0,
     "legs": (0.0, -60.0),
 }
-DECCAN: dict[str, Any] = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesMyr": 12.0}
+DECCAN: DeccanParameters = {
+    "plume": (-30.0, 75.0),
+    "speedCmYr": 12.0,
+    "arrivesMyr": 12.0,
+}
 PLUMES_ONLY = only_mechanisms()
 
 
-def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _hawaii(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, _noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     pacifica = world.add_plate("Pacifica")
@@ -57,7 +77,7 @@ def _hawaii(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _deccan(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(PLUMES_ONLY)
     indica = world.add_plate("Indica")
@@ -84,7 +104,7 @@ def _deccan(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _history(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _history(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
@@ -102,7 +122,7 @@ def _drive_deccan(world: TectonicWorld) -> None:
     indica.omega = omega_for(point, heading(point, 0.0), DECCAN["speedCmYr"])
 
 
-HOTSPOT_SCENES: list[dict[str, Any]] = [
+HOTSPOT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "hawaii",
         "label": "A plate slides over a fixed plume",
@@ -142,14 +162,14 @@ HOTSPOT_SCENES: list[dict[str, Any]] = [
 
 
 def build_hotspot_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "hawaii"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "hawaii"
 ) -> TectonicWorld:
     """Build a named deterministic plume/hotspot scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in HOTSPOT_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in HOTSPOT_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in HOTSPOT_SCENES)
     raise ValueError(
         f"unknown hotspot scenario {scenario!r}; expected one of: {available}"
     )

@@ -3,32 +3,36 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Mapping
 
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .crust import CrustFlag, CrustType
 from .force_scenes import FORCE_SCENES
 from .kinematics import lat_lon_to_xyz
+from .plate import Plate
 from .scenarios import (
+    SceneCanvas,
     add_apron_and_trench,
     add_continent,
     fill_background,
     scene_terrane,
 )
 from .scene_support import add_ocean_corridor, begin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 
 def _add_arc_ridge(
-    canvas: dict[str, Any],
-    plate: Any,
+    canvas: SceneCanvas,
+    plate: Plate,
     first: list[float],
     second: list[float],
     distance_km: float,
     half_width_km: float,
-    config: dict[str, Any],
+    config: Mapping[str, int | float],
     terrane_id: int,
 ) -> None:
     """Paint an already-grown island arc as a narrow great-circle ridge."""
@@ -58,14 +62,14 @@ def _add_arc_ridge(
 
 
 def _add_arc_plate(
-    canvas: dict[str, Any],
-    plate: Any,
+    canvas: SceneCanvas,
+    plate: Plate,
     *,
     latitude: float,
     longitude: float,
     half_width_deg: float,
     depth_deg: float,
-    config: dict[str, Any],
+    config: Mapping[str, int | float],
 ) -> None:
     """Build an oceanic plate patch with a mature southern trench and an inland arc."""
     mesh = canvas["mesh"]
@@ -135,12 +139,12 @@ def _add_arc_plate(
             plate.crust.terrane[cell] = terrane_id
 
 
-def _wings(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _wings(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     definition = next(scene for scene in FORCE_SCENES if scene["id"] == "one-sided")
-    return definition["build"](sim_mesh, seed)
+    return build_from_catalogue(definition, sim_mesh, seed)
 
 
-def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _terrane(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     rider = world.add_plate("Rider")
@@ -167,7 +171,7 @@ def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _arc(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     austral = world.add_plate("Austral")
     oceanica = world.add_plate("Oceanica")
@@ -199,7 +203,7 @@ def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _arc_collision(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
@@ -249,7 +253,7 @@ def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-EVENT_SCENES: list[dict[str, Any]] = [
+EVENT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "wings",
         "label": "Trench wings & island arcs",
@@ -298,14 +302,14 @@ EVENT_SCENES: list[dict[str, Any]] = [
 
 
 def build_event_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "wings"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "wings"
 ) -> TectonicWorld:
     """Build a named deterministic event-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in EVENT_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in EVENT_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in EVENT_SCENES)
     raise ValueError(
         f"unknown event scenario {scenario!r}; expected one of: {available}"
     )

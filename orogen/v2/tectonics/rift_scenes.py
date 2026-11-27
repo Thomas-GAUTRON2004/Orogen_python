@@ -3,21 +3,30 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Mapping
 
+from ..core.sim_mesh import SimMesh
 from .config import mechanisms_off
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
-from .scenarios import add_apron_and_trench, add_continent, add_ocean, fill_background
+from .plate import Plate
+from .scenarios import (
+    SceneCanvas,
+    add_apron_and_trench,
+    add_continent,
+    add_ocean,
+    fill_background,
+)
 from .scene_support import begin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 
 def _share_basin(
-    canvas: dict[str, Any],
-    plates: list[Any],
+    canvas: SceneCanvas,
+    plates: list[Plate],
     centres: list[list[float]],
-    config: dict[str, Any],
+    config: Mapping[str, int | float],
 ) -> None:
     """Split a shared old-ocean basin between two plates along its midline."""
     separation = math.acos(
@@ -46,7 +55,7 @@ def _share_basin(
         add_ocean(canvas, plate, wanted, -float(config["basinOceanAgeMyr"]))
 
 
-def _plume(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _plume(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     pangaea = world.add_plate("Pangaea")
     pangaea.born = -float(world.config["riftTenureMyr"])
@@ -85,11 +94,11 @@ def _plume(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _breakup(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _breakup(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-def _founder(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _founder(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
@@ -133,7 +142,7 @@ def _founder(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-RIFT_SCENES: list[dict[str, Any]] = [
+RIFT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "plume",
         "label": "A plume splits a continent",
@@ -168,14 +177,14 @@ RIFT_SCENES: list[dict[str, Any]] = [
 
 
 def build_rift_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "plume"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "plume"
 ) -> TectonicWorld:
     """Build a named deterministic continental-rifting scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in RIFT_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in RIFT_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in RIFT_SCENES)
     raise ValueError(
         f"unknown rift scenario {scenario!r}; expected one of: {available}"
     )

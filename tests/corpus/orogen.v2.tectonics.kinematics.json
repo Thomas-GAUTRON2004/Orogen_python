@@ -1,0 +1,107 @@
+{
+  "module": "orogen.v2.tectonics.kinematics",
+  "generator": {
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "362b14f746955484f75e002a7664d78b0e34088239f558623fc08fa15a94f686",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/rotation.py",
+      "orogen/v2/tectonics/__init__.py",
+      "orogen/v2/tectonics/kinematics.py"
+    ]
+  },
+  "stats": {
+    "unique": 7,
+    "examples": 7,
+    "unsupported_calls": 0,
+    "unreadable_lines": 1
+  },
+  "entries": {
+    "advance_plates": [
+      {
+        "args": [
+          0,
+          0.0
+        ],
+        "raised": "AttributeError"
+      }
+    ],
+    "lat_lon_to_xyz": [
+      {
+        "args": [
+          0.0,
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "omega_from_euler_pole": [
+      {
+        "args": [
+          [
+            0.0
+          ],
+          0.0
+        ],
+        "raised": "IndexError"
+      },
+      {
+        "args": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "speed_cm_yr_at": [
+      {
+        "args": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "surface_velocity": [
+      {
+        "args": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          0.0,
+          0.0,
+          0.0,
+          0
+        ],
+        "raised": "TypeError"
+      }
+    ],
+    "xyz_to_lat_lon": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "raised": null
+      }
+    ]
+  }
+}

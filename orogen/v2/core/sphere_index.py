@@ -4,20 +4,22 @@ Port of v2/js/core/sphere-index.js. The index operates on unit-vector cell
 centres and CSR neighbour adjacency.
 """
 
+# differential-module:
+
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import numpy as np
 
 from ._numba_kernels import NUMBA_AVAILABLE, walk_numba
+from .mesh_types import AdjacencyGraph
 
 
 class SphereIndex:
     """Nearest-cell lookup on a spherical Delaunay mesh."""
 
-    def __init__(self, xyz: np.ndarray, mesh: Any, texels_per_cell: int = 2):
+    def __init__(self, xyz: np.ndarray, mesh: AdjacencyGraph, texels_per_cell: int = 2):
         self.xyz = np.asarray(xyz)
         self.adj_offset = np.asarray(mesh.adj_offset)
         self.adj_list = np.asarray(mesh.adj_list)

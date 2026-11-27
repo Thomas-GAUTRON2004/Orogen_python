@@ -1,14 +1,18 @@
 """Mutable tectonic-world state container ported from Orogen V2 model/world.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
 
 from ..core.seed import make_rng
+from ..core.sim_mesh import SimMesh
 from .config import make_tectonics_config
 from .crust import CrustType
+from .initial_types import ConfigValue
 from .plate import Plate
 
 EventKind = {
@@ -49,6 +53,105 @@ BoundaryKind = {
 Provisional = {"NO": 0, "NEWBORN": 1, "LIKE_NEIGHBOUR": 2}
 
 
+EventDataValue = str | int | float | bool | None | list[str] | list[int] | list[float]
+EventData = dict[str, EventDataValue]
+
+
+class HotspotLipRecord(TypedDict):
+    name: str
+    time: float
+    radiusKm: float
+    flows: int
+    cells: int
+    onLand: bool
+
+
+class PlumeRiftCause(TypedDict):
+    text: str
+    kind: str
+    hotspot: int
+
+
+class ScheduledPlumeRecord(TypedDict, total=False):
+    time: float
+    xyz: list[float]
+    plate: int
+    cell: int
+    done: bool
+    head: bool
+    rift: bool | str
+    name: str
+    lifeMyr: float
+    strength: float
+
+
+class HotspotRecord(TypedDict):
+    id: int
+    name: str
+    xyz: list[float]
+    bornAt: float
+    dieAt: float
+    alive: bool
+    lip: HotspotLipRecord | None
+    strength: float
+    pulseUntil: float | None
+    bursting: bool
+    pulseIntensity: float
+
+
+class PendingPlumeRift(TypedDict):
+    plate: int
+    xyz: list[float]
+    cell: int
+    cause: PlumeRiftCause
+
+
+class WorldEvent(TypedDict):
+    time: float
+    kind: str
+    text: str
+    data: EventData
+
+
+class CollisionRecord(TypedDict, total=False):
+    upper: int
+    lower: int
+    startedAt: float
+    lastActive: float
+    shorteningKm: float
+    frontKm: float
+    closingCmYr: float
+    meanRateCmYr: float
+    stalledMyr: float
+    contactMyr: float
+    cells: int
+    sutured: bool
+    announce: bool
+    underthrustDue: float
+    underthrustCells: int
+    frontMaxKm: float
+    sutureCandidate: bool
+    checkedAt: float
+    gapKm2: float
+    gapWidestKm: float
+    gapBestKm2: float
+    gapShrankAt: float
+    ringKm2: float
+    weldCandidate: bool
+    weldBlockedByRing: bool
+    mergeEligible: bool
+    ringLogged: bool
+    sutureReason: str
+
+
+class ArcScrapeRecord(TypedDict, total=False):
+    cells: int
+    since: float
+    donorName: str
+    last: float
+    logged: bool
+
+
 class TectonicWorld:
     """World-frame ownership and per-plate crust state at one simulation instant.
 
@@ -57,9 +160,9 @@ class TectonicWorld:
 
     def __init__(
         self,
-        sim_mesh,
+        sim_mesh: SimMesh,
         seed: int,
-        overrides: dict | None = None,
+        overrides: dict[str, ConfigValue] | None = None,
     ):
         # As upstream `new TectonicWorld(simMesh, seed, overrides)`: defaults
         # are always present and overrides replace top-level keys via object spread.
@@ -79,13 +182,13 @@ class TectonicWorld:
         self.rngCycle = make_rng((self.seed ^ 0xC1C1) & 0xFFFFFFFF)
 
         n = int(sim_mesh.num_cells)
-        self.hotspots: list[dict[str, Any]] = []
+        self.hotspots: list[HotspotRecord] = []
         self.mantleHeat = np.zeros(n, dtype=np.float32)
         self.hotspotsReady = False
         self.cycle = None
-        self.pendingPlumeRifts: list[dict[str, Any]] = []
+        self.pendingPlumeRifts: list[PendingPlumeRift] = []
         self.lastRiftAt = None
-        self.plumes: list[dict[str, Any]] = []
+        self.plumes: list[ScheduledPlumeRecord] = []
         self.terraneLetters: dict[int, str] | None = None
         self.time = 0.0
         self.step = 0
@@ -114,9 +217,9 @@ class TectonicWorld:
             "underthrustCells": 0,
             "recycledCells": 0,
         }
-        self.events: list[dict[str, Any]] = []
-        self.collisions: dict[Any, Any] = {}
-        self.arcScrapes: dict[Any, Any] = {}
+        self.events: list[WorldEvent] = []
+        self.collisions: dict[str, CollisionRecord] = {}
+        self.arcScrapes: dict[str, ArcScrapeRecord] = {}
         self.lastTerraneId = 0
         self.erosionNoise = None
         self.erosionThreshold = 0.0
@@ -154,7 +257,7 @@ class TectonicWorld:
                     held.add(letter)
         return "".join(sorted(held)) if held else fallback
 
-    def log(self, kind: str, text: str, data: dict | None = None) -> None:
+    def log(self, kind: str, text: str, data: EventData | None = None) -> None:
         if kind not in _EVENT_KINDS:
             raise ValueError(f"unknown event kind: {kind}")
         self.events.append(

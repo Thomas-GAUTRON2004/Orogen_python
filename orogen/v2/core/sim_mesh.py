@@ -1,5 +1,7 @@
 """Fixed-resolution simulation mesh helpers from V2 sim-mesh.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -79,6 +81,8 @@ def mesh_from_arrays(
     )
 
 
+# Returns a mesh object, which the JSON replay protocol cannot serialize.
+# differential: skip
 def build_sim_mesh(num_cells: int, seed: int) -> SimMesh:
     """Build the deterministic V2 simulation mesh from a seed."""
     if num_cells < 3:

@@ -1,0 +1,36 @@
+{
+  "module": "orogen.v2.tectonics.world",
+  "generator": {
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "0c3aee050b0563e6f3b756883782c3a7a2f60e8744e5dc0b8d06d2c3b6ee6031",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/core/__init__.py",
+      "orogen/v2/core/_numba_kernels.py",
+      "orogen/v2/core/mesh_types.py",
+      "orogen/v2/core/rotation.py",
+      "orogen/v2/core/seed.py",
+      "orogen/v2/core/sim_mesh.py",
+      "orogen/v2/core/sphere_geometry.py",
+      "orogen/v2/core/sphere_index.py",
+      "orogen/v2/core/sphere_mesh.py",
+      "orogen/v2/tectonics/__init__.py",
+      "orogen/v2/tectonics/config.py",
+      "orogen/v2/tectonics/crust.py",
+      "orogen/v2/tectonics/initial_types.py",
+      "orogen/v2/tectonics/plate.py",
+      "orogen/v2/tectonics/world.py"
+    ]
+  },
+  "stats": {
+    "unique": 0,
+    "examples": 0,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
+  },
+  "entries": {}
+}

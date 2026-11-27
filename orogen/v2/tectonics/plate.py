@@ -1,14 +1,45 @@
 """Rigid tectonic plate model ported from Orogen V2 model/plate.js."""
 
+# differential-module: params=quaternion:quaternion
+
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
 
 from ..core.rotation import quat_identity, quat_to_mat3
+from ..core.sim_mesh import SimMesh
+from ..core.sphere_index import SphereIndex
 from .crust import CrustRaster, CrustType
+
+
+class PlateDefinition(TypedDict):
+    name: str
+    centre: tuple[float, float]
+    poleOffsetDeg: float
+    speedCmYr: float
+    note: str
+
+
+class PlateMotion(TypedDict):
+    pole: list[float]
+    speedCmYr: float
+    note: str
+
+
+PlateSceneState = TypedDict(
+    "PlateSceneState",
+    {
+        "q0": list[float],
+        "def": PlateDefinition,
+        "centre": list[float],
+        "pole": list[float],
+        "motion": PlateMotion,
+    },
+    total=False,
+)
 
 
 class Plate:
@@ -17,7 +48,7 @@ class Plate:
     def __init__(self, plate_id: int, num_cells: int, born: float = 0.0):
         self.id = int(plate_id)
         self.name = str(plate_id)
-        self.scene: dict[str, Any] = {}
+        self.scene: PlateSceneState = {}
         self.alive = True
         self.born = float(born)
         self.bornOfRift = False
@@ -35,8 +66,8 @@ class Plate:
         self.bins = None
         self.dynamics = None
         self.wingBudgetKm = 0.0
-        self.wings: dict[object, object] = {}
-        self.arcTerraneId = None
+        self.wings: dict[str, list[int]] = {}
+        self.arcTerraneId: int | None = None
         self.marginIsleTerrane = None
         self.riftPartner = -1
         self.oceanSplitWith = -1
@@ -51,7 +82,9 @@ class Plate:
         self.lastBackArcAt = -math.inf
         self.isOceanBorn = False
 
-    def set_quat(self, quaternion) -> None:
+    def set_quat(
+        self, quaternion: list[float] | tuple[float, float, float, float]
+    ) -> None:
         self.quat = list(quaternion)
         self.mat = np.asarray(quat_to_mat3(self.quat), dtype=np.float64).reshape(3, 3)
 
@@ -61,11 +94,11 @@ class Plate:
     def to_plate_frame(self, x: float, y: float, z: float) -> np.ndarray:
         return self.mat.T @ np.asarray([x, y, z], dtype=np.float64)
 
-    def cell_at(self, index, x: float, y: float, z: float) -> int:
+    def cell_at(self, index: SphereIndex, x: float, y: float, z: float) -> int:
         local = self.to_plate_frame(x, y, z)
         return int(index.nearest(*map(float, local)))
 
-    def cap_in_world(self, mesh) -> list[float]:
+    def cap_in_world(self, mesh: SimMesh) -> list[float]:
         centre = self.to_world(*self.capCenter)
         radius = math.acos(max(-1.0, min(1.0, self.capCos))) + 2 * mesh.edge_rad
         cap_cos = -2.0 if radius >= math.pi else math.cos(radius)
@@ -75,7 +108,7 @@ class Plate:
         self.reshaped = True
         self.dirty = True
 
-    def refresh_extent(self, xyz) -> None:
+    def refresh_extent(self, xyz: np.ndarray) -> None:
         points = np.asarray(xyz, dtype=np.float64).reshape(-1, 3)
         mask = self.crust.mask.astype(bool)
         cells = np.flatnonzero(mask)

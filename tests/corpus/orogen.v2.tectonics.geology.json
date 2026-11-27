@@ -1,0 +1,184 @@
+{
+  "module": "orogen.v2.tectonics.geology",
+  "generator": {
+    "tool": "crosshair",
+    "version": "0.0.114",
+    "per_condition_timeout_s": 5,
+    "output_format": "arg_dictionary",
+    "input_sha256": "3b324809df46b4cc75d6a0b5c8aede1b7678052a6416815f83d9f06b8c5684ca",
+    "inputs": [
+      "orogen/__init__.py",
+      "orogen/v2/__init__.py",
+      "orogen/v2/tectonics/__init__.py",
+      "orogen/v2/tectonics/geology.py"
+    ]
+  },
+  "stats": {
+    "unique": 19,
+    "examples": 19,
+    "unsupported_calls": 0,
+    "unreadable_lines": 0
+  },
+  "entries": {
+    "decode_age": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_arc_myr": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_cover_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_exhum_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_facies": [
+      {
+        "args": [
+          0,
+          null
+        ],
+        "raised": null
+      }
+    ],
+    "decode_flood_age": [
+      {
+        "args": [
+          -1
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_flood_myr": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "decode_unroof_km": [
+      {
+        "args": [
+          0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_age": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_arc_myr": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_cover_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_exhum_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_facies": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_flood_age": [
+      {
+        "args": [
+          0.0,
+          0.0,
+          true
+        ],
+        "raised": null
+      },
+      {
+        "args": [
+          0.0,
+          0.0,
+          false
+        ],
+        "raised": null
+      }
+    ],
+    "encode_flood_myr": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "encode_unroof_km": [
+      {
+        "args": [
+          0.0
+        ],
+        "raised": null
+      }
+    ],
+    "thicken_cover": [
+      {
+        "args": [
+          0,
+          0,
+          0.0,
+          0.0,
+          {}
+        ],
+        "raised": "AttributeError"
+      }
+    ]
+  }
+}

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from types import MappingProxyType
-from typing import Any
+from typing import cast
 
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .budget_scenes import BUDGET_SCENES
 from .config import mechanisms_on, only_mechanisms
@@ -25,6 +26,11 @@ from .scenarios import (
 )
 from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
+from .scene_types import (
+    CompleteSceneDefinition,
+    SceneOverrideValue,
+    build_from_catalogue,
+)
 from .world import TectonicWorld
 
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
@@ -32,10 +38,12 @@ WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMy
 
 def flagged(
     flag: int,
-) -> Callable[[Mapping[str, Any], Any], tuple[float, float] | None]:
+) -> Callable[[Mapping[str, np.ndarray], SimMesh], tuple[float, float] | None]:
     """Return a focus callback for the centroid of land carrying a crust flag."""
 
-    def focus(frame: Mapping[str, Any], sim_mesh: Any) -> tuple[float, float] | None:
+    def focus(
+        frame: Mapping[str, np.ndarray], sim_mesh: SimMesh
+    ) -> tuple[float, float] | None:
         owner = np.asarray(frame["owner"])
         cell_type = np.asarray(frame["type"])
         flags = np.asarray(frame["flags"])
@@ -58,13 +66,17 @@ def flagged(
 
 
 def _from_catalogue(
-    catalogue: list[dict[str, Any]], scene_id: str, **overrides: Any
-) -> dict[str, Any]:
+    catalogue: Sequence[CompleteSceneDefinition],
+    scene_id: str,
+    **overrides: SceneOverrideValue,
+) -> CompleteSceneDefinition:
     scene = next(item for item in catalogue if item["id"] == scene_id)
-    return {**scene, "drive": update_plate_motion, **overrides}
+    return cast(
+        CompleteSceneDefinition, {**scene, "drive": update_plate_motion, **overrides}
+    )
 
 
-def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_cratons(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
@@ -99,7 +111,7 @@ def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_farfield(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
@@ -194,7 +206,7 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _build_traps(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_traps(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = next(scene for scene in HOTSPOT_SCENES if scene["id"] == "deccan")["build"](
         sim_mesh, seed
     )
@@ -209,16 +221,16 @@ def _drive_traps(world: TectonicWorld) -> None:
     india.omega = omega_for(point, heading(point, 0.0), 1.5)
 
 
-def _whole_planet(scene: dict[str, Any]) -> dict[str, Any]:
-    def build(sim_mesh: Any, seed: int) -> TectonicWorld:
-        world = scene["build"](sim_mesh, seed)
+def _whole_planet(scene: CompleteSceneDefinition) -> CompleteSceneDefinition:
+    def build(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
+        world = build_from_catalogue(scene, sim_mesh, seed)
         world.config.update(WHOLE_PLANET_PACE)
         return world
 
-    return {**scene, "build": build}
+    return cast(CompleteSceneDefinition, {**scene, "build": build})
 
 
-TERRAIN_SCENES: list[dict[str, Any]] = [
+TERRAIN_SCENES: list[CompleteSceneDefinition] = [
     _from_catalogue(
         MARGIN_SCENES,
         "margins",
@@ -334,14 +346,14 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
 
 
 def build_terrain_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "andes"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "andes"
 ) -> TectonicWorld:
     """Build a named deterministic terrain scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in TERRAIN_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in TERRAIN_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in TERRAIN_SCENES)
     raise ValueError(
         f"unknown terrain scenario {scenario!r}; expected one of: {available}"
     )

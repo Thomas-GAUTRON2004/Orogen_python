@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any
 
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from .config import only_mechanisms
 from .crust import CrustType
 from .dynamics import update_plate_motion
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
+from .plate import Plate
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -23,6 +25,8 @@ from .scenarios import (
 )
 from .scene_constants import ARC_TERRANE_ID, MARIANA_ARC_WIDTH_KM
 from .scene_support import begin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
+from .world import TectonicWorld
 
 ROLLBACK_ONLY = MappingProxyType(
     {
@@ -36,7 +40,7 @@ LARAMIDE = MappingProxyType({"speedCmYr": 5.0, "trenchLon": -118.0})
 
 
 def _set_motion(
-    world: Any,
+    world: TectonicWorld,
     name: str,
     point: list[float],
     bearing_deg: float,
@@ -50,7 +54,9 @@ def _set_motion(
         plate.omega = omega_for(point, heading(point, bearing_deg), speed_cm_yr)
 
 
-def _arm_against(mesh: Any, plate: Any, other: Any, config: dict) -> list[int]:
+def _arm_against(
+    mesh: SimMesh, plate: Plate, other: Plate, config: Mapping[str, int | float]
+) -> list[int]:
     """Arm a mature trench along every cell of one plate touching another."""
     trench: list[int] = []
     for cell in range(int(mesh.num_cells)):
@@ -67,11 +73,11 @@ def _arm_against(mesh: Any, plate: Any, other: Any, config: dict) -> list[int]:
 
 
 def _arm_facing(
-    mesh: Any,
-    plate: Any,
+    mesh: SimMesh,
+    plate: Plate,
     centre: list[float],
     bearing_deg: float,
-    config: dict,
+    config: Mapping[str, int | float],
 ) -> None:
     """Arm cells on a plate rim whose outward normal faces a compass sector."""
     xyz = np.asarray(mesh.xyz, dtype=np.float64).reshape((-1, 3))
@@ -97,7 +103,7 @@ def _arm_facing(
             plate.crust.arm_trench(cell, float(config["slabMatureKm"]))
 
 
-def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
+def _arc_behind(mesh: SimMesh, plate: Plate, trench: list[int], hops: int) -> None:
     """Paint only the ring exactly hops cells inland of the trench."""
     seen = set(trench)
     ring = list(trench)
@@ -117,7 +123,7 @@ def _arc_behind(mesh: Any, plate: Any, trench: list[int], hops: int) -> None:
     plate.arcTerraneId = ARC_TERRANE_ID
 
 
-def _margins(sim_mesh: Any, seed: int):
+def _margins(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     drift = world.add_plate("Driftia")
@@ -136,7 +142,7 @@ def _margins(sim_mesh: Any, seed: int):
     return world
 
 
-def _laramide(sim_mesh: Any, seed: int):
+def _laramide(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(QUIET)
     laurentia = world.add_plate("Laurentia")
@@ -165,7 +171,7 @@ def _laramide(sim_mesh: Any, seed: int):
     return world
 
 
-def _mariana(sim_mesh: Any, seed: int):
+def _mariana(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
@@ -213,19 +219,19 @@ def _mariana(sim_mesh: Any, seed: int):
     return world
 
 
-def _drive_mariana(world: Any) -> None:
+def _drive_mariana(world: TectonicWorld) -> None:
     point = lat_lon_to_xyz(15.0, 150.0)
     _set_motion(world, "Philippina", point, -90.0, 3.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)
 
 
-def _drive_japan(world: Any) -> None:
+def _drive_japan(world: TectonicWorld) -> None:
     point = lat_lon_to_xyz(35.0, 140.0)
     _set_motion(world, "Asiana", point, 90.0, 1.0)
     _set_motion(world, "Pacifica", point, -90.0, 8.0)
 
 
-def _japan(sim_mesh: Any, seed: int):
+def _japan(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     world.config.update(ROLLBACK_ONLY)
     asiana = world.add_plate("Asiana")
@@ -255,12 +261,12 @@ def _japan(sim_mesh: Any, seed: int):
     return world
 
 
-def _history(sim_mesh: Any, seed: int):
+def _history(sim_mesh: SimMesh, seed: int):
     """Build a fresh mutable history world; sharing cached worlds is unsafe."""
     return build_start_world(sim_mesh, seed)["world"]
 
 
-MARGIN_SCENES: list[dict[str, Any]] = [
+MARGIN_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "margins",
         "label": "A continent’s leading and trailing coasts",
@@ -323,13 +329,13 @@ MARGIN_SCENES: list[dict[str, Any]] = [
 ]
 
 
-def build_margin_scene(sim_mesh: Any, seed: int = 0, scenario: str = "margins"):
+def build_margin_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "margins"):
     """Build a named deterministic margin-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in MARGIN_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in MARGIN_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in MARGIN_SCENES)
     raise ValueError(
         f"unknown margin scenario {scenario!r}; expected one of: {available}"
     )

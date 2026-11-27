@@ -15,13 +15,14 @@ Every noise field here uses ``SimplexNoise`` as upstream does.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
-from typing import Any, cast
+from collections.abc import Callable, Sequence
+from typing import TypedDict, cast
 
 import numpy as np
 
 from ..core.mesh_bfs import touches
 from ..core.rotation import quat_identity
+from ..core.sim_mesh import SimMesh
 from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     angle_between,
@@ -32,19 +33,20 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustFlag, CrustType
-from .initial_world import build_start_world, plate_outline_with_apron
+from .initial_world import StartWorldResult, build_start_world, plate_outline_with_apron
 from .kinematics import (
     lat_lon_to_xyz,
     omega_from_euler_pole,
     pose_at_constant_omega,
 )
+from .plate import Plate
 from .world import TectonicWorld
 
 # Retain the scenario-module hook used by downstream fixtures and extensions.
 _plate_outline_with_apron = plate_outline_with_apron
 
 
-def _xyz(sim_mesh: Any) -> np.ndarray:
+def _xyz(sim_mesh: SimMesh) -> np.ndarray:
     values = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     if values.shape[0] != int(sim_mesh.num_cells):
         raise ValueError("mesh xyz does not match num_cells")
@@ -86,7 +88,43 @@ def omega_for(
     return omega_from_euler_pole(pole, speed_cm_yr)
 
 
-def scene_canvas(sim_mesh: Any, config: dict) -> dict[str, Any]:
+class RigidPlateSpec(TypedDict):
+    name: str
+    centre: tuple[float, float]
+    poleOffsetDeg: float
+    speedCmYr: float
+    note: str
+
+
+class NudgeSceneResult(StartWorldResult):
+    drive: Callable[[TectonicWorld], None]
+    heading: list[float]
+    pole: list[float]
+
+
+class SceneCanvas(TypedDict):
+    """Mutable cell-ownership state shared by hand-built scene builders."""
+
+    mesh: SimMesh
+    taken: np.ndarray
+    landAgeMyr: float
+    lastTerrane: int
+
+
+class SceneMask(TypedDict):
+    """Centre and cell mask shared by continent-shaped scene regions."""
+
+    centre: list[float]
+    isLand: np.ndarray
+
+
+class SceneContinent(SceneMask):
+    """Geometry and terrane id returned by :func:`add_continent`."""
+
+    terrane: int
+
+
+def scene_canvas(sim_mesh: SimMesh, config: dict) -> SceneCanvas:
     """Create the cell-ownership canvas used by hand-built tectonic scenes."""
     return {
         "mesh": sim_mesh,
@@ -96,7 +134,7 @@ def scene_canvas(sim_mesh: Any, config: dict) -> dict[str, Any]:
     }
 
 
-def scene_terrane(canvas: dict[str, Any]) -> int:
+def scene_terrane(canvas: SceneCanvas) -> int:
     """Allocate a terrane identifier unique within a hand-built scene."""
     canvas["lastTerrane"] = int(canvas["lastTerrane"]) + 1
     return int(canvas["lastTerrane"])
@@ -117,15 +155,15 @@ def _in_sectors(azimuth: float, sectors: str | Sequence[Sequence[float]]) -> boo
 
 
 def add_continent(
-    canvas: dict[str, Any],
+    canvas: SceneCanvas,
     noise: SimplexNoise,
     *,
-    plate: Any,
+    plate: Plate,
     centre: tuple[float, float] | list[float],
     radius_km: float,
     craton_km: float | None = None,
     wobble: float = 0.22,
-) -> dict[str, Any]:
+) -> SceneContinent:
     """Paint a noise-shaped continent and its central craton onto a scene plate."""
     if not math.isfinite(radius_km) or radius_km <= 0.0:
         raise ValueError("radius_km must be finite and positive")
@@ -166,9 +204,9 @@ def add_continent(
 
 
 def add_apron_and_trench(
-    canvas: dict[str, Any],
-    plate: Any,
-    continent: dict[str, Any],
+    canvas: SceneCanvas,
+    plate: Plate,
+    continent: SceneMask,
     sectors: str | Sequence[Sequence[float]],
     config: dict,
 ) -> None:
@@ -200,8 +238,8 @@ def add_apron_and_trench(
 
 
 def flag_coast_trench(
-    sim_mesh: Any,
-    plate: Any,
+    sim_mesh: SimMesh,
+    plate: Plate,
     centre_xyz: list[float] | np.ndarray,
     sectors: str | Sequence[Sequence[float]],
     config: dict,
@@ -224,9 +262,9 @@ def flag_coast_trench(
 
 
 def add_ocean(
-    canvas: dict[str, Any],
-    plate: Any,
-    wanted: Any,
+    canvas: SceneCanvas,
+    plate: Plate,
+    wanted: Callable[[float, float, float], bool],
     formed_at: float,
 ) -> None:
     """Attach available ocean cells selected by a world-coordinate predicate."""
@@ -243,7 +281,7 @@ def add_ocean(
         taken[cell] = 1
 
 
-def fill_background(canvas: dict[str, Any], world: TectonicWorld, config: dict):
+def fill_background(canvas: SceneCanvas, world: TectonicWorld, config: dict):
     """Fill every unclaimed scene cell with the passive pre-history ocean."""
     mesh = canvas["mesh"]
     ocean = world.add_plate("Pre-history ocean")
@@ -275,7 +313,7 @@ WEST_REVERSES_MYR = 100.0
 NUDGE_MAX_MYR = 60.0
 NUDGE_CM_YR = 2.0
 
-_RIGID_PLATES: tuple[dict[str, Any], ...] = (
+_RIGID_PLATES: tuple[RigidPlateSpec, ...] = (
     {
         "name": "Drifter",
         "centre": (20.0, -60.0),
@@ -305,7 +343,7 @@ _RIGID_PLATES: tuple[dict[str, Any], ...] = (
         "note": "stationary reference continent",
     },
 )
-_RIGID_OCEAN: dict[str, Any] = {
+_RIGID_OCEAN: RigidPlateSpec = {
     "name": "Pre-history ocean",
     "centre": (90.0, 0.0),
     "poleOffsetDeg": 90.0,
@@ -333,7 +371,7 @@ def _pole_for(centre: list[float], offset_deg: float) -> list[float]:
     )
 
 
-def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
+def build_rigid_drift_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     """Build four continent-only plates with prescribed Euler-pole motion."""
     world = TectonicWorld(sim_mesh, seed)
     noise = SimplexNoise(seed)
@@ -347,7 +385,7 @@ def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
         plate = world.add_plate(str(definition["name"]))
         plate.scene = {
             "q0": quat_identity(),
-            "def": dict(definition),
+            "def": definition,
             "centre": centre,
             "pole": _pole_for(centre, float(definition["poleOffsetDeg"])),
         }
@@ -358,7 +396,7 @@ def build_rigid_drift_world(sim_mesh: Any, seed: int) -> TectonicWorld:
     ocean = world.add_plate(str(_RIGID_OCEAN["name"]))
     ocean.scene = {
         "q0": quat_identity(),
-        "def": dict(_RIGID_OCEAN),
+        "def": _RIGID_OCEAN,
         "centre": lat_lon_to_xyz(*_RIGID_OCEAN["centre"]),
         "pole": lat_lon_to_xyz(*_RIGID_OCEAN["centre"]),
     }
@@ -403,7 +441,7 @@ def set_rigid_drift_time(world: TectonicWorld, time_myr: float) -> None:
 
 
 def build_wilson_world(
-    sim_mesh: Any,
+    sim_mesh: SimMesh,
     seed: int,
     *,
     far_centre: tuple[float, float] = _WILSON_FAR_CENTRE,
@@ -492,8 +530,8 @@ def drive_wilson(world: TectonicWorld) -> None:
 
 
 def build_nudge_scene(
-    sim_mesh: Any, seed: int, overrides: dict | None = None
-) -> dict[str, Any]:
+    sim_mesh: SimMesh, seed: int, overrides: dict | None = None
+) -> NudgeSceneResult:
     """Build the generated start world and prescribe a short whole-continent drift."""
     result = build_start_world(sim_mesh, seed, overrides)
     world, start = result["world"], result["start"]
@@ -515,7 +553,13 @@ def build_nudge_scene(
         continent.omega = omega_from_euler_pole(pole, NUDGE_CM_YR)
         _ = current_world
 
-    return {**result, "drive": drive, "heading": heading, "pole": pole}
+    scene: NudgeSceneResult = {
+        **result,
+        "drive": drive,
+        "heading": heading,
+        "pole": pole,
+    }
+    return scene
 
 
 # Public camel-case names used by upstream scenario callers.

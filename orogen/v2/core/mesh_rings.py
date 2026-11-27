@@ -1,19 +1,34 @@
 """Precomputed concentric mesh neighbourhoods from V2 mesh-rings.js."""
 
+# differential-module:
+
 from __future__ import annotations
 
-from typing import Any
+from typing import Protocol, TypedDict, cast
 
 import numpy as np
+
+from .mesh_types import MeshGraph
+
+
+class _RingCache(Protocol):
+    _rings: MeshRings | None
+
+
+class MeshRings(TypedDict):
+    start: np.ndarray
+    cells: np.ndarray
+    stride: int
+
 
 RING_COUNT = 3
 
 
-def rings_of(mesh: Any) -> dict[str, Any]:
+def rings_of(mesh: MeshGraph) -> MeshRings:
     """Build and cache breadth-first rings 0..RING_COUNT for every cell."""
     cached = getattr(mesh, "_rings", None)
     if cached is not None:
-        return cached
+        return cast(MeshRings, cached)
 
     num_cells = int(mesh.num_cells)
     offsets, adjacency = mesh.adj_offset, mesh.adj_list
@@ -52,10 +67,10 @@ def rings_of(mesh: Any) -> dict[str, Any]:
             ring, next_ring = next_ring, ring
         start[cell * stride + RING_COUNT + 1] = count
 
-    result = {
+    result: MeshRings = {
         "start": start,
         "cells": cells[:count],
         "stride": stride,
     }
-    mesh._rings = result
+    cast(_RingCache, mesh)._rings = result
     return result

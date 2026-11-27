@@ -6,7 +6,7 @@ Execution of queued plume-triggered rifts remains a later tectonic stage.
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
 
@@ -20,7 +20,19 @@ from .thermal import (
     plume_heat_factor,
     update_mantle_heat,
 )
-from .world import EventKind
+from .world import EventKind, HotspotRecord
+
+
+class PlumeFlow(TypedDict):
+    f1: list[float]
+    f2: list[float]
+    w: float
+    aspect: float
+    cos: float
+    sin: float
+    a: float
+    b: float
+
 
 _ONSETS = (
     "K",
@@ -107,7 +119,7 @@ def birth_plume(
     life_myr: float | None = None,
     strength: float | None = None,
     born_at: float | None = None,
-) -> dict:
+) -> HotspotRecord:
     """Register a mantle-frame plume, erupt its head LIP, and optionally queue a rift.
 
     Active plume tails stamp tracks and pulse-built edifices; queued rift execution
@@ -137,7 +149,7 @@ def birth_plume(
         life = float(life_myr)
     plume_strength = 0.6 + 0.8 * float(rng()) if strength is None else float(strength)
     hotspot_id = len(world.hotspots)
-    plume = {
+    plume: HotspotRecord = {
         "id": hotspot_id,
         "name": plume_name,
         "xyz": position.tolist(),
@@ -309,7 +321,7 @@ def update_plumes(world, dt: float) -> dict:
     }
 
 
-def _erupt_lip(world, plume: dict, anchor: int) -> None:
+def _erupt_lip(world, plume: HotspotRecord, anchor: int) -> None:
     """Rasterize a plume-head flood-basalt province from upstream hotspots.js."""
     config, mesh = world.config, world.mesh
     owner, owner_cell = world.owner, world.ownerCell
@@ -344,7 +356,7 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
     axis = float(rs()) * math.pi
     basis1, basis2 = tangent_basis(tuple(map(float, centre)))
     flow_count = 1 + math.floor(float(rs()) * float(rs()) * 4.0)
-    flows: list[dict[str, Any]] = []
+    flows: list[PlumeFlow] = []
     total_weight = 0.0
     for i in range(flow_count):
         weight = 1.0 if i == 0 else 0.25 + 0.6 * float(rs())
@@ -381,6 +393,8 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
                 "aspect": aspect_a,
                 "cos": math.cos(turn),
                 "sin": math.sin(turn),
+                "a": 0.0,
+                "b": 0.0,
             }
         )
         total_weight += weight
@@ -514,7 +528,7 @@ def _erupt_lip(world, plume: dict, anchor: int) -> None:
     )
 
 
-def _erupted_during(world, plume: dict, start: float, end: float) -> float:
+def _erupted_during(world, plume: HotspotRecord, start: float, end: float) -> float:
     """Integrate plume burst intensity over a simulation interval."""
     config = world.config
     rng = world.rngVolcano
@@ -525,6 +539,8 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
         plume["bursting"] = False
         plume["pulseUntil"] = start + float(rng()) * float(config["hotspotQuietMaxMyr"])
 
+    if plume["pulseUntil"] is None:
+        raise RuntimeError("plume pulse deadline was not initialized")
     total = 0.0
     time = start
     while time < end:
@@ -561,7 +577,7 @@ def _erupted_during(world, plume: dict, start: float, end: float) -> float:
     return total
 
 
-def _stamp_track(world, plume: dict, dt: float) -> None:
+def _stamp_track(world, plume: HotspotRecord, dt: float) -> None:
     """Stamp the plume's moving tail on the plate currently passing above it."""
     config, mesh = world.config, world.mesh
     owner, provisional = world.owner, world.provisional

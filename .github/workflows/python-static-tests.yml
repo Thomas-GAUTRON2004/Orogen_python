@@ -1,0 +1,211 @@
+name: Static quality and focused regression checks
+
+on:
+  push:
+    branches:
+      - main
+      - "port/**"
+      - "feat/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Static checks / Python 3.12
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: latest
+
+      - name: Verify dependency lockfile
+        run: uv lock --check
+
+      - name: Show toolchain versions
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install project quality dependencies
+        run: python -m pip install -e ".[test,quality]"
+
+      - name: Verify installed dependencies
+        run: python -m pip check
+
+      - name: Pin Ruff to the lockfile and pre-commit version
+        run: python -m pip install "ruff==0.17.5"
+
+      - name: Measure mypy baseline
+        run: |
+          python -m mypy --no-error-summary --show-error-codes orogen > "$RUNNER_TEMP/mypy-current.txt" 2>&1 || true
+          python - "$RUNNER_TEMP/mypy-current.txt" <<'PY'
+          import pathlib
+          import sys
+
+          lines = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+          errors = [line for line in lines if ": error:" in line]
+          print(f"Current mypy error count: {len(errors)}")
+          print("\n".join(errors))
+          PY
+
+      - name: Scan Python package with Bandit
+        run: bandit -q -r orogen
+
+      - name: Report Any annotations in the Python package
+        run: |
+          set +e
+          python scripts/find_any_types.py orogen
+          scan_status=$?
+          set -e
+          if [ "$scan_status" -gt 1 ]; then
+            exit "$scan_status"
+          fi
+          if [ "$scan_status" -eq 1 ]; then
+            echo "::notice title=Existing Any annotations::Any annotations are reported above. This is currently informational while legacy annotations are being typed."
+          else
+            echo "No Any annotations found."
+          fi
+
+      - name: Scan repository for leaked secrets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          version="8.24.3"
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
+          report="$RUNNER_TEMP/gitleaks-report.json"
+          set +e
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$(git merge-base "$BASE_SHA" HEAD)"
+            "$RUNNER_TEMP/gitleaks" git --redact --report-format json \
+              --report-path "$report" --exit-code 2 \
+              --log-opts="--all ${base}..HEAD" .
+          else
+            "$RUNNER_TEMP/gitleaks" dir --redact --report-format json \
+              --report-path "$report" --exit-code 2 .
+          fi
+          scan_status=$?
+          set -e
+          if [ -s "$report" ]; then
+            python - "$report" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as report_file:
+              findings = json.load(report_file)
+
+          for finding in findings:
+              print(
+                  "::error title=Gitleaks finding::"
+                  f"rule={finding.get('RuleID')} "
+                  f"file={finding.get('File')} "
+                  f"line={finding.get('StartLine')} "
+                  f"commit={finding.get('Commit')} "
+                  f"columns={finding.get('StartColumn')}-{finding.get('EndColumn')} "
+                  f"fingerprint={finding.get('Fingerprint')} "
+                  f"match={finding.get('Match')}"
+                  f"description={finding.get('Description')}"
+              )
+          PY
+          fi
+          exit "$scan_status"
+
+      - name: Lint all Python files with Ruff
+        run: |
+          python -m ruff check .
+          python -m ruff format --check scripts/check_mypy_regressions.py scripts/find_any_types.py
+          python -m ruff format --check orogen scripts tests
+
+      - name: Report current mypy diagnostics
+        run: |
+          python -m mypy --no-error-summary --show-error-codes orogen > "$RUNNER_TEMP/mypy-current.txt" 2>&1 || true
+          python - "$RUNNER_TEMP/mypy-current.txt" <<'PY'
+          import pathlib
+          import sys
+
+          diagnostics = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+          errors = [line for line in diagnostics if ": error:" in line]
+          print(f"Current mypy error count: {len(errors)}")
+          print("\n".join(errors))
+          PY
+
+      - name: Check complexity of newly added Python files
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # Push runs validate the full pushed range; PR runs independently
+            # check only the latest head commit, so legacy complexity is not
+            # re-audited on every pull-request synchronization.
+            parent_sha="$(git rev-parse "$PR_HEAD_SHA^")"
+            new_python_files="$(git diff --name-only --diff-filter=A "$parent_sha" "$PR_HEAD_SHA" -- '*.py')"
+          else
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="HEAD~1"
+            fi
+            new_python_files="$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '*.py')"
+          fi
+          if [ -n "$new_python_files" ]; then
+            xenon --max-absolute C $new_python_files
+          else
+            echo "No newly added Python files in this update; complexity gate not applicable."
+          fi
+
+      - name: Compare mypy diagnostics with the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/orogen-base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/orogen-base" && python -m mypy --no-error-summary --show-error-codes orogen) > "$RUNNER_TEMP/mypy-base.txt" 2>&1 || true
+          python -m mypy --no-error-summary --show-error-codes orogen > "$RUNNER_TEMP/mypy-current.txt" 2>&1 || true
+          python scripts/check_mypy_regressions.py \
+            "$RUNNER_TEMP/mypy-base.txt" "$RUNNER_TEMP/mypy-current.txt"
+          echo "::group::Current mypy diagnostics"
+          cat "$RUNNER_TEMP/mypy-current.txt"
+          echo "::endgroup::"
+
+
+      - name: Audit remaining complexity hotspots
+        run: |
+          radon cc -s -a \
+            orogen/v2/tectonics/collision.py \
+            orogen/v2/tectonics/forces.py \
+            orogen/v2/tectonics/ops/merge_plates.py \
+            orogen/v2/tectonics/ops/rift_path.py \
+            orogen/v2/tectonics/subduction_init.py
+          radon mi -s \
+            orogen/v2/tectonics/collision.py \
+            orogen/v2/tectonics/forces.py \
+            orogen/v2/tectonics/ops/merge_plates.py \
+            orogen/v2/tectonics/ops/rift_path.py \
+            orogen/v2/tectonics/subduction_init.py

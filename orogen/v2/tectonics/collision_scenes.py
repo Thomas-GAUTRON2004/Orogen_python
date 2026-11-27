@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 
+from ..core.sim_mesh import SimMesh
 from ..core.sphere_geometry import normalize
-from .scenarios import add_apron_and_trench, add_continent, fill_background
+from .scenarios import SceneMask, add_apron_and_trench, add_continent, fill_background
 from .scene_support import add_ocean_corridor, begin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 
 
-def _zipper(sim_mesh: Any, seed: int):
+def _zipper(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     borea = world.add_plate("Borea")
     austra = world.add_plate("Austra")
@@ -36,7 +36,7 @@ def _zipper(sim_mesh: Any, seed: int):
             np.asarray([core["centre"] for core in cores], dtype=np.float64), axis=0
         ).tolist()
     )
-    borea_land = {"centre": middle, "isLand": is_land}
+    borea_land: SceneMask = {"centre": middle, "isLand": is_land}
     add_apron_and_trench(canvas, borea, borea_land, [[180.0, 360.0]], world.config)
 
     parts = [
@@ -63,7 +63,7 @@ def _zipper(sim_mesh: Any, seed: int):
     return world
 
 
-COLLISION_SCENES: list[dict[str, Any]] = [
+COLLISION_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "zipper",
         "label": "Two continents meet at an angle",
@@ -77,13 +77,13 @@ COLLISION_SCENES: list[dict[str, Any]] = [
 ]
 
 
-def build_collision_scene(sim_mesh: Any, seed: int = 0, scenario: str = "zipper"):
+def build_collision_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "zipper"):
     """Build a named deterministic collision-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in COLLISION_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in COLLISION_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in COLLISION_SCENES)
     raise ValueError(
         f"unknown collision scenario {scenario!r}; expected one of: {available}"
     )

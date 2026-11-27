@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+from ..core.sim_mesh import SimMesh
 from .config import mechanisms_on, only_mechanisms
 from .dynamics import update_plate_motion
 from .event_scenes import build_event_scene
 from .force_scenes import build_force_scene
 from .initial_world import build_start_world
 from .margin_scenes import build_margin_scene
+from .scene_types import CompleteSceneDefinition, build_from_catalogue
 from .world import TectonicWorld
 
 
-def _erosion(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _erosion(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = build_margin_scene(sim_mesh, seed, "margins")
     world.config.update(only_mechanisms("marginIsles", "marginErosion"))
     world.config.update(mechanisms_on("marginIsles", "marginErosion"))
@@ -21,25 +21,25 @@ def _erosion(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _india(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = build_force_scene(sim_mesh, seed, "india")
     world.config.update(only_mechanisms("underthrust"))
     world.config.update(mechanisms_on("underthrust"))
     return world
 
 
-def _arcs(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _arcs(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = build_event_scene(sim_mesh, seed, "arc-collision")
     world.config.update(only_mechanisms("wings", "arcs", "arcRecycling"))
     world.config.update(mechanisms_on("wings", "arcs", "arcRecycling"))
     return world
 
 
-def _history(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _history(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-BUDGET_SCENES: list[dict[str, Any]] = [
+BUDGET_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "erosion",
         "label": "Erosive and accretionary margins",
@@ -88,14 +88,14 @@ BUDGET_SCENES: list[dict[str, Any]] = [
 
 
 def build_budget_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "erosion"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "erosion"
 ) -> TectonicWorld:
     """Build a named deterministic crust-budget scene from the upstream catalogue."""
     key = str(scenario).strip().lower()
     for definition in BUDGET_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in BUDGET_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in BUDGET_SCENES)
     raise ValueError(
         f"unknown budget scenario {scenario!r}; expected one of: {available}"
     )

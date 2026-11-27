@@ -8,11 +8,23 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import TypedDict, cast
 
 from .crust import BeltSide, CrustType, OrogenyType
 
-DEFAULT_HEIGHTS = {
+
+class HeightConfig(TypedDict):
+    """Typed relief parameters used when building and rejuvenating mountain belts."""
+
+    reliefKm: Mapping[int, float]
+    fullReachKm: Mapping[int, float]
+    youngShare: float
+    upliftBuildKm: Mapping[int, float]
+    rootGain: Mapping[int, float]
+    arcUpliftShare: float
+
+
+DEFAULT_HEIGHTS: HeightConfig = {
     "reliefKm": {
         OrogenyType["ANDEAN"]: 3.4,
         OrogenyType["LARAMIDE"]: 1.5,
@@ -173,7 +185,7 @@ def build_heights(
     amp: float = 1.0,
 ) -> None:
     """Accumulate crustal root, broad uplift and ruggedness for one belt cell."""
-    heights = cast(Mapping[str, Any], config.get("heights") or DEFAULT_HEIGHTS)
+    heights = cast(HeightConfig, config.get("heights") or DEFAULT_HEIGHTS)
     crust.rootKm[cell] += float(thickened_km) * float(
         heights.get("rootGain", {}).get(oro_type, 1.0)
     )

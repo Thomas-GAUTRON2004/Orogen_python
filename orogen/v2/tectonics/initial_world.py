@@ -29,8 +29,9 @@ from ..core.sphere_geometry import (
 )
 from .crust import CrustFlag, CrustType, OrogenyType
 from .far_field import spread_push
-from .initial_cratons import Craton
-from .initial_types import ConfigValue
+from .initial_cratons import Craton, CratonLayout
+from .initial_landmass import LandmassResult
+from .initial_types import ConfigValue, InitialConfig
 from .spread_belt import spread_belt
 from .world import EventKind, TectonicWorld
 
@@ -375,6 +376,19 @@ class StartWorldMetadata(TypedDict, total=False):
     apronCells: int
 
 
+class LayoutCandidate(TypedDict):
+    layout: CratonLayout
+    land: LandmassResult
+    areaScale: float
+    excess: float
+    attempts: int
+
+
+class FoundLayout(LayoutCandidate):
+    middle: list[float]
+    fractionMet: bool
+
+
 class StartWorldResult(TypedDict):
     world: TectonicWorld
     start: StartWorldMetadata
@@ -606,7 +620,7 @@ def _build_coarse_start_world(
                 "cluster": int(group_for_terrane[index]),
             }
         )
-    start = {
+    start: StartWorldMetadata = {
         "cratons": cratons,
         "centre": centre.tolist(),
         "rimCentre": centre.tolist(),
@@ -702,11 +716,11 @@ def _shrink_steps(floor: float) -> list[float]:
 def _shape_attempt(
     sim_mesh: SimMesh,
     seed: int,
-    config: dict,
+    config: InitialConfig,
     attempt: int,
-    layout: dict,
+    layout: CratonLayout,
     stretch: float,
-):
+) -> LandmassResult | None:
     from .initial_landmass import shape_landmass
 
     passive = _passive_stretch(
@@ -720,11 +734,11 @@ def _shape_attempt(
 
 
 def _evaluate_layout_attempt(
-    sim_mesh: SimMesh, seed: int, config: dict, attempt: int
-) -> tuple[list[dict], dict | None]:
+    sim_mesh: SimMesh, seed: int, config: InitialConfig, attempt: int
+) -> tuple[list[LayoutCandidate], LayoutCandidate | None]:
     from .initial_cratons import place_cratons
 
-    tried: list[dict] = []
+    tried: list[LayoutCandidate] = []
     stretch = 1.0 - attempt / _MAX_LAYOUT_ATTEMPTS
     for area_scale in _shrink_steps(config["cratonMinAreaScale"]):
         rng = make_rng(seed * 31 + attempt * 7919 + 17)
@@ -770,12 +784,12 @@ def _half_span_deg(
     return math.degrees(math.acos(max(-1.0, min(1.0, farthest_dot))))
 
 
-def _find_layout(sim_mesh: SimMesh, seed: int, config: dict) -> dict | None:
+def _find_layout(sim_mesh: SimMesh, seed: int, config: InitialConfig) -> FoundLayout | None:
     """Search layouts in deterministic upstream attempt order."""
     round_span = math.degrees(
         math.acos(1.0 - 2.0 * float(config["continentalFraction"]))
     )
-    closest: dict | None = None
+    closest: LayoutCandidate | None = None
     for attempt in range(_MAX_LAYOUT_ATTEMPTS):
         tried, fit = _evaluate_layout_attempt(sim_mesh, seed, config, attempt)
         for candidate in tried:
@@ -794,16 +808,17 @@ def _find_layout(sim_mesh: SimMesh, seed: int, config: dict) -> dict | None:
             continue
         # As upstream findLayout: the reported attempt is the loop number, even for
         # the closest (not fitting) candidate returned by the last attempt.
-        return {
+        result: FoundLayout = {
             **chosen,
             "middle": middle,
             "fractionMet": fit is not None,
             "attempts": attempt + 1,
         }
+        return result
     return None
 
 
-def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
+def _record_start_pushes(world: TectonicWorld, continent, land: LandmassResult) -> None:
     config = world.config
     work = float(config["farStartWorkKm"])
     if work <= 0.0:
@@ -827,7 +842,7 @@ def _record_start_pushes(world: TectonicWorld, continent, land: dict) -> None:
 
 
 def _assemble_upstream_start_world(
-    world: TectonicWorld, seed: int, found: dict
+    world: TectonicWorld, seed: int, found: FoundLayout
 ) -> StartWorldResult:
     from .initial_landmass import Seam
 
@@ -951,7 +966,7 @@ def build_start_world(
     if int(sim_mesh.num_cells) < 512:
         return _build_coarse_start_world(sim_mesh, seed, overrides)
     world = TectonicWorld(sim_mesh, seed, overrides=overrides)
-    found = _find_layout(sim_mesh, int(seed), world.config)
+    found = _find_layout(sim_mesh, int(seed), cast(InitialConfig, world.config))
     if found is None:
         # Upstream wording (assemble in init/start-world.js), kept verbatim.
         raise ValueError(

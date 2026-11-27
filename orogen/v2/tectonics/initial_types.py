@@ -14,6 +14,9 @@ NumericRange = list[int | float] | tuple[int | float, int | float]
 class InitialConfig(TypedDict, total=False):
     """Subset of tectonic configuration consumed by craton and landmass builders."""
 
+    rimTrenchCoverage: int | float
+    cratonMinAreaScale: int | float
+    spanAllowanceDeg: int | float
     cratonRiftSteps: int
     cratonRiftStepKm: NumericRange
     cratonRiftDepth: NumericRange

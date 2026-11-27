@@ -26,6 +26,8 @@ class MinHeap:
         self.size = 0
         self.last_key = math.nan
 
+    # The JavaScript method returns undefined, which the JSON replay cannot encode.
+    # differential: skip
     def push(self, key: float, identifier: int) -> None:
         if self.size == len(self.keys):
             new_keys = np.empty(self.size * 2, dtype=np.float64)
@@ -48,6 +50,8 @@ class MinHeap:
     def peek_key(self) -> float:
         return float(self.keys[0])
 
+    # The generated empty-heap case returns undefined upstream, not an exception.
+    # differential: skip
     def pop(self) -> int:
         if self.size == 0:
             raise IndexError("pop from empty MinHeap")

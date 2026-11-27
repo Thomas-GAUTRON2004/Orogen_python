@@ -19,12 +19,13 @@ from .scenarios import (
     scene_terrane,
 )
 from .scene_support import add_ocean_corridor, begin_scene
+from .plate import Plate
 from .world import TectonicWorld
 
 
 def _add_arc_ridge(
     canvas: dict[str, Any],
-    plate: Any,
+    plate: Plate,
     first: list[float],
     second: list[float],
     distance_km: float,
@@ -60,7 +61,7 @@ def _add_arc_ridge(
 
 def _add_arc_plate(
     canvas: dict[str, Any],
-    plate: Any,
+    plate: Plate,
     *,
     latitude: float,
     longitude: float,

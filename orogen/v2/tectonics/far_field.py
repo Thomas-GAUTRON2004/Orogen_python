@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 
@@ -23,7 +23,7 @@ from ..core._numba_kernels import (
 from ..core.min_heap import MinHeap
 from ..core.sphere_geometry import cell_distance_km
 from .crust import CrustFlag, CrustType, OrogenyType
-from .heights import DEFAULT_HEIGHTS, belt_relief_km, broad_profile
+from .heights import DEFAULT_HEIGHTS, HeightConfig, belt_relief_km, broad_profile
 from .spread_belt import spread_belt
 
 _WEAK = CrustFlag["SUTURE"] | CrustFlag["FAILED_RIFT"] | CrustFlag["RIFT_MARGIN"]
@@ -610,7 +610,7 @@ def _rejuvenate(
             queue.append(neighbour)
 
     reached = list(dict.fromkeys(queue))
-    heights = cast(Mapping[str, Any], world.config.get("heights") or DEFAULT_HEIGHTS)
+    heights = cast(HeightConfig, world.config.get("heights") or DEFAULT_HEIGHTS)
     intraplate_build = float(heights["upliftBuildKm"][OrogenyType["INTRAPLATE"]])
     if intraplate_build <= 0.0:
         raise ValueError("INTRAPLATE upliftBuildKm must be positive")

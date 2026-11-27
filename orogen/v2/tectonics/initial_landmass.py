@@ -14,6 +14,7 @@ import numpy as np
 
 from ..core.mesh_bfs import flood_from, within_km
 from ..core.sim_mesh import SimMesh
+from ..core.simplex_noise import SimplexNoise
 from ..core.sphere_geometry import (
     PLANET_RADIUS_KM,
     angle_between,
@@ -233,7 +234,7 @@ def _bridges(
 def shape_landmass(
     sim_mesh: SimMesh,
     layout: Mapping[str, Any],
-    noise: Any,
+    noise: SimplexNoise,
     rng: Callable[[], float],
     cfg: Mapping[str, Any],
     stretch: float = 1.0,
@@ -247,7 +248,7 @@ def shape_landmass(
     xyz = np.asarray(sim_mesh.xyz, dtype=np.float64).reshape((-1, 3))
     num_cells = int(sim_mesh.num_cells)
 
-    def km(value: Any) -> float:
+    def km(value: float | int) -> float:
         return float(value) / PLANET_RADIUS_KM
 
     edge_noise = km(cfg["cratonEdgeNoiseKm"])

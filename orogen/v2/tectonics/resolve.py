@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import NotRequired, TypedDict
 
 import numpy as np
 
@@ -13,11 +13,20 @@ from .crust import CrustFlag, CrustType
 from .gather import clear_world_view, for_each_claim
 from .occupancy import bin_index, mark_bin, may_have_crust_near
 from .polarity import overrides
+from .plate import Plate
 from .segments import fracture_coordinate
 
 REACH_RINGS = 2
 AHEAD_CONE = 0.5
 PROXIMITY_RINGS = 3
+
+
+class CrustHit(TypedDict):
+    """Nearest crust sample used by gap ownership and birth decisions."""
+
+    dot: float
+    cell: int
+    real: NotRequired[bool]
 
 
 def resolve(world) -> dict[str, int]:
@@ -107,10 +116,15 @@ def _grow_crust_into_gaps(world, gaps: list[int]) -> int:
     xyz = np.asarray(world.mesh.xyz).reshape(-1, 3)
     # Birth decisions are complete; initialize each plate's batch in one call
     # before recording per-cell geometry and trench metadata in original order.
-    groups: dict[int, list[Any]] = {}
+    groups: dict[int, tuple[Plate, list[int]]] = {}
     for plate, cell, _ in births:
-        group = groups.setdefault(plate.id, [plate, []])
-        group[1].append(cell)
+        group = groups.get(plate.id)
+        if group is None:
+            cells: list[int] = []
+            groups[plate.id] = (plate, cells)
+        else:
+            cells = group[1]
+        cells.append(cell)
     for plate, cells in groups.values():
         plate.crust.create_many(cells, CrustType["OCEAN"], world.time)
     for plate, cell, trench_parent in births:
@@ -260,10 +274,10 @@ def _assign_gap_owners(world, gaps) -> None:
         point = xyz[gap]
         bin_id = int(bins.bin_of[gap])
         near = [p for p in everyone if may_have_crust_near(p, bin_id, stamp, bins)]
-        best: Any = None
-        best_hit: dict[str, Any] | None = None
-        foreign: Any = None
-        foreign_hit: dict[str, Any] | None = None
+        best: Plate | None = None
+        best_hit: CrustHit | None = None
+        foreign: Plate | None = None
+        foreign_hit: CrustHit | None = None
         under = []
         for plate in near:
             cell = plate.cell_at(mesh.index, *map(float, point))
@@ -344,7 +358,7 @@ def _is_behind(plate, edge_cell: int, cell: int, mesh) -> bool:
     return float(np.dot(delta, normal)) / denominator < -0.35
 
 
-def _nearest_crust(plate, mesh, point, under: int = -1) -> dict:
+def _nearest_crust(plate: Plate, mesh, point, under: int = -1) -> CrustHit:
     xyz = np.asarray(mesh.xyz).reshape(-1, 3)
     local = plate.to_plate_frame(*map(float, point))
     rings = rings_of(mesh)

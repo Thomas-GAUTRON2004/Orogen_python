@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import numpy as np
 
@@ -19,7 +18,7 @@ class Plate:
     def __init__(self, plate_id: int, num_cells: int, born: float = 0.0):
         self.id = int(plate_id)
         self.name = str(plate_id)
-        self.scene: dict[str, Any] = {}
+        self.scene: dict[str, object] = {}
         self.alive = True
         self.born = float(born)
         self.bornOfRift = False

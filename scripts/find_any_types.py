@@ -128,9 +128,7 @@ def main() -> int:
         description="List typing.Any occurrences in Python type annotations."
     )
     parser.add_argument("directory", type=Path, help="Directory to scan recursively")
-    parser.add_argument(
-        "--json", action="store_true", help="Print findings as JSON"
-    )
+    parser.add_argument("--json", action="store_true", help="Print findings as JSON")
     args = parser.parse_args()
 
     root = args.directory.expanduser().resolve()

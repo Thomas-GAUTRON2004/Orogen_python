@@ -553,7 +553,12 @@ def build_nudge_scene(
         continent.omega = omega_from_euler_pole(pole, NUDGE_CM_YR)
         _ = current_world
 
-    scene: NudgeSceneResult = {**result, "drive": drive, "heading": heading, "pole": pole}
+    scene: NudgeSceneResult = {
+        **result,
+        "drive": drive,
+        "heading": heading,
+        "pole": pole,
+    }
     return scene
 
 

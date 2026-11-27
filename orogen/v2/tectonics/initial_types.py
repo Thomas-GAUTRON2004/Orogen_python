@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypeAlias, TypedDict
+
+ConfigValue: TypeAlias = str | int | float | bool | None | list["ConfigValue"] | dict[str, "ConfigValue"]
 
 NumericRange = list[int | float] | tuple[int | float, int | float]
 

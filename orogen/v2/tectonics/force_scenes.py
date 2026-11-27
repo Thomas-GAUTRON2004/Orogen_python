@@ -114,7 +114,7 @@ def _start_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-FORCE_SCENES: list[dict[str, object]] = [
+FORCE_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "one-sided",
         "label": "One-sided trench",

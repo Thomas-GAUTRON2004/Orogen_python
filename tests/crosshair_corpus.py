@@ -55,7 +55,9 @@ from differential_support import (  # noqa: E402
 #   socket.gethostname: numba reads the host name while it loads.
 UNBLOCKED_EVENTS = ("os.add_dll_directory", "socket.gethostname")
 
-JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+JsonValue: TypeAlias = (
+    None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+)
 CrossHairValue: TypeAlias = (
     None
     | bool

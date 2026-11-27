@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -135,12 +136,12 @@ def _add_arc_plate(
             plate.crust.terrane[cell] = terrane_id
 
 
-def _wings(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _wings(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     definition = next(scene for scene in FORCE_SCENES if scene["id"] == "one-sided")
     return definition["build"](sim_mesh, seed)
 
 
-def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _terrane(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     rider = world.add_plate("Rider")
@@ -167,7 +168,7 @@ def _terrane(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _arc(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     austral = world.add_plate("Austral")
     oceanica = world.add_plate("Oceanica")
@@ -199,7 +200,7 @@ def _arc(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _arc_collision(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _arc_collision(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     west = world.add_plate("Westland")
     east = world.add_plate("Eastland")
@@ -298,7 +299,7 @@ EVENT_SCENES: list[dict[str, Any]] = [
 
 
 def build_event_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "wings"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "wings"
 ) -> TectonicWorld:
     """Build a named deterministic event-rule scene from the upstream catalogue."""
     key = str(scenario).strip().lower()

@@ -36,6 +36,7 @@ from pathlib import Path
 from types import FunctionType, ModuleType
 from typing import Protocol, TypeAlias, TypedDict, cast
 
+import numpy as np
 import pytest
 
 from differential_support import (
@@ -66,7 +67,7 @@ DecodedValue: TypeAlias = (
 )
 PythonValue: TypeAlias = (
     None | bool | int | float | str | list["PythonValue"]
-    | tuple["PythonValue", ...] | dict[str, "PythonValue"]
+    | tuple["PythonValue", ...] | dict[str, "PythonValue"] | np.ndarray | np.generic
 )
 
 
@@ -446,7 +447,11 @@ def _resolve_python_target(target: ReplayTarget) -> Callable[..., PythonValue]:
 
 
 def _normalise(value: PythonValue) -> JsonValue:
-    """Make non-finite numbers match the JavaScript runner's JSON encoding."""
+    """Make Python and NumPy values match the JavaScript runner's JSON encoding."""
+    if isinstance(value, np.ndarray):
+        return _normalise(cast(PythonValue, value.tolist()))
+    if isinstance(value, np.generic):
+        return _normalise(cast(PythonValue, value.item()))
     if isinstance(value, bool):
         return value
     if isinstance(value, float) and not math.isfinite(value):

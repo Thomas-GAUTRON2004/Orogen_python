@@ -375,7 +375,7 @@ def _make_block(
     )
     ragged = 0.4 + 0.6 * rng()
     psi = rng() * math.pi
-    body = {
+    body: Body = {
         "u0": 0.0,
         "v0": 0.0,
         "a": math.sqrt(aspect),
@@ -517,7 +517,7 @@ def _from_frame(frame: Frame, u: float, v: float) -> list[float]:
     ]
 
 
-def _frame_at(origin: list[float], turn: float) -> dict[str, list[float]]:
+def _frame_at(origin: list[float], turn: float) -> Frame:
     east0, north0 = tangent_basis(origin)
     cosine, sine = math.cos(turn), math.sin(turn)
     return {
@@ -548,6 +548,8 @@ def craton_edge(craton: Craton, x: float, y: float, z: float) -> dict[str, float
     block = craton["block"]
     piece = craton["piece"]
     frame = block["frame"]
+    if frame is None:
+        raise ValueError("craton block has not been placed")
     co = x * frame["o"][0] + y * frame["o"][1] + z * frame["o"][2]
     pe = x * frame["e"][0] + y * frame["e"][1] + z * frame["e"][2]
     pn = x * frame["n"][0] + y * frame["n"][1] + z * frame["n"][2]

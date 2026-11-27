@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
@@ -26,7 +27,7 @@ _begin = begin_scene
 _add_ocean_between = add_ocean_corridor
 
 
-def _one_sided(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _one_sided(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     solo = world.add_plate("Solo")
     continent = add_continent(
@@ -41,7 +42,7 @@ def _one_sided(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _tug(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _tug(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     balanced = world.add_plate("Balanced")
     lopsided = world.add_plate("Lopsided")
@@ -70,7 +71,7 @@ def _tug(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _wilson(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _wilson(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = build_wilson_world(sim_mesh, seed, far_centre=(2.0, 26.0))
     west = next(plate for plate in world.plates if plate.name == "West")
     east = next(plate for plate in world.plates if plate.name == "East")
@@ -82,7 +83,7 @@ def _wilson(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _india(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
@@ -109,7 +110,7 @@ def _india(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _start_world(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _start_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     """Build a fresh mutable start world instead of reusing simulation state."""
     return build_start_world(sim_mesh, seed)["world"]
 
@@ -216,7 +217,7 @@ FORCE_SCENES: list[dict[str, Any]] = [
 
 
 def build_force_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "one-sided"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "one-sided"
 ) -> TectonicWorld:
     """Build a named deterministic force-model scene from the upstream catalogue."""
     key = str(scenario).strip().lower()

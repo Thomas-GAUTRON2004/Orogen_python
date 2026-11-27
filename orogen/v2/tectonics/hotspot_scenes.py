@@ -43,7 +43,11 @@ HAWAII: HawaiiParameters = {
     "bendMyr": 45.0,
     "legs": (0.0, -60.0),
 }
-DECCAN: DeccanParameters = {"plume": (-30.0, 75.0), "speedCmYr": 12.0, "arrivesMyr": 12.0}
+DECCAN: DeccanParameters = {
+    "plume": (-30.0, 75.0),
+    "speedCmYr": 12.0,
+    "arrivesMyr": 12.0,
+}
 PLUMES_ONLY = only_mechanisms()
 
 

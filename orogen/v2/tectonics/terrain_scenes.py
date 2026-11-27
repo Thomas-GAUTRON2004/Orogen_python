@@ -26,7 +26,7 @@ from .scenarios import (
 )
 from .scene_constants import FAR_TERRANES
 from .scene_support import add_ocean_corridor, begin_scene
-from .scene_types import CompleteSceneDefinition, build_from_catalogue
+from .scene_types import CompleteSceneDefinition, SceneOverrideValue, build_from_catalogue
 from .world import TectonicWorld
 
 WHOLE_PLANET_PACE = MappingProxyType({"maxCellsPerStep": 2.25, "slowRulesEveryMyr": 3})
@@ -62,7 +62,7 @@ def flagged(
 
 
 def _from_catalogue(
-    catalogue: Sequence[CompleteSceneDefinition], scene_id: str, **overrides: str
+    catalogue: Sequence[CompleteSceneDefinition], scene_id: str, **overrides: SceneOverrideValue
 ) -> CompleteSceneDefinition:
     scene = next(item for item in catalogue if item["id"] == scene_id)
     return cast(CompleteSceneDefinition, {**scene, "drive": update_plate_motion, **overrides})

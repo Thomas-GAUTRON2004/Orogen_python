@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from typing import Any, TypedDict, cast
+from typing import TypedDict, cast
 
 import numpy as np
+
+from .initial_types import InitialConfig
 
 from ..core.sphere_geometry import (
     PLANET_RADIUS_KM,
@@ -224,7 +226,7 @@ def _body_radius(body: Body, theta: float) -> float:
 
 def _rift_edge(
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     body: Body,
     bearing: float,
     depth: float,
@@ -257,7 +259,7 @@ def _rift_edge(
 
 def _outer_edges(
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     body: Body,
     count: int,
     start: float,
@@ -289,7 +291,7 @@ def _outer_edges(
     return result
 
 
-def _edge_count(rng: Callable[[], float], cfg: Mapping[str, Any]) -> int:
+def _edge_count(rng: Callable[[], float], cfg: InitialConfig) -> int:
     lower, upper = cfg["cratonRiftEdges"]
     return int(lower) + math.floor(rng() * (int(upper) - int(lower) + 1))
 
@@ -361,7 +363,7 @@ def _planar_gap(first: list[list[float]], second: list[list[float]]) -> float:
 
 def _make_block(
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     targets: list[float],
     opening: float,
 ) -> Block:
@@ -574,7 +576,7 @@ def craton_edge(
 
 
 def _craton_radii(
-    rng: Callable[[], float], cfg: Mapping[str, Any], area_scale: float
+    rng: Callable[[], float], cfg: InitialConfig, area_scale: float
 ) -> list[float]:
     count = int(cfg["cratonCount"])
     target = float(cfg["cratonShare"]) * float(cfg["continentalFraction"]) * area_scale
@@ -667,7 +669,7 @@ def _outline_gap(first: PlacedPiece, second: PlacedPiece) -> float:
 
 def place_cratons(
     rng: Callable[[], float],
-    cfg: Mapping[str, Any],
+    cfg: InitialConfig,
     stretch: float = 1.0,
     area_scale: float = 1.0,
 ) -> CratonLayout | None:

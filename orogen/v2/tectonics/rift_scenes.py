@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from typing import Any
 
 from ..core.sim_mesh import SimMesh
 from .config import mechanisms_off
@@ -14,6 +13,7 @@ from .scenarios import SceneCanvas, add_apron_and_trench, add_continent, add_oce
 from .plate import Plate
 from .scene_support import begin_scene
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 
 
 def _share_basin(
@@ -136,7 +136,7 @@ def _founder(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return world
 
 
-RIFT_SCENES: list[dict[str, Any]] = [
+RIFT_SCENES: list[dict[str, object]] = [
     {
         "id": "plume",
         "label": "A plume splits a continent",
@@ -177,8 +177,8 @@ def build_rift_scene(
     key = str(scenario).strip().lower()
     for definition in RIFT_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in RIFT_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in RIFT_SCENES)
     raise ValueError(
         f"unknown rift scenario {scenario!r}; expected one of: {available}"
     )

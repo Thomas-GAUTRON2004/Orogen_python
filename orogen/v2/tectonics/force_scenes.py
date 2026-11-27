@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from ..core.sim_mesh import SimMesh
 from .initial_world import build_start_world
@@ -16,6 +15,7 @@ from .scenarios import (
 )
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 
 WEST: tuple[tuple[float, float], ...] = ((125.0, 235.0),)
 EAST: tuple[tuple[float, float], ...] = ((-55.0, 55.0),)
@@ -115,7 +115,7 @@ def _start_world(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-FORCE_SCENES: list[dict[str, Any]] = [
+FORCE_SCENES: list[dict[str, object]] = [
     {
         "id": "one-sided",
         "label": "One-sided trench",
@@ -223,8 +223,8 @@ def build_force_scene(
     key = str(scenario).strip().lower()
     for definition in FORCE_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in FORCE_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in FORCE_SCENES)
     raise ValueError(
         f"unknown force scenario {scenario!r}; expected one of: {available}"
     )

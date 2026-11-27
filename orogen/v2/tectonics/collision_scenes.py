@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 import numpy as np
 
@@ -64,7 +63,7 @@ def _zipper(sim_mesh: SimMesh, seed: int):
     return world
 
 
-COLLISION_SCENES: list[dict[str, Any]] = [
+COLLISION_SCENES: list[dict[str, object]] = [
     {
         "id": "zipper",
         "label": "Two continents meet at an angle",
@@ -83,8 +82,8 @@ def build_collision_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "zip
     key = str(scenario).strip().lower()
     for definition in COLLISION_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in COLLISION_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in COLLISION_SCENES)
     raise ValueError(
         f"unknown collision scenario {scenario!r}; expected one of: {available}"
     )

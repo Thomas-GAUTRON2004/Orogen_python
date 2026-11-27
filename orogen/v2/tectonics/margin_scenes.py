@@ -16,6 +16,7 @@ from .initial_world import build_start_world
 from .kinematics import lat_lon_to_xyz
 from .plate import Plate
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 from .scenarios import (
     add_apron_and_trench,
     add_continent,
@@ -263,7 +264,7 @@ def _history(sim_mesh: SimMesh, seed: int):
     return build_start_world(sim_mesh, seed)["world"]
 
 
-MARGIN_SCENES: list[dict[str, Any]] = [
+MARGIN_SCENES: list[dict[str, object]] = [
     {
         "id": "margins",
         "label": "A continent’s leading and trailing coasts",
@@ -331,8 +332,8 @@ def build_margin_scene(sim_mesh: SimMesh, seed: int = 0, scenario: str = "margin
     key = str(scenario).strip().lower()
     for definition in MARGIN_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in MARGIN_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in MARGIN_SCENES)
     raise ValueError(
         f"unknown margin scenario {scenario!r}; expected one of: {available}"
     )

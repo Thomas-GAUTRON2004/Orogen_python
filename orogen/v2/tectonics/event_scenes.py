@@ -22,6 +22,7 @@ from .scenarios import (
 )
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 
 
 def _add_arc_ridge(
@@ -140,7 +141,7 @@ def _add_arc_plate(
 
 def _wings(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     definition = next(scene for scene in FORCE_SCENES if scene["id"] == "one-sided")
-    return definition["build"](sim_mesh, seed)
+    return build_from_catalogue(definition, sim_mesh, seed)
 
 
 def _terrane(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
@@ -252,7 +253,7 @@ def _arc_collision(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return world
 
 
-EVENT_SCENES: list[dict[str, Any]] = [
+EVENT_SCENES: list[dict[str, object]] = [
     {
         "id": "wings",
         "label": "Trench wings & island arcs",
@@ -307,8 +308,8 @@ def build_event_scene(
     key = str(scenario).strip().lower()
     for definition in EVENT_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in EVENT_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in EVENT_SCENES)
     raise ValueError(
         f"unknown event scenario {scenario!r}; expected one of: {available}"
     )

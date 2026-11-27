@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from ..core.sim_mesh import SimMesh
 from .config import mechanisms_on, only_mechanisms
@@ -12,6 +11,7 @@ from .force_scenes import build_force_scene
 from .initial_world import build_start_world
 from .margin_scenes import build_margin_scene
 from .world import TectonicWorld
+from .scene_types import build_from_catalogue
 
 
 def _erosion(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
@@ -40,7 +40,7 @@ def _history(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     return build_start_world(sim_mesh, seed)["world"]
 
 
-BUDGET_SCENES: list[dict[str, Any]] = [
+BUDGET_SCENES: list[dict[str, object]] = [
     {
         "id": "erosion",
         "label": "Erosive and accretionary margins",
@@ -95,8 +95,8 @@ def build_budget_scene(
     key = str(scenario).strip().lower()
     for definition in BUDGET_SCENES:
         if definition["id"] == key:
-            return definition["build"](sim_mesh, int(seed))
-    available = ", ".join(definition["id"] for definition in BUDGET_SCENES)
+            return build_from_catalogue(definition, sim_mesh, int(seed))
+    available = ", ".join(str(definition["id"]) for definition in BUDGET_SCENES)
     raise ValueError(
         f"unknown budget scenario {scenario!r}; expected one of: {available}"
     )

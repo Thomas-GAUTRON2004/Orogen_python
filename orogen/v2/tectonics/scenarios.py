@@ -39,6 +39,7 @@ from .kinematics import (
     omega_from_euler_pole,
     pose_at_constant_omega,
 )
+from .plate import Plate
 from .world import TectonicWorld
 
 # Retain the scenario-module hook used by downstream fixtures and extensions.
@@ -121,7 +122,7 @@ def add_continent(
     canvas: dict[str, Any],
     noise: SimplexNoise,
     *,
-    plate: Any,
+    plate: Plate,
     centre: tuple[float, float] | list[float],
     radius_km: float,
     craton_km: float | None = None,
@@ -168,7 +169,7 @@ def add_continent(
 
 def add_apron_and_trench(
     canvas: dict[str, Any],
-    plate: Any,
+    plate: Plate,
     continent: dict[str, Any],
     sectors: str | Sequence[Sequence[float]],
     config: dict,
@@ -202,7 +203,7 @@ def add_apron_and_trench(
 
 def flag_coast_trench(
     sim_mesh: SimMesh,
-    plate: Any,
+    plate: Plate,
     centre_xyz: list[float] | np.ndarray,
     sectors: str | Sequence[Sequence[float]],
     config: dict,
@@ -226,7 +227,7 @@ def flag_coast_trench(
 
 def add_ocean(
     canvas: dict[str, Any],
-    plate: Any,
+    plate: Plate,
     wanted: Any,
     formed_at: float,
 ) -> None:

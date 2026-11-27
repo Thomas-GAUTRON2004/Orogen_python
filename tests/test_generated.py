@@ -49,6 +49,7 @@ from differential_support import (
     opted_in_modules,
 )
 
+
 class _Opaque:
     """A value the JSON corpus could only record as text."""
 

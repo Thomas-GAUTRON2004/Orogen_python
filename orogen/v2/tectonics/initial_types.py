@@ -42,6 +42,7 @@ class InitialConfig(TypedDict, total=False):
     sutureHalfWidthKm: int | float
     startCoreKm: int | float
     startGrowthBias: int | float
+    startSeamWanderKm: int | float
     startRingKm: NumericRange
     cratonRiftNoise: int | float
     startCoastDetailKm: int | float

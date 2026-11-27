@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from types import MappingProxyType
 from typing import Any
+
+from .plate import Plate
 from ..core.sim_mesh import SimMesh
 
 import numpy as np

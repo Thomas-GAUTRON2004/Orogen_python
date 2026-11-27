@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping, Sequence
-from typing import cast
 from types import MappingProxyType
+from typing import cast
 
 import numpy as np
 

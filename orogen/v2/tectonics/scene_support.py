@@ -12,6 +12,7 @@ from ..core.sphere_geometry import PLANET_RADIUS_KM, cross, dot, normalize
 from .scenarios import add_ocean, scene_canvas
 from .world import TectonicWorld
 
+
 def begin_scene(
     sim_mesh: SimMesh, seed: int
 ) -> tuple[TectonicWorld, dict[str, Any], SimplexNoise]:

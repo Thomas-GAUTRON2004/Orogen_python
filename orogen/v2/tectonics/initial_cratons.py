@@ -527,9 +527,7 @@ def _frame_at(origin: list[float], turn: float) -> dict[str, list[float]]:
     }
 
 
-def _placed(
-    block: Block, frame: Frame
-) -> list[PlacedPiece]:
+def _placed(block: Block, frame: Frame) -> list[PlacedPiece]:
     result: list[PlacedPiece] = []
     for piece in block["pieces"]:
         result.append(

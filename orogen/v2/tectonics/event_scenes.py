@@ -22,6 +22,7 @@ from .scenarios import (
 from .scene_support import add_ocean_corridor, begin_scene
 from .world import TectonicWorld
 
+
 def _add_arc_ridge(
     canvas: dict[str, Any],
     plate: Plate,

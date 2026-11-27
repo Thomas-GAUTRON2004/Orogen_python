@@ -659,7 +659,12 @@ def _shrink_steps(floor: float) -> list[float]:
 
 
 def _shape_attempt(
-    sim_mesh: SimMesh, seed: int, config: dict, attempt: int, layout: dict, stretch: float
+    sim_mesh: SimMesh,
+    seed: int,
+    config: dict,
+    attempt: int,
+    layout: dict,
+    stretch: float,
 ):
     from .initial_landmass import shape_landmass
 
@@ -713,7 +718,9 @@ def _land_centroid(sim_mesh: SimMesh, land_type: np.ndarray) -> list[float]:
     return (total / length).tolist()
 
 
-def _half_span_deg(sim_mesh: SimMesh, land_type: np.ndarray, centre: list[float]) -> float:
+def _half_span_deg(
+    sim_mesh: SimMesh, land_type: np.ndarray, centre: list[float]
+) -> float:
     xyz = _mesh_xyz(sim_mesh)
     selected = land_type != CrustType["OCEAN"]
     if not np.any(selected):

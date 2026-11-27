@@ -4,13 +4,14 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 import numpy as np
 
+from .mesh_types import IndexedMeshGraph
+
 
 def locate(
-    mesh: Any,
+    mesh: IndexedMeshGraph,
     x: float,
     y: float,
     z: float,

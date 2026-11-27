@@ -7,11 +7,11 @@ from __future__ import annotations
 import math
 import weakref
 from collections.abc import Callable
-from typing import Any
 
 import numpy as np
 
 from ._numba_kernels import NUMBA_AVAILABLE, spread_km_numba
+from .mesh_types import MeshGraph
 from .sphere_geometry import PLANET_RADIUS_KM
 
 
@@ -78,10 +78,10 @@ class MinHeap:
         return top_id
 
 
-_EDGE_KM: weakref.WeakKeyDictionary[Any, np.ndarray] = weakref.WeakKeyDictionary()
+_EDGE_KM: weakref.WeakKeyDictionary[MeshGraph, np.ndarray] = weakref.WeakKeyDictionary()
 
 
-def forget_edge_km(mesh: Any) -> None:
+def forget_edge_km(mesh: MeshGraph) -> None:
     """Release cached edge lengths for a mesh."""
     _EDGE_KM.pop(mesh, None)
 

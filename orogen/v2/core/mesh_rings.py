@@ -4,14 +4,22 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
+
+from .mesh_types import MeshGraph
+
+class MeshRings(TypedDict):
+    start: np.ndarray
+    cells: np.ndarray
+    stride: int
+
 
 RING_COUNT = 3
 
 
-def rings_of(mesh: Any) -> dict[str, Any]:
+def rings_of(mesh: MeshGraph) -> MeshRings:
     """Build and cache breadth-first rings 0..RING_COUNT for every cell."""
     cached = getattr(mesh, "_rings", None)
     if cached is not None:

@@ -28,7 +28,13 @@ Show the reason for each skipped entry:
 python -m pytest tests/test_generated.py -q -rs
 ```
 
-CI runs the same replay in `.github/workflows/differential-jspybridge.yml`.
+CI runs the corpus generator before the replay in
+`.github/workflows/differential-jspybridge.yml`. The workflow restores
+`tests/corpus/` from a branch-scoped GitHub Actions cache, regenerates only
+modules whose source fingerprint changed, then saves the updated corpus under
+a new cache key for the next run. The checked-in corpus remains the fallback
+when no cache exists. Cache entries are subject to GitHub Actions cache
+retention and eviction policies; the checked-in files are the durable baseline.
 
 ## Regenerate the corpora
 
@@ -37,7 +43,7 @@ committed as `tests/corpus/<dotted module name>.json`, for example
 `tests/corpus/orogen.v2.core.rotation.json`.
 
 ```bash
-python -m pip install crosshair-tool
+python -m pip install "crosshair-tool==0.0.114"
 python tests/crosshair_corpus.py
 ```
 

@@ -1,6 +1,6 @@
 """Rigid tectonic plate model ported from Orogen V2 model/plate.js."""
 
-# differential-module:
+# differential-module: params=quaternion:quaternion
 
 from __future__ import annotations
 

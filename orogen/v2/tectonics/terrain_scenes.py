@@ -6,6 +6,7 @@ import math
 from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import Any
+from ..core.sim_mesh import SimMesh
 
 import numpy as np
 
@@ -35,7 +36,7 @@ def flagged(
 ) -> Callable[[Mapping[str, Any], Any], tuple[float, float] | None]:
     """Return a focus callback for the centroid of land carrying a crust flag."""
 
-    def focus(frame: Mapping[str, Any], sim_mesh: Any) -> tuple[float, float] | None:
+    def focus(frame: Mapping[str, Any], sim_mesh: SimMesh) -> tuple[float, float] | None:
         owner = np.asarray(frame["owner"])
         cell_type = np.asarray(frame["type"])
         flags = np.asarray(frame["flags"])
@@ -64,7 +65,7 @@ def _from_catalogue(
     return {**scene, "drive": update_plate_motion, **overrides}
 
 
-def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_cratons(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
@@ -99,7 +100,7 @@ def _build_cratons(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_farfield(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world, canvas, noise = begin_scene(sim_mesh, seed)
     asia = world.add_plate("Asia")
     india = world.add_plate("India")
@@ -194,7 +195,7 @@ def _build_farfield(sim_mesh: Any, seed: int) -> TectonicWorld:
     return world
 
 
-def _build_traps(sim_mesh: Any, seed: int) -> TectonicWorld:
+def _build_traps(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = next(scene for scene in HOTSPOT_SCENES if scene["id"] == "deccan")["build"](
         sim_mesh, seed
     )
@@ -210,7 +211,7 @@ def _drive_traps(world: TectonicWorld) -> None:
 
 
 def _whole_planet(scene: dict[str, Any]) -> dict[str, Any]:
-    def build(sim_mesh: Any, seed: int) -> TectonicWorld:
+    def build(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
         world = scene["build"](sim_mesh, seed)
         world.config.update(WHOLE_PLANET_PACE)
         return world
@@ -334,7 +335,7 @@ TERRAIN_SCENES: list[dict[str, Any]] = [
 
 
 def build_terrain_scene(
-    sim_mesh: Any, seed: int = 0, scenario: str = "andes"
+    sim_mesh: SimMesh, seed: int = 0, scenario: str = "andes"
 ) -> TectonicWorld:
     """Build a named deterministic terrain scene from the upstream catalogue."""
     key = str(scenario).strip().lower()

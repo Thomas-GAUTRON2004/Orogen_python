@@ -34,7 +34,7 @@ import subprocess
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import FunctionType, ModuleType
-from typing import Protocol, TypedDict, TypeAlias, TypeVar, cast
+from typing import Protocol, TypedDict, TypeAlias, cast
 
 import pytest
 
@@ -52,7 +52,10 @@ DecodedValue: TypeAlias = (
     None | bool | int | float | str | bytes | list["DecodedValue"]
     | dict[str, "DecodedValue"] | _Opaque
 )
-T = TypeVar("T")
+PythonValue: TypeAlias = (
+    None | bool | int | float | str | list["PythonValue"]
+    | tuple["PythonValue", ...] | dict[str, "PythonValue"]
+)
 
 
 class FunctionMarker(TypedDict, total=False):
@@ -146,7 +149,7 @@ JS_RUNNER = ROOT / "tests" / "reference" / "v2" / "property-runner.mjs"
 
 # Types a parameter can take. Corpus entries whose arguments do not fit are
 # reported as skipped, with the reason. Values outside any range still run.
-_TYPE_CHECKS = {
+_TYPE_CHECKS: dict[str, Callable[[DecodedValue], bool]] = {
     "unit_float": lambda value: _is_number(value),
     "angle": lambda value: _is_number(value),
     "time_step": lambda value: _is_number(value),
@@ -410,14 +413,14 @@ def _all_targets() -> list[ReplayTarget]:
     return targets
 
 
-def _resolve_python_target(target: ReplayTarget) -> Callable[..., JsonValue]:
+def _resolve_python_target(target: ReplayTarget) -> Callable[..., PythonValue]:
     function = getattr(_import_python_module(target["module"]), target["id"])
     if not callable(function):
         raise AssertionError(f"Differential target is not a function: {target['id']}")
-    return cast(Callable[..., JsonValue], function)
+    return cast(Callable[..., PythonValue], function)
 
 
-def _normalise(value: JsonValue) -> JsonValue:
+def _normalise(value: PythonValue) -> JsonValue:
     """Make non-finite numbers match the JavaScript runner's JSON encoding."""
     if isinstance(value, bool):
         return value
@@ -479,7 +482,7 @@ class JavaScriptSession:
             raise RuntimeError(f"JavaScript runner exited unexpectedly: {stderr}")
         response = cast(dict[str, JsonValue], json.loads(line))
         if not response["ok"]:
-            raise JSTargetError(response["error"])
+            raise JSTargetError(cast(str, response["error"]))
         return response["result"]
 
     def close(self) -> None:
@@ -732,6 +735,6 @@ def test_corpus_replay(corpus_case: ReplayCase, javascript: ReplaySession) -> No
         )
         return
     _assert_equivalent(
-        _normalise(cast(JsonValue, python_result)),
+        _normalise(cast(PythonValue, python_result)),
         _normalise(javascript_result), target["comparison"]
     )

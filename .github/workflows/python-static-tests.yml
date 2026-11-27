@@ -73,6 +73,21 @@ jobs:
       - name: Scan Python package with Bandit
         run: bandit -q -r orogen
 
+      - name: Report Any annotations in the Python package
+        run: |
+          set +e
+          python scripts/find_any_types.py orogen
+          scan_status=$?
+          set -e
+          if [ "$scan_status" -gt 1 ]; then
+            exit "$scan_status"
+          fi
+          if [ "$scan_status" -eq 1 ]; then
+            echo "::notice title=Existing Any annotations::Any annotations are reported above. This is currently informational while legacy annotations are being typed."
+          else
+            echo "No Any annotations found."
+          fi
+
       - name: Scan repository for leaked secrets
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -124,7 +139,7 @@ jobs:
       - name: Lint all Python files with Ruff
         run: |
           python -m ruff check .
-          python -m ruff format --check scripts/check_mypy_regressions.py
+          python -m ruff format --check scripts/check_mypy_regressions.py scripts/find_any_types.py
           python -m ruff format --check orogen scripts tests
 
       - name: Report current mypy diagnostics

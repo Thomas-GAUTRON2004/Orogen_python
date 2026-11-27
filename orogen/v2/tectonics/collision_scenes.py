@@ -10,6 +10,7 @@ from .scenarios import SceneMask, add_apron_and_trench, add_continent, fill_back
 from .scene_support import add_ocean_corridor, begin_scene
 from .scene_types import CompleteSceneDefinition, build_from_catalogue
 
+
 def _zipper(sim_mesh: SimMesh, seed: int):
     world, canvas, noise = begin_scene(sim_mesh, seed)
     borea = world.add_plate("Borea")

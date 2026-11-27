@@ -117,7 +117,7 @@ def _drive_deccan(world: TectonicWorld) -> None:
     indica.omega = omega_for(point, heading(point, 0.0), DECCAN["speedCmYr"])
 
 
-HOTSPOT_SCENES: list[dict[str, object]] = [
+HOTSPOT_SCENES: list[CompleteSceneDefinition] = [
     {
         "id": "hawaii",
         "label": "A plate slides over a fixed plume",

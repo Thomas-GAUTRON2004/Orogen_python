@@ -96,15 +96,22 @@ def literal(node: ast.AST) -> Any:
     raise ValueError(f"unsupported expression: {ast.dump(node)[:80]}")
 
 
-def unblock_arguments() -> list[str]:
-    """Allow os.add_dll_directory, which numpy calls on Windows when it is imported.
+# Side effects CrossHair blocks while importing the orogen package. Each is
+# read-only or only registers a folder: it runs no code.
+#   os.add_dll_directory: numpy registers its DLL folders on Windows.
+#   socket.gethostname: numba reads the host name while it loads.
+UNBLOCKED_EVENTS = ("os.add_dll_directory", "socket.gethostname")
 
-    CrossHair blocks that call as a side effect. Allowing it per folder fails
-    when the path CrossHair sees differs in case or form from the one we build,
-    so the whole event is allowed. The call only registers a DLL search folder:
-    it runs no code.
+IMPORT_FAILURE = "Could not import your code"
+
+
+def unblock_arguments() -> list[str]:
+    """Return the --unblock flags for the events CrossHair blocks during import.
+
+    Events are allowed as a whole rather than per argument: a path-specific
+    prefix fails when the path CrossHair sees differs in case or form.
     """
-    return ["--unblock=os.add_dll_directory"]
+    return [f"--unblock={event}" for event in UNBLOCKED_EVENTS]
 
 
 def run_crosshair(
@@ -130,6 +137,19 @@ def run_crosshair(
         timeout=timeout * 8 + 120,
         check=False,
     )
+    output = completed.stdout + "\n" + completed.stderr
+    if IMPORT_FAILURE in output or completed.returncode != 0:
+        # Never write a corpus from a run that did not import the code: an empty
+        # corpus would look like a module with nothing to replay.
+        reason = next(
+            (
+                line.strip()
+                for line in output.splitlines()
+                if "Error" in line or "detected" in line
+            ),
+            output.strip()[-300:],
+        )
+        raise SystemExit(f"CrossHair could not run on {dotted}.{name}: {reason}")
     examples: list[dict[str, Any]] = []
     unreadable = 0
     for line in completed.stdout.splitlines():

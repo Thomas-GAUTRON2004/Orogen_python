@@ -1,6 +1,9 @@
 name: Differential tests (Node.js and JSPyBridge)
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - ".github/workflows/differential-jspybridge.yml"
@@ -86,3 +89,28 @@ jobs:
           path: htmlcov/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload coverage site for GitHub Pages
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: htmlcov/
+
+  deploy-coverage:
+    name: Deploy coverage report to GitHub Pages
+    needs: differential
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy coverage report
+        id: deployment
+        uses: actions/deploy-pages@v4

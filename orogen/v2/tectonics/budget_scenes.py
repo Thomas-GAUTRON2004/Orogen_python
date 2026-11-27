@@ -13,6 +13,7 @@ from .initial_world import build_start_world
 from .margin_scenes import build_margin_scene
 from .world import TectonicWorld
 
+
 def _erosion(sim_mesh: SimMesh, seed: int) -> TectonicWorld:
     world = build_margin_scene(sim_mesh, seed, "margins")
     world.config.update(only_mechanisms("marginIsles", "marginErosion"))

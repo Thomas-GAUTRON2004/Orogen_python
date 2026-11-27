@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import numpy as np
 
@@ -68,5 +68,5 @@ def rings_of(mesh: MeshGraph) -> MeshRings:
         "cells": cells[:count],
         "stride": stride,
     }
-    setattr(mesh, "_rings", result)
+    cast(Any, mesh)._rings = result
     return result

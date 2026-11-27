@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 import numpy as np
 
@@ -22,7 +22,28 @@ from ..core.sphere_geometry import (
     tangent_basis,
 )
 from .crust import CrustType
-from .initial_cratons import craton_edge
+from .initial_cratons import Craton, CratonLayout, craton_edge
+
+class ClusterFrame(TypedDict):
+    heart: list[float]
+    e: list[float]
+    n: list[float]
+    bias: float
+    towards: float
+    ringKm: float
+
+
+class LandmassResult(TypedDict):
+    type: np.ndarray
+    terrane: np.ndarray
+    suture: np.ndarray
+    owner: np.ndarray
+    pair: np.ndarray
+    pairRange: np.ndarray
+    skirtKm: float
+    rimCentre: list[float]
+    passive: dict[str, float]
+
 
 Seam = {"NONE": 0, "INNER": 1, "RING": 2, "MAJOR": 3}
 MAX_RINGS = 4
@@ -80,7 +101,7 @@ def _lerp(bounds: list[float] | tuple[float, float], value: float) -> float:
     return float(bounds[0]) + (float(bounds[1]) - float(bounds[0])) * value
 
 
-def _heart_of(cratons: list[Mapping[str, Any]]) -> list[float]:
+def _heart_of(cratons: list[Craton]) -> list[float]:
     total = np.zeros(3, dtype=np.float64)
     for craton in cratons:
         weight = float(craton["radius"]) ** 2
@@ -233,13 +254,13 @@ def _bridges(
 
 def shape_landmass(
     sim_mesh: SimMesh,
-    layout: Mapping[str, Any],
+    layout: CratonLayout,
     noise: SimplexNoise,
     rng: Callable[[], float],
     cfg: Mapping[str, Any],
     stretch: float = 1.0,
     passive: Mapping[str, float] | None = None,
-) -> dict[str, Any] | None:
+) -> LandmassResult | None:
     """Turn a packed craton layout into connected, terrane-labelled land."""
     if passive is None:
         passive = {"from": 0.0, "span": 0.0}
@@ -263,7 +284,7 @@ def shape_landmass(
         float(cfg["cratonMinGapKm"]) + 2.0 * float(cfg["cratonEdgeNoiseKm"])
     )
     small_craton = km(800.0)
-    clusters: list[dict[str, Any]] = []
+    clusters: list[ClusterFrame] = []
     for cluster in range(cluster_count):
         members = [item for item in cratons if int(item.get("cluster", 0)) == cluster]
         heart = _heart_of(members)

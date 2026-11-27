@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Callable, cast
+from collections.abc import Callable, Mapping
+from typing import cast
 
 from ..core.sim_mesh import SimMesh
 from .world import TectonicWorld

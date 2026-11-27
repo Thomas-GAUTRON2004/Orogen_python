@@ -257,7 +257,7 @@ def _rift_edge(
 def _outer_edges(
     rng: Callable[[], float],
     cfg: Mapping[str, Any],
-    body: Mapping[str, Any],
+    body: Body,
     count: int,
     start: float,
     span: float,
